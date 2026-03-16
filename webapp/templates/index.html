@@ -9,29 +9,94 @@
 <body>
   <div class="container">
     <h1>Paper Reviewer</h1>
+
     <div class="input-row">
-      <input id="message" type="text" placeholder="Type a message..." />
-      <button onclick="send()">Send</button>
+      <input id="md-name" type="text" placeholder="Markdown filename (e.g. paper.md)" />
+      <button onclick="loadSections()">Load</button>
     </div>
-    <div id="response" class="response"></div>
+    <div id="error" class="error"></div>
+    <div id="sections"></div>
+    <div id="save-row" class="save-row" style="display:none;">
+      <button onclick="saveResponses()">Save</button>
+      <span id="save-status" class="save-status"></span>
+    </div>
   </div>
 
   <script>
-    async function send() {
-      const message = document.getElementById("message").value.trim();
-      if (!message) return;
+    // header -> textarea element
+    const textareas = {};
 
-      const res = await fetch("/api/echo", {
+    async function loadSections() {
+      const mdName = document.getElementById("md-name").value.trim();
+      if (!mdName) return;
+
+      document.getElementById("error").textContent = "";
+      document.getElementById("sections").innerHTML = "";
+      document.getElementById("save-row").style.display = "none";
+      document.getElementById("save-status").textContent = "";
+      Object.keys(textareas).forEach(k => delete textareas[k]);
+
+      const res = await fetch("/api/segments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ md_name: mdName }),
       });
       const data = await res.json();
-      document.getElementById("response").textContent = data.reply;
+
+      if (data.error) {
+        document.getElementById("error").textContent = data.error;
+        return;
+      }
+
+      const container = document.getElementById("sections");
+      data.sections.forEach(({ header, preview }) => {
+        const level = header.match(/^(#{1,6})/)[1].length;
+        const title = header.replace(/^#{1,6}\s*/, "");
+
+        const block = document.createElement("div");
+        block.className = "section-block";
+
+        const heading = document.createElement(`h${level}`);
+        heading.textContent = header;
+        block.appendChild(heading);
+
+        const preview_el = document.createElement("p");
+        preview_el.className = "preview";
+        preview_el.textContent = preview;
+        block.appendChild(preview_el);
+
+        const label = document.createElement("label");
+        label.textContent = "Your notes:";
+        block.appendChild(label);
+
+        const textarea = document.createElement("textarea");
+        textarea.placeholder = `Enter ${title} notes here...`;
+        block.appendChild(textarea);
+        textareas[header] = textarea;
+
+        container.appendChild(block);
+      });
+
+      document.getElementById("save-row").style.display = "flex";
     }
 
-    document.getElementById("message").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") send();
+    async function saveResponses() {
+      const responses = {};
+      for (const [header, ta] of Object.entries(textareas)) {
+        responses[header] = ta.value;
+      }
+
+      const res = await fetch("/api/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responses }),
+      });
+      const data = await res.json();
+      document.getElementById("save-status").textContent = data.message || "Saved.";
+    }
+
+    document.getElementById("md-name").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") loadSections();
     });
   </script>
 </body>
