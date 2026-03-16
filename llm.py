@@ -14,6 +14,4 @@ def get_llm_response(dev_role, user_role, model="gpt-5"):
             {"role": "user", "content": f"{user_role}"}
         ]
     )
-    # Turn returned score into a float
-    response = float(response.choices[0].message.content.strip())
-    return response
+    return response.choices[0].message.content.strip()
