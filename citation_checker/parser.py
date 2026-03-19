@@ -31,8 +31,13 @@ _URL_RE = re.compile(
 _YEAR_RE = re.compile(r'\b(19\d{2}|20[0-2]\d)\b')
 
 # Title heuristic: text after authors/year that starts with a capital letter
-# and is enclosed in quotes, or follows a period/comma, or is on its own line
-_QUOTED_TITLE_RE = re.compile(r'["\u201c]([A-Z][^"\u201d]{10,200})["\u201d]')
+# and is enclosed in quotes, markdown italics/bold, or straight quotes
+_QUOTED_TITLE_RE = re.compile(
+    r'(?:'
+    r'["\u201c]([A-Z][^"\u201d]{10,200})["\u201d]'   # "Title" or \u201cTitle\u201d
+    r'|\*{1,2}([A-Z][^*]{10,200}?)\*{1,2}'            # *Title* or **Title**
+    r')'
+)
 
 # "Title. In Venue" or "Title. Journal"
 _TITLE_BEFORE_IN_RE = re.compile(
@@ -70,10 +75,11 @@ def _extract_year(text: str) -> Optional[str]:
 
 
 def _extract_title(text: str) -> Optional[str]:
-    # Try quoted title first
+    # Try quoted or italic-wrapped title first
     m = _QUOTED_TITLE_RE.search(text)
     if m:
-        return m.group(1).strip()
+        # group(1) = quoted, group(2) = italic/bold markdown
+        return (m.group(1) or m.group(2)).strip()
 
     # Try "... Title. In Conference/Journal ..."
     m = _TITLE_BEFORE_IN_RE.search(text)
@@ -96,6 +102,10 @@ def _extract_title(text: str) -> Optional[str]:
 def _split_into_entries(text: str) -> List[str]:
     """Split the references section text into individual reference strings."""
     text = text.strip()
+
+    # Strip markdown bullet list prefixes ("- ", "* ", "+ ") so that
+    # "- [1] Author..." becomes "[1] Author..." and the numbered patterns match.
+    text = re.sub(r'^[-*+]\s+', '', text, flags=re.MULTILINE)
 
     for pattern in _ENTRY_SPLIT_PATTERNS:
         parts = pattern.split(text)

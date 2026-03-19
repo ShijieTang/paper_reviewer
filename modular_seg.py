@@ -2,6 +2,51 @@ import json
 import re
 from pathlib import Path
 
+# Matches headings whose title is "References", "Reference", or "Bibliography"
+_REF_HEADING_RE = re.compile(r"(?i)^(references?|bibliography)$")
+
+# Detects the start of a numbered reference entry: [1], [Vaswani17], or "1. "
+_ENTRY_START_RE = re.compile(
+    r"^\[(\d{1,3}|[A-Z][^\[\]]{2,30})\]"   # [1] or [AuthorKey]
+    r"|^(\d{1,3})[.\s]\s+[A-Z]"             # "1. " or "1 A..."
+)
+
+
+def normalize_references(content: str) -> str:
+    """
+    Normalize a references section so the citation checker can parse every entry.
+
+    Transformations:
+      1. Strip markdown bullet list prefixes  ``- [1]`` → ``[1]``
+      2. Join soft-wrapped continuation lines back onto their parent entry
+         so each reference is a single unbroken line
+      3. Collapse consecutive blank lines to a single blank line
+    """
+    # 1. Strip leading bullet prefix only when immediately before a ref entry
+    content = re.sub(r"^[-*+]\s+", "", content, flags=re.MULTILINE)
+
+    # 2. Join continuation lines
+    joined: list[str] = []
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if not line:
+            joined.append("")                          # preserve blank separator
+        elif _ENTRY_START_RE.match(line):
+            joined.append(line)                        # new entry → new line
+        elif joined and joined[-1] != "":
+            joined[-1] += " " + line                   # continuation → append
+        else:
+            joined.append(line)
+
+    # 3. Collapse multiple consecutive blank lines
+    result: list[str] = []
+    for line in joined:
+        if line == "" and result and result[-1] == "":
+            continue
+        result.append(line)
+
+    return "\n".join(result).strip()
+
 
 def segment_md(md_name: str, md_path: str = "data/md") -> dict[str, str]:
     """
@@ -29,10 +74,16 @@ def segment_md(md_name: str, md_path: str = "data/md") -> dict[str, str]:
 
     sections = {}
     for i, m in enumerate(matches):
-        start = m.end()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        key = f"{m.group(1)} {m.group(2).strip()}"
-        sections[key] = text[start:end].strip()
+        start   = m.end()
+        end     = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        key     = f"{m.group(1)} {m.group(2).strip()}"
+        content = text[start:end].strip()
+
+        # Auto-normalize any references / bibliography section
+        if _REF_HEADING_RE.match(m.group(2).strip()):
+            content = normalize_references(content)
+
+        sections[key] = content
 
     return sections
 

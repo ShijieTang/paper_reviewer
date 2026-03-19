@@ -1,44 +1,52 @@
+import json
+import queue
 import sys
+import threading
+import uuid
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from modular_seg import reconstruct_md, save_sections, segment_md
 
 app = Flask(__name__)
 
-# In-memory state
+# ── In-memory state ──────────────────────────────────────────────────────────
 current_md_name = None
 current_sections = {}
-current_topic = None                          # set by /api/segments, read by /api/save
+current_topic = None
 
-VALID_TOPICS = {"Machine Learning Algorithm", "NLP", "AI for Science"}
+VALID_TOPICS    = {"Machine Learning Algorithm", "NLP", "AI for Science"}
+VALID_REVIEWERS = {"reviewer_a", "reviewer_b"}
 
+# job_id -> queue.Queue  (progress events)
+_jobs: dict[str, queue.Queue] = {}
+# job_id -> structured results dict (populated when job finishes)
+_results: dict[str, dict] = {}
+
+
+# ── Page ─────────────────────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
+# ── Paper loading & saving ───────────────────────────────────────────────────
+
 @app.route("/api/segments", methods=["POST"])
 def segments():
-    global current_md_name, current_sections, current_topic
-    data = request.get_json()
+    global current_md_name, current_sections
+    data    = request.get_json()
     md_name = data.get("md_name", "")
     md_path = data.get("md_path", "data/md")
-    topic   = data.get("topic", "")
-
-    if topic not in VALID_TOPICS:
-        return jsonify({"error": f"Invalid topic '{topic}'. Choose from: {sorted(VALID_TOPICS)}"}), 400
 
     try:
         current_sections = segment_md(md_name, md_path=md_path)
         current_md_name  = md_name
-        current_topic    = topic
         save_sections(md_name, current_sections, suffix="raw")
         return jsonify({
-            "topic": topic,
             "sections": [
                 {"header": header, "content": content}
                 for header, content in current_sections.items()
@@ -51,38 +59,118 @@ def segments():
 @app.route("/api/save", methods=["POST"])
 def save():
     global current_sections
-    data = request.get_json()
-    responses: dict = data.get("responses", {})       # {header: edited_content}
-    topic = data.get("topic") or current_topic
+    data      = request.get_json()
+    responses = data.get("responses", {})
 
-    # Update in-memory sections; textarea value is "header\n\ncontent"
+    # Rebuild sections; each textarea value is "#### Header\n\ncontent…"
     new_sections = {}
     for old_header, full_text in current_sections.items():
         if old_header in responses:
-            raw = responses[old_header]
+            raw      = responses[old_header]
             first_nl = raw.find("\n")
             if first_nl == -1:
                 new_header, new_content = raw.strip(), ""
             else:
-                new_header = raw[:first_nl].strip()
+                new_header  = raw[:first_nl].strip()
                 new_content = raw[first_nl:].lstrip("\n")
             new_sections[new_header] = new_content
         else:
             new_sections[old_header] = full_text
     current_sections = new_sections
 
-    # Write back to the original .md file
     md_path = Path("data/md") / Path(current_md_name).name
     md_path.write_text(reconstruct_md(current_sections), encoding="utf-8")
+    return jsonify({"message": f"Saved {len(responses)} section(s) to {md_path.name}."})
 
-    return jsonify({"message": f"Saved {len(responses)} section(s) to {md_path.name}.", "topic": topic})
+
+# ── Review run ───────────────────────────────────────────────────────────────
+
+@app.route("/api/run", methods=["POST"])
+def run_review():
+    global current_topic
+    data           = request.get_json()
+    topic          = data.get("topic", "")
+    reviewer_types = data.get("reviewers", ["reviewer_a", "reviewer_b"])
+    n_iter         = max(1, int(data.get("n_iter", 3)))
+    api_key        = data.get("api_key", "").strip()
+
+    if topic not in VALID_TOPICS:
+        return jsonify({"error": f"Invalid topic. Choose from: {sorted(VALID_TOPICS)}"}), 400
+    invalid = [r for r in reviewer_types if r not in VALID_REVIEWERS]
+    if invalid:
+        return jsonify({"error": f"Unknown reviewer(s): {invalid}"}), 400
+    if not reviewer_types:
+        return jsonify({"error": "Select at least one reviewer."}), 400
+    if not current_md_name:
+        return jsonify({"error": "No paper loaded. Go back and load a paper first."}), 400
+    if not api_key:
+        return jsonify({"error": "API key is required."}), 400
+
+    md_path      = Path("data/md") / Path(current_md_name).name
+    paper        = md_path.read_text(encoding="utf-8")
+    current_topic = topic
+
+    job_id = str(uuid.uuid4())
+    q: queue.Queue = queue.Queue()
+    _jobs[job_id]  = q
+
+    def run():
+        try:
+            from mas_loop import main as mas_main
+            result = mas_main(
+                paper=paper, topic=topic, n_iter=n_iter,
+                reviewer_types=reviewer_types, api_key=api_key,
+                on_event=lambda msg: q.put(("status", msg)),
+            )
+            _results[job_id] = result
+            q.put(("done", "Review complete!"))
+        except Exception as exc:
+            q.put(("error", str(exc)))
+
+    threading.Thread(target=run, daemon=True).start()
+    return jsonify({"job_id": job_id})
+
+
+# ── SSE stream ───────────────────────────────────────────────────────────────
+
+@app.route("/api/stream/<job_id>")
+def stream(job_id):
+    q = _jobs.get(job_id)
+    if not q:
+        return jsonify({"error": "Job not found"}), 404
+
+    def generate():
+        while True:
+            try:
+                event_type, message = q.get(timeout=120)
+                yield f"data: {json.dumps({'type': event_type, 'message': message})}\n\n"
+                if event_type in ("done", "error"):
+                    _jobs.pop(job_id, None)
+                    break
+            except queue.Empty:
+                yield f"data: {json.dumps({'type': 'heartbeat', 'message': ''})}\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        content_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# ── Results ──────────────────────────────────────────────────────────────────
+
+@app.route("/api/results/<job_id>")
+def get_results(job_id):
+    result = _results.get(job_id)
+    if result is None:
+        return jsonify({"error": "Results not ready or job not found."}), 404
+    return jsonify(result)
 
 
 @app.route("/api/topic", methods=["GET"])
 def get_topic():
-    """Return the currently loaded topic (for downstream agents to query)."""
     return jsonify({"topic": current_topic})
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

@@ -7,123 +7,510 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>Paper Reviewer</h1>
 
-    <!-- ── Topic selector ── -->
-    <div class="topic-row">
-      <span class="topic-label">Paper Topic</span>
-      <div class="topic-pills" id="topic-pills">
-        <button type="button" class="pill" data-topic="Machine Learning Algorithm"
-                onclick="selectTopic(this)">Machine Learning Algorithm</button>
-        <button type="button" class="pill" data-topic="NLP"
-                onclick="selectTopic(this)">NLP</button>
-        <button type="button" class="pill" data-topic="AI for Science"
-                onclick="selectTopic(this)">AI for Science</button>
-      </div>
-      <span id="topic-warning" class="topic-warning" style="display:none;">
-        ⚠ Please select a topic before loading.
-      </span>
-    </div>
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 1 — Load & Edit Paper
+══════════════════════════════════════════════════════════ -->
+<div class="container" id="page1">
+  <h1>Paper Reviewer</h1>
 
-    <div class="input-row">
-      <input id="md-name" type="text" placeholder="Markdown filename (e.g. paper.md)" />
-      <button onclick="loadSections()">Load</button>
+  <div class="input-row">
+    <input id="md-name" type="text" placeholder="Markdown filename (e.g. paper.md)" />
+    <button onclick="loadSections()">Load</button>
+  </div>
+  <div id="error" class="error"></div>
+  <div id="sections"></div>
+
+  <div id="save-row" class="save-row" style="display:none;">
+    <button onclick="saveResponses()">Save</button>
+    <span id="save-status" class="save-status"></span>
+    <button class="btn-next" onclick="goToPage2()">Next &rarr;</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 2 — Review Configuration
+══════════════════════════════════════════════════════════ -->
+<div class="container" id="page2" style="display:none;">
+
+  <div class="page2-header">
+    <button class="btn-back" onclick="goToPage1()">&larr; Back</button>
+    <h1>Review Configuration</h1>
+  </div>
+
+  <!-- API Key -->
+  <div class="config-section">
+    <div class="config-label">API Key <span class="required">* required to run</span></div>
+    <div class="apikey-row">
+      <input id="api-key" type="password" class="apikey-input"
+             placeholder="Paste your CMU AI Gateway key here…" autocomplete="off" />
+      <button type="button" class="btn-eye" id="btn-eye"
+              onclick="toggleApiKey()" title="Show / hide key">&#128065;</button>
     </div>
-    <div id="error" class="error"></div>
-    <div id="sections"></div>
-    <div id="save-row" class="save-row" style="display:none;">
-      <button onclick="saveResponses()">Save</button>
-      <span id="save-status" class="save-status"></span>
+    <div class="apikey-hint">The key is used only for this session and is never stored.</div>
+  </div>
+
+  <!-- Topic -->
+  <div class="config-section">
+    <div class="config-label">Paper Topic <span class="required">*</span></div>
+    <div class="topic-pills" id="topic-pills">
+      <button type="button" class="pill" data-topic="Machine Learning Algorithm"
+              onclick="selectTopic(this)">Machine Learning Algorithm</button>
+      <button type="button" class="pill" data-topic="NLP"
+              onclick="selectTopic(this)">NLP</button>
+      <button type="button" class="pill" data-topic="AI for Science"
+              onclick="selectTopic(this)">AI for Science</button>
     </div>
   </div>
 
-  <script>
-    // header -> textarea element
-    const textareas = {};
-    let selectedTopic = null;
+  <!-- Reviewers -->
+  <div class="config-section">
+    <div class="config-label">Reviewers <span class="required">* select at least one</span></div>
+    <div class="agent-grid">
+      <label class="agent-card selectable">
+        <input type="checkbox" name="reviewer" value="reviewer_a" checked />
+        <div class="agent-info">
+          <div class="agent-name">Reviewer A</div>
+          <div class="agent-desc">Novelty &amp; Contribution</div>
+        </div>
+      </label>
+      <label class="agent-card selectable">
+        <input type="checkbox" name="reviewer" value="reviewer_b" checked />
+        <div class="agent-info">
+          <div class="agent-name">Reviewer B</div>
+          <div class="agent-desc">Technical Rigor</div>
+        </div>
+      </label>
+    </div>
 
-    function selectTopic(btn) {
-      document.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
-      btn.classList.add("active");
-      selectedTopic = btn.dataset.topic;
-      document.getElementById("topic-warning").style.display = "none";
-    }
+    <div class="config-sublabel">Always included</div>
+    <div class="agent-grid">
+      <div class="agent-card fixed">
+        <div class="agent-info">
+          <div class="agent-name">AI Author</div>
+          <div class="agent-desc">Writes rebuttals</div>
+        </div>
+      </div>
+      <div class="agent-card fixed">
+        <div class="agent-info">
+          <div class="agent-name">AI Detector</div>
+          <div class="agent-desc">Checks AI content</div>
+        </div>
+      </div>
+      <div class="agent-card fixed">
+        <div class="agent-info">
+          <div class="agent-name">Conference Recommender</div>
+          <div class="agent-desc">Final recommendation</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    async function loadSections() {
-      const mdName = document.getElementById("md-name").value.trim();
-      if (!mdName) return;
+  <!-- Iterations -->
+  <div class="config-section">
+    <div class="config-label">Review Iterations</div>
+    <div class="iter-row">
+      <input type="number" id="n-iter" value="3" min="1" max="10" />
+      <span class="iter-hint">iterations &nbsp;(1 = initial review only, no rebuttal)</span>
+    </div>
+  </div>
 
-      if (!selectedTopic) {
-        document.getElementById("topic-warning").style.display = "inline";
-        return;
-      }
+  <!-- Run -->
+  <div class="config-section">
+    <div id="run-error" class="error"></div>
+    <button class="btn-run" id="btn-run" onclick="runReview()">&#9654; Run Review</button>
+  </div>
 
-      document.getElementById("error").textContent = "";
-      document.getElementById("sections").innerHTML = "";
-      document.getElementById("save-row").style.display = "none";
-      document.getElementById("save-status").textContent = "";
-      Object.keys(textareas).forEach(k => delete textareas[k]);
+  <!-- Progress log -->
+  <div id="log-container" style="display:none;">
+    <div class="config-label">Progress</div>
+    <div id="log" class="log-box"></div>
+    <div id="results-row" style="display:none; margin-top:16px;">
+      <button class="btn-results" onclick="goToPage3()">Check Results &rarr;</button>
+    </div>
+  </div>
 
-      const res = await fetch("/api/segments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ md_name: mdName, topic: selectedTopic }),
-      });
-      const data = await res.json();
+</div><!-- /page2 -->
 
-      if (data.error) {
-        document.getElementById("error").textContent = data.error;
-        return;
-      }
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 3 — Results
+══════════════════════════════════════════════════════════ -->
+<div class="container" id="page3" style="display:none;">
 
-      // Show active topic badge above sections
-      const container = document.getElementById("sections");
-      const badge = document.createElement("div");
-      badge.className = "topic-badge";
-      badge.innerHTML = `Topic: <strong>${data.topic}</strong>`;
-      container.appendChild(badge);
-      data.sections.forEach(({ header, content }) => {
-        const block = document.createElement("div");
-        block.className = "section-block";
+  <div class="page3-header">
+    <button class="btn-back" onclick="goToPage2()">&larr; Back</button>
+    <h1>Review Results</h1>
+  </div>
 
-        const title = header.replace(/^#{1,6}\s*/, "");
-        const hint = document.createElement("div");
-        hint.className = "section-hint";
-        hint.textContent = title;
-        block.appendChild(hint);
+  <!-- Conference Recommendation -->
+  <section class="result-section" id="sec-conf">
+    <h2 class="result-section-title">&#127942; Conference Recommendation</h2>
+    <div id="conf-cards" class="conf-grid"></div>
+  </section>
 
-        const fullText = content ? header + "\n\n" + content : header;
-        const textarea = document.createElement("textarea");
-        textarea.value = fullText;
-        textarea.rows = Math.min(Math.max(fullText.split("\n").length + 2, 4), 30);
-        block.appendChild(textarea);
-        textareas[header] = textarea;
+  <!-- Reviewer Scores -->
+  <section class="result-section" id="sec-reviewers">
+    <h2 class="result-section-title">&#128203; Reviewer Scores</h2>
+    <div id="reviewer-cards" class="reviewer-grid"></div>
+  </section>
 
-        container.appendChild(block);
-      });
+  <!-- Citation Check -->
+  <section class="result-section" id="sec-citations">
+    <h2 class="result-section-title">&#128279; Citation Check</h2>
+    <div id="citation-stats" class="citation-stats"></div>
+    <div id="citation-table-wrap"></div>
+  </section>
 
-      document.getElementById("save-row").style.display = "flex";
-    }
+</div><!-- /page3 -->
 
-    async function saveResponses() {
-      const responses = {};
-      for (const [header, ta] of Object.entries(textareas)) {
-        responses[header] = ta.value;
-      }
 
-      const res = await fetch("/api/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ responses, topic: selectedTopic }),
-      });
-      const data = await res.json();
-      document.getElementById("save-status").textContent = data.message || "Saved.";
-    }
+<script>
+  const textareas = {};
+  let selectedTopic = null;
+  let finishedJobId = null;
 
-    document.getElementById("md-name").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") loadSections();
+  // ── Page navigation ──────────────────────────────────────────────────────
+  function showPage(id) {
+    ["page1","page2","page3"].forEach(p =>
+      document.getElementById(p).style.display = p === id ? "block" : "none"
+    );
+  }
+  const goToPage1 = () => showPage("page1");
+  const goToPage2 = () => showPage("page2");
+  const goToPage3 = () => { showPage("page3"); renderResults(); };
+
+  // ── API key toggle ───────────────────────────────────────────────────────
+  function toggleApiKey() {
+    const inp = document.getElementById("api-key");
+    inp.type = inp.type === "password" ? "text" : "password";
+  }
+
+  // ── Topic pills ──────────────────────────────────────────────────────────
+  function selectTopic(btn) {
+    document.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    selectedTopic = btn.dataset.topic;
+  }
+
+  // ── Page 1: load sections ─────────────────────────────────────────────────
+  async function loadSections() {
+    const mdName = document.getElementById("md-name").value.trim();
+    if (!mdName) return;
+
+    document.getElementById("error").textContent = "";
+    document.getElementById("sections").innerHTML = "";
+    document.getElementById("save-row").style.display = "none";
+    document.getElementById("save-status").textContent = "";
+    Object.keys(textareas).forEach(k => delete textareas[k]);
+
+    const res  = await fetch("/api/segments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ md_name: mdName }),
     });
-  </script>
+    const data = await res.json();
+
+    if (data.error) {
+      document.getElementById("error").textContent = data.error;
+      return;
+    }
+
+    const container = document.getElementById("sections");
+    data.sections.forEach(({ header, content }) => {
+      const block = document.createElement("div");
+      block.className = "section-block";
+
+      const title = header.replace(/^#{1,6}\s*/, "");
+      const hint  = document.createElement("div");
+      hint.className   = "section-hint";
+      hint.textContent = title;
+      block.appendChild(hint);
+
+      const fullText = content ? header + "\n\n" + content : header;
+      const textarea = document.createElement("textarea");
+      textarea.value = fullText;
+      textarea.rows  = Math.min(Math.max(fullText.split("\n").length + 2, 4), 30);
+      block.appendChild(textarea);
+      textareas[header] = textarea;
+
+      container.appendChild(block);
+    });
+
+    document.getElementById("save-row").style.display = "flex";
+  }
+
+  async function saveResponses() {
+    const responses = {};
+    for (const [header, ta] of Object.entries(textareas)) {
+      responses[header] = ta.value;
+    }
+    const res  = await fetch("/api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ responses }),
+    });
+    const data = await res.json();
+    document.getElementById("save-status").textContent = data.message || "Saved.";
+  }
+
+  document.getElementById("md-name").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") loadSections();
+  });
+
+  // ── Page 2: run review ────────────────────────────────────────────────────
+  async function runReview() {
+    const runError = document.getElementById("run-error");
+    runError.textContent = "";
+
+    const apiKey = document.getElementById("api-key").value.trim();
+    if (!apiKey) { runError.textContent = "Please enter your API key."; return; }
+    if (!selectedTopic) { runError.textContent = "Please select a paper topic."; return; }
+
+    const checkedReviewers = [...document.querySelectorAll('input[name="reviewer"]:checked')]
+      .map(cb => cb.value);
+    if (checkedReviewers.length === 0) {
+      runError.textContent = "Please select at least one reviewer.";
+      return;
+    }
+
+    const nIter = parseInt(document.getElementById("n-iter").value) || 3;
+
+    const logContainer  = document.getElementById("log-container");
+    const logBox        = document.getElementById("log");
+    const runBtn        = document.getElementById("btn-run");
+    const resultsRow    = document.getElementById("results-row");
+    logContainer.style.display = "block";
+    resultsRow.style.display   = "none";
+    logBox.innerHTML = "";
+    runBtn.disabled  = true;
+    runBtn.textContent = "Running…";
+
+    appendLog("info", `Topic: ${selectedTopic} | Reviewers: ${checkedReviewers.join(", ")} | Iterations: ${nIter}`);
+
+    const res  = await fetch("/api/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic: selectedTopic, reviewers: checkedReviewers,
+        n_iter: nIter, api_key: apiKey,
+      }),
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      appendLog("error", data.error);
+      runBtn.disabled = false;
+      runBtn.textContent = "▶ Run Review";
+      return;
+    }
+
+    finishedJobId = data.job_id;
+
+    const es = new EventSource(`/api/stream/${data.job_id}`);
+    es.onmessage = (e) => {
+      const { type, message } = JSON.parse(e.data);
+      if (type === "heartbeat") return;
+      if (type === "done") {
+        appendLog("done", message);
+        es.close();
+        runBtn.disabled = false;
+        runBtn.textContent = "▶ Run Review";
+        resultsRow.style.display = "block";          // show "Check Results" button
+      } else if (type === "error") {
+        appendLog("error", message);
+        es.close();
+        runBtn.disabled = false;
+        runBtn.textContent = "▶ Run Review";
+      } else {
+        appendLog("info", message);
+      }
+    };
+    es.onerror = () => {
+      appendLog("error", "Connection lost.");
+      es.close();
+      runBtn.disabled = false;
+      runBtn.textContent = "▶ Run Review";
+    };
+  }
+
+  function appendLog(type, message) {
+    const logBox = document.getElementById("log");
+    const line   = document.createElement("div");
+    line.className   = `log-line log-${type}`;
+    const ts         = new Date().toLocaleTimeString();
+    line.textContent = `[${ts}] ${message}`;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  // ── Page 3: render results ────────────────────────────────────────────────
+  async function renderResults() {
+    if (!finishedJobId) return;
+
+    const res  = await fetch(`/api/results/${finishedJobId}`);
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+
+    renderConference(data.conference || {});
+    renderReviewers(data.reviewers  || []);
+    renderCitations(data.citations  || {});
+  }
+
+  // ── Conference cards ──────────────────────────────────────────────────────
+  function renderConference(conf) {
+    const wrap = document.getElementById("conf-cards");
+    wrap.innerHTML = "";
+    const CONF_ORDER = ["ICML", "NeurIPS", "ICLR"];
+
+    if (conf.parse_error) {
+      wrap.innerHTML = `<pre class="raw-output">${escHtml(conf.raw || "")}</pre>`;
+      return;
+    }
+
+    CONF_ORDER.forEach(name => {
+      const c = conf[name];
+      if (!c) return;
+      const score = c.fit_score ?? "—";
+      const pct   = Math.round(((score - 1) / 9) * 100);
+
+      const card = document.createElement("div");
+      card.className = "conf-card";
+      card.innerHTML = `
+        <div class="conf-name">${name}</div>
+        <div class="conf-score-row">
+          <span class="conf-score">${score}</span>
+          <span class="conf-score-label">/ 10</span>
+        </div>
+        <div class="score-bar-wrap">
+          <div class="score-bar" style="width:${pct}%"></div>
+        </div>
+        <div class="conf-reason-group">
+          <div class="conf-reason-title">&#9989; Why it fits</div>
+          <ul>${(c.why_it_fits||[]).map(s=>`<li>${escHtml(s)}</li>`).join("")}</ul>
+        </div>
+        <div class="conf-reason-group">
+          <div class="conf-reason-title">&#10060; Why it does not fit</div>
+          <ul>${(c.why_it_does_not_fit||[]).map(s=>`<li>${escHtml(s)}</li>`).join("")}</ul>
+        </div>`;
+      wrap.appendChild(card);
+    });
+  }
+
+  // ── Reviewer cards ────────────────────────────────────────────────────────
+  function renderReviewers(reviewers) {
+    const wrap = document.getElementById("reviewer-cards");
+    wrap.innerHTML = "";
+
+    if (!reviewers.length) {
+      wrap.textContent = "No reviewer data.";
+      return;
+    }
+
+    const SCORE_KEYS = ["novelty","soundness","significance","evaluation","clarity"];
+
+    reviewers.forEach((rev, i) => {
+      if (rev.parse_error) {
+        const el = document.createElement("pre");
+        el.className   = "raw-output";
+        el.textContent = rev.raw || "";
+        wrap.appendChild(el);
+        return;
+      }
+
+      const decision   = (rev.decision || "").toLowerCase();
+      const isAccept   = decision.includes("accept");
+      const card       = document.createElement("div");
+      card.className   = "reviewer-card";
+
+      const scoresHTML = SCORE_KEYS.map(k => {
+        const v   = rev.scores?.[k] ?? 0;
+        const pct = Math.round((v / 5) * 100);
+        return `
+          <div class="score-row">
+            <span class="score-key">${k}</span>
+            <div class="score-bar-wrap">
+              <div class="score-bar score-bar-sm" style="width:${pct}%"></div>
+            </div>
+            <span class="score-val">${v}/5</span>
+          </div>`;
+      }).join("");
+
+      card.innerHTML = `
+        <div class="rev-header">
+          <span class="rev-name">${escHtml(rev.reviewer || `Reviewer ${i+1}`)}</span>
+          <span class="decision-badge ${isAccept ? "badge-accept" : "badge-reject"}">
+            ${isAccept ? "✓ Accept" : "✗ Reject"}
+          </span>
+        </div>
+        <div class="rev-scores">${scoresHTML}</div>
+        <div class="rev-block">
+          <div class="rev-block-title">Strengths</div>
+          <ul>${(rev.strengths||[]).map(s=>`<li>${escHtml(s)}</li>`).join("")}</ul>
+        </div>
+        <div class="rev-block">
+          <div class="rev-block-title">Weaknesses</div>
+          <ul>${(rev.weaknesses||[]).map(s=>`<li>${escHtml(s)}</li>`).join("")}</ul>
+        </div>
+        <div class="rev-block">
+          <div class="rev-block-title">Summary</div>
+          <p class="rev-summary">${escHtml(rev.summary_comment || "")}</p>
+        </div>`;
+      wrap.appendChild(card);
+    });
+  }
+
+  // ── Citation results ──────────────────────────────────────────────────────
+  function renderCitations(cit) {
+    const statsWrap = document.getElementById("citation-stats");
+    const tableWrap = document.getElementById("citation-table-wrap");
+    statsWrap.innerHTML = "";
+    tableWrap.innerHTML = "";
+
+    if (cit.error && !cit.stats?.total) {
+      statsWrap.innerHTML = `<p class="cit-error">${escHtml(cit.error)}</p>`;
+      return;
+    }
+
+    const s = cit.stats || {};
+    statsWrap.innerHTML = `
+      <div class="cit-stat-grid">
+        <div class="cit-stat"><span class="cit-num">${s.total??0}</span><span class="cit-lbl">Total</span></div>
+        <div class="cit-stat cit-ok"><span class="cit-num">${s.verified??0}</span><span class="cit-lbl">Verified</span></div>
+        <div class="cit-stat cit-warn"><span class="cit-num">${s.url_only??0}</span><span class="cit-lbl">URL Only</span></div>
+        <div class="cit-stat cit-bad"><span class="cit-num">${(s.not_found??0)+(s.suspicious??0)}</span><span class="cit-lbl">Suspicious</span></div>
+        <div class="cit-stat cit-skip"><span class="cit-num">${s.skipped??0}</span><span class="cit-lbl">Skipped</span></div>
+      </div>`;
+
+    const failed = cit.failed || [];
+    if (!failed.length) {
+      tableWrap.innerHTML = `<p class="cit-all-pass">&#10003; All references passed the check.</p>`;
+      return;
+    }
+
+    const rows = failed.map(f => `
+      <tr>
+        <td class="td-idx">${escHtml(f.index||"?")}</td>
+        <td>${escHtml(f.title||"(unknown)")}</td>
+        <td class="td-link">${f.link ? `<a href="${escHtml(f.link)}" target="_blank">${escHtml(f.link)}</a>` : "—"}</td>
+        <td class="td-reason">${escHtml(f.fail_reason||"")}</td>
+      </tr>`).join("");
+
+    tableWrap.innerHTML = `
+      <table class="cit-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Title</th><th>Link</th><th>Fail Reason</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+</script>
 </body>
 </html>

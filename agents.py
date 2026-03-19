@@ -50,14 +50,14 @@ class Agent:
 
     name = "Agent"
 
-    def __init__(self, persona: str, paper: str, topic: str = "", model: str = "gpt-5"):
+    def __init__(self, persona: str, paper: str, topic: str = "", model: str = "gpt-5", api_key: str = ""):
         print(f"[{self.name}] Initializing...")
         self.topic   = topic
         self.persona = _inject_topic(persona, topic)
         self.paper   = paper
         self.model   = model
         self.client  = openai.OpenAI(
-            api_key=_get_api_key(),
+            api_key=api_key or _get_api_key(),
             base_url="https://ai-gateway.andrew.cmu.edu"
         )
         self.messages = [
@@ -87,10 +87,10 @@ class Reviewer(Agent):
     """
 
     def __init__(self, paper: str, reviewer_type: str = "reviewer_a",
-                 topic: str = "", model: str = "gpt-5"):
+                 topic: str = "", model: str = "gpt-5", api_key: str = ""):
         self.name = f"Reviewer ({reviewer_type})"
         persona = _load_prompt(reviewer_type)
-        super().__init__(persona=persona, paper=paper, topic=topic, model=model)
+        super().__init__(persona=persona, paper=paper, topic=topic, model=model, api_key=api_key)
 
 
 class Author(Agent):
@@ -98,9 +98,9 @@ class Author(Agent):
 
     name = "Author"
 
-    def __init__(self, paper: str, topic: str = "", model: str = "gpt-5"):
+    def __init__(self, paper: str, topic: str = "", model: str = "gpt-5", api_key: str = ""):
         persona = _load_prompt("author")
-        super().__init__(persona=persona, paper=paper, topic=topic, model=model)
+        super().__init__(persona=persona, paper=paper, topic=topic, model=model, api_key=api_key)
 
 
 class AIDetector(Agent):
@@ -108,9 +108,9 @@ class AIDetector(Agent):
 
     name = "AIDetector"
 
-    def __init__(self, paper: str, topic: str = "", model: str = "gpt-5"):
+    def __init__(self, paper: str, topic: str = "", model: str = "gpt-5", api_key: str = ""):
         persona = _load_prompt("ai_detector")
-        super().__init__(persona=persona, paper=paper, topic=topic, model=model)
+        super().__init__(persona=persona, paper=paper, topic=topic, model=model, api_key=api_key)
 
 
 class ConferenceRecommender(Agent):
@@ -121,6 +121,6 @@ class ConferenceRecommender(Agent):
 
     name = "ConferenceRecommender"
 
-    def __init__(self, paper: str, topic: str = "", model: str = "gpt-5"):
+    def __init__(self, paper: str, topic: str = "", model: str = "gpt-5", api_key: str = ""):
         persona = _load_prompt("conf_rec")
-        super().__init__(persona=persona, paper=paper, topic=topic, model=model)
+        super().__init__(persona=persona, paper=paper, topic=topic, model=model, api_key=api_key)
