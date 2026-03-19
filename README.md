@@ -39,7 +39,7 @@ pip install flask
 python webapp/app.py
 ```
 
-Open [http://localhost:5000](http://localhost:5000) in your browser.
+Open [http://localhost:5001](http://localhost:5001) in your browser.
 
 # Dev note:
 Current workflow:
