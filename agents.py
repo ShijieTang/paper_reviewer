@@ -1,5 +1,4 @@
-import os
-import yaml
+import importlib
 import openai
 
 
@@ -8,16 +7,23 @@ def _get_api_key() -> str:
         from google.colab import userdata
         return userdata.get("API_KEY")
     except Exception:
+        import os
         return os.environ["API_KEY"]
 
 
-_PROMPTS_DIR = os.path.join(os.path.dirname(__file__), "prompts")
+_PROMPT_MAP = {
+    "reviewer_a":        ("prompts.reviewer_a",    "reviewer_a"),
+    "reviewer_b":        ("prompts.reviewer_b",    "reviewer_b"),
+    "author":            ("prompts.author",         "author"),
+    "ai_detector":       ("prompts.ai_detector",    "ai_detector"),
+    "reviewer_iteration":("prompts.reviewer_iter",  "reviewer_iteration"),
+}
 
 
 def _load_prompt(key: str) -> str:
-    path = os.path.join(_PROMPTS_DIR, f"{key}.yaml")
-    with open(path) as f:
-        return yaml.safe_load(f)[key]
+    module_name, var_name = _PROMPT_MAP[key]
+    module = importlib.import_module(module_name)
+    return getattr(module, var_name)
 
 
 class Agent:
@@ -59,12 +65,12 @@ class Agent:
 class Reviewer(Agent):
     '''
     An LLM agent with the persona of an academic paper reviewer.
-    reviewer_name: "reviewer_a" (novelty-focused) or "reviewer_b" (rigor-focused)
+    reviewer_type: "reviewer_a" (novelty-focused) or "reviewer_b" (rigor-focused)
     '''
 
-    def __init__(self, paper: str, reviewer_name: str = "reviewer_a", model: str = "gpt-5"):
-        self.name = f"Reviewer ({reviewer_name})"
-        persona = _load_prompt(reviewer_name)
+    def __init__(self, paper: str, reviewer_type: str = "reviewer_a", model: str = "gpt-5"):
+        self.name = f"Reviewer ({reviewer_type})"
+        persona = _load_prompt(reviewer_type)
         super().__init__(persona=persona, paper=paper, model=model)
 
 

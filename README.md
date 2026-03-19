@@ -1,3 +1,30 @@
+# Local Test
+
+## Setup
+
+```bash
+conda activate llm-project
+pip install -r requirements.txt
+```
+
+Set your API key:
+```bash
+export API_KEY="your-api-key-here"
+```
+
+## Run
+
+```bash
+python mas_loop.py --paper data/md/example_paper.md --n_iter 1
+```
+
+Optionally save output to a file:
+```bash
+python mas_loop.py --paper data/md/example_paper.md --n_iter 1 --output results.txt
+```
+
+---
+
 # Webapp
 
 ## Setup
