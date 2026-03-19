@@ -83,6 +83,22 @@ def save_sections(md_name: str, sections: dict[str, str], suffix: str = "raw", s
     return str(out_path)
 
 
+def reconstruct_md(sections: dict[str, str]) -> str:
+    """
+    Rebuild a markdown string from a sections dict (inverse of segment_md).
+
+    Args:
+        sections: Dict of {"## Title": "content..."} as returned by segment_md.
+
+    Returns:
+        Full markdown text with each section reassembled as "header\n\ncontent\n\n".
+    """
+    parts = []
+    for header, content in sections.items():
+        parts.append(f"{header}\n\n{content}")
+    return "\n\n".join(parts) + "\n"
+
+
 if __name__ == "__main__":
     import sys
 

@@ -1,6 +1,6 @@
 import argparse
 
-from agents import Reviewer, Author, AIDetector
+from agents import Reviewer, Author, AIDetector, ConferenceRecommender
 from prompts.reviewer_iter import reviewer_iteration
 
 
@@ -12,18 +12,30 @@ def construct_reviewer_prompt(author_resp: str, aicheck_resp: str) -> str:
     )
 
 
+def construct_conf_rec_prompt(topic: str, reviews: list) -> str:
+    """Build the final prompt for the conference recommender."""
+    review_block = "\n\n".join(
+        f"Reviewer {i+1}:\n{r}" for i, r in enumerate(reviews) if r
+    )
+    return (
+        f"Paper topic: {topic}\n\n"
+        f"###REVIEWER_SCORES_AND_COMMENTS###\n{review_block}"
+    )
+
+
 def get_review(reviewer: Reviewer, reviewer_prompt: str, iteration: int, reviewer_ind: int, reviews: list) -> list:
     review = reviewer.call(reviewer_prompt)
     reviews[iteration][reviewer_ind] = review
     return reviews
 
 
-def main(paper: str, n_iter: int = 10):
+def main(paper: str, topic: str = "", n_iter: int = 10):
     print("================= Initialization =================")
     reviewer_types = ["reviewer_a", "reviewer_b"]
-    reviewers = [Reviewer(paper=paper, reviewer_type=rt) for rt in reviewer_types]
-    author = Author(paper=paper)
-    ai_detect = AIDetector(paper=paper)
+    reviewers  = [Reviewer(paper=paper, reviewer_type=rt, topic=topic) for rt in reviewer_types]
+    author     = Author(paper=paper, topic=topic)
+    ai_detect  = AIDetector(paper=paper, topic=topic)
+    conf_rec   = ConferenceRecommender(paper=paper, topic=topic)
 
     # n_iter x n_reviewers grids
     reviews = [[None] * len(reviewers) for _ in range(n_iter)]
@@ -51,12 +63,19 @@ def main(paper: str, n_iter: int = 10):
             print("\nReviewers updating...")
             reviews = get_review(reviewers[i], reviewer_prompt, iteration, i, reviews)
 
-    return reviews, author_resps, aicheck_resps
+    # Final step: conference recommendation using all last-iteration reviews
+    print("\n================= Conference Recommendation =================")
+    final_reviews = reviews[n_iter - 1]
+    conf_prompt   = construct_conf_rec_prompt(topic, final_reviews)
+    conf_rec_resp = conf_rec.call(conf_prompt)
+
+    return reviews, author_resps, aicheck_resps, conf_rec_resp
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the multi-agent paper review loop.")
-    parser.add_argument("--paper", default="data/md/example_paper.md", help="Path to the paper markdown file.")
+    parser.add_argument("--paper",  default="data/md/example_paper.md", help="Path to the paper markdown file.")
+    parser.add_argument("--topic",  default="",  help="Paper topic: 'Machine Learning Algorithm', 'NLP', or 'AI for Science'.")
     parser.add_argument("--n_iter", type=int, default=10, help="Number of review iterations.")
     parser.add_argument("--output", default=None, help="Path to save the output (optional).")
     args = parser.parse_args()
@@ -64,7 +83,9 @@ if __name__ == "__main__":
     with open(args.paper, "r", encoding="utf-8") as f:
         paper = f.read()
 
-    reviews, author_resps, aicheck_resps = main(paper=paper, n_iter=args.n_iter)
+    reviews, author_resps, aicheck_resps, conf_rec_resp = main(
+        paper=paper, topic=args.topic, n_iter=args.n_iter
+    )
 
     lines = []
     for iteration in range(len(reviews)):
@@ -80,6 +101,11 @@ if __name__ == "__main__":
             if aicheck_resps[iteration][i]:
                 lines.append(f"\n--- AI Checker (on Reviewer {i+1}) ---")
                 lines.append(aicheck_resps[iteration][i])
+
+    lines.append(f"\n{'='*60}")
+    lines.append("CONFERENCE RECOMMENDATION")
+    lines.append(f"{'='*60}")
+    lines.append(conf_rec_resp)
 
     output = "\n".join(lines)
     print(output)

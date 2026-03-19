@@ -10,6 +10,22 @@
   <div class="container">
     <h1>Paper Reviewer</h1>
 
+    <!-- ── Topic selector ── -->
+    <div class="topic-row">
+      <span class="topic-label">Paper Topic</span>
+      <div class="topic-pills" id="topic-pills">
+        <button type="button" class="pill" data-topic="Machine Learning Algorithm"
+                onclick="selectTopic(this)">Machine Learning Algorithm</button>
+        <button type="button" class="pill" data-topic="NLP"
+                onclick="selectTopic(this)">NLP</button>
+        <button type="button" class="pill" data-topic="AI for Science"
+                onclick="selectTopic(this)">AI for Science</button>
+      </div>
+      <span id="topic-warning" class="topic-warning" style="display:none;">
+        ⚠ Please select a topic before loading.
+      </span>
+    </div>
+
     <div class="input-row">
       <input id="md-name" type="text" placeholder="Markdown filename (e.g. paper.md)" />
       <button onclick="loadSections()">Load</button>
@@ -25,10 +41,23 @@
   <script>
     // header -> textarea element
     const textareas = {};
+    let selectedTopic = null;
+
+    function selectTopic(btn) {
+      document.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      selectedTopic = btn.dataset.topic;
+      document.getElementById("topic-warning").style.display = "none";
+    }
 
     async function loadSections() {
       const mdName = document.getElementById("md-name").value.trim();
       if (!mdName) return;
+
+      if (!selectedTopic) {
+        document.getElementById("topic-warning").style.display = "inline";
+        return;
+      }
 
       document.getElementById("error").textContent = "";
       document.getElementById("sections").innerHTML = "";
@@ -39,7 +68,7 @@
       const res = await fetch("/api/segments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ md_name: mdName }),
+        body: JSON.stringify({ md_name: mdName, topic: selectedTopic }),
       });
       const data = await res.json();
 
@@ -48,29 +77,26 @@
         return;
       }
 
+      // Show active topic badge above sections
       const container = document.getElementById("sections");
-      data.sections.forEach(({ header, preview }) => {
-        const level = header.match(/^(#{1,6})/)[1].length;
-        const title = header.replace(/^#{1,6}\s*/, "");
-
+      const badge = document.createElement("div");
+      badge.className = "topic-badge";
+      badge.innerHTML = `Topic: <strong>${data.topic}</strong>`;
+      container.appendChild(badge);
+      data.sections.forEach(({ header, content }) => {
         const block = document.createElement("div");
         block.className = "section-block";
 
-        const heading = document.createElement(`h${level}`);
-        heading.textContent = header;
-        block.appendChild(heading);
+        const title = header.replace(/^#{1,6}\s*/, "");
+        const hint = document.createElement("div");
+        hint.className = "section-hint";
+        hint.textContent = title;
+        block.appendChild(hint);
 
-        const preview_el = document.createElement("p");
-        preview_el.className = "preview";
-        preview_el.textContent = preview;
-        block.appendChild(preview_el);
-
-        const label = document.createElement("label");
-        label.textContent = "Your notes:";
-        block.appendChild(label);
-
+        const fullText = content ? header + "\n\n" + content : header;
         const textarea = document.createElement("textarea");
-        textarea.placeholder = `Enter ${title} notes here...`;
+        textarea.value = fullText;
+        textarea.rows = Math.min(Math.max(fullText.split("\n").length + 2, 4), 30);
         block.appendChild(textarea);
         textareas[header] = textarea;
 
@@ -89,7 +115,7 @@
       const res = await fetch("/api/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ responses }),
+        body: JSON.stringify({ responses, topic: selectedTopic }),
       });
       const data = await res.json();
       document.getElementById("save-status").textContent = data.message || "Saved.";
