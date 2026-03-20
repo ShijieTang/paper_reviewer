@@ -3,6 +3,7 @@ import queue
 import sys
 import threading
 import uuid
+from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, render_template, request, stream_with_context
@@ -179,6 +180,16 @@ def run_review():
                 on_event=lambda msg: q.put(("status", msg)),
             )
             _results[job_id] = result
+
+            # Save results to results/ folder
+            project_root = Path(__file__).parent.parent
+            results_dir = project_root / "results"
+            results_dir.mkdir(exist_ok=True)
+            timestamp = datetime.now().strftime("%y%m%d%H%M")
+            paper_name = Path(current_md_name).stem
+            fname = f"{timestamp}_nagent={len(reviewer_types)}_niter={n_iter}_paper={paper_name}.txt"
+            (results_dir / fname).write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+
             q.put(("done", "Review complete!"))
         except Exception as exc:
             q.put(("error", str(exc)))
