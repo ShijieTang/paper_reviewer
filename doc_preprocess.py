@@ -35,6 +35,7 @@ def doc_preprocess(pdf_name: str, pdf_path: str = "data/pdf", md_path: str = "da
 
     output_path.write_text(text, encoding="utf-8")
     print(f"Saved {pdf_name}.md at {output_path}")
+    return str(output_path)
 
 
 if __name__ == "__main__":

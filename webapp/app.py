@@ -6,9 +6,11 @@ import uuid
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, render_template, request, stream_with_context
+import werkzeug
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from modular_seg import reconstruct_md, save_sections, segment_md
+from doc_preprocess import doc_preprocess
 
 app = Flask(__name__)
 
@@ -31,6 +33,60 @@ _results: dict[str, dict] = {}
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+# ── File upload ──────────────────────────────────────────────────────────────
+
+@app.route("/api/upload", methods=["POST"])
+def upload_file():
+    global current_md_name, current_sections
+
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided."}), 400
+
+    f = request.files["file"]
+    filename = werkzeug.utils.secure_filename(f.filename)
+    if not filename:
+        return jsonify({"error": "Invalid filename."}), 400
+
+    ext = Path(filename).suffix.lower()
+    if ext not in (".pdf", ".md"):
+        return jsonify({"error": "Only .pdf and .md files are supported."}), 400
+
+    try:
+        if ext == ".pdf":
+            pdf_dir = Path("data/pdf")
+            pdf_dir.mkdir(parents=True, exist_ok=True)
+            pdf_path = pdf_dir / filename
+            f.save(str(pdf_path))
+
+            # Convert PDF → MD (may take a while)
+            doc_preprocess(filename, pdf_path=str(pdf_dir), md_path="data/md")
+            md_filename = Path(filename).with_suffix(".md").name
+        else:
+            md_dir = Path("data/md")
+            md_dir.mkdir(parents=True, exist_ok=True)
+            md_path = md_dir / filename
+            f.save(str(md_path))
+            md_filename = filename
+
+        # Segment the resulting MD file
+        current_sections = segment_md(md_filename, md_path="data/md")
+        current_md_name  = md_filename
+        save_sections(md_filename, current_sections, suffix="raw")
+
+        md_content = (Path("data/md") / md_filename).read_text(encoding="utf-8")
+
+        return jsonify({
+            "md_name": md_filename,
+            "md_content": md_content,
+            "sections": [
+                {"header": header, "content": content}
+                for header, content in current_sections.items()
+            ],
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ── Paper loading & saving ───────────────────────────────────────────────────

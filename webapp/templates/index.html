@@ -15,10 +15,23 @@
   <h1>Paper Reviewer</h1>
 
   <div class="input-row">
-    <input id="md-name" type="text" placeholder="Markdown filename (e.g. paper.md)" />
-    <button onclick="loadSections()">Load</button>
+    <label class="file-label">
+      <input id="file-input" type="file" accept=".pdf,.md" onchange="handleFileSelect()" />
+      <span id="file-label-text">Choose a .pdf or .md file…</span>
+    </label>
+    <button id="btn-load" onclick="uploadFile()" disabled>Load</button>
   </div>
+  <div id="upload-hint" class="upload-hint" style="display:none;"></div>
   <div id="error" class="error"></div>
+
+  <!-- Collapsible MD preview (shown after PDF conversion) -->
+  <div id="md-preview-wrap" style="display:none;">
+    <details>
+      <summary class="md-preview-toggle">Converted Markdown — click to expand</summary>
+      <pre id="md-preview" class="md-preview-box"></pre>
+    </details>
+  </div>
+
   <div id="sections"></div>
 
   <div id="save-row" class="save-row" style="display:none;">
@@ -192,31 +205,78 @@
     selectedTopic = btn.dataset.topic;
   }
 
-  // ── Page 1: load sections ─────────────────────────────────────────────────
-  async function loadSections() {
-    const mdName = document.getElementById("md-name").value.trim();
-    if (!mdName) return;
+  // ── Page 1: file picker ───────────────────────────────────────────────────
+  function handleFileSelect() {
+    const input = document.getElementById("file-input");
+    const btn   = document.getElementById("btn-load");
+    const label = document.getElementById("file-label-text");
+    if (input.files.length > 0) {
+      label.textContent = input.files[0].name;
+      btn.disabled = false;
+    } else {
+      label.textContent = "Choose a .pdf or .md file…";
+      btn.disabled = true;
+    }
+  }
+
+  async function uploadFile() {
+    const input = document.getElementById("file-input");
+    if (!input.files.length) return;
+
+    const file = input.files[0];
+    const isPdf = file.name.toLowerCase().endsWith(".pdf");
 
     document.getElementById("error").textContent = "";
     document.getElementById("sections").innerHTML = "";
     document.getElementById("save-row").style.display = "none";
     document.getElementById("save-status").textContent = "";
+    document.getElementById("md-preview-wrap").style.display = "none";
+    document.getElementById("upload-hint").style.display = "none";
     Object.keys(textareas).forEach(k => delete textareas[k]);
 
-    const res  = await fetch("/api/segments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ md_name: mdName }),
-    });
-    const data = await res.json();
+    const btn = document.getElementById("btn-load");
+    btn.disabled = true;
+    btn.textContent = isPdf ? "Converting…" : "Loading…";
 
-    if (data.error) {
-      document.getElementById("error").textContent = data.error;
-      return;
+    if (isPdf) {
+      const hint = document.getElementById("upload-hint");
+      hint.textContent = "Converting PDF to Markdown — this may take a moment…";
+      hint.style.display = "block";
     }
 
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      const res  = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+
+      if (data.error) {
+        document.getElementById("error").textContent = data.error;
+        return;
+      }
+
+      document.getElementById("upload-hint").style.display = "none";
+
+      if (isPdf) {
+        const previewWrap = document.getElementById("md-preview-wrap");
+        document.getElementById("md-preview").textContent = data.md_content;
+        previewWrap.style.display = "block";
+      }
+
+      renderSections(data.sections);
+    } catch (err) {
+      document.getElementById("error").textContent = "Upload failed: " + err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Load";
+    }
+  }
+
+  function renderSections(sections) {
     const container = document.getElementById("sections");
-    data.sections.forEach(({ header, content }) => {
+    container.innerHTML = "";
+    sections.forEach(({ header, content }) => {
       const block = document.createElement("div");
       block.className = "section-block";
 
@@ -252,10 +312,6 @@
     const data = await res.json();
     document.getElementById("save-status").textContent = data.message || "Saved.";
   }
-
-  document.getElementById("md-name").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") loadSections();
-  });
 
   // ── Page 2: run review ────────────────────────────────────────────────────
   async function runReview() {
