@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 _OR_SEARCH_URL = "https://api2.openreview.net/notes/search"
 _OR_NOTES_URL = "https://api2.openreview.net/notes"
-_REQUEST_TIMEOUT = 10  # seconds
-_RATE_LIMIT_DELAY = 0.3  # seconds between requests
+_REQUEST_TIMEOUT = 15  # seconds
+_RATE_LIMIT_DELAY = 3  # seconds between requests
 
 
 def _title_similarity(a: str, b: str) -> float:
