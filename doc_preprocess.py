@@ -1,22 +1,101 @@
 import re
 from pathlib import Path
+from typing import List
 
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
+
+# ---------------------------------------------------------------------------
+# Reference-normalisation helpers
+# ---------------------------------------------------------------------------
+
+# Detects the end of an author block in author-year format (ICML, NeurIPS,
+# Nature, Science, APA journal, …) — either "et al." or a lone capital initial
+# not preceded by another word character (e.g. "O." in "Winther, O.").
+# The title follows immediately as plain, un-italicised text.
+# The venue starts with "*", "In *", "arXiv", or "biorxiv/bioRxiv".
+_AUTHOR_YEAR_TITLE_RE = re.compile(
+    r'(?:et al\.|(?<!\w)[A-Z]\.)[ \t]+'           # end of author block
+    r'(?![A-Z]\.)'                                  # NOT followed by another initial (e.g. "J. J.")
+    r'([A-Z][^\n*"]{10,200}?)'                      # plain-text title
+    r'\.\s+'                                         # closing period
+    r'(?:[Ii]n\s+\*|\*[A-Za-z]|arXiv|[Bb]io[Rr]xiv)',  # start of venue
+)
+
+
+def _clean_document(text: str) -> str:
+    """
+    Document-wide cleanup of marker PDF-to-markdown conversion artifacts.
+
+    1. Remove all ``<span id="page-X-Y"></span>`` anchor tags wherever they
+       appear: inside headings, figure captions, standalone anchor lines before
+       equations, and inline within paragraphs.
+    2. Demote ``Algorithm N …`` blocks that marker incorrectly promotes to
+       top-level headings (the whole algorithm ends up on one line as a title).
+    """
+    # 1. Remove every <span id="..."></span> tag and any space that follows it.
+    #    Handles both ``#### <span …></span>3.1 Title`` and standalone lines.
+    text = re.sub(r'<span\s+id="[^"]*"\s*></span>\s*', '', text)
+
+    # After stripping standalone anchor lines the document may gain extra blank
+    # lines; collapse runs of 3+ newlines back to two.
+    text = re.sub(r'\n{3,}', '\n\n', text)
+
+    # 2. Marker renders algorithm captions as headings, e.g.:
+    #      # Algorithm 1 Training … Require: … 1: … 2: …
+    #    Strip the leading ``#`` markers so the line becomes plain text.
+    text = re.sub(
+        r'^#{1,6}\s+(Algorithm\s+\d+\b)',
+        r'\1',
+        text,
+        flags=re.MULTILINE | re.IGNORECASE,
+    )
+
+    return text
+
+
+def _normalize_ref_entries(entries: List[str]) -> List[str]:
+    """
+    Normalise a list of raw reference strings so the citation checker can
+    parse them regardless of the original formatting style:
+
+    1. Add a ``[N]`` numbered prefix if none exists — this lets the checker's
+       entry-splitter work for any citation style (ICML, NeurIPS, APA, etc.).
+    2. For author-year entries whose title is plain text (not quoted or italic),
+       wrap the title in double quotes so ``_QUOTED_TITLE_RE`` in the checker
+       finds the correct field instead of the italic venue name.
+    """
+    result = []
+    for i, entry in enumerate(entries, 1):
+        # Strip markdown list markers ("- ", "* ", "+ ")
+        entry = re.sub(r'^[-*+]\s+', '', entry, flags=re.MULTILINE)
+
+        # 1. Add [N] prefix when no index marker is present
+        if not re.match(r'^\[', entry) and not re.match(r'^\d{1,3}[.\s]', entry):
+            entry = f'[{i}] {entry}'
+
+        # 2. Wrap plain-text title in quotes for author-year format.
+        #    Only act when the title is not already quoted or italic.
+        if '"' not in entry:
+            m = _AUTHOR_YEAR_TITLE_RE.search(entry)
+            if m:
+                title = m.group(1).strip()
+                entry = entry[:m.start(1)] + f'"{title}"' + entry[m.end(1):]
+
+        result.append(entry)
+    return result
 
 
 def _clean_references(text: str) -> str:
     """
     Post-process the References section in a marker-converted markdown document.
 
-    Fixes three common artifacts produced by PDF-to-markdown conversion:
-    1. Inline ``<span id="page-X-Y"></span>`` anchor tags injected by marker.
-    2. Page-break-split list items: marker sometimes breaks a single reference
-       across two ``-`` items when a hyphenated word straddles a page boundary,
-       e.g. ``*International Confer-*`` on one line and ``- *ence on ...*`` on
-       the next.  These are merged back into one clean entry.
-    3. Missing blank lines between reference entries (tight list → wall of text).
+    1. Merge page-break-split italic entries (marker splits ``*Confer-*`` and
+       ``*ence on …*`` across two list items when a word straddles a page).
+    2. Ensure blank lines between entries so the renderer shows them separately.
+    3. Normalise each entry for the citation checker: add ``[N]`` index and
+       wrap plain-text titles in quotes (see ``_normalize_ref_entries``).
     """
     ref_match = re.search(r'^(#+\s+References?|#+\s+Bibliography)\s*$',
                           text, re.MULTILINE | re.IGNORECASE)
@@ -32,26 +111,27 @@ def _clean_references(text: str) -> str:
     body    = text[ref_match.end():body_end]
     after   = text[body_end:]
 
-    # 1. Strip <span id="..."></span> anchor tags
-    body = re.sub(r'<span\s[^>]*></span>', '', body)
-
-    # 2. Merge page-break-split italic entries.
-    #    Matches a word ending in a hyphen just before the closing italic marker,
-    #    e.g. ``*International Confer-*`` followed (possibly across a blank line)
-    #    by ``- *ence on ...``.  Removes the hyphen, both adjacent ``*`` markers,
-    #    the blank line, and the spurious ``- `` list prefix.
+    # 1. Merge page-break-split italic entries.
+    #    ``*The Eleventh International Confer-*``  ← hyphen before closing *
+    #    ``- *ence on Learning Representations*``  ← continuation on next item
+    #    Fix: remove the hyphen, the surrounding ``*`` pair, the blank line,
+    #    and the spurious ``- `` list prefix so both halves join seamlessly.
     body = re.sub(
-        r'\*([^*\n]+-)-\*[ \t]*\n+[ \t]*-[ \t]+\*',
+        r'\*([^*\n]+)-\*[ \t]*\n+[ \t]*-[ \t]+\*',
         r'*\1',
         body,
     )
 
-    # 3. Ensure every reference entry is preceded by a blank line so that the
-    #    markdown renderer displays them as separate paragraphs, not a wall of text.
+    # 2. Ensure blank lines between entries for clean rendering.
     body = re.sub(r'\n(- \S)', r'\n\n\1', body)
-    body = re.sub(r'\n{3,}', '\n\n', body)   # collapse accidental triple+ blanks
+    body = re.sub(r'\n{3,}', '\n\n', body)
 
-    return before + heading + body + after
+    # 3. Normalise entries for the citation checker.
+    entries = [e.strip() for e in re.split(r'\n\s*\n', body) if e.strip()]
+    entries = _normalize_ref_entries(entries)
+    body = '\n\n'.join(entries) + '\n'
+
+    return before + heading + '\n\n' + body + after
 
 
 def doc_preprocess(pdf_name: str, pdf_path: str = "data/pdf", md_path: str = "data/md") -> str:
@@ -81,6 +161,7 @@ def doc_preprocess(pdf_name: str, pdf_path: str = "data/pdf", md_path: str = "da
     converter = PdfConverter(artifact_dict=create_model_dict())
     rendered = converter(str(full_pdf_path))
     text, _, _ = text_from_rendered(rendered)
+    text = _clean_document(text)
     text = _clean_references(text)
 
     output_path.write_text(text, encoding="utf-8")
