@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from evaluation.evaluation import (
+from eval.evaluation import (
     _collect_sw_from_gt,
     _majority_decision,
     run_evaluation,
@@ -144,8 +144,8 @@ class EvaluationTests(unittest.TestCase):
                 {"strengths": 0.7, "weaknesses": 0.6, "overall": 0.65},
             ]
 
-            with patch("evaluation.evaluation.load_model", return_value="mock-model") as mock_load_model:
-                with patch("evaluation.evaluation.compute_src_both", side_effect=src_values) as mock_compute_src:
+            with patch("eval.evaluation.load_model", return_value="mock-model") as mock_load_model:
+                with patch("eval.evaluation.compute_src_both", side_effect=src_values) as mock_compute_src:
                     results = run_evaluation(
                         papers_path=str(papers_path),
                         openreviewer_path=str(openreviewer_path),
@@ -163,19 +163,18 @@ class EvaluationTests(unittest.TestCase):
             self.assertTrue(output_dir.exists())
 
             self.assertEqual(paper_results["openreviewer"]["decision_match"], True)
-            self.assertEqual(paper_results["openreviewer"]["score_mae"], 0.5)
             self.assertEqual(paper_results["paperreviewer"]["decision_match"], False)
-            self.assertEqual(paper_results["paperreviewer"]["score_mae"], 2.0)
             self.assertEqual(paper_results["exp_cond_A"]["decision"], "reject")
             self.assertEqual(paper_results["exp_cond_A"]["score"], 2.5)
-            self.assertEqual(paper_results["exp_cond_A"]["score_mae"], 1.5)
+            self.assertNotIn("score_mae", paper_results["openreviewer"])
+            self.assertNotIn("score_mae", paper_results["paperreviewer"])
+            self.assertNotIn("score_mae", paper_results["exp_cond_A"])
 
             self.assertEqual(
                 results["aggregate"]["openreviewer"],
                 {
                     "n_papers": 1,
                     "decision_accuracy": 1.0,
-                    "score_mae_mean": 0.5,
                     "src_strengths_mean": 0.9,
                     "src_weaknesses_mean": 0.8,
                     "src_overall_mean": 0.85,
@@ -186,7 +185,6 @@ class EvaluationTests(unittest.TestCase):
                 {
                     "n_papers": 1,
                     "decision_accuracy": 0.0,
-                    "score_mae_mean": 2.0,
                     "src_strengths_mean": 0.4,
                     "src_weaknesses_mean": 0.3,
                     "src_overall_mean": 0.35,
@@ -197,12 +195,14 @@ class EvaluationTests(unittest.TestCase):
                 {
                     "n_papers": 1,
                     "decision_accuracy": 0.0,
-                    "score_mae_mean": 1.5,
                     "src_strengths_mean": 0.7,
                     "src_weaknesses_mean": 0.6,
                     "src_overall_mean": 0.65,
                 },
             )
+            self.assertNotIn("score_mae_mean", results["aggregate"]["openreviewer"])
+            self.assertNotIn("score_mae_mean", results["aggregate"]["paperreviewer"])
+            self.assertNotIn("score_mae_mean", results["aggregate"]["exp_cond_A"])
 
             output_files = list(output_dir.glob("eval_results_*.json"))
             self.assertEqual(len(output_files), 1)

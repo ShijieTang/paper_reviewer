@@ -14,15 +14,14 @@ Metrics per paper per system:
     - SRC_weaknesses : Semantic Review Coverage for weakness statements
     - SRC_overall    : average of the two SRC scores
     - decision_match : whether the system's accept/reject matches ground truth
-    - score_mae      : mean absolute error against ground-truth aggregate score
 
 Usage (from project root):
-    python evaluation/evaluation.py \\
-        --papers        evaluation/papers.json          \\
-        --openreviewer  evaluation/openreviewer.json    \\
-        --paperreviewer evaluation/paperreviewer.json   \\
-        [--exp_summary  evaluation/exp_results/experiment_summary_XXXXXX.json] \\
-        [--output_dir   evaluation/eval_results]        \\
+    python eval/evaluation.py \\
+        --papers        eval/papers.json          \\
+        --openreviewer  eval/openreviewer.json    \\
+        --paperreviewer eval/paperreviewer.json   \\
+        [--exp_summary  eval/exp_results/experiment_summary_XXXXXX.json] \\
+        [--output_dir   eval/eval_results]        \\
         [--embed_model  all-MiniLM-L6-v2]
 """
 
@@ -142,7 +141,6 @@ def _evaluate_system(
     gt_strengths: list,
     gt_weaknesses: list,
     gt_decision: Optional[str],
-    gt_score: Optional[float],
     sys_strengths: list,
     sys_weaknesses: list,
     sys_decision: Optional[str],
@@ -161,16 +159,11 @@ def _evaluate_system(
         decision_match = (_normalise_decision(gt_decision) ==
                           _normalise_decision(sys_decision))
 
-    score_mae = None
-    if gt_score is not None and sys_score is not None:
-        score_mae = round(abs(gt_score - sys_score), 4)
-
     return {
         "system":          system_name,
         "decision":        sys_decision,
         "score":           sys_score,
         "decision_match":  decision_match,
-        "score_mae":       score_mae,
         "src_strengths":   src["strengths"],
         "src_weaknesses":  src["weaknesses"],
         "src_overall":     src["overall"],
@@ -250,7 +243,7 @@ def run_evaluation(
         def _add_system(name, sw_pair, decision, score):
             sys_s, sys_w = sw_pair
             metrics = _evaluate_system(
-                name, gt_s, gt_w, gt_decision, gt_score,
+                name, gt_s, gt_w, gt_decision,
                 sys_s, sys_w, decision, score, model,
             )
             paper_entry["systems"][name] = metrics
@@ -259,8 +252,7 @@ def run_evaluation(
                 f"  [{name}] SRC_s={metrics['src_strengths']:.4f}  "
                 f"SRC_w={metrics['src_weaknesses']:.4f}  "
                 f"SRC_overall={metrics['src_overall']:.4f}  "
-                f"decision_match={metrics['decision_match']}  "
-                f"score_mae={metrics['score_mae']}"
+                f"decision_match={metrics['decision_match']}"
             )
 
         # OpenReviewer
@@ -309,7 +301,6 @@ def run_evaluation(
         aggregate[sys_name] = {
             "n_papers":              n,
             "decision_accuracy":     dec_acc,
-            "score_mae_mean":        _mean("score_mae"),
             "src_strengths_mean":    _mean("src_strengths"),
             "src_weaknesses_mean":   _mean("src_weaknesses"),
             "src_overall_mean":      _mean("src_overall"),
@@ -349,7 +340,7 @@ def main():
                         help="Path to paperreviewer.json.")
     parser.add_argument("--exp_summary",    default=None,
                         help="Path to experiment_summary JSON from experiment.py.")
-    parser.add_argument("--output_dir",     default="evaluation/eval_results",
+    parser.add_argument("--output_dir",     default="eval/eval_results",
                         help="Directory to save evaluation results.")
     parser.add_argument("--embed_model",    default="all-MiniLM-L6-v2",
                         help="sentence-transformers model for SRC computation.")
