@@ -46,23 +46,20 @@ class EvaluationTests(unittest.TestCase):
 
     def test_run_evaluation_aggregates_results_and_writes_output(self):
         papers = {
-            "papers": [
-                {
-                    "paper_id": "paper-1",
-                    "title": "Test Paper",
-                    "conference": "ICLR",
-                    "accept_or_not": "Accept",
-                    "score": 4.0,
-                    "reviews": [
-                        {
-                            "strengths": ["clear motivation"],
-                            "weaknesses": ["limited experiments"],
-                            "rating": 4,
-                            "decision": "Accept",
-                        }
-                    ],
-                }
-            ]
+            "paper-1": {
+                "title": "Test Paper",
+                "conference": "ICLR",
+                "accept_or_not": "Accept",
+                "score": 4.0,
+                "reviews": [
+                    {
+                        "strengths": ["clear motivation"],
+                        "weaknesses": ["limited experiments"],
+                        "rating": 4,
+                        "decision": "Accept",
+                    }
+                ],
+            }
         }
         openreviewer = {
             "papers": [

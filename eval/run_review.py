@@ -33,7 +33,8 @@ from mas_loop import main as mas_main
 
 def load_papers(json_file: str) -> list:
     with open(json_file, "r", encoding="utf-8") as f:
-        return json.load(f)["papers"]
+        data = json.load(f)
+    return [{"paper_id": pid, **meta} for pid, meta in data.items()]
 
 
 def pdf_to_markdown(pdf_dir: str) -> str:

@@ -10,10 +10,11 @@ Sources evaluated:
     - Exp Cond B    : multi-agent, 3 iterations  (from experiment_summary.json)
 
 Metrics per paper per system:
-    - SRC_strengths  : Semantic Review Coverage for strength statements
-    - SRC_weaknesses : Semantic Review Coverage for weakness statements
-    - SRC_overall    : average of the two SRC scores
-    - decision_match : whether the system's accept/reject matches ground truth
+    - SRC_strengths     : Semantic Review Coverage for strength statements
+    - SRC_weaknesses    : Semantic Review Coverage for weakness statements
+    - SRC_overall       : average of the two SRC scores
+    - decision_match    : whether the system's accept/reject matches ground truth
+    - conference_check  : whether the system's recommendation score
 
 Usage (from project root):
     python eval/evaluation.py \\
@@ -49,8 +50,7 @@ def _load_json(path: str) -> dict:
 
 def _papers_index(papers_path: str) -> dict:
     """Return {paper_id: paper_meta} from papers.json."""
-    data = _load_json(papers_path)
-    return {p["paper_id"]: p for p in data["papers"]}
+    return _load_json(papers_path)
 
 
 # ── Strength / weakness extraction ───────────────────────────────────────────
@@ -183,6 +183,7 @@ def run_evaluation(
     exp_summary_path:  Optional[str],
     output_dir:        str,
     embed_model_name:  str = "all-MiniLM-L6-v2",
+    paper_ids:         Optional[list] = None,
 ) -> dict:
 
     print("Loading embedding model...")
@@ -190,6 +191,12 @@ def run_evaluation(
     print(f"Model '{embed_model_name}' ready.\n")
 
     gt_index = _papers_index(papers_path)
+
+    if paper_ids:
+        missing = [pid for pid in paper_ids if pid not in gt_index]
+        if missing:
+            print(f"Warning: paper_id(s) not found in papers.json: {missing}")
+        gt_index = {pid: gt_index[pid] for pid in paper_ids if pid in gt_index}
 
     # Index optional sources by paper_id
     def _index(path):
@@ -334,7 +341,7 @@ def main():
         description="Evaluate AI reviewers against OpenReview ground truth.")
     parser.add_argument("--papers",         required=True,
                         help="Path to papers.json (ground truth).")
-    parser.add_argument("--openreviewer",   default=None,
+    parser.add_argument("--openreviewer",   default="eval/papers.json",
                         help="Path to openreviewer.json.")
     parser.add_argument("--paperreviewer",  default=None,
                         help="Path to paperreviewer.json.")
@@ -344,6 +351,9 @@ def main():
                         help="Directory to save evaluation results.")
     parser.add_argument("--embed_model",    default="all-MiniLM-L6-v2",
                         help="sentence-transformers model for SRC computation.")
+    parser.add_argument("--paper_ids",      default=None, nargs="+",
+                        help="Optional: space-separated list of paper_ids to evaluate "
+                             "(must exist in papers.json). Evaluates all if omitted.")
     args = parser.parse_args()
 
     if not any([args.openreviewer, args.paperreviewer, args.exp_summary]):
@@ -358,6 +368,7 @@ def main():
         exp_summary_path=args.exp_summary,
         output_dir=args.output_dir,
         embed_model_name=args.embed_model,
+        paper_ids=args.paper_ids,
     )
 
 
