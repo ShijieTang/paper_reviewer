@@ -14,6 +14,7 @@ def _get_api_key() -> str:
 _PROMPT_MAP = {
     "reviewer_a":        ("prompts.reviewer_a",    "reviewer_a"),
     "reviewer_b":        ("prompts.reviewer_b",    "reviewer_b"),
+    "reviewer_c":        ("prompts.reviewer_c",    "reviewer_c"),
     "author":            ("prompts.author",         "author"),
     "ai_detector":       ("prompts.ai_detector",    "ai_detector"),
     "reviewer_iteration":("prompts.reviewer_iter",  "reviewer_iteration"),
