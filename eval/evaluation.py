@@ -165,6 +165,7 @@ def _evaluate_system(
     sys_score: Optional[float],
     model,
     conf_threshold: float = 6.0,
+    run_conf_check: bool = True,
 ) -> dict:
     """Run all metrics for one system against ground truth for one paper."""
     src = compute_src_both(
@@ -183,7 +184,7 @@ def _evaluate_system(
         "decision":          sys_decision,
         "score":             sys_score,
         "decision_match":    decision_match,
-        "conference_check":  _conference_check(gt_decision, sys_score, conf_threshold),
+        "conference_check":  _conference_check(gt_decision, sys_score, conf_threshold) if run_conf_check else None,
         "src_strengths":     src["strengths"],
         "src_weaknesses":    src["weaknesses"],
         "src_overall":       src["overall"],
@@ -237,12 +238,6 @@ def run_evaluation(
     results = {
         "timestamp":    timestamp,
         "embed_model":  embed_model_name,
-        "sources": {
-            "papers":       papers_path,
-            "openreviewer": openreviewer_path,
-            "paperreviewer": paperreviewer_path,
-            "exp_summary":  exp_summary_path,
-        },
         "papers": [],
     }
 
@@ -268,12 +263,13 @@ def run_evaluation(
             "systems": {},
         }
 
-        def _add_system(name, sw_pair, decision, score):
+        def _add_system(name, sw_pair, decision, score, run_conf_check=True):
             sys_s, sys_w = sw_pair
             metrics = _evaluate_system(
                 name, gt_s, gt_w, gt_decision,
                 sys_s, sys_w, decision, score, model,
                 conf_threshold=conf_threshold,
+                run_conf_check=run_conf_check,
             )
             paper_entry["systems"][name] = metrics
             all_metrics.setdefault(name, []).append(metrics)
@@ -290,7 +286,7 @@ def run_evaluation(
             sw  = _collect_sw_from_reviews(p.get("reviews", []))
             dec = _normalise_decision(p.get("accept_or_not"))
             sc  = p.get("score")
-            _add_system("openreviewer", sw, dec, sc)
+            _add_system("openreviewer", sw, dec, sc, run_conf_check=False)
 
         # PaperReviewer
         if paper_id in pr_index:
@@ -298,7 +294,7 @@ def run_evaluation(
             sw  = _collect_sw_from_reviews(p.get("reviews", []))
             dec = _normalise_decision(p.get("accept_or_not"))
             sc  = p.get("score")
-            _add_system("paperreviewer", sw, dec, sc)
+            _add_system("paperreviewer", sw, dec, sc, run_conf_check=False)
 
         # Experiment conditions A and B
         if paper_id in exp_index:
@@ -340,7 +336,8 @@ def run_evaluation(
 
     # ── Save ──────────────────────────────────────────────────────────────────
     os.makedirs(output_dir, exist_ok=True)
-    out_path = os.path.join(output_dir, f"eval_results_{timestamp}.json")
+    ids_slug = "_".join(gt_index.keys()) if gt_index else timestamp
+    out_path = os.path.join(output_dir, f"eval_results_{ids_slug}.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
@@ -362,11 +359,11 @@ def run_evaluation(
 def main():
     parser = argparse.ArgumentParser(
         description="Evaluate AI reviewers against OpenReview ground truth.")
-    parser.add_argument("--papers",         required=True,
+    parser.add_argument("--papers",         default="eval/papers.json",
                         help="Path to papers.json (ground truth).")
-    parser.add_argument("--openreviewer",   default="eval/papers.json",
+    parser.add_argument("--openreviewer",   default="eval/openreviewer.json",
                         help="Path to openreviewer.json.")
-    parser.add_argument("--paperreviewer",  default=None,
+    parser.add_argument("--paperreviewer",  default="eval/paperreviewer.json",
                         help="Path to paperreviewer.json.")
     parser.add_argument("--exp_summary",    default=None,
                         help="Path to experiment_summary JSON from experiment.py.")
