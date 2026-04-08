@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 from eval.evaluation import (
     _collect_sw_from_gt,
-    _majority_decision,
     run_evaluation,
 )
 
@@ -35,14 +34,6 @@ class EvaluationTests(unittest.TestCase):
             _collect_sw_from_gt(legacy),
             (["clear writing"], ["small dataset"]),
         )
-
-    def test_majority_decision_uses_last_reviewer_on_tie(self):
-        reviewers = [
-            {"decision": "Accept"},
-            {"decision": "Reject"},
-        ]
-
-        self.assertEqual(_majority_decision(reviewers), "reject")
 
     def test_run_evaluation_aggregates_results_and_writes_output(self):
         papers = {
@@ -91,54 +82,23 @@ class EvaluationTests(unittest.TestCase):
                 }
             ]
         }
-        exp_summary = {
-            "papers": [
-                {
-                    "paper_id": "paper-1",
-                    "conditions": {
-                        "A": {
-                            "result": {
-                                "reviewers": [
-                                    {
-                                        "decision": "Accept",
-                                        "strengths": ["good method"],
-                                        "weaknesses": ["weak comparison"],
-                                        "scores": {"novelty": 4, "soundness": 3},
-                                    },
-                                    {
-                                        "decision": "Reject",
-                                        "strengths": ["good clarity"],
-                                        "weaknesses": ["small-scale eval"],
-                                        "scores": {"novelty": 2, "soundness": 1},
-                                    },
-                                ]
-                            }
-                        }
-                    },
-                }
-            ]
-        }
-
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)
             papers_path = tmpdir_path / "papers.json"
             openreviewer_path = tmpdir_path / "openreviewer.json"
             paperreviewer_path = tmpdir_path / "paperreviewer.json"
-            exp_summary_path = tmpdir_path / "experiment_summary.json"
             output_dir = tmpdir_path / "results"
 
             for path, payload in [
                 (papers_path, papers),
                 (openreviewer_path, openreviewer),
                 (paperreviewer_path, paperreviewer),
-                (exp_summary_path, exp_summary),
             ]:
                 path.write_text(json.dumps(payload), encoding="utf-8")
 
             src_values = [
                 {"strengths": 0.9, "weaknesses": 0.8, "overall": 0.85},
                 {"strengths": 0.4, "weaknesses": 0.3, "overall": 0.35},
-                {"strengths": 0.7, "weaknesses": 0.6, "overall": 0.65},
             ]
 
             with patch("eval.evaluation.load_model", return_value="mock-model") as mock_load_model:
@@ -147,13 +107,12 @@ class EvaluationTests(unittest.TestCase):
                         papers_path=str(papers_path),
                         openreviewer_path=str(openreviewer_path),
                         paperreviewer_path=str(paperreviewer_path),
-                        exp_summary_path=str(exp_summary_path),
                         output_dir=str(output_dir),
                         embed_model_name="mock-embed-model",
                     )
 
             mock_load_model.assert_called_once_with("mock-embed-model")
-            self.assertEqual(mock_compute_src.call_count, 3)
+            self.assertEqual(mock_compute_src.call_count, 2)
 
             paper_results = results["papers"][0]["systems"]
             self.assertEqual(results["embed_model"], "mock-embed-model")
@@ -161,11 +120,8 @@ class EvaluationTests(unittest.TestCase):
 
             self.assertEqual(paper_results["openreviewer"]["decision_match"], True)
             self.assertEqual(paper_results["paperreviewer"]["decision_match"], False)
-            self.assertEqual(paper_results["exp_cond_A"]["decision"], "reject")
-            self.assertEqual(paper_results["exp_cond_A"]["score"], 2.5)
             self.assertNotIn("score_mae", paper_results["openreviewer"])
             self.assertNotIn("score_mae", paper_results["paperreviewer"])
-            self.assertNotIn("score_mae", paper_results["exp_cond_A"])
 
             # conference_check is not evaluated for openreviewer / paperreviewer
             self.assertEqual(
@@ -190,20 +146,8 @@ class EvaluationTests(unittest.TestCase):
                     "src_overall_mean": 0.35,
                 },
             )
-            self.assertEqual(
-                results["aggregate"]["exp_cond_A"],
-                {
-                    "n_papers": 1,
-                    "decision_accuracy": 0.0,
-                    "conference_check_accuracy": 0.0,
-                    "src_strengths_mean": 0.7,
-                    "src_weaknesses_mean": 0.6,
-                    "src_overall_mean": 0.65,
-                },
-            )
             self.assertNotIn("score_mae_mean", results["aggregate"]["openreviewer"])
             self.assertNotIn("score_mae_mean", results["aggregate"]["paperreviewer"])
-            self.assertNotIn("score_mae_mean", results["aggregate"]["exp_cond_A"])
 
             output_files = list(output_dir.glob("eval_results_*.json"))
             self.assertEqual(len(output_files), 1)

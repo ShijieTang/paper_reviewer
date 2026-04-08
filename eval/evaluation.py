@@ -84,14 +84,6 @@ def _collect_sw_from_gt(paper_meta: dict) -> tuple[list, list]:
     )
 
 
-def _collect_sw_from_masloop(reviewers: list) -> tuple[list, list]:
-    """
-    Collect strengths / weaknesses from a mas_loop 'reviewers' array.
-    Each element has "strengths" and "weaknesses" fields.
-    """
-    return _collect_sw_from_reviews(reviewers)
-
-
 # ── Score / decision helpers ──────────────────────────────────────────────────
 
 def _normalise_decision(raw: Optional[str]) -> Optional[str]:
@@ -101,37 +93,10 @@ def _normalise_decision(raw: Optional[str]) -> Optional[str]:
     return raw.strip().lower()
 
 
-def _majority_decision(reviewers: list) -> Optional[str]:
-    """Derive accept/reject from a list of reviewer dicts (majority vote)."""
-    decisions = [_normalise_decision(r.get("decision")) for r in reviewers
-                 if r.get("decision")]
-    if not decisions:
-        return None
-    accepts = decisions.count("accept")
-    rejects = decisions.count("reject")
-    if accepts > rejects:
-        return "accept"
-    if rejects > accepts:
-        return "reject"
-    return decisions[-1]  # tie: use last reviewer
-
-
 def _avg_rating(reviews: list) -> Optional[float]:
     """Average the 'rating' field across reviewer dicts."""
     ratings = [r["rating"] for r in reviews if "rating" in r]
     return sum(ratings) / len(ratings) if ratings else None
-
-
-def _masloop_avg_score(reviewers: list) -> Optional[float]:
-    """
-    Average overall score from mas_loop output.
-    Uses mean of all sub-dimension scores (novelty/soundness/…) across reviewers.
-    """
-    all_vals = []
-    for rev in reviewers:
-        scores = rev.get("scores", {})
-        all_vals.extend(v for v in scores.values() if isinstance(v, (int, float)))
-    return sum(all_vals) / len(all_vals) if all_vals else None
 
 
 # ── Per-system evaluation ─────────────────────────────────────────────────────
@@ -201,11 +166,11 @@ def run_evaluation(
     papers_path:       str,
     openreviewer_path: Optional[str],
     paperreviewer_path: Optional[str],
-    exp_summary_path:  Optional[str],
     output_dir:        str,
     embed_model_name:  str = "all-MiniLM-L6-v2",
     paper_ids:         Optional[list] = None,
     conf_threshold:    float = 6.0,
+    our_results:       Optional[str] = None,  # path to our model result file (from results/)
 ) -> dict:
 
     print("Loading embedding model...")
@@ -229,15 +194,14 @@ def run_evaluation(
 
     or_index  = _index(openreviewer_path)
     pr_index  = _index(paperreviewer_path)
-    exp_index = {}
-    if exp_summary_path:
-        exp_data = _load_json(exp_summary_path)
-        exp_index = {p["paper_id"]: p for p in exp_data["papers"]}
+
+    our_results_stem = Path(our_results).stem if our_results else None
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     results = {
         "timestamp":    timestamp,
         "embed_model":  embed_model_name,
+        "our_results":  our_results_stem,
         "papers": [],
     }
 
@@ -296,18 +260,6 @@ def run_evaluation(
             sc  = p.get("score")
             _add_system("paperreviewer", sw, dec, sc, run_conf_check=False)
 
-        # Experiment conditions A and B
-        if paper_id in exp_index:
-            ep = exp_index[paper_id]
-            for cond_id, cond_data in ep.get("conditions", {}).items():
-                reviewers = cond_data.get("result", {}).get("reviewers", [])
-                if not reviewers:
-                    continue
-                sw  = _collect_sw_from_masloop(reviewers)
-                dec = _majority_decision(reviewers)
-                sc  = _masloop_avg_score(reviewers)
-                _add_system(f"exp_cond_{cond_id}", sw, dec, sc)
-
         results["papers"].append(paper_entry)
 
     # ── Aggregate metrics ─────────────────────────────────────────────────────
@@ -336,8 +288,9 @@ def run_evaluation(
 
     # ── Save ──────────────────────────────────────────────────────────────────
     os.makedirs(output_dir, exist_ok=True)
-    ids_slug = "_".join(gt_index.keys()) if gt_index else timestamp
-    out_path = os.path.join(output_dir, f"eval_results_{ids_slug}.json")
+    ids_slug    = "_".join(gt_index.keys()) if gt_index else timestamp
+    config_slug = our_results_stem if our_results_stem else "default"
+    out_path = os.path.join(output_dir, f"eval_results_{ids_slug}__{config_slug}.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
@@ -365,8 +318,6 @@ def main():
                         help="Path to openreviewer.json.")
     parser.add_argument("--paperreviewer",  default="eval/paperreviewer.json",
                         help="Path to paperreviewer.json.")
-    parser.add_argument("--exp_summary",    default=None,
-                        help="Path to experiment_summary JSON from experiment.py.")
     parser.add_argument("--output_dir",     default="eval/eval_results",
                         help="Directory to save evaluation results.")
     parser.add_argument("--embed_model",    default="all-MiniLM-L6-v2",
@@ -377,22 +328,25 @@ def main():
     parser.add_argument("--conf_threshold", default=6.0, type=float,
                         help="Score threshold for conference_check (default: 6.0). "
                              "Accepted papers must score >= threshold; rejected < threshold.")
+    parser.add_argument("--our_results",   default=None,
+                        help="Path to our model result file (from results/). "
+                             "Used to label the config in the output filename.")
     args = parser.parse_args()
 
-    if not any([args.openreviewer, args.paperreviewer, args.exp_summary]):
+    if not any([args.openreviewer, args.paperreviewer, args.our_results]):
         print("Warning: no system sources provided. "
-              "Supply at least one of --openreviewer, --paperreviewer, --exp_summary.")
+              "Supply at least one of --openreviewer, --paperreviewer, --our_results.")
         sys.exit(1)
 
     run_evaluation(
         papers_path=args.papers,
         openreviewer_path=args.openreviewer,
         paperreviewer_path=args.paperreviewer,
-        exp_summary_path=args.exp_summary,
         output_dir=args.output_dir,
         embed_model_name=args.embed_model,
         paper_ids=args.paper_ids,
         conf_threshold=args.conf_threshold,
+        our_results=args.our_results,
     )
 
 
