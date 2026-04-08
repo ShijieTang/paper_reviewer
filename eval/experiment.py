@@ -4,15 +4,15 @@ experiment.py
 Run two experimental conditions for each paper in papers.json and save
 results for later quantitative comparison.
 
-Condition A — Single agent, no rebuttal:
-    agents = [reviewer_a], n_iter = 1
+Condition A — Single agent:
+    agents = [reviewer_a], n_iter = len(agents) = 1
 
-Condition B — Multi-agent, 3 iterations:
-    agents = [reviewer_a, reviewer_b], n_iter = 3
+Condition B — Multi-agent:
+    agents = [reviewer_a, reviewer_b], n_iter = len(agents) = 2
 
 Result files (in --output_dir):
     {timestamp}_nagent=1_niter=1_paper={name}_cond=A_single.txt
-    {timestamp}_nagent=2_niter=3_paper={name}_cond=B_multi.txt
+    {timestamp}_nagent=2_niter=2_paper={name}_cond=B_multi.txt
 
 Each .txt file contains the raw result dict (identical structure to the
 normal webapp output):
@@ -44,21 +44,20 @@ from mas_loop import main as mas_main
 
 # ── Condition definitions ─────────────────────────────────────────────────────
 
+_CONDITIONS_AGENTS = [
+    ("A", "single", ["reviewer_a"]),
+    ("B", "multi",  ["reviewer_a", "reviewer_b"]),
+]
+
 CONDITIONS = [
     {
-        "id":    "A",
-        "label": "single",
-        "desc":  "Single agent, no rebuttal",
-        "agents": ["reviewer_a"],
-        "n_iter": 1,
-    },
-    {
-        "id":    "B",
-        "label": "multi",
-        "desc":  "Multi-agent, 3 iterations",
-        "agents": ["reviewer_a", "reviewer_b"],
-        "n_iter": 3,
-    },
+        "id":     cid,
+        "label":  label,
+        "desc":   f"{'Single' if len(agents) == 1 else 'Multi'}-agent, {len(agents)} iteration{'s' if len(agents) > 1 else ''}",
+        "agents": agents,
+        "n_iter": len(agents),
+    }
+    for cid, label, agents in _CONDITIONS_AGENTS
 ]
 
 
@@ -66,7 +65,8 @@ CONDITIONS = [
 
 def load_papers(json_file: str) -> list:
     with open(json_file, "r", encoding="utf-8") as f:
-        return json.load(f)["papers"]
+        data = json.load(f)
+    return [{"paper_id": pid, **meta} for pid, meta in data.items()]
 
 
 def pdf_to_markdown(pdf_dir: str) -> str:
