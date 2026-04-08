@@ -14,7 +14,7 @@ Metrics per paper per system:
     - SRC_weaknesses    : Semantic Review Coverage for weakness statements
     - SRC_overall       : average of the two SRC scores
     - decision_match    : whether the system's accept/reject matches ground truth
-    - conference_check  : whether the system's recommendation score
+    - conference_check  : whether the system's recommendation score fit threshold (default 6)
 
 Usage (from project root):
     python eval/evaluation.py \\
@@ -136,6 +136,24 @@ def _masloop_avg_score(reviewers: list) -> Optional[float]:
 
 # ── Per-system evaluation ─────────────────────────────────────────────────────
 
+def _conference_check(
+    gt_decision: Optional[str],
+    sys_score: Optional[float],
+    threshold: float,
+) -> Optional[bool]:
+    """
+    True if the system score correctly reflects the ground-truth decision:
+      - accepted paper → sys_score >= threshold
+      - rejected paper → sys_score <  threshold
+    Returns None when gt_decision or sys_score is unavailable.
+    """
+    if gt_decision is None or sys_score is None:
+        return None
+    if _normalise_decision(gt_decision) == "accept":
+        return sys_score >= threshold
+    return sys_score < threshold
+
+
 def _evaluate_system(
     system_name: str,
     gt_strengths: list,
@@ -146,6 +164,7 @@ def _evaluate_system(
     sys_decision: Optional[str],
     sys_score: Optional[float],
     model,
+    conf_threshold: float = 6.0,
 ) -> dict:
     """Run all metrics for one system against ground truth for one paper."""
     src = compute_src_both(
@@ -160,17 +179,18 @@ def _evaluate_system(
                           _normalise_decision(sys_decision))
 
     return {
-        "system":          system_name,
-        "decision":        sys_decision,
-        "score":           sys_score,
-        "decision_match":  decision_match,
-        "src_strengths":   src["strengths"],
-        "src_weaknesses":  src["weaknesses"],
-        "src_overall":     src["overall"],
-        "n_strengths_gen": len(sys_strengths),
-        "n_weaknesses_gen": len(sys_weaknesses),
-        "n_strengths_gt":  len(gt_strengths),
-        "n_weaknesses_gt": len(gt_weaknesses),
+        "system":            system_name,
+        "decision":          sys_decision,
+        "score":             sys_score,
+        "decision_match":    decision_match,
+        "conference_check":  _conference_check(gt_decision, sys_score, conf_threshold),
+        "src_strengths":     src["strengths"],
+        "src_weaknesses":    src["weaknesses"],
+        "src_overall":       src["overall"],
+        "n_strengths_gen":   len(sys_strengths),
+        "n_weaknesses_gen":  len(sys_weaknesses),
+        "n_strengths_gt":    len(gt_strengths),
+        "n_weaknesses_gt":   len(gt_weaknesses),
     }
 
 
@@ -184,6 +204,7 @@ def run_evaluation(
     output_dir:        str,
     embed_model_name:  str = "all-MiniLM-L6-v2",
     paper_ids:         Optional[list] = None,
+    conf_threshold:    float = 6.0,
 ) -> dict:
 
     print("Loading embedding model...")
@@ -252,6 +273,7 @@ def run_evaluation(
             metrics = _evaluate_system(
                 name, gt_s, gt_w, gt_decision,
                 sys_s, sys_w, decision, score, model,
+                conf_threshold=conf_threshold,
             )
             paper_entry["systems"][name] = metrics
             all_metrics.setdefault(name, []).append(metrics)
@@ -301,13 +323,14 @@ def run_evaluation(
             vals = [m[key] for m in metrics_list if m[key] is not None]
             return round(sum(vals) / len(vals), 4) if vals else None
 
-        dec_matches = [m["decision_match"] for m in metrics_list
-                       if m["decision_match"] is not None]
-        dec_acc = round(sum(dec_matches) / len(dec_matches), 4) if dec_matches else None
+        def _bool_acc(key):
+            vals = [m[key] for m in metrics_list if m[key] is not None]
+            return round(sum(vals) / len(vals), 4) if vals else None
 
         aggregate[sys_name] = {
             "n_papers":              n,
-            "decision_accuracy":     dec_acc,
+            "decision_accuracy":     _bool_acc("decision_match"),
+            "conference_check_accuracy": _bool_acc("conference_check"),
             "src_strengths_mean":    _mean("src_strengths"),
             "src_weaknesses_mean":   _mean("src_weaknesses"),
             "src_overall_mean":      _mean("src_overall"),
@@ -354,6 +377,9 @@ def main():
     parser.add_argument("--paper_ids",      default=None, nargs="+",
                         help="Optional: space-separated list of paper_ids to evaluate "
                              "(must exist in papers.json). Evaluates all if omitted.")
+    parser.add_argument("--conf_threshold", default=6.0, type=float,
+                        help="Score threshold for conference_check (default: 6.0). "
+                             "Accepted papers must score >= threshold; rejected < threshold.")
     args = parser.parse_args()
 
     if not any([args.openreviewer, args.paperreviewer, args.exp_summary]):
@@ -369,6 +395,7 @@ def main():
         output_dir=args.output_dir,
         embed_model_name=args.embed_model,
         paper_ids=args.paper_ids,
+        conf_threshold=args.conf_threshold,
     )
 
 

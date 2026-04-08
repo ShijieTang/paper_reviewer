@@ -167,11 +167,14 @@ class EvaluationTests(unittest.TestCase):
             self.assertNotIn("score_mae", paper_results["paperreviewer"])
             self.assertNotIn("score_mae", paper_results["exp_cond_A"])
 
+            # All system scores (4.5, 2.0, 2.5) are below the default threshold of 6.0
+            # for an accepted paper, so conference_check_accuracy is 0.0 for all.
             self.assertEqual(
                 results["aggregate"]["openreviewer"],
                 {
                     "n_papers": 1,
                     "decision_accuracy": 1.0,
+                    "conference_check_accuracy": 0.0,
                     "src_strengths_mean": 0.9,
                     "src_weaknesses_mean": 0.8,
                     "src_overall_mean": 0.85,
@@ -182,6 +185,7 @@ class EvaluationTests(unittest.TestCase):
                 {
                     "n_papers": 1,
                     "decision_accuracy": 0.0,
+                    "conference_check_accuracy": 0.0,
                     "src_strengths_mean": 0.4,
                     "src_weaknesses_mean": 0.3,
                     "src_overall_mean": 0.35,
@@ -192,6 +196,7 @@ class EvaluationTests(unittest.TestCase):
                 {
                     "n_papers": 1,
                     "decision_accuracy": 0.0,
+                    "conference_check_accuracy": 0.0,
                     "src_strengths_mean": 0.7,
                     "src_weaknesses_mean": 0.6,
                     "src_overall_mean": 0.65,
