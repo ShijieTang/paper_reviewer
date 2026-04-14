@@ -27,13 +27,9 @@ from pathlib import Path
 # Allow imports from project root
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from config import VALID_TOPICS
 from doc_preprocess import doc_preprocess
 from mas_loop import main as mas_main
-
-VALID_TOPICS = {
-    "Machine Learning", "Deep Learning", "Generative Models",
-    "Transfer Learning", "Computer Vision", "NLP", "AI for Science", "Others",
-}
 
 
 def normalize_topic(topic: str) -> str:
