@@ -20,7 +20,7 @@ current_md_name = None
 current_sections = {}
 current_topic = None
 
-VALID_TOPICS    = {"Machine Learning", "Deep Learning", "Generative Models", "Transfer Learning", "Computer Vision", "NLP", "AI for Science", "Others"}
+from config import VALID_TOPICS
 VALID_REVIEWERS = {"reviewer_a", "reviewer_b"}
 
 # job_id -> queue.Queue  (progress events)
@@ -237,6 +237,11 @@ def get_results(job_id):
 @app.route("/api/topic", methods=["GET"])
 def get_topic():
     return jsonify({"topic": current_topic})
+
+
+@app.route("/api/topics", methods=["GET"])
+def get_topics():
+    return jsonify({"topics": VALID_TOPICS})
 
 
 if __name__ == "__main__":
