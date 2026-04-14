@@ -30,6 +30,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from doc_preprocess import doc_preprocess
 from mas_loop import main as mas_main
 
+VALID_TOPICS = {
+    "Machine Learning", "Deep Learning", "Generative Models",
+    "Transfer Learning", "Computer Vision", "NLP", "AI for Science", "Others",
+}
+
+
+def normalize_topic(topic: str) -> str:
+    """Return the canonical topic name, or 'Others' if not in the valid list.
+    Matching is case-insensitive so e.g. 'Deep learning' → 'Deep Learning'."""
+    for valid in VALID_TOPICS:
+        if topic.strip().lower() == valid.lower():
+            return valid
+    return "Others"
+
 
 def load_papers(json_file: str) -> list:
     with open(json_file, "r", encoding="utf-8") as f:
@@ -65,7 +79,7 @@ def run_paper(paper_meta: dict, agents: list, api_key: str,
     Result structure matches the normal webapp output exactly.
     """
     paper_id   = paper_meta["paper_id"]
-    topic      = topic_override or paper_meta.get("topic", "")
+    topic      = normalize_topic(topic_override or paper_meta.get("topic", ""))
     paper_name = Path(paper_meta["paper_dir"]).stem
 
     print(f"\n{'='*60}")
