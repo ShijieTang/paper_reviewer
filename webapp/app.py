@@ -20,7 +20,7 @@ current_md_name = None
 current_sections = {}
 current_topic = None
 
-VALID_TOPICS    = {"Machine Learning Algorithm", "NLP", "AI for Science"}
+VALID_TOPICS    = {"Machine Learning", "Deep Learning", "Generative Models", "Transfer Learning", "Computer Vision", "NLP", "AI for Science", "Others"}
 VALID_REVIEWERS = {"reviewer_a", "reviewer_b"}
 
 # job_id -> queue.Queue  (progress events)
