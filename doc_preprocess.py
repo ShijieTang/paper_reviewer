@@ -2,9 +2,28 @@ import re
 from pathlib import Path
 from typing import List
 
+import torch
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
+
+# Pick the best available device: CUDA > MPS (Apple Silicon) > CPU.
+if torch.cuda.is_available():
+    _DEVICE = "cuda"
+elif torch.backends.mps.is_available():
+    _DEVICE = "mps"
+else:
+    _DEVICE = "cpu"
+
+# Load models once and reuse across all calls in the same process.
+_MODEL_DICT: dict | None = None
+
+
+def _get_model_dict() -> dict:
+    global _MODEL_DICT
+    if _MODEL_DICT is None:
+        _MODEL_DICT = create_model_dict(device=_DEVICE)
+    return _MODEL_DICT
 
 # ---------------------------------------------------------------------------
 # Reference-normalisation helpers
@@ -158,7 +177,7 @@ def doc_preprocess(pdf_name: str, pdf_path: str = "data/pdf", md_path: str = "da
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / pdf_name.with_suffix(".md")
 
-    converter = PdfConverter(artifact_dict=create_model_dict())
+    converter = PdfConverter(artifact_dict=_get_model_dict())
     rendered = converter(str(full_pdf_path))
     text, _, _ = text_from_rendered(rendered)
     text = _clean_document(text)
