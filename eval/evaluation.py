@@ -5,9 +5,9 @@ Evaluate AI paper reviewers against human ground-truth reviews from OpenReview.
 
 Sources evaluated:
     - OpenReviewer  : results in openreviewer.json
-    - PaperReviewer : results in paperreviewer.json (our system)
-    - Exp Cond A    : single-agent, no rebuttal  (from experiment_summary.json)
-    - Exp Cond B    : multi-agent, 3 iterations  (from experiment_summary.json)
+    - PaperReviewer : results in paperreviewer.json
+    - our_single    : Condition A (single-agent)  from experiment_summary_*.json
+    - our_multi     : Condition B (multi-agent)   from experiment_summary_*.json
 
 Metrics per paper per system:
     - SRC_strengths     : Semantic Review Coverage for strength statements
@@ -84,6 +84,14 @@ def _collect_sw_from_gt(paper_meta: dict) -> tuple[list, list]:
     )
 
 
+# ── Experiment summary loader ─────────────────────────────────────────────────
+
+def _load_exp_summary(path: str) -> dict:
+    """Load experiment_summary_*.json and index papers by paper_id."""
+    data = _load_json(path)
+    return {p["paper_id"]: p for p in data["papers"]}
+
+
 # ── Score / decision helpers ──────────────────────────────────────────────────
 
 def _normalise_decision(raw: Optional[str]) -> Optional[str]:
@@ -97,6 +105,25 @@ def _avg_rating(reviews: list) -> Optional[float]:
     """Average the 'rating' field across reviewer dicts."""
     ratings = [r["rating"] for r in reviews if "rating" in r]
     return sum(ratings) / len(ratings) if ratings else None
+
+
+def _decision_from_reviewers(reviewers: list) -> Optional[str]:
+    """Majority-vote accept/reject across all reviewers in a committee."""
+    votes = [_normalise_decision(r.get("decision")) for r in reviewers]
+    votes = [v for v in votes if v in ("accept", "reject")]
+    if not votes:
+        return None
+    return "accept" if votes.count("accept") > votes.count("reject") else "reject"
+
+
+def _score_from_reviewers(reviewers: list) -> Optional[float]:
+    """Mean of per-reviewer average scores (novelty/soundness/… scale 1-5)."""
+    per_reviewer = []
+    for r in reviewers:
+        vals = list(r.get("scores", {}).values())
+        if vals:
+            per_reviewer.append(sum(vals) / len(vals))
+    return round(sum(per_reviewer) / len(per_reviewer), 4) if per_reviewer else None
 
 
 # ── Per-system evaluation ─────────────────────────────────────────────────────
@@ -163,14 +190,15 @@ def _evaluate_system(
 # ── Main evaluation ───────────────────────────────────────────────────────────
 
 def run_evaluation(
-    papers_path:       str,
-    openreviewer_path: Optional[str],
+    papers_path:        str,
+    openreviewer_path:  Optional[str],
     paperreviewer_path: Optional[str],
-    output_dir:        str,
-    embed_model_name:  str = "all-MiniLM-L6-v2",
-    paper_ids:         Optional[list] = None,
-    conf_threshold:    float = 6.0,
-    our_results:       Optional[str] = None,  # path to our model result file (from results/)
+    output_dir:         str,
+    embed_model_name:   str = "all-MiniLM-L6-v2",
+    paper_ids:          Optional[list] = None,
+    conf_threshold:     float = 6.0,
+    our_results:        Optional[str] = None,
+    exp_summary_path:   Optional[str] = None,
 ) -> dict:
 
     print("Loading embedding model...")
@@ -194,6 +222,7 @@ def run_evaluation(
 
     or_index  = _index(openreviewer_path)
     pr_index  = _index(paperreviewer_path)
+    exp_index = _load_exp_summary(exp_summary_path) if exp_summary_path else {}
 
     our_results_stem = Path(our_results).stem if our_results else None
 
@@ -259,6 +288,20 @@ def run_evaluation(
             dec = _normalise_decision(p.get("accept_or_not"))
             sc  = p.get("score")
             _add_system("paperreviewer", sw, dec, sc, run_conf_check=False)
+
+        # Our system: Condition A (single-agent) and B (multi-agent)
+        # Decision is majority vote across all reviewers in the committee.
+        # Score is mean of per-reviewer average sub-scores (1-5 scale).
+        if paper_id in exp_index:
+            exp_paper = exp_index[paper_id]
+            for cond_id, sys_name in [("A", "our_single"), ("B", "our_multi")]:
+                cond = exp_paper.get("conditions", {}).get(cond_id, {})
+                reviewers = cond.get("result", {}).get("reviewers", [])
+                if reviewers:
+                    sw  = _collect_sw_from_reviews(reviewers)
+                    dec = _decision_from_reviewers(reviewers)
+                    sc  = _score_from_reviewers(reviewers)
+                    _add_system(sys_name, sw, dec, sc, run_conf_check=False)
 
         results["papers"].append(paper_entry)
 
@@ -331,9 +374,12 @@ def main():
     parser.add_argument("--our_results",   default=None,
                         help="Path to our model result file (from results/). "
                              "Used to label the config in the output filename.")
+    parser.add_argument("--exp_summary",   default=None,
+                        help="Path to experiment_summary_*.json from eval/exp_results/. "
+                             "Adds our_single (Cond A) and our_multi (Cond B) to the benchmark.")
     args = parser.parse_args()
 
-    if not any([args.openreviewer, args.paperreviewer, args.our_results]):
+    if not any([args.openreviewer, args.paperreviewer, args.our_results, args.exp_summary]):
         print("Warning: no system sources provided. "
               "Supply at least one of --openreviewer, --paperreviewer, --our_results.")
         sys.exit(1)
@@ -347,6 +393,7 @@ def main():
         paper_ids=args.paper_ids,
         conf_threshold=args.conf_threshold,
         our_results=args.our_results,
+        exp_summary_path=args.exp_summary,
     )
 
 
