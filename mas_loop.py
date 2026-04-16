@@ -98,7 +98,7 @@ def get_review(reviewer: Reviewer, reviewer_prompt: str, iteration: int,
 
 def main(paper: str, topic: str = "", n_iter: int = 10,
          reviewer_types: list = None, api_key: str = "",
-         on_event=None) -> dict:
+         on_event=None, run_citation_check: bool = True) -> dict:
     """
     Run the multi-agent review loop.
 
@@ -166,10 +166,19 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
     emit("Conference recommendation complete!")
 
     # ── Citation check ────────────────────────────────────────────────────────
-    emit("Running citation check...")
-    citation_results = _run_citation_check(paper)
-    n_fail = len(citation_results.get("failed", []))
-    emit(f"Citation check complete. {n_fail} reference(s) flagged.")
+    if run_citation_check:
+        emit("Running citation check...")
+        citation_results = _run_citation_check(paper)
+        n_fail = len(citation_results.get("failed", []))
+        emit(f"Citation check complete. {n_fail} reference(s) flagged.")
+    else:
+        emit("Skipping citation check.")
+        citation_results = {
+            "stats": {},
+            "failed": [],
+            "skipped": True,
+            "reason": "disabled_for_experiment",
+        }
 
     # ── Parse structured outputs ──────────────────────────────────────────────
     parsed_reviews = []

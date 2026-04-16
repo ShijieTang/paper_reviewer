@@ -38,13 +38,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from doc_preprocess import doc_preprocess
+from config import VALID_TOPICS
+from doc_preprocess import load_or_create_markdown
 from mas_loop import main as mas_main
-
-VALID_TOPICS = {
-    "Machine Learning", "Deep Learning", "Generative Models",
-    "Transfer Learning", "Computer Vision", "NLP", "AI for Science", "Others",
-}
 
 
 def normalize_topic(topic: str) -> str:
@@ -60,7 +56,7 @@ def normalize_topic(topic: str) -> str:
 
 _CONDITIONS_AGENTS = [
     ("A", "single", ["reviewer_a"]),
-    ("B", "multi",  ["reviewer_a", "reviewer_b"]),
+    ("B", "multi",  ["reviewer_a", "reviewer_b", "reviewer_c"]),
 ]
 
 CONDITIONS = [
@@ -84,14 +80,8 @@ def load_papers(json_file: str) -> list:
 
 
 def pdf_to_markdown(pdf_dir: str) -> str:
-    """Convert PDF to markdown (same as normal workflow, skip manual correction)."""
-    pdf_path = Path(pdf_dir)
-    md_out = doc_preprocess(
-        pdf_name=pdf_path.name,
-        pdf_path=str(pdf_path.parent),
-        md_path="data/md",
-    )
-    return Path(md_out).read_text(encoding="utf-8")
+    """Load an existing markdown file when present, otherwise convert the PDF."""
+    return load_or_create_markdown(pdf_dir, md_path="data/md")
 
 
 def run_condition(paper_text: str, topic: str, cond: dict, api_key: str) -> dict:
@@ -102,6 +92,7 @@ def run_condition(paper_text: str, topic: str, cond: dict, api_key: str) -> dict
         n_iter=cond["n_iter"],
         reviewer_types=cond["agents"],
         api_key=api_key,
+        run_citation_check=False,
     )
 
 
@@ -122,6 +113,26 @@ def save_result(result: dict, paper_name: str, cond: dict,
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
     return out_path
+
+
+def _existing_result_path(output_dir: str, paper_name: str, cond: dict) -> Path | None:
+    """Return the latest saved result file for this paper/condition, if any."""
+    pattern = (
+        f"*_nagent={len(cond['agents'])}"
+        f"_niter={cond['n_iter']}"
+        f"_paper={paper_name}"
+        f"_cond={cond['id']}_{cond['label']}.txt"
+    )
+    matches = sorted(Path(output_dir).glob(pattern))
+    return matches[-1] if matches else None
+
+
+def _load_existing_result(path: Path) -> dict | None:
+    """Load a previously saved result file. Return None if unreadable."""
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
 
 
 # ── Main experiment loop ──────────────────────────────────────────────────────
@@ -149,10 +160,10 @@ def run_experiment(papers: list, api_key: str, output_dir: str) -> dict:
         print(f"Paper: {paper_id}  ({paper_name})")
         print(f"{'='*60}")
 
-        # PDF → markdown once, reuse for both conditions
-        print("Converting PDF to markdown...")
-        paper_text = pdf_to_markdown(paper_meta["paper_dir"])
-        print("Conversion complete.")
+        existing_paths = {
+            cond["id"]: _existing_result_path(output_dir, paper_name, cond)
+            for cond in CONDITIONS
+        }
 
         paper_entry = {
             "paper_id":       paper_id,
@@ -169,16 +180,37 @@ def run_experiment(papers: list, api_key: str, output_dir: str) -> dict:
             "conditions": {},
         }
 
+        paper_text = None
         for cond in CONDITIONS:
             print(f"\n--- Condition {cond['id']}: {cond['desc']} ---")
-            result = run_condition(paper_text, topic, cond, api_key)
-            out_path = save_result(result, paper_name, cond, output_dir, timestamp)
-            print(f"Saved: {out_path}")
+            existing_path = existing_paths[cond["id"]]
+            reused_existing = False
+
+            if existing_path is not None:
+                result = _load_existing_result(existing_path)
+                if result is not None:
+                    out_path = str(existing_path)
+                    reused_existing = True
+                    print(f"Skipping: found existing result at {out_path}")
+                else:
+                    print(f"Existing result unreadable, rerunning: {existing_path}")
+                    existing_path = None
+
+            if existing_path is None:
+                if paper_text is None:
+                    print("Loading markdown or converting PDF...")
+                    paper_text = pdf_to_markdown(paper_meta["paper_dir"])
+                    print("Paper text ready.")
+
+                result = run_condition(paper_text, topic, cond, api_key)
+                out_path = save_result(result, paper_name, cond, output_dir, timestamp)
+                print(f"Saved: {out_path}")
 
             paper_entry["conditions"][cond["id"]] = {
-                "desc":       cond["desc"],
-                "result_file": os.path.basename(out_path),
-                "result":     result,
+                "desc":            cond["desc"],
+                "result_file":     os.path.basename(out_path),
+                "reused_existing": reused_existing,
+                "result":          result,
             }
 
         summary["papers"].append(paper_entry)
