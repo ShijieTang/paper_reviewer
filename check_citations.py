@@ -201,7 +201,7 @@ def main():
         sys.exit(0)
 
     print("Checking each reference (this may take a moment due to API rate limits)...")
-    results = check_references(references)
+    results = check_references(references, show_progress=True)
     failed = failed_references(results)
 
     _print_report(results, verbose=args.verbose)
