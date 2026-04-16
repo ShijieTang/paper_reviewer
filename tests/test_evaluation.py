@@ -149,8 +149,10 @@ class EvaluationTests(unittest.TestCase):
             self.assertNotIn("score_mae_mean", results["aggregate"]["openreviewer"])
             self.assertNotIn("score_mae_mean", results["aggregate"]["paperreviewer"])
 
-            output_files = list(output_dir.glob("eval_results_*.json"))
+            output_files = list(output_dir.glob("evaluation_*.json"))
             self.assertEqual(len(output_files), 1)
+            self.assertIn("paper-1", output_files[0].name)
+            self.assertIn("openreviewer__paperreviewer", output_files[0].name)
             saved_results = json.loads(output_files[0].read_text(encoding="utf-8"))
             self.assertEqual(saved_results["aggregate"], results["aggregate"])
 

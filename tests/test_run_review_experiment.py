@@ -7,10 +7,13 @@ Covers:
   - run_experiment(): topic is normalized before being forwarded to mas_main
 """
 
+import os
+import json
 import sys
 import tempfile
 import types
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 # Stub out heavy dependencies that are not available in the test environment
@@ -21,12 +24,15 @@ for _mod in ("marker", "marker.converters", "marker.converters.pdf",
 
 _doc_preprocess_stub = types.ModuleType("doc_preprocess")
 _doc_preprocess_stub.doc_preprocess = MagicMock(return_value="data/md/stub.md")
+_doc_preprocess_stub.load_or_create_markdown = MagicMock(return_value="stub markdown")
 sys.modules["doc_preprocess"] = _doc_preprocess_stub
 
 _mas_loop_stub = types.ModuleType("mas_loop")
 _mas_loop_stub.main = MagicMock(return_value={"reviewers": [], "conference": {}, "citations": {}})
 sys.modules["mas_loop"] = _mas_loop_stub
 
+import eval.run_review as run_review_module  # noqa: E402
+import eval.experiment as experiment_module  # noqa: E402
 from eval.run_review import normalize_topic as rr_normalize, run_paper  # noqa: E402
 from eval.experiment import normalize_topic as ex_normalize, run_experiment  # noqa: E402
 
@@ -104,6 +110,9 @@ class TestRunPaperTopicNormalization(unittest.TestCase):
         # mas_main is called with keyword args; topic is always keyword
         return call_args[1]["topic"]
 
+    def _citation_flag_used(self, call_args):
+        return call_args[1].get("run_citation_check")
+
     def test_unknown_topic_passed_as_others(self):
         self.assertEqual(self._topic_used(self._run(self._make_meta("Learning Theory"))), "Others")
 
@@ -118,6 +127,9 @@ class TestRunPaperTopicNormalization(unittest.TestCase):
 
     def test_topic_override_takes_precedence(self):
         self.assertEqual(self._topic_used(self._run(self._make_meta("Learning Theory"), topic_override="NLP")), "NLP")
+
+    def test_run_review_keeps_default_citation_check_behavior(self):
+        self.assertIsNone(self._citation_flag_used(self._run(self._make_meta("NLP"))))
 
 
 # ── run_experiment topic normalization ────────────────────────────────────────
@@ -160,6 +172,106 @@ class TestRunExperimentTopicNormalization(unittest.TestCase):
         """Each paper should trigger both condition A and B."""
         mock_mas = self._run(self._make_papers("NLP"))
         self.assertEqual(mock_mas.call_count, 2)
+
+    def test_experiment_disables_citation_check(self):
+        mock_mas = self._run(self._make_papers("NLP"))
+        for c in mock_mas.call_args_list:
+            self.assertFalse(c[1]["run_citation_check"])
+
+    def test_existing_condition_is_skipped(self):
+        fake_result = {"reviewers": [], "conference": {}, "citations": {}}
+        papers = self._make_papers("NLP")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            existing_path = Path(tmpdir) / "2501010000_nagent=1_niter=1_paper=test_001_cond=A_single.txt"
+            existing_path.write_text(json.dumps(fake_result), encoding="utf-8")
+
+            with patch("eval.experiment.pdf_to_markdown", return_value="paper text"), \
+                 patch("eval.experiment.mas_main", return_value=fake_result) as mock_mas:
+                summary = run_experiment(papers, api_key="key", output_dir=tmpdir)
+
+            self.assertEqual(mock_mas.call_count, 1)
+            self.assertTrue(summary["papers"][0]["conditions"]["A"]["reused_existing"])
+            self.assertFalse(summary["papers"][0]["conditions"]["B"]["reused_existing"])
+
+    def test_all_existing_conditions_skip_markdown_and_model(self):
+        fake_result = {"reviewers": [], "conference": {}, "citations": {}}
+        papers = self._make_papers("NLP")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "2501010000_nagent=1_niter=1_paper=test_001_cond=A_single.txt").write_text(
+                json.dumps(fake_result), encoding="utf-8"
+            )
+            Path(tmpdir, "2501010001_nagent=3_niter=3_paper=test_001_cond=B_multi.txt").write_text(
+                json.dumps(fake_result), encoding="utf-8"
+            )
+
+            with patch("eval.experiment.pdf_to_markdown", return_value="paper text") as mock_md, \
+                 patch("eval.experiment.mas_main", return_value=fake_result) as mock_mas:
+                summary = run_experiment(papers, api_key="key", output_dir=tmpdir)
+
+            mock_md.assert_not_called()
+            mock_mas.assert_not_called()
+            self.assertTrue(summary["papers"][0]["conditions"]["A"]["reused_existing"])
+            self.assertTrue(summary["papers"][0]["conditions"]["B"]["reused_existing"])
+
+    def test_mismatched_existing_condition_not_reused(self):
+        fake_result = {"reviewers": [], "conference": {}, "citations": {}}
+        papers = self._make_papers("NLP")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Old output from a previous experiment shape; should not match current condition B.
+            Path(tmpdir, "2501010000_nagent=2_niter=2_paper=test_001_cond=B_multi.txt").write_text(
+                json.dumps(fake_result), encoding="utf-8"
+            )
+
+            with patch("eval.experiment.pdf_to_markdown", return_value="paper text"), \
+                 patch("eval.experiment.mas_main", return_value=fake_result) as mock_mas:
+                summary = run_experiment(papers, api_key="key", output_dir=tmpdir)
+
+            self.assertEqual(mock_mas.call_count, 2)
+            self.assertFalse(summary["papers"][0]["conditions"]["B"]["reused_existing"])
+
+
+class TestMarkdownReuse(unittest.TestCase):
+    def test_run_review_pdf_to_markdown_reuses_existing_markdown(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            old_cwd = Path.cwd()
+            os.chdir(tmp)
+            try:
+                (tmp / "data" / "pdf").mkdir(parents=True)
+                (tmp / "data" / "md").mkdir(parents=True)
+                pdf_path = tmp / "data" / "pdf" / "paper.pdf"
+                md_path = tmp / "data" / "md" / "paper.md"
+                pdf_path.write_bytes(b"%PDF-1.4\n")
+                md_path.write_text("existing markdown", encoding="utf-8")
+
+                with patch.object(run_review_module, "load_or_create_markdown", return_value="existing markdown") as mock_loader:
+                    text = run_review_module.pdf_to_markdown("data/pdf/paper.pdf")
+
+                self.assertEqual(text, "existing markdown")
+                mock_loader.assert_called_once_with("data/pdf/paper.pdf", md_path="data/md")
+            finally:
+                os.chdir(old_cwd)
+
+    def test_experiment_pdf_to_markdown_reuses_existing_markdown(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            old_cwd = Path.cwd()
+            os.chdir(tmp)
+            try:
+                (tmp / "data" / "pdf").mkdir(parents=True)
+                (tmp / "data" / "md").mkdir(parents=True)
+                pdf_path = tmp / "data" / "pdf" / "paper.pdf"
+                md_path = tmp / "data" / "md" / "paper.md"
+                pdf_path.write_bytes(b"%PDF-1.4\n")
+                md_path.write_text("existing markdown", encoding="utf-8")
+
+                with patch.object(experiment_module, "load_or_create_markdown", return_value="existing markdown") as mock_loader:
+                    text = experiment_module.pdf_to_markdown("data/pdf/paper.pdf")
+
+                self.assertEqual(text, "existing markdown")
+                mock_loader.assert_called_once_with("data/pdf/paper.pdf", md_path="data/md")
+            finally:
+                os.chdir(old_cwd)
 
 
 if __name__ == "__main__":
