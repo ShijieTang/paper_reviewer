@@ -11,7 +11,7 @@ import werkzeug
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from modular_seg import reconstruct_md, save_sections, segment_md
-from doc_preprocess import doc_preprocess
+from doc_preprocess import doc_preprocess, load_or_create_markdown
 
 app = Flask(__name__)
 
@@ -61,8 +61,8 @@ def upload_file():
             pdf_path = pdf_dir / filename
             f.save(str(pdf_path))
 
-            # Convert PDF → MD (may take a while)
-            doc_preprocess(filename, pdf_path=str(pdf_dir), md_path="data/md")
+            # Reuse existing markdown when available; otherwise convert PDF → MD.
+            load_or_create_markdown(str(pdf_path), md_path="data/md")
             md_filename = Path(filename).with_suffix(".md").name
         else:
             md_dir = Path("data/md")

@@ -28,7 +28,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import VALID_TOPICS
-from doc_preprocess import doc_preprocess
+from doc_preprocess import load_or_create_markdown
 from mas_loop import main as mas_main
 
 
@@ -49,17 +49,11 @@ def load_papers(json_file: str) -> list:
 
 def pdf_to_markdown(pdf_dir: str) -> str:
     """
-    Convert a PDF to markdown (same as normal workflow).
+    Load an existing markdown file when present, otherwise convert the PDF.
     pdf_dir is the path to the PDF, e.g. "data/pdf/example_paper.pdf".
     Returns the markdown text.
     """
-    pdf_path = Path(pdf_dir)
-    md_out = doc_preprocess(
-        pdf_name=pdf_path.name,
-        pdf_path=str(pdf_path.parent),
-        md_path="data/md",
-    )
-    return Path(md_out).read_text(encoding="utf-8")
+    return load_or_create_markdown(pdf_dir, md_path="data/md")
 
 
 def parse_agents(agents_arg: str) -> list:
@@ -84,9 +78,9 @@ def run_paper(paper_meta: dict, agents: list, api_key: str,
     print(f"{'='*60}")
 
     # Step 1: PDF → markdown (skip manual correction)
-    print("Converting PDF to markdown...")
+    print("Loading markdown or converting PDF...")
     paper_text = pdf_to_markdown(paper_meta["paper_dir"])
-    print("Conversion complete.")
+    print("Paper text ready.")
 
     # Step 2: Run review loop (includes citation check)
     result = mas_main(
