@@ -9,6 +9,7 @@ Verification pipeline (stops at first pass):
 """
 
 import logging
+import sys
 from typing import List
 
 from .arxiv_checker import check_on_arxiv
@@ -18,6 +19,11 @@ from .openreview_checker import check_on_openreview
 from .url_checker import check_url_accessible
 
 logger = logging.getLogger(__name__)
+
+try:
+    from tqdm import tqdm
+except ImportError:  # pragma: no cover - optional dependency
+    tqdm = None
 
 
 def _check_single(ref: Reference) -> CheckResult:
@@ -147,14 +153,25 @@ def failed_references(results: List[CheckResult]) -> List[FailedReference]:
     ]
 
 
-def check_references(references: List[Reference]) -> List[CheckResult]:
+def check_references(
+    references: List[Reference],
+    show_progress: bool | None = None,
+    progress_desc: str = "Checking citations",
+) -> List[CheckResult]:
     """
     Check all references and return a list of CheckResult objects.
 
     Processes references sequentially to respect API rate limits.
     """
+    if show_progress is None:
+        show_progress = sys.stderr.isatty()
+
+    iterator = references
+    if show_progress and tqdm is not None:
+        iterator = tqdm(references, total=len(references), desc=progress_desc, unit="ref")
+
     results = []
-    for i, ref in enumerate(references, 1):
+    for i, ref in enumerate(iterator, 1):
         logger.info("Checking reference %d/%d", i, len(references))
         result = _check_single(ref)
         results.append(result)
