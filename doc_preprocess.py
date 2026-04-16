@@ -191,9 +191,23 @@ def load_or_create_markdown(pdf_file: str, md_path: str = "data/md") -> str:
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) < 2:
-        print("Usage: python doc_preprocess.py <pdf_name> [pdf_path] [md_path]")
-        sys.exit(1)
+    pdf_dir = Path("data/pdf")
+    md_dir = Path("data/md")
 
-    out = doc_preprocess(*sys.argv[1:])
-    print(f"Markdown saved to: {out}")
+    if len(sys.argv) >= 2:
+        # Explicit file provided — support optional overrides for paths.
+        out = doc_preprocess(*sys.argv[1:])
+        print(f"Markdown saved to: {out}")
+    else:
+        # Auto-discover all PDFs in data/pdf/ and convert each one.
+        pdfs = sorted(pdf_dir.glob("*.pdf"))
+        if not pdfs:
+            print(f"No PDF files found in {pdf_dir}")
+            sys.exit(1)
+        for pdf in pdfs:
+            md_file = md_dir / pdf.with_suffix(".md").name
+            if md_file.exists():
+                print(f"Skipping {pdf.name} — {md_file} already exists")
+                continue
+            out = doc_preprocess(pdf.name, str(pdf_dir), str(md_dir))
+            print(f"Markdown saved to: {out}")
