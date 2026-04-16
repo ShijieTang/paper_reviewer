@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -90,6 +91,46 @@ def _load_exp_summary(path: str) -> dict:
     """Load experiment_summary_*.json and index papers by paper_id."""
     data = _load_json(path)
     return {p["paper_id"]: p for p in data["papers"]}
+
+
+def _slugify(text: str) -> str:
+    """Convert arbitrary text to a compact filename-safe slug."""
+    slug = re.sub(r"[^a-z0-9]+", "-", text.strip().lower())
+    slug = re.sub(r"-{2,}", "-", slug).strip("-")
+    return slug or "unknown"
+
+
+def _scope_slug(selected_ids: list[str], used_all_papers: bool) -> str:
+    """Build a readable description of which papers were evaluated."""
+    n_papers = len(selected_ids)
+    if n_papers == 0:
+        return "no-papers"
+    if n_papers == 1:
+        return _slugify(selected_ids[0])
+    if used_all_papers:
+        return f"all-{n_papers}-paper{'s' if n_papers != 1 else ''}"
+    if n_papers <= 3:
+        return "_".join(_slugify(pid) for pid in selected_ids)
+    return f"subset-{n_papers}-papers"
+
+
+def _sources_slug(
+    openreviewer_path: Optional[str],
+    paperreviewer_path: Optional[str],
+    our_results_stem: Optional[str],
+    exp_summary_path: Optional[str],
+) -> str:
+    """Build a short readable slug describing which systems were evaluated."""
+    sources = []
+    if openreviewer_path:
+        sources.append("openreviewer")
+    if paperreviewer_path:
+        sources.append("paperreviewer")
+    if exp_summary_path:
+        sources.append("our-experiment")
+    if our_results_stem:
+        sources.append(f"our-{_slugify(our_results_stem)}")
+    return "__".join(sources) if sources else "no-systems"
 
 
 # ── Score / decision helpers ──────────────────────────────────────────────────
@@ -206,6 +247,7 @@ def run_evaluation(
     print(f"Model '{embed_model_name}' ready.\n")
 
     gt_index = _papers_index(papers_path)
+    used_all_papers = paper_ids is None
 
     if paper_ids:
         missing = [pid for pid in paper_ids if pid not in gt_index]
@@ -331,9 +373,17 @@ def run_evaluation(
 
     # ── Save ──────────────────────────────────────────────────────────────────
     os.makedirs(output_dir, exist_ok=True)
-    ids_slug    = "_".join(gt_index.keys()) if gt_index else timestamp
-    config_slug = our_results_stem if our_results_stem else "default"
-    out_path = os.path.join(output_dir, f"eval_results_{ids_slug}__{config_slug}.json")
+    scope_slug = _scope_slug(list(gt_index.keys()), used_all_papers)
+    sources_slug = _sources_slug(
+        openreviewer_path=openreviewer_path,
+        paperreviewer_path=paperreviewer_path,
+        our_results_stem=our_results_stem,
+        exp_summary_path=exp_summary_path,
+    )
+    out_path = os.path.join(
+        output_dir,
+        f"evaluation_{scope_slug}__{sources_slug}__{timestamp}.json",
+    )
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
