@@ -1,0 +1,229 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 5,
+        "soundness": 5,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 5
+      },
+      "strengths": [
+        "Strong and original theoretical contributions: Theorem 5 (one-step learning with teacher forcing) and Theorem 7 (logarithmic iterations without teacher forcing via self-consistency) provide sharp separations and mechanistic insight into task decomposition through attention weight concentration.",
+        "The rebuttal adds important rigor and robustness: a formal φ-family (Assumption A.1 with an explicit shallow ReQU realization), a robustness proposition for learned K/Q/V near positional initialization (Proposition B.1), an adaptation to standard left-to-right masking (Remark 2.1) preserving guarantees with O(k) steps, and a corollary extending the lower bound to stochastic-gradient oracles (Corollary A.1).",
+        "Expanded experimental plan improves evaluation: larger-scale runs (d up to 256), K/Q/V and mask ablations, link-function ablation with a learned MLP, quantization vs. no-quantization, multi-head variants, and minibatch SGD settings with attention-heatmap visualizations to corroborate staged learning and child selection.",
+        "Clarity is high and will be further improved by moving key proof intuitions into the main text and explicitly clarifying the architecture-defined, target-agnostic nature of the causal masks.",
+        "The finite-sample hardness extension (Theorem 2) paired with the positive results offers a coherent theory for why end-to-end training fails while process supervision and self-consistency succeed."
+      ],
+      "weaknesses": [
+        "Even with the new formalizations, some assumptions remain stylized (specialized φ behavior with flat derivatives, architecture-level masking, reliance on a parity hierarchy), and the scope is limited to parity, a highly structured synthetic task.",
+        "Several promised additions (stochastic-noise corollary proof details, robustness proposition, and expanded ablations/scale-up experiments) are not yet present in the current submission; the improved evaluation and soundness assessments are contingent on integrating these updates.",
+        "Generality to more realistic language modeling settings remains to be demonstrated empirically beyond the parity setting, even with the proposed ablations."
+      ],
+      "summary_comment": "The paper offers a novel and compelling theory of how transformers acquire stepwise reasoning when trained to generate chain-of-thought, with sharp separations between end-to-end learning and process-supervised training on k-parity. The authors’ rebuttal substantively addresses prior concerns by formalizing the link-function family and its realizations, establishing robustness to learned K/Q/V around positional initialization, adapting proofs to standard left-to-right masking (with O(k) steps), and extending the lower bound to stochastic-gradient oracles. They also commit to expanded experiments at larger scales with key ablations and visualizations. While the setting remains stylized and centered on parity, the core ideas are sound, significant, and clearly presented. I recommend acceptance, with the expectation that the promised theoretical clarifications and ablations are incorporated to solidify the evaluation and broaden applicability."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 3,
+        "evaluation": 4,
+        "clarity": 5
+      },
+      "strengths": [
+        "Substantive theoretical results remain rigorous and well supported: Theorem 2 extends parity hardness to the finite-sample empirical setting with approximate gradient oracles; Theorem 5 shows one-step learning with teacher forcing under objective (2) via a dominant O(d^{-2}) gradient signal; Theorem 7 establishes logarithmic-step convergence without teacher forcing under objective (4) using block autoregression and self-consistency, with gradient bounds provided by Lemma 4 and Lemma 6 and the causal mask in Figure 3.",
+        "Mechanistic clarity is strong: the gradient expansion at initialization (Eq. (6)) isolates leading terms that focus attention on the correct child indices; higher-order interaction terms are tightly controlled by concentration (Appendix B), explaining why attention aligns with the hierarchical decomposition and how error propagation is curtailed by the mask.",
+        "The rebuttal adds robustness and practicality: a planned Proposition B.1 to handle learned K/Q/V near positional initialization, a general φ-family (Assumption A.1) with explicit shallow-MLP realizations, and a Remark 2.1 adapting the proof to standard left-to-right masking (with O(k) stages). They also propose a smooth gating version of the self-consistency filter and Corollary A.1 linking the oracle model to unbiased stochastic gradients, improving the connection to typical training.",
+        "Evaluation will be substantially strengthened: the authors commit to expanded experiments at larger d (128, 256), multi-head variants, learned K/Q/V, learned φ, mask ablations (block vs. standard), minibatch SGD and injected noise, with/without rounding, and sensitivity sweeps over ε0 and n′, alongside visualizations of attention focusing. This directly addresses earlier concerns about empirical scope.",
+        "Clarity improvements are promised and targeted: correcting notation glitches (e.g., indices d_ℓ, h[m]), restating that the block mask is target-agnostic, and moving key proof intuition (trivial vs. nontrivial interaction terms) into the main text, which should further improve accessibility."
+      ],
+      "weaknesses": [
+        "Despite robustness sketches and planned ablations, the core proofs still rely on stylized assumptions (positional-only attention at or near initialization, flat-derivative φ around 0 and ±1, and an architecture-defined block mask). While reasonable for analysis, the generality to more standard LLM configurations remains partially theoretical until the expanded experiments are incorporated.",
+        "The no-teacher-forcing result depends on a bespoke self-consistency mechanism (now a smooth gate) and augmented unlabeled data; practical sensitivity to ε0 and n′ requires the promised empirical validation. Theoretical guarantees still hinge on thresholding behavior that must be tuned in practice.",
+        "Scope remains focused on parity, which limits broader significance. Extensions or comparisons to other Boolean functions or structured reasoning tasks are not yet explored."
+      ],
+      "summary_comment": "The paper provides a careful theoretical account of how chain-of-thought (CoT) supervision enables transformers to solve k-parity efficiently. Theorem 2 proves a finite-sample hardness result for end-to-end training with approximate gradient oracles, complementing prior population-level results. In contrast, Theorem 5 shows that with teacher forcing (objective (2)), a one-layer transformer learns the hierarchical 2-parity decomposition in one update by concentrating attention on the correct child indices; the core mechanism is made explicit via the gradient expansion (Eq. (6)) and concentration arguments in Appendix B. Theorem 7 further shows that without teacher forcing (objective (4)), a block autoregressive mask (Figure 3) plus self-consistency via augmented unlabeled data yields logarithmic-step convergence, with gradient propagation bounded by Lemma 6. Experiments (Figures 4–5) qualitatively corroborate the theory (failure without CoT, staged convergence with teacher forcing or self-consistency). My initial concerns about stylized modeling choices, bespoke filtering, limited experiments, and stringent asymptotic assumptions are largely addressed in the rebuttal: the authors commit to Proposition B.1 (learned K/Q/V), Assumption A.1 (general φ realized by small MLPs), Remark 2.1 (standard masking), a smooth gate with ε0 and n′ sweeps, and Corollary A.1 (stochastic gradients), alongside comprehensive ablations and scaling. Assuming these additions are integrated, the evaluation and clarity are compelling, and the theoretical insights are sound and valuable. I recommend acceptance."
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Clear theoretical separations and mechanisms: finite-sample hardness without intermediate supervision (Theorem 2), one-step learning with teacher forcing using the CoT loss over intermediate states (Eq. (2), Theorem 5), and logarithmic-step convergence without teacher forcing via self-consistency and a hierarchical mask (Eq. (3), Eq. (4), Theorem 7).",
+        "Mechanistic gradient analysis that isolates dominant O(d^{-2}) signals on true child indices and controls higher-order terms; bounded gradients are established (Lemma 4, Lemma 6), and the proofs carefully handle concentration of nontrivial interactions and error propagation across CoT steps.",
+        "Rebuttal substantially strengthens practical relevance: commitments to ablations with fully learned K/Q/V, learned small MLPs for φ (with Assumption A.1 and explicit two-layer ReQU parameters), multi-head variants, and mask comparisons; replacement of hard zeroing with smooth gating (sigmoid) based on confidence proxies; sensitivity sweeps over gating thresholds and augmentation size; and inclusion of larger-scale experiments and baselines (RNN/GRU, deeper transformers).",
+        "Empirical evidence aligns with theory: the direct model plateaus at ~0.5 prediction loss, while CoT with teacher forcing and self-consistency show staged improvements; Figure 4 and Appendix D illustrate phase transitions that correspond to level-by-level solving, with dashed lines marking filter deactivations in the self-consistency variant.",
+        "Improved clarity and reproducibility plans: explicit MLP parameters for φ, a robustness proposition (Proposition B.1) for small content components in K/Q/V around positional initialization, clearer notation and architectural independence of masks, attention heatmaps, and code release."
+      ],
+      "weaknesses": [
+        "The model remains stylized (position-driven attention at initialization, specially constructed φ family, hierarchical block mask). While the rebuttal argues robustness and adds ablations, transfer to standard LLMs and broader tasks is still uncertain and largely contingent on promised additions.",
+        "The no-teacher-forcing approach depends on augmentation and gating; although the authors propose smooth gating and data-driven thresholds (τℓ) with sensitivity sweeps, the practical overheads and robustness across settings need to be demonstrated, and the scope beyond parity remains discussed but unvalidated.",
+        "Current experiments are limited (e.g., d = 64, k ≤ 32, single architecture). The enhanced empirical program (larger d, multi-heads, learned K/Q/V and φ, SGD noise, broader baselines) must be incorporated to substantiate generality and practical impact."
+      ],
+      "summary_comment": "The paper provides a rigorous and insightful account of how chain-of-thought training enables task decomposition and efficient learning for transformers on k-parity. It extends hardness to finite samples (Theorem 2) and shows constructive optimization guarantees with process supervision (Theorem 5) and with self-consistency and a hierarchical mask (Theorem 7). The gradient-based analysis explains why attention concentrates on the correct child indices, and the experiments (Figure 4, Appendix D) qualitatively corroborate staged learning. The rebuttal directly addresses practical concerns by committing to robustness analyses (Proposition B.1 for K/Q/V around positional initialization), learned φ via shallow MLPs, multi-head ablations, mask comparisons, smooth gating with sensitivity sweeps, larger-scale runs, and broader baselines; clarity and reproducibility will also be improved with explicit parameters, visualizations, and code. While the setup remains stylized and broader applicability beyond parity is still to be empirically demonstrated, the theoretical contributions are strong, the practical alignment has improved, and the planned additions should meaningfully bolster evaluation. I recommend acceptance."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Topic fit: Strong alignment with ICML’s theory of ML and deep learning tracks. The paper analyzes training dynamics of transformers and establishes optimization hardness vs. positive learnability under CoT, which matches ICML’s interest in statistical learning theory, optimization, and deep learning theory.",
+        "Contribution fit: Primarily theoretical contributions (finite-sample hardness for parity with approximate gradient oracles; one-step learning with teacher forcing; logarithmic-step learning without teacher forcing via self-consistency) with mechanistic insight into attention focusing. Reviewers praised rigor and clarity (soundness/clarity 4–5).",
+        "Novelty fit: Reviewers highlight sharp separations and new mechanisms (dominant O(d^{-2}) gradient signals, block autoregression + self-consistency). This level of novelty is appropriate for ICML theory/deep learning tracks.",
+        "Rigor/presentation: The proofs are careful (Eq. (6) expansion, concentration bounds, Lemmas 4 and 6), and the authors commit to additional clarifications (formal φ-family realizable by shallow MLPs, robustness of learned K/Q/V near positional init, adaptation to standard masks). Reviewers rated clarity high (4–5).",
+        "Community interest: Parity hardness and transformer dynamics have precedent at ICML, and the work connects to an active line of theory explaining when and why CoT works."
+      ],
+      "why_it_does_not_fit": [
+        "Scope/Topic: The problem setting is stylized (parity hierarchy, architecture-level masks, special φ with flat derivatives). Reviewer concerns note limited generality beyond parity and the need to validate applicability to more realistic tasks.",
+        "Contribution breadth: Empirical evaluation is currently modest (d=64, k≤32), with many ablations and scale-ups promised but not yet integrated. ICML often expects either broad theoretical generality or stronger empirical breadth.",
+        "Reviewer risk: Some guarantees hinge on mechanisms (self-consistency gating/augmentation, quantization) and masking choices that may invite fit questions at ICML unless the promised ablations (multi-head, learned K/Q/V, learned φ, left-to-right mask) are fully incorporated."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "Topic fit: NeurIPS welcomes deep learning theory, optimization, general ML, and timely topics around LLM reasoning and CoT. The paper provides a theoretical account of CoT-driven task decomposition in transformers, resonating with active NeurIPS interest in reasoning, human-in-the-loop signals, and data-centric aspects.",
+        "Contribution fit: Strong theoretical separations and mechanistic analysis (Theorem 2 finite-sample hardness, Theorem 5 one-step learning with teacher forcing, Theorem 7 logarithmic training without teacher forcing via self-consistency) plus qualitative experiments that mirror staged reasoning. Reviewers found the mechanistic clarity compelling.",
+        "Novelty fit: Reviewers rated novelty high (4–5), emphasizing sharp separations and new insights into when attention concentrates on correct child indices under CoT training. This is likely to attract a broad NeurIPS audience.",
+        "Rigor/presentation: Detailed proofs and concentration arguments, with planned robustness extensions (learned K/Q/V around positional init, general φ via shallow MLPs, adaptation to standard left-to-right masking) improve realism. Clarity is rated highly (5).",
+        "Broader impact/relevance: CoT and self-consistency are widely used in practice; explaining why they work is of broad interest to NeurIPS’ interdisciplinary community (theory meets practice)."
+      ],
+      "why_it_does_not_fit": [
+        "Scope limitations: The core results are established on parity, a synthetic task; reviewers note generality to real LLM reasoning remains to be shown despite planned ablations.",
+        "Assumption stylization: Reliance on architectural masks, specialized φ behavior, and bespoke self-consistency/gating and augmentation could raise scrutiny from reviewers seeking broader applicability without such scaffolding.",
+        "Reviewer risk: Several promised additions (expanded experiments at larger d, multi-head, learned K/Q/V, learned φ, mask comparisons, smooth gating, SGD noise) are not yet in the current version; acceptance at NeurIPS typically benefits from fully integrated empirical support."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "Topic fit: ICLR focuses on deep learning and representation learning; this work analyzes transformers’ CoT training dynamics, aligning with ICLR interest in deep learning theory and reasoning (related ICLR works on CoT, expressivity, and verification).",
+        "Contribution fit: Theoretical guarantees explaining when CoT training yields stepwise reasoning (teacher forcing vs. end-to-end with self-consistency) connect directly to current ICLR discourse on prompting, process supervision, and robustness.",
+        "Rigor/clarity: Reviewers highlighted strong proofs, bounded gradients, and clear intuition (trivial vs. nontrivial interaction terms). Planned additions (learned φ via shallow MLPs, adaptation to standard left-to-right masking) help bridge to practical DL setups."
+      ],
+      "why_it_does_not_fit": [
+        "Empirical expectations: ICLR often expects deeper empirical validation on standard deep learning tasks or realistic LLM settings. Current experiments are limited to synthetic parity with modest scale; promised ablations and scale-ups are not yet integrated.",
+        "Stylized assumptions: The block/left-to-right masks, special φ with flat derivatives, and gating/augmentation mechanisms may be viewed as less natural in typical DL pipelines unless corroborated by broader experiments.",
+        "Reviewer risk: Without the expanded empirical program (multi-heads, learned K/Q/V, learned φ, SGD noise, larger d, broader baselines), reviewers may question practical significance and generality, making success riskier at ICLR even with strong theory."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {
+      "total": 53,
+      "verified": 37,
+      "url_only": 7,
+      "not_found": 9,
+      "suspicious": 0,
+      "skipped": 0
+    },
+    "failed": [
+      {
+        "index": "1",
+        "title": "On the universality of deep learning",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "3",
+        "title": "Scheduled sampling for sequence prediction with recurrent neural networks",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "4",
+        "title": "Understanding in-context learning in transformers and LLMs by learning to learn discrete functions",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "5",
+        "title": "Tighter bounds on the expressivity of transformer encoders",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "7",
+        "title": "Implicit chain of thought reasoning via knowledge distillation",
+        "link": "https://arxiv.org/abs/2311.01460",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "12",
+        "title": "Yoshua Bengio, and Aaron Courville",
+        "link": "http://www.deeplearningbook.org",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "14",
+        "title": "Unveiling the statistical foundations of chain-of-thought prompting methods",
+        "link": "https://arxiv.org/abs/2408.14511",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "15",
+        "title": "Large language models can self-improve",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "16",
+        "title": "In-context convergence of Transformers",
+        "link": "https://arxiv.org/abs/2310.05249",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "18",
+        "title": "Transformers learn nonlinear features in context: nonconvex mean-field dynamics on the attention landscape",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "20",
+        "title": "High-dimensional Learning Dynamics 2024: The Emergence of Structure and Reasoning",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "30",
+        "title": "Asad Ullah Khan, Shi Qiu, Muhammad Saqib, Saeed Anwar, Muhammad Usman, Naveed Akhtar, Nick Barnes, and Ajmal Mian",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "33",
+        "title": "Scaling language models: methods, analysis and insights from training Gopher",
+        "link": "https://arxiv.org/abs/2112.11446",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "39",
+        "title": "TinyLLM: learning a small student from multiple large language models",
+        "link": "https://arxiv.org/abs/2402.04616",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "43",
+        "title": "Towards understanding how transformer perform multi-step reasoning with matching operation",
+        "link": "https://arxiv.org/abs/2405.15302",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "52",
+        "title": "Beichen Zhang, Junjie Zhang, Zican Dong, Yifan Du, Chen Yang, Yushuo Chen, Zhipeng Chen, Jinhao Jiang, Ruiyang Ren, Yifan Li, Xinyu Tang, Zikang Liu, Peiyu Liu, Jian-Yun Nie, and Ji-Rong Wen",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      }
+    ]
+  }
+}

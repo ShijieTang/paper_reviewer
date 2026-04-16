@@ -1,0 +1,127 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Presents a clear, novel RL objective that penalizes length only on correct trajectories, giving an intuitive, tunable accuracy–compute trade-off via a single alpha parameter.",
+        "Rebuttal provides concrete normalization mechanics (within-batch MEAN/STD when multiple correct samples exist, single-correct fallback with dataset-level Welford updates, clamped STD and z-score before sigmoid, and skip on no-correct), which substantively addresses stability and under-specification.",
+        "Shows practical impact with sizable token savings on open-weight reasoning models while preserving most accuracy, and does so with a lightweight PPO+RLOO setup and short training (~100 RL steps).",
+        "Authors commit to stronger rigor: full tables with confidence intervals, median/IQR lengths, multi-seed runs, broader baselines (concise prompting, EOS-biasing), and code/config release for reproducibility.",
+        "Additional planned evaluations (wall-clock latency/throughput and memory under identical serving settings, repeated-sampling analyses on AIME, and a second competition-style set) and a small code case study with unit tests increase practical relevance and scope."
+      ],
+      "weaknesses": [
+        "Generalization beyond verifiable domains remains largely unproven; the planned code case study helps but broader, non-math evidence is still pending.",
+        "Several evaluation enhancements (uncertainty estimates, multi-seed variability, wall-clock and memory metrics, second competition set) are promises for the camera-ready rather than results available at review time.",
+        "Sensitivity to hyperparameters specific to the normalization scheme (e.g., σ_min/σ_max clamps and z-score clipping thresholds) and their impact on very hard or long problems is not yet empirically explored."
+      ],
+      "summary_comment": "The work introduces an elegant and practically meaningful RL formulation that trains reasoning models to allocate test-time compute adaptively by penalizing chain-of-thought length only when the answer is correct. This simple modification yields a controllable family of models with substantial token reductions and minimal accuracy loss, implemented with a compute-efficient PPO+RLOO pipeline. The rebuttal convincingly clarifies the per-prompt normalization and stability mechanisms (including robust fallbacks and clamping), scopes claims to settings with informative rewards, and commits to more rigorous evaluation: confidence intervals, multi-seed runs, broader baselines, wall-clock metrics, repeated-sampling on small test sets, and a small code task with unit-test verifiers. While some additions are pending and broader generalization remains to be shown, the core idea is novel, sound, and likely impactful for deployment. I recommend acceptance."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 3,
+        "evaluation": 3,
+        "clarity": 4
+      },
+      "strengths": [
+        "Methodological soundness is materially improved by the clarified edge-case handling and added stabilization: explicit rules for |C|=0 and |C|=1, shrinkage-based normalization blending per-prompt and global statistics (with λ-equivalent sample size), σ clamping, ε-stabilization, and z-score clipping; coupled with a simple curriculum and RLOO sampling, this addresses prior ambiguity and variance concerns.",
+        "Practicality and simplicity remain strong: a tunable length penalty integrated into a standard PPO pipeline with RLOO, yielding controllable accuracy–compute trade-offs and compute-efficient training (~100 RL iterations).",
+        "Thoughtful planned diagnostics and ablations: distributions for correct vs incorrect lengths across α, premature-stopping metrics, tracking n_c=0 prompts, and an optional bounded safeguard for all-incorrect batches; decoding-time guardrails (EOS bias) and stronger decoding baselines are slated for inclusion.",
+        "Commitment to evaluation rigor and reproducibility: plans for multi-seed reporting, confidence intervals (including Wilson/bootstrap on AIME), latency/throughput and memory/KV metrics under controlled settings, expanded baselines (EOS logit bias, decoding length penalty, concise prompting, stop-on-answer), and code/config release."
+      ],
+      "weaknesses": [
+        "Most remedies are promised but not reflected in the current submission: there are still no multi-seed runs, uncertainty estimates, detailed numeric tables, latency/throughput reports, or the expanded baselines; conclusions remain supported primarily by figures and single-seed results.",
+        "The newly introduced shrinkage normalization (dependence on λ, σ_min, z_max, ε) may still be sensitive to hyperparameter choices and batch composition; stability across varying correctness rates and ablations over λ and thresholds are not yet empirically demonstrated.",
+        "Behavior in low-accuracy regimes remains insufficiently evidenced: incorrect generations are not penalized for length; while optional safeguards and diagnostics are planned, the current results do not quantify risks such as very long incorrect chains or concise hallucinations.",
+        "Scope remains narrow: empirical validation is limited to math with verifiers; the proposed extensions to code tasks and general-capability checks are not yet included, and no evidence is provided for settings with learned rewards or weaker supervision."
+      ],
+      "summary_comment": "The rebuttal substantially strengthens methodological clarity and addresses key soundness concerns by specifying robust normalization and stabilization procedures (including shrinkage toward global statistics) and by outlining a comprehensive plan for diagnostics, baselines, and efficiency measurements. The core idea remains simple and practical, and prior results suggest meaningful token savings with minimal accuracy loss. However, the crucial evaluation improvements—multi-seed statistics with uncertainty, detailed numeric tables, latency/throughput metrics, expanded baselines, and analyses of incorrect-chain behavior—are not yet present in the submission. Given the review criteria that emphasize soundness and evaluation, I cannot rely on promised additions for acceptance. With the proposed empirical validations and ablations incorporated, this work would be significantly strengthened; in its current form, it falls short of the required evidential rigor."
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "Addresses a practical deployment problem—reducing reasoning token usage—via a simple RL objective (Eq. 4–5) with a tunable coefficient α that integrates into PPO/RLOO pipelines, yielding intuitive compute–accuracy trade-offs.",
+        "Shows notable token reductions with small accuracy changes on open-weight reasoning models: e.g., on MATH500 with the 7B model, α≈0.1 cuts tokens from ~4000 to ~2800 with ~1% accuracy drop, and on AIME 2024 α≈0.2 reduces from ~14k to ~9k with ~2% drop; GSM8K shows ~50% token savings with similar accuracy.",
+        "Useful practitioner insights: ablation explaining why standard advantage normalization can destabilize training with length penalties; evidence that short RL runs (~100 steps) suffice to induce efficiency gains.",
+        "Author response substantially clarifies edge cases and stability mechanisms (no‑correct and single‑correct handling, pooled STD via Welford with clamping and ε, z‑score clipping, and a shrinkage‑based blend of batch/global stats) and commits to code release, stronger decoding‑time baselines (EOS bias, decoding‑time length penalty, stop‑on‑answer), and deployment metrics (p50/p95 latency, throughput, KV‑cache/memory) with multi‑seed robustness."
+      ],
+      "weaknesses": [
+        "As reviewed, the paper still has clarity/completeness issues (formatting glitches, truncated sentences, missing algorithmic specifics); the promised algorithm box and normalization/stabilization details are not yet reflected in the manuscript.",
+        "Evaluation is narrow and math‑only, with limited baselines and no deployment metrics in the current draft; comparisons to strong decoding‑time controls and end‑to‑end serving measurements (latency, throughput, memory/KV‑cache) are only promised post‑review.",
+        "Failure‑mode and robustness analyses (premature stopping, terse hallucinations, incorrect vs correct length distributions, multi‑seed variance, sensitivity to α/KL and samples per prompt) are not present at review time, limiting practitioner confidence.",
+        "Generalization beyond math remains untested in the current submission; reliance on reward availability is acknowledged but not demonstrated with a non‑math case yet, and code/scripts are not yet available for reproducibility."
+      ],
+      "summary_comment": "This work proposes a straightforward and practical RL formulation to train reasoning LLMs to terminate earlier while preserving accuracy, achieving sizable token reductions on DeepSeek‑R1‑Distill‑Qwen models (e.g., ~4000→~2800 tokens on MATH at α≈0.1 with ~1% accuracy drop; ~14k→~9k on AIME at α≈0.2 with ~2% drop) with modest training cost. The method’s simplicity, tunable compute knob, and the ablation on advantage normalization are valuable for practitioners. The author rebuttal is strong: it fills in key implementation gaps (no/one‑correct handling, pooled/clamped STD with ε, z‑score clipping, shrinkage normalization), and commits to releasing code, adding strong decoding‑time baselines, reporting deployment metrics (latency, throughput, memory), and providing robustness/sensitivity studies and a small non‑math case. However, these improvements are not yet present in the paper, which still has clarity issues and a narrow, deployment‑light evaluation. Given the current state, I recommend rejection with encouragement to resubmit after incorporating the promised clarifications, stronger baselines, and serving‑relevant measurements."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "Strong topical alignment with ICML: deep learning and reinforcement learning applied to LLM reasoning efficiency, plus relevance to machine learning systems and optimization.",
+        "Methodological contribution matches ICML’s interest in practical ML algorithms: a simple RL objective (length penalty on correct chains) integrated into PPO+RLOO, producing a tunable accuracy–compute trade-off.",
+        "Reviewer A highlights practical impact (substantial token savings with minimal accuracy loss, short training), which speaks to application-driven ML and deployment relevance emphasized by ICML.",
+        "The ablation on advantage normalization offers insights into RL training dynamics for LLMs, a systems/optimization nuance of interest to the ICML community."
+      ],
+      "why_it_does_not_fit": [
+        "Reviewers B and C stress missing evaluation rigor at submission time (no multi-seed runs, uncertainty estimates, or detailed tables), which is risky for ICML’s high bar on soundness and reproducibility.",
+        "For a systems-leaning claim (efficient serving), wall-clock latency/throughput and memory/KV-cache metrics are promised but not included, weakening fit with ICML’s ML systems expectations.",
+        "Empirical scope is narrow (math-only with verifiers); generalization to non-verifiable domains is unproven, limiting breadth for ICML’s broad ML audience.",
+        "Sensitivity to normalization and hyperparameters (σ clamps, z-score clipping) is not empirically explored, as noted by reviewers, increasing acceptance risk."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 5,
+      "why_it_fits": [
+        "Core NeurIPS topics covered: deep learning, optimization, and SysML-relevant efficiency for LLM inference.",
+        "The work contributes an interpretable compute knob (α) and practical insights (e.g., why standard advantage normalization can destabilize RL with length penalties), aligning with NeurIPS’s interest in analyses that deepen understanding.",
+        "Reviewer A finds the approach novel in framing (penalizing length only on correct trajectories) and impactful for deployment."
+      ],
+      "why_it_does_not_fit": [
+        "Reviewers B and C rate novelty as moderate and note concurrent related work (e.g., length penalties in online RL), which reduces distinctiveness in a highly competitive NeurIPS field.",
+        "Breadth is limited to math with verifiers; there is no cross-domain evidence, no broader socio-technical or interdisciplinary angle, and no learned-reward setting, which weakens fit to NeurIPS’s broad, multi-track scope.",
+        "Key evaluation elements (multi-seed uncertainty, expanded decoding baselines like EOS bias/length penalties, and serving metrics) are missing at review time; relying on promised updates poses high acceptance risk.",
+        "Behavior in low-accuracy regimes and incorrect-chain dynamics remains under-analyzed, which reviewers flagged as a rigor gap that NeurIPS reviewers often penalize."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Excellent topical alignment with ICLR’s focus on deep learning and RL: a simple objective-level change to train LLMs to reason efficiently fits core ICLR interests.",
+        "Contribution type (practical deep learning method with clear knob and empirical gains) aligns with ICLR’s appetite for well-executed DL methods that improve LLM capabilities or efficiency.",
+        "Reviewer A praises clarity of the objective and practical impact; the advantage-normalization ablation provides learning-dynamics insight valued by ICLR.",
+        "The commitment to code/config release and stronger evaluations (confidence intervals, multi-seed, broader baselines) aligns with ICLR’s reproducibility and empirical rigor expectations."
+      ],
+      "why_it_does_not_fit": [
+        "At review time, clarity/completeness and evaluation gaps remain (formatting issues, missing algorithmic specifics, no multi-seed or deployment metrics), as highlighted by Reviewers B and C, creating risk for ICLR’s soundness standards.",
+        "Scope is math-only with verifiers; broader generalization (e.g., code tasks, learned reward models) is promised but not shown, limiting the work’s breadth even within DL practice.",
+        "Hyperparameter sensitivity and behavior on incorrect chains are underexplored; reviewers flagged risks such as long incorrect chains or concise hallucinations, which may be scrutinized by ICLR."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}

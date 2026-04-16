@@ -1,0 +1,224 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 3,
+        "significance": 4,
+        "evaluation": 3,
+        "clarity": 4
+      },
+      "strengths": [
+        "Soft Weight Rescaling (SWR) is a simple, per-step, layerwise rescaling that preserves functional proportionality via principled bias scaling (Sec. 3.2–3.3, Algorithm 1), directly targeting weight growth and plasticity without discarding learned information.",
+        "Theory plus practice: proportionality construction (Theorem 1), boundedness under mild conditions, and improved balancedness are coherent; the rebuttal strengthens soundness by clarifying the bounded per-step norm-change assumption and committing to a formal proposition for normalization layers, including running-statistics handling.",
+        "Empirical gains are meaningful in warm-start and continual learning (Figs. 2–4), and in standard training, notably improving VGG-16 on TinyImageNet (Table 1: from about 0.391 to 0.435). With learning-rate decay, SWR also shows large gains on VGG-16 (Table 5: to about 0.522).",
+        "The authors commit to substantially broaden baselines (spectral norm, Path-SGD/weight balancing, interval-based rescaling, AdamW, weight clipping) and to evaluate modern architectures (ResNet, Wide-ResNet, small ViT/DeiT) under the same warm-start, continual, and single-task protocols with reported overhead.",
+        "Practical robustness is being addressed: beyond the heuristic SWR+re-init, the authors will add adaptive variants (LR-coupled λ and EMA targets), provide sensitivity analyses for λ_f/λ_c, report per-step overhead, and release reproducible code and configurations."
+      ],
+      "weaknesses": [
+        "Several key enhancements are promised rather than present: broader baselines and modern architectures are not yet in the manuscript, limiting the current empirical breadth and making the evaluation score remain conservative.",
+        "Soundness and usability around normalization layers and learning-rate schedules still depend on forthcoming additions (block-wise formalization with BN running statistics, adaptive variants). Current results rely on fixed λ with a re-init heuristic and separate λ_f and λ_c, which can require nontrivial tuning; in Table 1, L2 outperforms SWR on CNN-BN, suggesting unresolved failure modes.",
+        "Algorithm 1 and proportionality with normalization would benefit from additional precision (e.g., explicit definition of k, accumulation of C across blocks, behavior for layers without biases), which the authors plan to add but is not yet reflected."
+      ],
+      "summary_comment": "This work proposes a clean, low-overhead mechanism—Soft Weight Rescaling—that bounds weight growth while preserving proportionality, thereby improving plasticity without re-initialization. The idea is novel relative to common penalties and reset strategies, theoretically motivated (proportional networks; boundedness; balancedness), and empirically promising: SWR narrows the warm-start gap and improves continual learning (Figs. 2–4), and yields notable boosts on larger models (e.g., VGG-16 on TinyImageNet improves from roughly 0.391 to 0.435; with LR decay to about 0.522). The rebuttal credibly addresses prior concerns by committing to stronger baselines (spectral norm, Path-SGD, prior rescaling, AdamW, clipping), modern architectures (ResNet, Wide-ResNet, small ViT/DeiT), a formal treatment of normalization layers (including running statistics), and adaptive variants that mitigate LR-schedule sensitivity, along with sensitivity analyses and overhead reporting. While these additions are not yet in the manuscript—so I keep soundness and evaluation at acceptable levels—the core idea and potential impact are strong and align with the conference’s emphasis on forward-looking contributions. I recommend acceptance, contingent on incorporating the promised expansions and clarifications in the final version."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "SWR remains a simple, low-overhead procedure that empirically improves performance across warm-start, continual learning, and standard training; e.g., Table 1 reports a VGG-16/TinyImageNet gain from 0.3912 ± 0.0142 to 0.4348 ± 0.0025.",
+        "The rebuttal provides a formal block-wise proportionality proposition for BN/LN, detailing scaling of γ, β and optional rescaling of running statistics, which, if integrated, would address the prior ad hoc treatment.",
+        "Clear plan to revise Algorithm 1 with block segmentation around normalization layers and explicit accumulation of per-block scalers, which should resolve ambiguity about how C is accumulated when k marks the last normalization.",
+        "Strengthening of theoretical assumptions is proposed via a lemma with sufficient conditions (bounded gradients/step sizes or clipping) and empirical validation (histograms of per-step norm changes), and moving the loose Lipschitz corollary to the appendix.",
+        "Substantial expansion of baselines and architectures is promised (AdamW, spectral norm, Path/weight-balancing, interval rescaling; ResNet/WideResNet and a small ViT), alongside improved fairness (matched hyperparameter budgets, full S&P), increased seeds, and code release."
+      ],
+      "weaknesses": [
+        "Core fixes are still prospective: the BN/LN proportionality proof, running-statistics treatment, and revised block-wise algorithm are not yet present in the manuscript; Algorithm 1 remains ambiguous about cumulative scaling with normalization (e.g., case distinction for l ≥ k vs. otherwise).",
+        "The boundedness guarantee continues to rely on assumptions not yet substantiated in the paper; empirical validation and safeguards (e.g., clipping) are planned but not shown, leaving the theoretical contribution modest.",
+        "Evaluation breadth remains limited in the current version: strong baselines (AdamW, spectral norm, Path-SGD/weight balancing, interval rescaling) and modern architectures (ResNet/ViT) are absent; VGG-16 results use only three seeds, and S&P is simplified, raising fairness concerns.",
+        "Clarity issues persist in the submission (pseudocode precision, formatting/typos, equation numbering, and explicit handling of layers without biases), which impedes reproducibility."
+      ],
+      "summary_comment": "The authors provide a thoughtful and technically detailed rebuttal outlining concrete plans to address the primary concerns: a formal block-wise proportionality result for BN/LN (including affine parameters and running statistics), a clarified algorithm with per-block scalers, a lemma and empirical diagnostics to justify the boundedness assumption, broader baselines and modern architectures, improved tuning fairness and seeds, schedule-robust variants, and significant clarity fixes. These changes would materially strengthen both soundness and evaluation. However, the current manuscript does not yet include these additions, and the central issues—rigor around normalization layers, reliance on unvalidated boundedness assumptions, limited baselines/architectures, and clarity/pseudocode ambiguities—remain. Given the strong emphasis on methodological soundness and convincing evaluation, I cannot recommend acceptance at this time. I encourage the authors to integrate the proposed theoretical extensions, empirical validations, expanded baselines, and modern architectures; with these enhancements, the work could become substantially more compelling for a future submission."
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Practical, low-overhead method that directly targets a pervasive issue (plasticity loss due to unbounded weight growth) and integrates as a drop-in per-step procedure. Empirically, SWR improves VGG-16 on TinyImageNet from 39.1% ± 1.4% to 43.5% ± 0.3% without LR decay (Table 1) and to 52.2% ± 1.2% with LR decay (Table 5), indicating meaningful gains.",
+        "Clearer theoretical scope and rigor after rebuttal: proportionality is explicitly scoped to homogeneous activations; a block-wise proportionality treatment for BN/LN with affine and running-statistics handling is promised; boundedness assumptions are tied to bounded step sizes/gradients with empirical histograms planned; balancedness analysis remains applicable beyond homogeneity.",
+        "Expanded and more robust evaluation plan: adds stronger baselines (AdamW, spectral norm, weight clipping, weight balancing, interval rescaling), modern architectures (ResNet-18/34, Wide-ResNet-28-10, ViT/DeiT-Tiny), ≥5 seeds with confidence intervals, matched search budgets, and reports of wall-clock overhead.",
+        "Practical deployment improvements: introduces schedule-robust variants (LR-coupled λ_t and EMA target norms) and optimizer ablations (SGD, Adam, AdamW). Provides concrete default ranges for λ_f and λ_c across CNNs with/without BN and ViTs, plus promised sensitivity curves showing performance plateaus.",
+        "Reproducibility and clarity commitments: revised Algorithm 1 with explicit block-wise scaling rules for normalization layers and biases, a schematic for scaler flow, cleaned formatting, and code release with configs, seeds, and per-step scaler logs."
+      ],
+      "weaknesses": [
+        "Novelty remains moderate relative to prior scaling/proportionality ideas; the contribution is primarily a well-executed, per-step, architecture-agnostic instantiation with practical gains and analysis.",
+        "Theory still relies on restrictive conditions for exact proportionality (homogeneous activations) and per-step bounded norm changes; effectiveness for non-homogeneous activations (e.g., GELU) is deferred to promised empirical coverage.",
+        "The two-coefficient setup (λ_f, λ_c) increases tuning complexity. While defaults are proposed, clear evidence of robustness across optimizers and schedulers should be included. Additionally, an explicit ablation on SWR frequency (per-step vs periodic) and on EMA-target variants would help quantify trade-offs.",
+        "Some results show L2 outperforming SWR in specific settings (e.g., CIFAR-100 with BN: 42.2% L2 vs 41.3% SWR in Table 1), underscoring the need for the planned broader baselines and sensitivity analyses to clarify when SWR is preferable."
+      ],
+      "summary_comment": "This work proposes Soft Weight Rescaling (SWR), a simple, per-step layerwise rescaling that curbs weight growth while attempting to preserve network behavior via a proportionality construction. It tackles a practically important problem and demonstrates clear benefits in warm-start and continual learning scenarios (Fig. 2–4), as well as in standard training, with notable improvements on VGG-16/TinyImageNet (e.g., 39.1% → 43.5% without LR decay, and 41.3% → 52.2% with step decay per Table 5). The rebuttal substantively strengthens the paper: it clarifies the theoretical scope, provides a more rigorous normalization-layer treatment, justifies boundedness with sufficient conditions and planned empirical validation, and commits to a significantly broader and fairer evaluation on modern architectures with stronger baselines, more seeds, and wall-clock reporting. It also adds schedule-robust SWR variants and concrete default λ ranges with sensitivity plots, directly addressing deployment concerns. While novelty is moderate and exact proportionality does not extend to non-homogeneous activations, the method’s simplicity, low overhead, and practical gains make it a useful contribution. Provided the promised additions are delivered in the camera-ready, I recommend acceptance."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "Topic fit: Addresses training dynamics and generalization through a new regularization/rescaling method, with applications to warm-start and continual learning—core ICML areas (optimization, general ML, trustworthy ML, and application-driven ML).",
+        "Contribution blend: Combines a simple algorithm with theory (proportionality construction, boundedness under mild assumptions, balancedness), matching ICML’s appreciation for method plus analysis.",
+        "Empirical signal: Reviewers A and C report consistent gains in warm-start/continual learning and notable improvements on larger models (e.g., VGG-16 on TinyImageNet), indicating potential practical impact for the ML community."
+      ],
+      "why_it_does_not_fit": [
+        "Evaluation breadth is currently limited: Reviewer B flags missing strong baselines (AdamW, spectral norm, Path-SGD/weight balancing, interval rescaling) and modern architectures (ResNet/Wide-ResNet/ViT), as well as low seed counts—below typical ICML expectations for empirical rigor.",
+        "Theory gaps around normalization layers and boundedness assumptions remain prospective (promised but not in-manuscript), weakening the rigor fit ICML often demands.",
+        "Novelty is moderate (reviewer novelty scores 3–4) relative to existing rescaling/initialization ideas, which may be borderline for ICML’s competitive bar.",
+        "Clarity concerns (ambiguous pseudocode, handling of BN/LN, and case distinctions) reduce reproducibility; Reviewer B emphasizes these presentation issues."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 5,
+      "why_it_fits": [
+        "Topic fit: General ML and data-centric training methods with relevance to generalization and multi-task/continual learning align with NeurIPS tracks; the method is simple and broadly applicable.",
+        "Practical relevance: Reviewers A and C highlight meaningful performance gains under warm-start and continual settings and large improvements on VGG-16 with LR decay, which could interest a broad NeurIPS audience.",
+        "NeurIPS welcomes analyses that provide new insights into behavior/limitations; the proportionality framing, boundedness intuition, and balancedness analysis add interpretability value."
+      ],
+      "why_it_does_not_fit": [
+        "High bar for empirical breadth and novelty: Reviewer B’s concerns—missing key baselines, modern architectures, fairness (simplified S&P), and limited seeds—are significant for NeurIPS; promised additions are not yet in the paper.",
+        "Rigor concerns: The core theoretical pieces rely on assumptions (bounded per-step norm change) and lack a finalized treatment for normalization layers and running statistics; current results use heuristics (e.g., SWR+re-init), which may be viewed as insufficiently mature.",
+        "Moderate novelty (3–4) and some settings where L2 outperforms SWR reduce the perceived distinctiveness for NeurIPS’ competitive bar.",
+        "Presentation gaps (pseudocode precision, handling of layers without biases, accumulation logic) impede reproducibility, raising reviewer risk."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "Strong topical alignment: Deep learning training methods, transfer learning, and continual learning are central to ICLR; SWR is an optimizer-adjacent, representation-training technique with clear DL focus.",
+        "Contribution style: A simple, low-overhead per-step method backed by targeted theory and extensive empirical demonstrations on common DL benchmarks fits ICLR’s typical acceptance pattern.",
+        "Reviewer sentiment: Two reviewers recommend acceptance, citing practical gains (notably on VGG-16/TinyImageNet) and useful analysis; the rebuttal commits to code release, clarity fixes, and schedule-robust variants—often valued at ICLR.",
+        "ICLR’s scope includes transfer/meta/continual learning, optimization, and generalization; the warm-start and continual results sit squarely in these themes."
+      ],
+      "why_it_does_not_fit": [
+        "Novelty is moderate and overlaps with prior rescaling/initialization notions; some results show L2 outperforming SWR in BN settings, suggesting situational benefits.",
+        "Rigor gaps remain (normalization-layer formalization, boundedness assumptions) and evaluation breadth is not yet at the level promised; these are risks even for ICLR, though typically less fatal than for NeurIPS/ICML.",
+        "Tuning complexity with λ_f/λ_c and schedule sensitivity (needing SWR+re-init) may raise deployment concerns; Reviewer C asks for more robust defaults and sensitivity analyses (promised but not yet integrated)."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {
+      "total": 22,
+      "verified": 7,
+      "url_only": 10,
+      "not_found": 5,
+      "suspicious": 0,
+      "skipped": 0
+    },
+    "failed": [
+      {
+        "index": "1",
+        "title": "The impact of reinitialization on generalization in convolutional neural networks",
+        "link": "https://arxiv.org/abs/2109.00267",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "3",
+        "title": "**432 433** Maksym Andriushchenko, Francesco D'Angelo, Aditya Varre, and Nicolas Flammarion",
+        "link": "https://arxiv.org/abs/2310.04415",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "8",
+        "title": "Learning multiple layers of features from tiny images",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "9",
+        "title": "A simple weight decay can improve generalization",
+        "link": "https://arxiv.org/abs/2010.14498",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "14",
+        "title": "Maintaining plasticity via regenerative regularization",
+        "link": "https://arxiv.org/abs/2308.11958",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "15",
+        "title": "Tiny imagenet visual recognition challenge",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "16",
+        "title": "Slow and steady wins the race: Maintaining plasticity with hare and tortoise networks",
+        "link": "https://arxiv.org/abs/2406.02596",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "17",
+        "title": "Weight-balancing fixes and flows for deep learning",
+        "link": "https://arxiv.org/abs/2406.04484",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "19",
+        "title": "Very deep convolutional networks for large-scale image recognition",
+        "link": "https://arxiv.org/abs/1409.1556",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "20",
+        "title": "The dormant neuron phenomenon in deep reinforcement learning",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "21",
+        "title": "Four things everyone should know to improve batch normalization",
+        "link": "https://arxiv.org/abs/1906.03548",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "22",
+        "title": "Knowledge evolution in neural networks",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "23",
+        "title": "L2 regularization versus batch and weight normalization",
+        "link": "https://arxiv.org/abs/1706.05350",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "24",
+        "title": "Spectral norm regularization for improving the generalizability of deep learning",
+        "link": "https://arxiv.org/abs/1705.10941",
+        "fail_reason": "not in OpenReview/arXiv/CrossRef; URL accessible only"
+      },
+      {
+        "index": "25",
+        "title": "Proceedings on",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      }
+    ]
+  }
+}

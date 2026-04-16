@@ -1,0 +1,162 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 5,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Unified latent diffusion over motion primitives enables online, autoregressive, text-conditioned generation with only 10 diffusion steps, delivering real-time performance (>300 FPS, ~0.02 s latency) and smooth long-horizon rollouts.",
+        "Versatile spatial control in latent noise space via both gradient-based optimization and RL without paired control-motion data; demonstrated across in-betweening, scene-aware control, and text-conditioned goal-reaching.",
+        "Strong empirical results and human preference: segment FID improves over FlowMDM (3.79 vs. 5.81), transition FID is best (1.86), and users prefer DART in both realism and semantic alignment while using far less memory and being ~10x faster than FlowMDM.",
+        "Ablations substantiate design choices (VAE latent space reduces jitter; scheduled training with rollout histories improves stability and controllability; primitive horizon H=2,F=8 outperforms per-frame autoregression).",
+        "Author rebuttal strengthens the work with planned additions: mixed-label training analysis (BABEL+HML3D), quantitative scene metrics (penetration, contact precision/recall), controlled scene baselines, and clarified equations/algorithms with code/config release."
+      ],
+      "weaknesses": [
+        "Best performance still relies on frame-aligned labels (BABEL); while test-time does not require them and HML3D results are promising, open-vocabulary and coarse-labeled settings remain weaker pending the proposed mixed-training/hierarchical conditioning analysis.",
+        "Physical realism is kinematic with skating/floating artifacts; quantitative scene-interaction evaluation and physics-aware training are not yet integrated (though the authors plan metrics and a lightweight contact regularizer).",
+        "Comparative scope for real-time/autoregressive methods (e.g., AMD, MotionLCM) remains limited in the main evaluations due to task mismatch; scene interaction lacks strong quantitative baselines at submission time.",
+        "Minor clarity/reproducibility issues in the draft (typos and garbled denoiser equation, algorithm formatting) require fixes, although the authors commit to correcting these and releasing code and detailed configs."
+      ],
+      "summary_comment": "The paper introduces DART, a latent diffusion-based autoregressive motion primitive model for real-time, text-driven human motion generation and control. The core idea—compressing short motion primitives with a VAE and learning a denoiser conditioned on history and text—yields efficient, stable online generation with only 10 diffusion steps. Crucially, the learned latent space supports precise spatial control through deterministic noise optimization and RL policies without paired data. Experiments show consistent gains in realism (e.g., segment FID 3.79 vs. FlowMDM 5.81), smoother transitions, strong human preference, and substantial speed/memory advantages (>300 FPS, ~10x faster than FlowMDM). Ablations validate the importance of the VAE and scheduled training. While dependence on fine-grained labels limits open-vocabulary generalization and physics remains a weakness, the rebuttal effectively addresses concerns with concrete plans: mixed-label training analysis, quantitative scene metrics and baselines, a light contact regularizer, corrected equations/algorithms, and full code/config release. Given the novelty in unifying real-time text-driven primitives with latent-space control and the strong potential impact on interactive character control, I maintain my recommendation to accept."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Compelling autoregressive latent primitive formulation (H=2, F=8) with a VAE latent space and a diffusion denoiser trained with only 10 steps, yielding real-time online generation; on BABEL temporal composition, DART attains better segment FID (3.79) and transition FID (1.86) than FlowMDM (5.81 and 2.39) while running at 334 fps with 0.02 s latency and ~2.3 GiB memory versus FlowMDM’s 31 fps, 161.29 s latency, and ~11.9 GiB.",
+        "Broad and largely convincing evaluation: automatic metrics and human studies for temporal composition (e.g., preferences vs. FlowMDM: realism 53.3% vs 46.7%, semantics 51.3% vs 48.7%; substantially higher margins vs. TEACH/DoubleTake/T2M-GPT* around 66%), extensive ablations (VAE necessity, scheduled training, diffusion steps) supporting design choices.",
+        "Effective spatial control through latent noise optimization and RL: in text-conditioned in-betweening (HML3D), DART achieves lower goal error (0.59 cm) than DNO (4.24 cm) and OmniControl (7.79 cm), with reduced skate (2.98 vs 5.38 cm/s for DNO) and jerk (0.61 vs 0.65); RL goal-reaching achieves 100% success with faster times and better contacts than GAMMA (e.g., walk: 17.08 s vs 31.44 s, skate 2.67 vs 5.14 cm/s, floor distance 2.24 vs 5.55 cm).",
+        "Sound training methodology (scheduled training with rollout exposure, classifier-free guidance, importance sampling on BABEL) and clear algorithms; authors commit to releasing full code/configs and to correcting equation/pseudocode issues, improving reproducibility and clarity.",
+        "The rebuttal provides concrete plans to add quantitative human-scene interaction metrics and baselines, and to include sensitivity/convergence analyses and practical accelerations for optimization-based control, addressing the most significant concerns raised."
+      ],
+      "weaknesses": [
+        "Some presentation issues remain in the current draft (e.g., garbled Eq. (1) and minor pseudocode inconsistencies); while the authors commit to fixing these in the camera-ready, they hinder precise parsing of the denoiser formulation as written.",
+        "Human-scene interaction control is only qualitatively demonstrated in the submission; quantitative SDF-based penetration/contact metrics and baseline comparisons are not yet provided, limiting the strength of claims on scene-aware control.",
+        "Optimization-based latent control can be slow (e.g., ~74 s for a 60-frame sequence over 100 steps); although acceptable for offline planning and the authors propose analyses/accelerations, end-to-end practicality would benefit from the promised convergence and sensitivity studies.",
+        "Generalization beyond frame-aligned labels (e.g., coarse HML3D, open-vocabulary prompts) is acknowledged as limited; the planned mixed-training and zero-shot studies will help, but current quantitative evidence remains focused on tasks where fine-grained labels are available."
+      ],
+      "summary_comment": "The paper proposes DART, a latent diffusion-based autoregressive motion primitive model for real-time, text-driven motion control, with complementary spatial control via latent noise optimization and RL. Methodologically, the approach is sound: a VAE compresses short motion primitives, a diffusion denoiser conditions on history and text, and scheduled training improves long-horizon stability. Empirically, DART delivers strong performance on text-conditioned temporal composition (e.g., better segment/transition FID than FlowMDM with an order-of-magnitude faster, low-latency online generation) and shows clear gains in in-betweening and RL-based goal reaching. The rebuttal adequately addresses key concerns with concrete commitments: correcting notation and pseudocode, adding quantitative scene-control metrics and baselines, and providing sensitivity/convergence analyses and practical accelerations for optimization-based control, along with full code/config release. While some evaluations (human-scene interactions) remain qualitative in the current draft and optimization speed is a practical caveat, the core contributions are rigorous and well supported. I maintain a recommendation to accept."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "Topic fit is acceptable: ICML welcomes application-driven ML in machine vision; the paper develops a diffusion-based generative model with RL-based control for human motion, which falls under application-driven ML and deep learning.",
+        "Contribution type aligns partially: method-centric ML (latent VAE + diffusion + scheduled training) with solid empirical evidence and ablations; reviewers highlight strong realism metrics, human preference wins, and efficiency (>300 FPS).",
+        "Rigor is broadly sound per reviewers (soundness 4/5, evaluation 4/5) with clear algorithms and planned code/config release, which helps ICML’s reproducibility emphasis."
+      ],
+      "why_it_does_not_fit": [
+        "ICML typically favors broader ML algorithmic/theoretical contributions; here the novelty is primarily an applied CV/generative modeling advance with domain-specific design (motion primitives, SMPL-X), which reviewers characterized as strong but not groundbreakingly novel (novelty 4/5).",
+        "Reviewer-acknowledged limitations reduce perceived generality: dependence on frame-aligned labels for best performance, limited open-vocabulary generalization, and qualitative-only scene interaction metrics at submission.",
+        "Some presentation issues (garbled equation, pseudocode) and lack of physics-aware training/quantitative scene baselines at submission introduce risk; ICML acceptance can be sensitive to such polish and scope beyond application."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 9,
+      "why_it_fits": [
+        "Excellent topic alignment: NeurIPS explicitly includes Computer Vision, Deep Learning, Decision-making/RL, and Robotics/embodied systems; the paper sits at the intersection of vision, generative diffusion models, and RL-based control.",
+        "Contribution fit is strong for NeurIPS: unifies latent diffusion over motion primitives for real-time, text-conditioned, online generation with spatial control via latent noise optimization and RL—an interdisciplinary systems+methods paper with compelling empirical results.",
+        "Reviewers report convincing novelty and significance in practice (e.g., segment FID 3.79 vs 5.81 FlowMDM, transition FID best at 1.86, human preference wins, ~10x faster, 334 FPS, 0.02 s latency), and broad evaluation including ablations and human studies—typical strengths for NeurIPS.",
+        "Rigor and clarity are largely adequate (soundness 4/5; evaluation 4/5), with planned fixes for equation/pseudocode and additional quantitative scene metrics/baselines, reducing residual risk."
+      ],
+      "why_it_does_not_fit": [
+        "Open-vocabulary/generalization beyond frame-aligned labels is limited per reviewers; while acceptable at NeurIPS, it narrows the scope compared to more general foundational ML contributions.",
+        "Physics realism remains kinematic with skating/floating artifacts; at submission, scene interaction evaluation lacks quantitative baselines, which may invite scrutiny in the NeurIPS vision/embodied control track.",
+        "Optimization-based control can be slow (~74 s for 60 frames over 100 steps), which, despite being acceptable for offline planning, may temper the systems impact for some reviewers."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "Strong topic fit with ICLR’s focus on deep learning and representation/generative learning: the core is a latent VAE + diffusion denoiser conditioned on history and text, with scheduled training for long-horizon stability.",
+        "Contribution style matches ICLR norms: clear architectural choices, low-step diffusion for efficiency, classifier-free guidance, and thorough ablations (VAE necessity, scheduled training, diffusion steps), similar to prior ICLR motion-diffusion works (e.g., MDM, OmniControl).",
+        "Reviewers deem the work sound and significant (soundness/evaluation 4/5, significance 4–5/5) with strong empirical gains and commitments to release code/configs and add quantitative scene metrics—helpful for ICLR’s reproducibility and analysis expectations."
+      ],
+      "why_it_does_not_fit": [
+        "Novelty is good but not exceptional in the ICLR context (reviewer novelty 4/5); several elements build on known diffusion/latent-space ideas, which may be viewed as incremental unless the unified real-time control angle is emphasized.",
+        "Dependence on fine-grained labels and weaker open-vocabulary performance limit the generality of the representation learning story, a potential concern for ICLR reviewers focused on broadizable DL principles.",
+        "Presentation issues in the draft (garbled equation, minor pseudocode inconsistencies) and incomplete quantitative scene-control evaluation at submission introduce some risk, even if the authors plan to fix/add these for camera-ready."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {
+      "total": 86,
+      "verified": 77,
+      "url_only": 0,
+      "not_found": 9,
+      "suspicious": 0,
+      "skipped": 0
+    },
+    "failed": [
+      {
+        "index": "2",
+        "title": "What matters for on-policy deep actor-critic methods? a large-scale study",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "13",
+        "title": "Motion matching and the road to next-gen animation",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "17",
+        "title": "In *International Conference on Computer Vision (ICCV)*",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "36",
+        "title": "Motion graphs",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "55",
+        "title": "Highresolution image synthesis with latent diffusion models",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "64",
+        "title": "DeepPhase: Periodic autoencoders for learning motion phase manifolds",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "67",
+        "title": "MIT press Cambridge",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "80",
+        "title": "FORCE: Dataset and method for intuitive physics guided human-object interaction",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      },
+      {
+        "index": "86",
+        "title": "Ml tutorial day: From motion matching to motion synthesis, and all the hurdles in between",
+        "link": null,
+        "fail_reason": "not found on OpenReview, arXiv, or CrossRef; no URL provided"
+      }
+    ]
+  }
+}

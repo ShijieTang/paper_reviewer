@@ -1,0 +1,123 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The paper advances a mechanistic account that embeds are primary drivers of grokking via sparse-update dynamics and bilinear coupling with downstream weights; this framing remains novel and generative.",
+        "The embedding-specific learning-rate rule (c = ηE/ηW) derived from σmax(E)/σmax(W) and update frequencies is simple and actionable; the authors corrected theoretical inconsistencies (Eq. (5) sign, removal of η from the continuous-time equilibrium) and clarified assumptions for Proposition 4.1, improving rigor.",
+        "The rebuttal substantially strengthens evaluation: commitments to 5–10 seed runs with ribbons, median/IQR tables for steps-to-≥99% validation, Wilcoxon tests, and a broad suite of baselines (Grokfast, Adafactor, RMSProp, SGD+momentum, LLRD), plus ablations (balanced batching, frozen embeddings, Fourier features, separate weight decay, fixed vs adaptive c).",
+        "A practical and robust adaptive implementation of the LR-ratio is outlined (σmax via 2–3 power iterations with EMA smoothing, update every K steps, clipped c in [2,20], EMA of token frequencies, <2% overhead), addressing concerns about noisy online estimation.",
+        "Transfer is probed with a compact Transformer (1–2 layers) measuring grokking delay and blockwise curvature, connecting the bilinear mechanism beyond MLPs while keeping claims modest; code, commands, and compute reporting are to be released for reproducibility."
+      ],
+      "weaknesses": [
+        "Several improvements are currently commitments rather than incorporated results: multi-seed statistics, the expanded baselines/ablations, and the compact Transformer validation are not yet reflected in the submission.",
+        "The LR-ratio rule rests on a local linearization and σmax-based scaling; despite stabilization measures, online σmax and frequency estimates may still be noisy in practice, and guarantees remain local to the bilinear approximation.",
+        "Broader validation on full-scale Transformer settings and real-world tasks remains future work; the compact attention probe is a useful step but limited in scope."
+      ],
+      "summary_comment": "The authors have convincingly addressed prior concerns: they corrected theoretical inconsistencies (including the continuous-time treatment and the smoothness-based descent bound), made the LR-ratio’s assumptions explicit, and proposed a stable adaptive implementation with minimal overhead. They also commit to substantially stronger empirical evidence—multi-seed error bars, nonparametric significance tests, a wide set of baselines and ablations, and a compact Transformer study—along with full code and compute reporting. While some additions are promised rather than present and the LR-ratio justification remains partly local/heuristic, the core idea is sound and impactful: embeddings can induce grokking via sparse updates and bilinear coupling, and a principled LR ratio mitigates it. Given strong novelty and solidified methodology, with upgraded evaluation and clarity, the paper merits acceptance. My scores (4s across criteria) reflect a strong submission that crosses the acceptance threshold on novelty and potential impact, with soundness and evaluation now adequately supported by the planned revisions."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The authors directly correct core methodological issues: they fix the smoothness-based descent inequality, remove the erroneous learning-rate factor from the continuous-time approximation, and incorporate nonlinearity via a local Jacobian in a block-wise analysis.",
+        "They reframe the learning-rate ratio as a locally justified block-Lipschitz heuristic grounded in standard block coordinate descent reasoning, explicitly limiting claims and assumptions rather than presenting a global proposition.",
+        "A concrete adaptive scheduler is specified (periodic σ_max estimation via power method, EMA-based update-frequency estimates, clipping and smoothing), with planned overhead reporting and ablations versus a fixed c.",
+        "The evaluation plan is substantially expanded: multi-seed reporting with error bands and significance tests, competitive baselines (Grokfast, per-batch token-balanced batching, alternative optimizers, TTUR variants), controls for update-norm budgets, and a compact Transformer probe with curvature diagnostics.",
+        "They commit to improved clarity and reproducibility (cleaned references/notation, algorithm boxes, pseudo-code, hyperparameter tables, compute disclosures, and code release)."
+      ],
+      "weaknesses": [
+        "At review time, the manuscript still contains the original derivation errors and the limited single-seed evaluation; the corrected theory, adaptive scheduler, and expanded experiments are not yet implemented, so the current evidence remains insufficient.",
+        "Even with the proposed reframing, the theory is inherently local/heuristic without global guarantees; the stability and accuracy of online σ_max and update-frequency estimates, sensitivity to scheduler hyperparameters (K, EMA decay, clipping bounds), and robustness under controlled update-norm budgets remain unvalidated.",
+        "The broader applicability to Transformers is still speculative in the current submission; convincing support requires the promised small-scale Transformer validation demonstrating a measurable reduction in grokking delay and consistent curvature changes relative to strong baselines."
+      ],
+      "summary_comment": "The rebuttal is thoughtful and addresses the major critiques: mathematical inconsistencies are corrected, the learning-rate ratio is placed on a principled local footing, and a practical adaptive scheduler is specified. The authors also outline a substantially stronger evaluation with multi-seed statistics, competitive baselines (including Grokfast and token-balanced batching), and a compact Transformer validation, alongside improved clarity and reproducibility. These commitments, if realized, would likely raise soundness and evaluation to an acceptable standard. However, the present manuscript still exhibits the flagged derivation errors and limited single-seed evidence, with few baselines and no Transformer results. Given our emphasis on methodological rigor and convincing empirical support, the current scores (soundness=3, evaluation=2) do not meet the acceptance threshold. I encourage resubmission after integrating the corrected derivations, the adaptive scheduler with stability analyses, comprehensive multi-seed evaluations against strong baselines, and appropriately scoped claims corroborated by the proposed Transformer probe."
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 3,
+        "clarity": 4
+      },
+      "strengths": [
+        "The rebuttal squarely addresses earlier soundness concerns: it corrects the descent inequality, cleanly separates discrete-time from continuous-time intuition, and reframes the learning-rate ratio as a locally justified, block-Lipschitz heuristic rather than a global theorem.",
+        "Provides concrete, low-overhead details for a practical adaptive scheduler (e.g., updating every K=200–500 steps, 2–3 power iterations with EMA smoothing for σmax, clipping c within [2,20], momentum smoothing, and a fixed-c fallback), which is actionable for practitioners.",
+        "Commits to stronger empirical practice: multi-seed results with error bars, fair controls on update norms, broader baselines (GrokFast, Fourier features, multiple optimizers, TTUR), and per-batch token-balanced sampling beyond dataset splits.",
+        "Scopes claims more conservatively and proposes a minimal Transformer probe to test generality, including blockwise curvature tracking via HVP power method."
+      ],
+      "weaknesses": [
+        "Most improvements remain prospective: the current submission still lacks adaptive scheduler results, multi-seed/error-bar reporting, stronger baselines, and Transformer validation, so central claims are not yet substantiated by robust evidence.",
+        "Theory remains primarily local and heuristic; while the repositioning is appropriate, the robustness of σmax- and frequency-based adaptation under estimation noise, changing ReLU masks, and across tasks is not empirically demonstrated in the present version.",
+        "Practical significance beyond modular tasks is still uncertain; overhead claims (e.g., <2% runtime for σmax estimation) and stability safeguards are not yet validated experimentally."
+      ],
+      "summary_comment": "The authors offered a detailed and thoughtful response that addresses key concerns about soundness and practicality. They corrected theoretical missteps, appropriately recast the LR-ratio as a local heuristic, and provided clear, implementable guidance for an adaptive embedding learning-rate scheduler with stability safeguards (cadence, EMA smoothing, clipping, and fallbacks). They also commit to multi-seed reporting with error bars, stronger baselines including GrokFast and Fourier features, per-batch token balancing, matched-update controls, and a compact Transformer validation. These planned additions would substantially strengthen the paper and align with a practical contribution. However, as these results are not yet present, the current submission still relies on single-seed synthetic tasks with limited baselines and heuristic theory. I therefore recommend rejection at this stage, with encouragement to resubmit once the promised experiments and adaptive implementation are included and validated."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "Topic fit: The paper studies optimization/training dynamics in neural networks (embedding update sparsity, bilinear coupling) and proposes an optimizer-level intervention (embedding-specific learning rates) and data-centric sampling—squarely within ICML interests in optimization, probabilistic methods, and ML systems.",
+        "Contribution fit: A mix of mechanistic analysis plus practical methodology (frequency-aware sampling and an adaptive LR ratio) matches ICML’s appetite for theoretically informed algorithms with empirical validation.",
+        "Presentation/clarity: Reviewers note improved clarity and scope (explicit assumptions for the LR rule, cleaned derivations, algorithmic details for a practical scheduler), which aligns with ICML’s emphasis on clear framing and reproducibility."
+      ],
+      "why_it_does_not_fit": [
+        "Empirical scope: Two reviewers flagged that current results are largely single-seed on synthetic/algorithmic tasks (modular arithmetic MLPs), with promised baselines, error bars, and a compact Transformer study not yet integrated—ICML typically expects stronger, already-incorporated evidence across tasks/settings.",
+        "Rigor/novelty risk: The LR-ratio justification is positioned as a local/heuristic result; reviewers B and C question global guarantees and robustness of online σmax and frequency estimates—ICML often favors either stronger theory or broader empirical validation.",
+        "Reviewer risk: Mixed reviews (one accept, two rejects citing insufficient integrated experiments and remaining derivation issues at review time) imply higher acceptance risk at ICML’s competitive bar."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 5,
+      "why_it_fits": [
+        "Topic fit: NeurIPS welcomes in-depth analyses of existing methods and training dynamics; mechanistic insights into grokking and bilinear coupling in embeddings, with connections to Transformer optimization, align with the conference’s core ML and theory/optimization tracks.",
+        "Interdisciplinary openness: The venue embraces studies that don’t fit neat categories and encourages insights about limitations/behavior—this paper’s analysis of sparse embedding updates and curvature differences fits that spirit.",
+        "Actionable method: The adaptive LR-ratio and frequency-aware sampling constitute practical techniques that could interest the broad NeurIPS audience, especially if validated at scale."
+      ],
+      "why_it_does_not_fit": [
+        "Evidence gap: Reviewers B and C emphasize that key improvements (multi-seed statistics, strong baselines like GrokFast and alternative optimizers, balanced batching ablations, compact Transformer validation) are promised but not present; NeurIPS generally requires these to be integrated at submission.",
+        "Scope/significance: Current experiments focus on small MLPs and synthetic algorithmic tasks; broader impact on real-world or larger Transformer settings remains speculative, which can be a weakness at NeurIPS’s bar for significance.",
+        "Rigor concerns: The LR-ratio is a local, σmax-based heuristic with noisy online estimation concerns; without stability analyses and comprehensive validation, acceptance risk is high, reflected by two reject recommendations."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Topic fit: ICLR’s focus on deep learning, representation learning, and optimization strongly matches the paper’s core: mechanistic understanding of grokking, embedding dynamics, bilinear coupling, and an optimizer/data-sampling intervention.",
+        "Community precedent: Grokking and training-dynamics analyses on algorithmic datasets are well represented at ICLR (e.g., Omnigrok and related works); the paper’s MLP studies and compact Transformer probe align with this tradition.",
+        "Contribution fit: A blend of empirical insights plus a simple, actionable scheduler (embedding-specific LR with σmax/frequency-aware adaptation) fits ICLR’s appetite for practical deep learning improvements supported by mechanistic reasoning.",
+        "Presentation: Reviewers note clarity improvements (explicit assumptions, algorithmic details), and commitments to code/commands and compute reporting align with ICLR’s reproducibility expectations."
+      ],
+      "why_it_does_not_fit": [
+        "Incomplete integration: As per reviewers B and C, multi-seed/error-band reporting, stronger baselines and ablations, and Transformer validation were not yet incorporated into the current submission—this may still miss ICLR’s empirical robustness bar.",
+        "Rigor limitations: Theoretical support is local/heuristic; reviewers request stability analyses for online σmax/frequency estimates and sensitivity to scheduler hyperparameters, which, if not added, pose risk.",
+        "External generality: While the paper argues relevance to Transformers, evidence beyond compact probes is limited; over-claiming generality would be penalized unless scoped carefully."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}
