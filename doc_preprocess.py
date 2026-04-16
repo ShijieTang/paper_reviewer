@@ -29,20 +29,6 @@ def _get_model_dict() -> dict:
 # Reference-normalisation helpers
 # ---------------------------------------------------------------------------
 
-# Detects the end of an author block in author-year format (ICML, NeurIPS,
-# Nature, Science, APA journal, …) — either "et al." or a lone capital initial
-# not preceded by another word character (e.g. "O." in "Winther, O.").
-# The title follows immediately as plain, un-italicised text.
-# The venue starts with "*", "In *", "arXiv", or "biorxiv/bioRxiv".
-_AUTHOR_YEAR_TITLE_RE = re.compile(
-    r'(?:et al\.|(?<!\w)[A-Z]\.)[ \t]+'           # end of author block
-    r'(?![A-Z]\.)'                                  # NOT followed by another initial (e.g. "J. J.")
-    r'([A-Z][^\n*"]{10,200}?)'                      # plain-text title
-    r'\.\s+'                                         # closing period
-    r'(?:[Ii]n\s+\*|\*[A-Za-z]|arXiv|[Bb]io[Rr]xiv)',  # start of venue
-)
-
-
 def _clean_document(text: str) -> str:
     """
     Document-wide cleanup of marker PDF-to-markdown conversion artifacts.
@@ -81,9 +67,6 @@ def _normalize_ref_entries(entries: List[str]) -> List[str]:
 
     1. Add a ``[N]`` numbered prefix if none exists — this lets the checker's
        entry-splitter work for any citation style (ICML, NeurIPS, APA, etc.).
-    2. For author-year entries whose title is plain text (not quoted or italic),
-       wrap the title in double quotes so ``_QUOTED_TITLE_RE`` in the checker
-       finds the correct field instead of the italic venue name.
     """
     result = []
     for i, entry in enumerate(entries, 1):
@@ -93,14 +76,6 @@ def _normalize_ref_entries(entries: List[str]) -> List[str]:
         # 1. Add [N] prefix when no index marker is present
         if not re.match(r'^\[', entry) and not re.match(r'^\d{1,3}[.\s]', entry):
             entry = f'[{i}] {entry}'
-
-        # 2. Wrap plain-text title in quotes for author-year format.
-        #    Only act when the title is not already quoted or italic.
-        if '"' not in entry:
-            m = _AUTHOR_YEAR_TITLE_RE.search(entry)
-            if m:
-                title = m.group(1).strip()
-                entry = entry[:m.start(1)] + f'"{title}"' + entry[m.end(1):]
 
         result.append(entry)
     return result
@@ -113,8 +88,7 @@ def _clean_references(text: str) -> str:
     1. Merge page-break-split italic entries (marker splits ``*Confer-*`` and
        ``*ence on …*`` across two list items when a word straddles a page).
     2. Ensure blank lines between entries so the renderer shows them separately.
-    3. Normalise each entry for the citation checker: add ``[N]`` index and
-       wrap plain-text titles in quotes (see ``_normalize_ref_entries``).
+    3. Normalise each entry for the citation checker by adding ``[N]`` indices.
     """
     ref_match = re.search(r'^(#+\s+References?|#+\s+Bibliography)\s*$',
                           text, re.MULTILINE | re.IGNORECASE)
@@ -186,6 +160,32 @@ def doc_preprocess(pdf_name: str, pdf_path: str = "data/pdf", md_path: str = "da
     output_path.write_text(text, encoding="utf-8")
     print(f"Saved {pdf_name}.md at {output_path}")
     return str(output_path)
+
+
+def load_or_create_markdown(pdf_file: str, md_path: str = "data/md") -> str:
+    """
+    Return the markdown text for a PDF, reusing an existing markdown file when present.
+
+    Args:
+        pdf_file: Path to the PDF file, e.g. "data/pdf/example_paper.pdf".
+        md_path: Directory containing generated markdown files.
+
+    Returns:
+        The markdown contents as a string.
+    """
+    pdf_path = Path(pdf_file)
+    md_dir = Path(md_path)
+    md_file = md_dir / pdf_path.with_suffix(".md").name
+
+    if md_file.exists():
+        return md_file.read_text(encoding="utf-8")
+
+    md_out = doc_preprocess(
+        pdf_name=pdf_path.name,
+        pdf_path=str(pdf_path.parent),
+        md_path=str(md_dir),
+    )
+    return Path(md_out).read_text(encoding="utf-8")
 
 
 if __name__ == "__main__":

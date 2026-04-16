@@ -39,16 +39,77 @@ _QUOTED_TITLE_RE = re.compile(
     r')'
 )
 
-# "Title. In Venue" or "Title. Journal"
+# "Title. In Venue" or "Title. Journal/Conference"
+# Also handles italic-prefixed venues like *ACM, *Advances, *Proceedings, etc.
 _TITLE_BEFORE_IN_RE = re.compile(
-    r'[\.\,]\s+([A-Z][^\.\n]{10,200}?)\.\s+(?:In |Proceedings|arXiv|CoRR|Journal|IEEE|ACM|NeurIPS|ICLR|ICML|CVPR|ECCV|AAAI|ACL|EMNLP)'
+    r'[\.\,]\s+([A-Z][^\.\n]{10,200}?)\.\s+'
+    r'(?:In\s+|Proceedings|\*?Advances|\*?Journal|\*?Transactions|'
+    r'\*?IEEE|\*?ACM|\*?Nature|\*?Frontiers|\*?International|\*?Annual|'
+    r'\*?[Aa]r[Xx]iv|\*?CoRR|NeurIPS|ICLR|ICML|CVPR|ECCV|ICCV|AAAI|ACL|EMNLP|NAACL|'
+    r'\*[A-Z])'
+)
+
+# "Title. Journal Name, 12(3):..." for plain-text journal references.
+_TITLE_BEFORE_JOURNAL_RE = re.compile(
+    r'[\.\,]\s+([A-Z][^\.\n]{10,200}?)\.\s+'
+    r'[A-Z][A-Za-z0-9&/\-\' ]{2,80},\s+\d'
+)
+
+# "Title, 2024. URL ..." or "Title. URL ..." for arXiv / report / web-first refs.
+_TITLE_BEFORE_YEAR_RE = re.compile(
+    r'[\.\,]\s+((?!(?:Technical report|arXiv preprint)\b)[A-Z][^\.\n]{10,200}?)'
+    r'(?:,\s*(?:19\d{2}|20[0-2]\d)\b|\.\s+(?:URL|https?://))'
 )
 
 # ArXiv ID
 _ARXIV_RE = re.compile(r'arXiv[:\s]*(\d{4}\.\d{4,5})', re.IGNORECASE)
 
 
+def _normalize_entry_text(text: str) -> str:
+    """Collapse common PDF extraction artifacts inside a single reference."""
+    text = re.sub(r'(?<=\w)-\s*\n\s*(?=\w)', '', text)
+    text = re.sub(r'\s*\n\s*', ' ', text)
+    text = re.sub(r'\s{2,}', ' ', text)
+    return text.strip()
+
+
+def _looks_like_author_fragment(text: str) -> bool:
+    text = text.strip(' "\'.,;:')
+    if ":" in text or len(text) > 80:
+        return False
+    if " and " not in text and "," not in text and "&" not in text and "et al" not in text.lower():
+        return False
+
+    tokens = re.findall(r"[A-Za-z][A-Za-z'.-]*", text)
+    if not 2 <= len(tokens) <= 10:
+        return False
+
+    capitalized = sum(1 for token in tokens if token[0].isupper())
+    return capitalized >= max(2, len(tokens) - 2)
+
+
+def _clean_extracted_title(title: str) -> str:
+    """Drop obvious author fragments accidentally captured as part of the title."""
+    parts = [part.strip() for part in re.split(r'\.\s+', title) if part.strip()]
+    if len(parts) >= 2 and _looks_like_author_fragment(parts[0]) and len(parts[1]) >= 10:
+        title = ". ".join(parts[1:])
+    return title.strip(' "\'.,;:')
+
+
+def _looks_like_metadata_fragment(text: str) -> bool:
+    text = text.strip(' "\'.,;:')
+    if not text:
+        return True
+
+    tokens = re.findall(r"[A-Za-z][A-Za-z'.-]*", text)
+    if not tokens:
+        return True
+
+    return len(tokens) <= 2 and len(text) <= 24
+
+
 def _extract_index(text: str) -> Optional[str]:
+    text = _normalize_entry_text(text)
     m = re.match(r'^\[([^\]]+)\]', text.strip())
     if m:
         return m.group(1)
@@ -59,6 +120,7 @@ def _extract_index(text: str) -> Optional[str]:
 
 
 def _extract_url(text: str) -> Optional[str]:
+    text = _normalize_entry_text(text)
     # Prefer arXiv abstract URL
     m = _ARXIV_RE.search(text)
     if m:
@@ -70,38 +132,65 @@ def _extract_url(text: str) -> Optional[str]:
 
 
 def _extract_year(text: str) -> Optional[str]:
+    text = _normalize_entry_text(text)
     m = _YEAR_RE.search(text)
     return m.group(1) if m else None
 
 
 def _extract_title(text: str) -> Optional[str]:
-    # Try quoted or italic-wrapped title first
-    m = _QUOTED_TITLE_RE.search(text)
-    if m:
-        # group(1) = quoted, group(2) = italic/bold markdown
-        return (m.group(1) or m.group(2)).strip()
+    text = _normalize_entry_text(text)
 
-    # Try "... Title. In Conference/Journal ..."
+    # 1. Explicitly double/curly-quoted title — most precise signal
+    m = re.search(r'["\u201c]([A-Z][^"\u201d]{10,200})["\u201d]', text)
+    if m:
+        return _clean_extracted_title(m.group(1))
+
+    # 2. Plain-text title immediately before a venue keyword or italic-prefixed
+    #    venue (e.g. NeurIPS/ICML/APA style: "Title. *Journal* ..." or
+    #    "Title. In Proceedings ...").  Try this BEFORE italic matching so we
+    #    don't accidentally capture the venue name itself as the title.
     m = _TITLE_BEFORE_IN_RE.search(text)
     if m:
-        return m.group(1).strip()
+        return _clean_extracted_title(m.group(1))
+
+    # 3. Plain-text title before a journal name and volume, e.g.
+    #    "Title. Nature, 123(4):..." or "Title. Processes, 8(10):..."
+    m = _TITLE_BEFORE_JOURNAL_RE.search(text)
+    if m:
+        return _clean_extracted_title(m.group(1))
+
+    # 4. Plain-text title followed directly by a year / URL, common in arXiv,
+    #    technical report, and software benchmark references.
+    m = _TITLE_BEFORE_YEAR_RE.search(text)
+    if m:
+        return _clean_extracted_title(m.group(1))
+
+    # 5. Italic/bold-wrapped title — last resort only; risk of grabbing venue
+    m = re.search(r'\*{1,2}([A-Z][^*]{10,200}?)\*{1,2}', text)
+    if m:
+        return _clean_extracted_title(m.group(1))
 
     # Fallback: remove the [key] prefix and the first author segment,
     # then take the next sentence-like fragment
     clean = re.sub(r'^\[.*?\]\s*', '', text.strip())
+    clean = re.sub(r'^\d{1,3}[.\s]\s*', '', clean)
     # Remove author block: "LastName, F., LastName, F. (year)." or similar
     clean = re.sub(r'^[A-Z][^.]{3,80}?\.\s+\(?\d{4}\)?\.?\s*', '', clean)
     clean = clean.strip()
-    # Take up to first period or newline
-    sentence = re.split(r'\.\s+|\n', clean)[0].strip()
-    if len(sentence) > 10:
-        return sentence
+    parts = [part.strip() for part in re.split(r'\.\s+|\n', clean) if part.strip()]
+    if parts:
+        sentence = parts[0]
+        if len(parts) >= 2 and (_looks_like_metadata_fragment(sentence) or _looks_like_author_fragment(sentence)):
+            sentence = parts[1]
+        if len(sentence) > 10:
+            return _clean_extracted_title(sentence)
     return None
 
 
 def _split_into_entries(text: str) -> List[str]:
     """Split the references section text into individual reference strings."""
     text = text.strip()
+    text = re.sub(r'(?<=\w)-\s*\n\s*(?=\w)', '', text)
 
     # Strip markdown bullet list prefixes ("- ", "* ", "+ ") so that
     # "- [1] Author..." becomes "[1] Author..." and the numbered patterns match.
