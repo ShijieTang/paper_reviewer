@@ -475,7 +475,9 @@
       if (type === "heartbeat") return;
       if (type === "agent_status") {
         updateAgentStatus(msg.agent, msg.status);
+        if (msg.status === "running") showTypingIndicator(msg.agent);
       } else if (type === "message") {
+        removeTypingIndicator(msg.agent);
         appendChat(msg.agent, msg.content);
       } else if (type === "done") {
         appendLog("done", message);
@@ -497,6 +499,32 @@
     };
   }
 
+  function typingId(agentName) {
+    return "typing-" + agentName.replace(/[\s()]/g, "-");
+  }
+
+  function showTypingIndicator(agentName) {
+    removeTypingIndicator(agentName);
+    const chatBox = document.getElementById("chat-box");
+    const name    = agentName.toLowerCase();
+    const cls     = name.includes("reviewer") ? "bubble-reviewer"
+                  : name.includes("author")   ? "bubble-author"
+                  : name.includes("detector") ? "bubble-detector"
+                  : "bubble-other";
+    const el = document.createElement("div");
+    el.id        = typingId(agentName);
+    el.className = `chat-bubble ${cls}`;
+    el.innerHTML = `<div class="bubble-name">${escHtml(agentName)}</div>
+      <div class="typing-indicator"><span></span><span></span><span></span></div>`;
+    chatBox.appendChild(el);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function removeTypingIndicator(agentName) {
+    const el = document.getElementById(typingId(agentName));
+    if (el) el.remove();
+  }
+
   function appendChat(agentName, content) {
     const chatBox = document.getElementById("chat-box");
     const name    = agentName.toLowerCase();
@@ -505,21 +533,36 @@
                   : name.includes("detector") ? "bubble-detector"
                   : "bubble-other";
 
-    // Try to pretty-print JSON content
-    let displayContent = content;
-    try {
-      const parsed = JSON.parse(content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, ""));
-      displayContent = JSON.stringify(parsed, null, 2);
-    } catch (_) {}
-
     const bubble = document.createElement("div");
     bubble.className = `chat-bubble ${cls}`;
-    bubble.innerHTML = `
-      <div class="bubble-name">${escHtml(agentName)}</div>
-      <details>
-        <summary class="bubble-summary">View response &darr;</summary>
-        <pre class="bubble-content">${escHtml(displayContent)}</pre>
-      </details>`;
+
+    let bodyHTML = "";
+    // Try to parse as reviewer JSON
+    try {
+      const raw = content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+      const r   = JSON.parse(raw);
+      if (r.decision && r.scores) {
+        const isAccept = r.decision.toLowerCase().includes("accept");
+        const badge    = `<span class="decision-badge ${isAccept ? "badge-accept" : "badge-reject"}">${isAccept ? "✓ Accept" : "✗ Reject"}</span>`;
+        const KEYS     = ["novelty","soundness","significance","evaluation","clarity"];
+        const scores   = KEYS.map(k => `<span class="bubble-score-item"><span class="bubble-score-key">${k}</span><span class="bubble-score-val">${r.scores?.[k] ?? "—"}/5</span></span>`).join("");
+        const strengths  = (r.strengths  || []).map(s => `<li>${escHtml(s)}</li>`).join("");
+        const weaknesses = (r.weaknesses || []).map(s => `<li>${escHtml(s)}</li>`).join("");
+        bodyHTML = `
+          <div class="bubble-decision-row">${badge}</div>
+          <div class="bubble-scores">${scores}</div>
+          ${strengths  ? `<div class="bubble-section-title">Strengths</div><ul class="bubble-list">${strengths}</ul>`   : ""}
+          ${weaknesses ? `<div class="bubble-section-title">Weaknesses</div><ul class="bubble-list">${weaknesses}</ul>` : ""}
+          ${r.summary_comment ? `<div class="bubble-section-title">Summary</div><p class="bubble-summary-text">${escHtml(r.summary_comment)}</p>` : ""}`;
+      } else {
+        throw new Error("not reviewer JSON");
+      }
+    } catch (_) {
+      // Plain text fallback (author rebuttal, AI detector, conference rec)
+      bodyHTML = `<p class="bubble-plain">${escHtml(content).replace(/\n/g, "<br>")}</p>`;
+    }
+
+    bubble.innerHTML = `<div class="bubble-name">${escHtml(agentName)}</div>${bodyHTML}`;
     chatBox.appendChild(bubble);
     chatBox.scrollTop = chatBox.scrollHeight;
   }
