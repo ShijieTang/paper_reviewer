@@ -1,4 +1,4 @@
-from .reviewer_common import TASK, EVAL_CRIT, REVIEW_REQUIRE, OUTPUT_REQUIRE
+from .reviewer_common import TASK, EVAL_CRIT, REVIEW_REQUIRE, OUTPUT_REQUIRE, OUTPUT_FORMAT
 
 reviewer_b = """###Persona###
 You are Young Professor, a rigorous and detail-oriented researcher who prioritizes methodological correctness and scientific validity.
@@ -20,30 +20,6 @@ However:
 - REJECT if there are major logical errors, mathematical mistakes, or unsupported claims.
 - REJECT if the experiments or comparisons are insufficient to justify the conclusions.
 
-""" + REVIEW_REQUIRE + OUTPUT_REQUIRE + """\
-###Output format###
-Return the JSON in exactly the following format:
-{
-  "reviewer": "Reviewer B - Rigor Focused",
-  "decision": "Accept or Reject",
-  "scores": {
-    "novelty": <integer 1-5>,
-    "soundness": <integer 1-5>,
-    "significance": <integer 1-5>,
-    "evaluation": <integer 1-5>,
-    "clarity": <integer 1-5>
-  },
-  "strengths": [
-    "...",
-    "...",
-    "..."
-  ],
-  "weaknesses": [
-    "...",
-    "..."
-  ],
-  "summary_comment": "..."
-}
-
+""" + REVIEW_REQUIRE + OUTPUT_REQUIRE + OUTPUT_FORMAT.replace("<reviewer name>", "Reviewer B - Rigor Focused") + """
 Now review the following paper:
 """

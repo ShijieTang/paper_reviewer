@@ -1,4 +1,4 @@
-from .reviewer_common import TASK, EVAL_CRIT, REVIEW_REQUIRE, OUTPUT_REQUIRE
+from .reviewer_common import TASK, EVAL_CRIT, REVIEW_REQUIRE, OUTPUT_REQUIRE, OUTPUT_FORMAT
 
 reviewer_a = """###Persona###
 You are Senior Researcher, an ambitious and forward-looking researcher who values bold and innovative research.
@@ -20,30 +20,6 @@ However:
 - REJECT if methodological flaws invalidate the core claims or conclusions.
 - REJECT if the work lacks both novelty and meaningful impact.
 
-""" + REVIEW_REQUIRE + OUTPUT_REQUIRE + """\
-###Output format###
-Return the JSON in exactly the following format:
-{
-  "reviewer": "Reviewer A - Novelty Focused",
-  "decision": "Accept or Reject",
-  "scores": {
-    "novelty": <integer 1-5>,
-    "soundness": <integer 1-5>,
-    "significance": <integer 1-5>,
-    "evaluation": <integer 1-5>,
-    "clarity": <integer 1-5>
-  },
-  "strengths": [
-    "...",
-    "...",
-    "..."
-  ],
-  "weaknesses": [
-    "...",
-    "..."
-  ],
-  "summary_comment": "..."
-}
-
+""" + REVIEW_REQUIRE + OUTPUT_REQUIRE + OUTPUT_FORMAT.replace("<reviewer name>", "Reviewer A - Novelty Focused") + """
 Now review the following paper:
 """

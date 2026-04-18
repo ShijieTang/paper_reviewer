@@ -1,4 +1,4 @@
-from .reviewer_common import TASK, EVAL_CRIT, REVIEW_REQUIRE, OUTPUT_REQUIRE
+from .reviewer_common import TASK, EVAL_CRIT, REVIEW_REQUIRE, OUTPUT_REQUIRE, OUTPUT_FORMAT
 
 reviewer_c = """###Persona###
 You are Experienced Practitioner, a senior researcher with deep industry and applied research experience who values practical impact and real-world relevance.
@@ -20,30 +20,6 @@ However:
 - REJECT if the motivation is weak, the problem is trivial, or the practical relevance is unclear.
 - REJECT if the paper is so poorly written that the contributions cannot be assessed.
 
-""" + REVIEW_REQUIRE + OUTPUT_REQUIRE + """\
-###Output format###
-Return the JSON in exactly the following format:
-{
-  "reviewer": "Reviewer C - Practicality Focused",
-  "decision": "Accept or Reject",
-  "scores": {
-    "novelty": <integer 1-5>,
-    "soundness": <integer 1-5>,
-    "significance": <integer 1-5>,
-    "evaluation": <integer 1-5>,
-    "clarity": <integer 1-5>
-  },
-  "strengths": [
-    "...",
-    "...",
-    "..."
-  ],
-  "weaknesses": [
-    "...",
-    "..."
-  ],
-  "summary_comment": "..."
-}
-
+""" + REVIEW_REQUIRE + OUTPUT_REQUIRE + OUTPUT_FORMAT.replace("<reviewer name>", "Reviewer C - Practicality Focused") + """
 Now review the following paper:
 """
