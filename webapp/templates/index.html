@@ -380,10 +380,10 @@
 
   // ── Agent status panel ────────────────────────────────────────────────────
   const REVIEWER_DISPLAY = {
-    reviewer_a:        "Reviewer (reviewer_a)",
-    reviewer_b:        "Reviewer (reviewer_b)",
-    reviewer_c:        "Reviewer (reviewer_c)",
-    reviewer_nopersona:"Reviewer (no persona)",
+    reviewer_a:        "Agent 1 (Novelty Focused)",
+    reviewer_b:        "Agent 2 (Rigor Focused)",
+    reviewer_c:        "Agent 3 (Practicality Focused)",
+    reviewer_nopersona:"Agent (No Persona)",
   };
 
 
@@ -507,10 +507,10 @@
     removeTypingIndicator(agentName);
     const chatBox = document.getElementById("chat-box");
     const name    = agentName.toLowerCase();
-    const cls     = name.includes("reviewer") ? "bubble-reviewer"
-                  : name.includes("author")   ? "bubble-author"
-                  : name.includes("detector") ? "bubble-detector"
-                  : "bubble-other";
+    const cls     = name.includes("author")      ? "bubble-author"
+                  : name.includes("detector")    ? "bubble-detector"
+                  : name.includes("recommender") ? "bubble-other"
+                  : "bubble-reviewer";
     const el = document.createElement("div");
     el.id        = typingId(agentName);
     el.className = `chat-bubble ${cls}`;
@@ -528,24 +528,25 @@
   function appendChat(agentName, content) {
     const chatBox = document.getElementById("chat-box");
     const name    = agentName.toLowerCase();
-    const cls     = name.includes("reviewer") ? "bubble-reviewer"
-                  : name.includes("author")   ? "bubble-author"
-                  : name.includes("detector") ? "bubble-detector"
-                  : "bubble-other";
+    const cls     = name.includes("author")      ? "bubble-author"
+                  : name.includes("detector")    ? "bubble-detector"
+                  : name.includes("recommender") ? "bubble-other"
+                  : "bubble-reviewer";
 
     const bubble = document.createElement("div");
     bubble.className = `chat-bubble ${cls}`;
 
     let bodyHTML = "";
-    // Try to parse as reviewer JSON
     try {
       const raw = content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
       const r   = JSON.parse(raw);
+
       if (r.decision && r.scores) {
-        const isAccept = r.decision.toLowerCase().includes("accept");
-        const badge    = `<span class="decision-badge ${isAccept ? "badge-accept" : "badge-reject"}">${isAccept ? "✓ Accept" : "✗ Reject"}</span>`;
-        const KEYS     = ["novelty","soundness","significance","evaluation","clarity"];
-        const scores   = KEYS.map(k => `<span class="bubble-score-item"><span class="bubble-score-key">${k}</span><span class="bubble-score-val">${r.scores?.[k] ?? "—"}/5</span></span>`).join("");
+        // ── Reviewer ────────────────────────────────────────────
+        const isAccept  = r.decision.toLowerCase().includes("accept");
+        const badge     = `<span class="decision-badge ${isAccept ? "badge-accept" : "badge-reject"}">${isAccept ? "✓ Accept" : "✗ Reject"}</span>`;
+        const KEYS      = ["novelty","soundness","significance","evaluation","clarity"];
+        const scores    = KEYS.map(k => `<span class="bubble-score-item"><span class="bubble-score-key">${k}</span><span class="bubble-score-val">${r.scores?.[k] ?? "—"}/5</span></span>`).join("");
         const strengths  = (r.strengths  || []).map(s => `<li>${escHtml(s)}</li>`).join("");
         const weaknesses = (r.weaknesses || []).map(s => `<li>${escHtml(s)}</li>`).join("");
         bodyHTML = `
@@ -554,11 +555,53 @@
           ${strengths  ? `<div class="bubble-section-title">Strengths</div><ul class="bubble-list">${strengths}</ul>`   : ""}
           ${weaknesses ? `<div class="bubble-section-title">Weaknesses</div><ul class="bubble-list">${weaknesses}</ul>` : ""}
           ${r.summary_comment ? `<div class="bubble-section-title">Summary</div><p class="bubble-summary-text">${escHtml(r.summary_comment)}</p>` : ""}`;
+
+      } else if (r.responses) {
+        // ── Author rebuttal ──────────────────────────────────────
+        bodyHTML = (r.responses || []).map(resp => `
+          <div class="bubble-section-title">Re: ${escHtml(resp.reviewer || "")}</div>
+          ${(resp.main_issues_identified || []).length
+            ? `<ul class="bubble-list">${(resp.main_issues_identified).map(i => `<li>${escHtml(i)}</li>`).join("")}</ul>` : ""}
+          <p class="bubble-plain">${escHtml(resp.response || "").replace(/\n/g, "<br>")}</p>`
+        ).join("");
+
+      } else if (r.human_likeness_score !== undefined) {
+        // ── AI Detector ──────────────────────────────────────────
+        const score  = r.human_likeness_score;
+        const pct    = Math.round((score / 10) * 100);
+        const conf   = r.confidence ? ` · confidence: ${r.confidence}` : "";
+        const reasoning   = (r.reasoning             || []).map(s => `<li>${escHtml(s)}</li>`).join("");
+        const signals     = (r.ai_like_signals        || []).map(s => `<li>${escHtml(s)}</li>`).join("");
+        const suggestions = (r.improvement_suggestions|| []).map(s => `<li>${escHtml(s)}</li>`).join("");
+        bodyHTML = `
+          <div class="bubble-section-title">Human-likeness score${conf}</div>
+          <div class="bubble-score-bar-row">
+            <span class="bubble-score-big">${score}/10</span>
+            <div class="score-bar-wrap" style="flex:1"><div class="score-bar" style="width:${pct}%"></div></div>
+          </div>
+          ${reasoning   ? `<div class="bubble-section-title">Reasoning</div><ul class="bubble-list">${reasoning}</ul>`           : ""}
+          ${signals     ? `<div class="bubble-section-title">AI-like signals</div><ul class="bubble-list">${signals}</ul>`       : ""}
+          ${suggestions ? `<div class="bubble-section-title">Suggestions</div><ul class="bubble-list">${suggestions}</ul>`      : ""}`;
+
+      } else if (r.ICML || r.NeurIPS || r.ICLR) {
+        // ── Conference Recommender ───────────────────────────────
+        bodyHTML = ["ICML","NeurIPS","ICLR"].map(conf => {
+          const c = r[conf]; if (!c) return "";
+          const score = c.fit_score ?? "—";
+          const pct   = Math.round(((score - 1) / 9) * 100);
+          const fits  = (c.why_it_fits         || []).map(s => `<li>${escHtml(s)}</li>`).join("");
+          const nofits= (c.why_it_does_not_fit || []).map(s => `<li>${escHtml(s)}</li>`).join("");
+          return `
+            <div class="bubble-section-title">${conf} · ${score}/10</div>
+            <div class="score-bar-wrap" style="margin-bottom:6px"><div class="score-bar" style="width:${pct}%"></div></div>
+            ${fits   ? `<ul class="bubble-list bubble-list-green">${fits}</ul>`  : ""}
+            ${nofits ? `<ul class="bubble-list bubble-list-red">${nofits}</ul>`  : ""}`;
+        }).join("");
+
       } else {
-        throw new Error("not reviewer JSON");
+        throw new Error("unknown JSON shape");
       }
     } catch (_) {
-      // Plain text fallback (author rebuttal, AI detector, conference rec)
       bodyHTML = `<p class="bubble-plain">${escHtml(content).replace(/\n/g, "<br>")}</p>`;
     }
 

@@ -171,11 +171,15 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         emit(f"--- Iteration {iteration + 1} / {n_iter}: Author & Detector Processing ---")
         for i, reviewer in enumerate(reviewers):
             emit(f"AI Author writing rebuttal to {reviewer.name}...")
+            emit_agent_status(author.name, "running")
             author_resps[iteration][i] = author.call(reviews[iteration - 1][i])
-            emit_message("AI Author", author_resps[iteration][i])
+            emit_agent_status(author.name, "done")
+            emit_message(author.name, author_resps[iteration][i])
             emit(f"AI Detector checking review from {reviewer.name}...")
+            emit_agent_status(ai_detect.name, "running")
             aicheck_resps[iteration][i] = ai_detect.call(reviews[iteration - 1][i])
-            emit_message("AI Detector", aicheck_resps[iteration][i])
+            emit_agent_status(ai_detect.name, "done")
+            emit_message(ai_detect.name, aicheck_resps[iteration][i])
 
         # Phase A: All reviewers update in parallel
         emit(f"--- Iteration {iteration + 1} / {n_iter}: Reviewer Updates ---")
@@ -202,8 +206,10 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
     emit("Generating conference recommendation...")
     final_reviews = reviews[n_iter - 1]
     conf_prompt   = construct_conf_rec_prompt(topic, final_reviews)
+    emit_agent_status(conf_rec.name, "running")
     conf_rec_resp = conf_rec.call(conf_prompt)
-    emit_message("Conference Recommender", conf_rec_resp)
+    emit_agent_status(conf_rec.name, "done")
+    emit_message(conf_rec.name, conf_rec_resp)
     emit("Conference recommendation complete!")
 
     # ── Citation check ────────────────────────────────────────────────────────
