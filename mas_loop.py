@@ -130,9 +130,17 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
 
     # ── Init agents ──────────────────────────────────────────────────────────
     emit("Initializing agents...")
-    reviewers  = [Reviewer(paper=paper, reviewer_type=rt,
-                           topic=topic, api_key=api_key)
-                  for rt in reviewer_types]
+    _type_label = {
+        "reviewer_a":        "Novelty",
+        "reviewer_b":        "Rigor",
+        "reviewer_c":        "Practical",
+        "reviewer_nopersona":"Neutral",
+    }
+    reviewers = []
+    for i, rt in enumerate(reviewer_types, 1):
+        r = Reviewer(paper=paper, reviewer_type=rt, topic=topic, api_key=api_key)
+        r.name = f"Reviewer {i} ({_type_label.get(rt, rt)})"
+        reviewers.append(r)
     author     = Author(paper=paper, topic=topic, api_key=api_key)
     ai_detect  = AIDetector(paper=paper, topic=topic, api_key=api_key)
     conf_rec   = ConferenceRecommender(paper=paper, topic=topic, api_key=api_key)
@@ -172,14 +180,13 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         for i, reviewer in enumerate(reviewers):
             emit(f"AI Author writing rebuttal to {reviewer.name}...")
             emit_agent_status(author.name, "running")
-            author_resps[iteration][i] = author.call(reviews[iteration - 1][i])
+            author_resps[iteration][i] = author.call(
+                f"[Reviewer name — use exactly this in your JSON: {reviewer.name}]\n\n"
+                f"{reviews[iteration - 1][i]}"
+            )
             emit_agent_status(author.name, "done")
             emit_message(author.name, author_resps[iteration][i])
-            emit(f"AI Detector checking review from {reviewer.name}...")
-            emit_agent_status(ai_detect.name, "running")
             aicheck_resps[iteration][i] = ai_detect.call(reviews[iteration - 1][i])
-            emit_agent_status(ai_detect.name, "done")
-            emit_message(ai_detect.name, aicheck_resps[iteration][i])
 
         # Phase A: All reviewers update in parallel
         emit(f"--- Iteration {iteration + 1} / {n_iter}: Reviewer Updates ---")

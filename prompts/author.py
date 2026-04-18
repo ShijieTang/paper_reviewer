@@ -64,7 +64,7 @@ Return a structured rebuttal in JSON:
 {
   "responses": [
     {
-      "reviewer": "<Reviewer name>",
+      "reviewer": "<exact reviewer name from the [Reviewer: ...] tag>",
       "main_issues_identified": [
         "...",
         "..."
@@ -73,6 +73,8 @@ Return a structured rebuttal in JSON:
     }
   ]
 }
+
+IMPORTANT: Copy the reviewer name EXACTLY as it appears in the [Reviewer: ...] tag. Do NOT substitute letters (A, B, C) or other labels.
 
 Now respond to the following reviews:
 """

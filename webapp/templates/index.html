@@ -88,34 +88,62 @@
   <div class="config-section">
     <div class="config-label">Reviewers <span class="required">* select at least one</span></div>
     <div class="agent-grid">
-      <label class="agent-card selectable">
-        <input type="checkbox" name="reviewer" value="reviewer_a" checked />
+      <div class="agent-card selectable active" id="card-reviewer_a">
         <div class="agent-info">
           <div class="agent-name">Reviewer A</div>
           <div class="agent-desc">Novelty &amp; Contribution</div>
         </div>
-      </label>
-      <label class="agent-card selectable">
-        <input type="checkbox" name="reviewer" value="reviewer_b" checked />
+        <select class="reviewer-count" data-reviewer="reviewer_a" onchange="updateCardActive(this)">
+          <option value="0">0</option>
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+      <div class="agent-card selectable active" id="card-reviewer_b">
         <div class="agent-info">
           <div class="agent-name">Reviewer B</div>
           <div class="agent-desc">Technical Rigor</div>
         </div>
-      </label>
-      <label class="agent-card selectable">
-        <input type="checkbox" name="reviewer" value="reviewer_c" />
+        <select class="reviewer-count" data-reviewer="reviewer_b" onchange="updateCardActive(this)">
+          <option value="0">0</option>
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+      <div class="agent-card selectable" id="card-reviewer_c">
         <div class="agent-info">
           <div class="agent-name">Reviewer C</div>
           <div class="agent-desc">Practical Impact</div>
         </div>
-      </label>
-      <label class="agent-card selectable">
-        <input type="checkbox" name="reviewer" value="reviewer_nopersona" />
+        <select class="reviewer-count" data-reviewer="reviewer_c" onchange="updateCardActive(this)">
+          <option value="0" selected>0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+      <div class="agent-card selectable" id="card-reviewer_nopersona">
         <div class="agent-info">
           <div class="agent-name">No Persona</div>
           <div class="agent-desc">Neutral Reviewer</div>
         </div>
-      </label>
+        <select class="reviewer-count" data-reviewer="reviewer_nopersona" onchange="updateCardActive(this)">
+          <option value="0" selected>0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
     </div>
 
     <div class="config-sublabel">Always included</div>
@@ -126,13 +154,7 @@
           <div class="agent-desc">Writes rebuttals</div>
         </div>
       </div>
-      <div class="agent-card fixed">
-        <div class="agent-info">
-          <div class="agent-name">AI Detector</div>
-          <div class="agent-desc">Checks AI content</div>
-        </div>
-      </div>
-      <div class="agent-card fixed">
+<div class="agent-card fixed">
         <div class="agent-info">
           <div class="agent-name">Conference Recommender</div>
           <div class="agent-desc">Final recommendation</div>
@@ -253,7 +275,10 @@
     );
   }
   const goToPage1 = () => showPage("page1");
-  const goToPage2 = () => showPage("page2");
+  const goToPage2 = () => {
+    showPage("page2");
+    document.getElementById("agent-status-cards").innerHTML = "";
+  };
   const goToPage3 = () => showPage("page3");
   const goToPage4 = () => { showPage("page4"); renderResults(); };
 
@@ -379,18 +404,33 @@
   }
 
   // ── Agent status panel ────────────────────────────────────────────────────
-  const REVIEWER_DISPLAY = {
-    reviewer_a:        "Agent 1 (Novelty Focused)",
-    reviewer_b:        "Agent 2 (Rigor Focused)",
-    reviewer_c:        "Agent 3 (Practicality Focused)",
-    reviewer_nopersona:"Agent (No Persona)",
+  const REVIEWER_TYPE_LABEL = {
+    reviewer_a:         "Novelty",
+    reviewer_b:         "Rigor",
+    reviewer_c:         "Practical",
+    reviewer_nopersona: "Neutral",
   };
 
+  function buildReviewerList() {
+    const flat = [];
+    document.querySelectorAll(".reviewer-count").forEach(sel => {
+      const n = parseInt(sel.value) || 0;
+      for (let i = 0; i < n; i++) flat.push(sel.dataset.reviewer);
+    });
+    return flat.map((rt, idx) =>
+      `Reviewer ${idx + 1} (${REVIEWER_TYPE_LABEL[rt] || rt})`
+    );
+  }
 
-  function initAgentStatusPanel(reviewerTypes) {
+  function updateCardActive(sel) {
+    const card = document.getElementById("card-" + sel.dataset.reviewer);
+    if (card) card.classList.toggle("active", parseInt(sel.value) > 0);
+  }
+
+  function initAgentStatusPanel(displayNames) {
     const cards = document.getElementById("agent-status-cards");
     cards.innerHTML = "";
-    reviewerTypes.forEach(rt => createAgentCard(REVIEWER_DISPLAY[rt] || rt));
+    displayNames.forEach(name => createAgentCard(name));
   }
 
   function createAgentCard(name) {
@@ -425,8 +465,12 @@
     if (!apiKey) { runError.textContent = "Please enter your API key."; return; }
     if (!selectedTopic) { runError.textContent = "Please select a paper topic."; return; }
 
-    const checkedReviewers = [...document.querySelectorAll('input[name="reviewer"]:checked')]
-      .map(cb => cb.value);
+    const reviewerDisplayNames = buildReviewerList();
+    const checkedReviewers = [];
+    document.querySelectorAll(".reviewer-count").forEach(sel => {
+      const n = parseInt(sel.value) || 0;
+      for (let i = 0; i < n; i++) checkedReviewers.push(sel.dataset.reviewer);
+    });
     if (checkedReviewers.length === 0) {
       runError.textContent = "Please select at least one reviewer.";
       return;
@@ -437,10 +481,10 @@
     // Navigate to running page and reset state
     document.getElementById("log").innerHTML  = "";
     document.getElementById("chat-box").innerHTML = "";
-    document.getElementById("results-row").style.display = "none";
+document.getElementById("results-row").style.display = "none";
     document.getElementById("btn-run").disabled = true;
     document.getElementById("btn-run").textContent = "Running…";
-    initAgentStatusPanel(checkedReviewers);
+    initAgentStatusPanel(reviewerDisplayNames);
     goToPage3();
 
     appendLog("info", `Topic: ${selectedTopic} | Reviewers: ${checkedReviewers.join(", ")} | Iterations: ${nIter}`);
@@ -478,7 +522,9 @@
         if (msg.status === "running") showTypingIndicator(msg.agent);
       } else if (type === "message") {
         removeTypingIndicator(msg.agent);
-        appendChat(msg.agent, msg.content);
+        if (msg.agent !== "Conference Recommender") {
+          appendChat(msg.agent, msg.content);
+        }
       } else if (type === "done") {
         appendLog("done", message);
         es.close();

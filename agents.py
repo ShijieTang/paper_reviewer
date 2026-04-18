@@ -91,14 +91,13 @@ class Reviewer(Agent):
 
     def __init__(self, paper: str, reviewer_type: str = "reviewer_a",
                  topic: str = "", model: str = "gpt-5", api_key: str = ""):
-        _display = {
-            "reviewer_a":        ("1", "Novelty Focused"),
-            "reviewer_b":        ("2", "Rigor Focused"),
-            "reviewer_c":        ("3", "Practicality Focused"),
-            "reviewer_nopersona":("",  "No Persona"),
+        _label = {
+            "reviewer_a":        "Novelty",
+            "reviewer_b":        "Rigor",
+            "reviewer_c":        "Practical",
+            "reviewer_nopersona":"Neutral",
         }
-        num, label = _display.get(reviewer_type, ("", reviewer_type))
-        self.name = f"Agent {num} ({label})" if num else f"Agent ({label})"
+        self.name = f"Reviewer ({_label.get(reviewer_type, reviewer_type)})"
         persona = _load_prompt(reviewer_type)
         super().__init__(persona=persona, paper=paper, topic=topic, model=model, api_key=api_key)
 
@@ -106,7 +105,7 @@ class Reviewer(Agent):
 class Author(Agent):
     """An LLM agent with the persona of the paper's author."""
 
-    name = "Agent (Author)"
+    name = "Author"
 
     def __init__(self, paper: str, topic: str = "", model: str = "gpt-5", api_key: str = ""):
         persona = _load_prompt("author")
@@ -116,7 +115,7 @@ class Author(Agent):
 class AIDetector(Agent):
     """An LLM agent that detects whether writing is AI-generated."""
 
-    name = "Agent (AI Detector)"
+    name = "AI Detector"
 
     def __init__(self, paper: str, topic: str = "", model: str = "gpt-5", api_key: str = ""):
         persona = _load_prompt("ai_detector")
@@ -129,7 +128,7 @@ class ConferenceRecommender(Agent):
     given the paper, its topic, and accumulated reviewer scores.
     """
 
-    name = "Agent (Conference Recommender)"
+    name = "Conference Recommender"
 
     def __init__(self, paper: str, topic: str = "", model: str = "gpt-5", api_key: str = ""):
         persona = _load_prompt("conf_rec")
