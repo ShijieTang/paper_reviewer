@@ -8,6 +8,7 @@ Sources evaluated:
     - PaperReviewer : results in paperreviewer.json
     - our_single    : Condition A (single-agent)  from experiment_summary_*.json
     - our_multi     : Condition B (multi-agent)   from experiment_summary_*.json
+    - our_baseline  : Condition C (no-persona)    from experiment_baseline_summary_*.json
 
 Metrics per paper per system:
     - SRC_strengths     : Semantic Review Coverage for strength statements
@@ -21,7 +22,8 @@ Usage (from project root):
         --papers        eval/papers.json          \\
         --openreviewer  eval/openreviewer.json    \\
         --paperreviewer eval/paperreviewer.json   \\
-        [--exp_summary  eval/exp_results/experiment_summary_XXXXXX.json] \\
+        [--exp_summary      eval/exp_results/experiment_summary_XXXXXX.json] \\
+        [--baseline_summary eval/exp_results/experiment_baseline_summary_XXXXXX.json] \\
         [--output_dir   eval/eval_results]        \\
         [--embed_model  all-MiniLM-L6-v2]
 """
@@ -93,6 +95,12 @@ def _load_exp_summary(path: str) -> dict:
     return {p["paper_id"]: p for p in data["papers"]}
 
 
+def _load_baseline_summary(path: str) -> dict:
+    """Load experiment_baseline_summary_*.json and index papers by paper_id."""
+    data = _load_json(path)
+    return {p["paper_id"]: p for p in data["papers"]}
+
+
 def _slugify(text: str) -> str:
     """Convert arbitrary text to a compact filename-safe slug."""
     slug = re.sub(r"[^a-z0-9]+", "-", text.strip().lower())
@@ -119,6 +127,7 @@ def _sources_slug(
     paperreviewer_path: Optional[str],
     our_results_stem: Optional[str],
     exp_summary_path: Optional[str],
+    baseline_summary_path: Optional[str] = None,
 ) -> str:
     """Build a short readable slug describing which systems were evaluated."""
     sources = []
@@ -128,6 +137,8 @@ def _sources_slug(
         sources.append("paperreviewer")
     if exp_summary_path:
         sources.append("our-experiment")
+    if baseline_summary_path:
+        sources.append("our-baseline")
     if our_results_stem:
         sources.append(f"our-{_slugify(our_results_stem)}")
     return "__".join(sources) if sources else "no-systems"
@@ -231,15 +242,16 @@ def _evaluate_system(
 # ── Main evaluation ───────────────────────────────────────────────────────────
 
 def run_evaluation(
-    papers_path:        str,
-    openreviewer_path:  Optional[str],
-    paperreviewer_path: Optional[str],
-    output_dir:         str,
-    embed_model_name:   str = "all-MiniLM-L6-v2",
-    paper_ids:          Optional[list] = None,
-    conf_threshold:     float = 6.0,
-    our_results:        Optional[str] = None,
-    exp_summary_path:   Optional[str] = None,
+    papers_path:           str,
+    openreviewer_path:     Optional[str],
+    paperreviewer_path:    Optional[str],
+    output_dir:            str,
+    embed_model_name:      str = "all-MiniLM-L6-v2",
+    paper_ids:             Optional[list] = None,
+    conf_threshold:        float = 6.0,
+    our_results:           Optional[str] = None,
+    exp_summary_path:      Optional[str] = None,
+    baseline_summary_path: Optional[str] = None,
 ) -> dict:
 
     print("Loading embedding model...")
@@ -264,7 +276,8 @@ def run_evaluation(
 
     or_index  = _index(openreviewer_path)
     pr_index  = _index(paperreviewer_path)
-    exp_index = _load_exp_summary(exp_summary_path) if exp_summary_path else {}
+    exp_index      = _load_exp_summary(exp_summary_path)         if exp_summary_path      else {}
+    baseline_index = _load_baseline_summary(baseline_summary_path) if baseline_summary_path else {}
 
     our_results_stem = Path(our_results).stem if our_results else None
 
@@ -345,6 +358,15 @@ def run_evaluation(
                     sc  = _score_from_reviewers(reviewers)
                     _add_system(sys_name, sw, dec, sc, run_conf_check=False)
 
+        # Condition C: no-persona baseline (experiment_baseline_summary_*.json)
+        if paper_id in baseline_index:
+            reviewers = baseline_index[paper_id].get("result", {}).get("reviewers", [])
+            if reviewers:
+                sw  = _collect_sw_from_reviews(reviewers)
+                dec = _decision_from_reviewers(reviewers)
+                sc  = _score_from_reviewers(reviewers)
+                _add_system("our_baseline", sw, dec, sc, run_conf_check=False)
+
         results["papers"].append(paper_entry)
 
     # ── Aggregate metrics ─────────────────────────────────────────────────────
@@ -379,6 +401,7 @@ def run_evaluation(
         paperreviewer_path=paperreviewer_path,
         our_results_stem=our_results_stem,
         exp_summary_path=exp_summary_path,
+        baseline_summary_path=baseline_summary_path,
     )
     out_path = os.path.join(
         output_dir,
@@ -424,12 +447,16 @@ def main():
     parser.add_argument("--our_results",   default=None,
                         help="Path to our model result file (from results/). "
                              "Used to label the config in the output filename.")
-    parser.add_argument("--exp_summary",   default=None,
+    parser.add_argument("--exp_summary",      default=None,
                         help="Path to experiment_summary_*.json from eval/exp_results/. "
                              "Adds our_single (Cond A) and our_multi (Cond B) to the benchmark.")
+    parser.add_argument("--baseline_summary", default=None,
+                        help="Path to experiment_baseline_summary_*.json from eval/exp_results/. "
+                             "Adds our_baseline (Cond C) to the benchmark.")
     args = parser.parse_args()
 
-    if not any([args.openreviewer, args.paperreviewer, args.our_results, args.exp_summary]):
+    if not any([args.openreviewer, args.paperreviewer, args.our_results,
+                args.exp_summary, args.baseline_summary]):
         print("Warning: no system sources provided. "
               "Supply at least one of --openreviewer, --paperreviewer, --our_results.")
         sys.exit(1)
@@ -444,6 +471,7 @@ def main():
         conf_threshold=args.conf_threshold,
         our_results=args.our_results,
         exp_summary_path=args.exp_summary,
+        baseline_summary_path=args.baseline_summary,
     )
 
 
