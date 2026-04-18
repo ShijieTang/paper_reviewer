@@ -21,7 +21,7 @@ current_sections = {}
 current_topic = None
 
 from config import VALID_TOPICS
-VALID_REVIEWERS = {"reviewer_a", "reviewer_b"}
+VALID_REVIEWERS = {"reviewer_a", "reviewer_b", "reviewer_c"}
 
 # job_id -> queue.Queue  (progress events)
 _jobs: dict[str, queue.Queue] = {}
@@ -178,6 +178,7 @@ def run_review():
                 paper=paper, topic=topic, n_iter=n_iter,
                 reviewer_types=reviewer_types, api_key=api_key,
                 on_event=lambda msg: q.put(("status", msg)),
+                on_agent_status=lambda name, status: q.put(("agent_status", {"agent": name, "status": status})),
             )
             _results[job_id] = result
 
@@ -209,8 +210,12 @@ def stream(job_id):
     def generate():
         while True:
             try:
-                event_type, message = q.get(timeout=120)
-                yield f"data: {json.dumps({'type': event_type, 'message': message})}\n\n"
+                event_type, payload = q.get(timeout=120)
+                if event_type == "agent_status":
+                    data = {"type": "agent_status", **payload}
+                else:
+                    data = {"type": event_type, "message": payload}
+                yield f"data: {json.dumps(data)}\n\n"
                 if event_type in ("done", "error"):
                     _jobs.pop(job_id, None)
                     break

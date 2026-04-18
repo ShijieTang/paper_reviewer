@@ -102,6 +102,13 @@
           <div class="agent-desc">Technical Rigor</div>
         </div>
       </label>
+      <label class="agent-card selectable">
+        <input type="checkbox" name="reviewer" value="reviewer_c" />
+        <div class="agent-info">
+          <div class="agent-name">Reviewer C</div>
+          <div class="agent-desc">Practical Impact</div>
+        </div>
+      </label>
     </div>
 
     <div class="config-sublabel">Always included</div>
@@ -140,6 +147,12 @@
   <div class="config-section">
     <div id="run-error" class="error"></div>
     <button class="btn-run" id="btn-run" onclick="runReview()">&#9654; Run Review</button>
+  </div>
+
+  <!-- Agent status panel -->
+  <div id="agent-status-panel" style="display:none;">
+    <div class="config-label">Agent Status</div>
+    <div id="agent-status-cards" class="agent-status-grid"></div>
   </div>
 
   <!-- Progress log -->
@@ -337,6 +350,45 @@
     document.getElementById("save-status").textContent = data.message || "Saved.";
   }
 
+  // ── Agent status panel ────────────────────────────────────────────────────
+  const REVIEWER_DISPLAY = {
+    reviewer_a: "Reviewer (reviewer_a)",
+    reviewer_b: "Reviewer (reviewer_b)",
+    reviewer_c: "Reviewer (reviewer_c)",
+  };
+
+
+  function initAgentStatusPanel(reviewerTypes) {
+    const panel = document.getElementById("agent-status-panel");
+    const cards = document.getElementById("agent-status-cards");
+    cards.innerHTML = "";
+    panel.style.display = "block";
+    reviewerTypes.forEach(rt => createAgentCard(REVIEWER_DISPLAY[rt] || rt));
+  }
+
+  function createAgentCard(name) {
+    const cards = document.getElementById("agent-status-cards");
+    const id = "agent-card-" + name.replace(/\s+/g, "-");
+    if (document.getElementById(id)) return;
+    const card = document.createElement("div");
+    card.id = id;
+    card.className = "agent-status-card status-waiting";
+    card.innerHTML = `<span class="status-dot"></span>
+      <span class="agent-card-name">${name}</span>
+      <span class="agent-card-label">· Waiting</span>`;
+    cards.appendChild(card);
+  }
+
+  function updateAgentStatus(agentName, status) {
+    createAgentCard(agentName);
+    const id = "agent-card-" + agentName.replace(/\s+/g, "-");
+    const card = document.getElementById(id);
+    if (!card) return;
+    card.className = `agent-status-card status-${status}`;
+    const label = card.querySelector(".agent-card-label");
+    label.textContent = status === "running" ? "· Running…" : status === "done" ? "· Done" : "· Waiting";
+  }
+
   // ── Page 2: run review ────────────────────────────────────────────────────
   async function runReview() {
     const runError = document.getElementById("run-error");
@@ -388,14 +440,17 @@
 
     const es = new EventSource(`/api/stream/${data.job_id}`);
     es.onmessage = (e) => {
-      const { type, message } = JSON.parse(e.data);
+      const data = JSON.parse(e.data);
+      const { type, message } = data;
       if (type === "heartbeat") return;
-      if (type === "done") {
+      if (type === "agent_status") {
+        updateAgentStatus(data.agent, data.status);
+      } else if (type === "done") {
         appendLog("done", message);
         es.close();
         runBtn.disabled = false;
         runBtn.textContent = "▶ Run Review";
-        resultsRow.style.display = "block";          // show "Check Results" button
+        resultsRow.style.display = "block";
       } else if (type === "error") {
         appendLog("error", message);
         es.close();
