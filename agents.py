@@ -12,9 +12,10 @@ def _get_api_key() -> str:
 
 
 _PROMPT_MAP = {
-    "reviewer_a":        ("prompts.reviewer_a",    "reviewer_a"),
-    "reviewer_b":        ("prompts.reviewer_b",    "reviewer_b"),
-    "reviewer_c":        ("prompts.reviewer_c",    "reviewer_c"),
+    "reviewer_a":        ("prompts.reviewer_a",        "reviewer_a"),
+    "reviewer_b":        ("prompts.reviewer_b",        "reviewer_b"),
+    "reviewer_c":        ("prompts.reviewer_c",        "reviewer_c"),
+    "reviewer_nopersona":("prompts.reviewer_nopersona","reviewer_nopersona"),
     "author":            ("prompts.author",         "author"),
     "ai_detector":       ("prompts.ai_detector",    "ai_detector"),
     "reviewer_iteration":("prompts.reviewer_iter",  "reviewer_iteration"),
@@ -84,7 +85,8 @@ class Agent:
 class Reviewer(Agent):
     """
     An LLM agent with the persona of an academic paper reviewer.
-    reviewer_type: "reviewer_a" (novelty-focused) or "reviewer_b" (rigor-focused)
+    reviewer_type: "reviewer_a" (novelty-focused), "reviewer_b" (rigor-focused),
+                   "reviewer_c" (practicality-focused), or "reviewer_nopersona"
     """
 
     def __init__(self, paper: str, reviewer_type: str = "reviewer_a",

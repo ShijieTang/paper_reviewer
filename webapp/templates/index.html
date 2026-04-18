@@ -61,7 +61,7 @@
 ══════════════════════════════════════════════════════════ -->
 <div class="container" id="page2" style="display:none;">
 
-  <div class="page2-header">
+  <div class="page-header">
     <button class="btn-back" onclick="goToPage1()">&larr; Back</button>
     <h1>Review Configuration</h1>
   </div>
@@ -109,6 +109,13 @@
           <div class="agent-desc">Practical Impact</div>
         </div>
       </label>
+      <label class="agent-card selectable">
+        <input type="checkbox" name="reviewer" value="reviewer_nopersona" />
+        <div class="agent-info">
+          <div class="agent-name">No Persona</div>
+          <div class="agent-desc">Neutral Reviewer</div>
+        </div>
+      </label>
     </div>
 
     <div class="config-sublabel">Always included</div>
@@ -149,30 +156,50 @@
     <button class="btn-run" id="btn-run" onclick="runReview()">&#9654; Run Review</button>
   </div>
 
+</div><!-- /page2 -->
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 3 — Running
+══════════════════════════════════════════════════════════ -->
+<div class="container" id="page3" style="display:none;">
+
+  <div class="page-header">
+    <button class="btn-back" onclick="goToPage2()">&larr; Back</button>
+    <h1>Running Review</h1>
+  </div>
+
   <!-- Agent status panel -->
-  <div id="agent-status-panel" style="display:none;">
+  <div id="agent-status-panel">
     <div class="config-label">Agent Status</div>
     <div id="agent-status-cards" class="agent-status-grid"></div>
   </div>
 
-  <!-- Progress log -->
-  <div id="log-container" style="display:none;">
-    <div class="config-label">Progress</div>
-    <div id="log" class="log-box"></div>
+  <!-- Chat feed -->
+  <div id="chat-container">
+    <div class="config-label">Conversation</div>
+    <div id="chat-box" class="chat-box"></div>
+  </div>
+
+  <!-- Technical log -->
+  <div id="log-container">
+    <details>
+      <summary class="log-toggle">Technical log</summary>
+      <div id="log" class="log-box"></div>
+    </details>
     <div id="results-row" style="display:none; margin-top:16px;">
-      <button class="btn-results" onclick="goToPage3()">Check Results &rarr;</button>
+      <button class="btn-results" onclick="goToPage4()">Check Results &rarr;</button>
     </div>
   </div>
 
-</div><!-- /page2 -->
+</div><!-- /page3 -->
 
 <!-- ══════════════════════════════════════════════════════════
-     PAGE 3 — Results
+     PAGE 4 — Results
 ══════════════════════════════════════════════════════════ -->
-<div class="container" id="page3" style="display:none;">
+<div class="container" id="page4" style="display:none;">
 
-  <div class="page3-header">
-    <button class="btn-back" onclick="goToPage2()">&larr; Back</button>
+  <div class="page-header">
+    <button class="btn-back" onclick="goToPage3()">&larr; Back</button>
     <h1>Review Results</h1>
   </div>
 
@@ -195,7 +222,7 @@
     <div id="citation-table-wrap"></div>
   </section>
 
-</div><!-- /page3 -->
+</div><!-- /page4 -->
 
 
 <script>
@@ -221,13 +248,14 @@
 
   // ── Page navigation ──────────────────────────────────────────────────────
   function showPage(id) {
-    ["page1","page2","page3"].forEach(p =>
+    ["page1","page2","page3","page4"].forEach(p =>
       document.getElementById(p).style.display = p === id ? "block" : "none"
     );
   }
   const goToPage1 = () => showPage("page1");
   const goToPage2 = () => showPage("page2");
-  const goToPage3 = () => { showPage("page3"); renderResults(); };
+  const goToPage3 = () => showPage("page3");
+  const goToPage4 = () => { showPage("page4"); renderResults(); };
 
   // ── API key toggle ───────────────────────────────────────────────────────
   function toggleApiKey() {
@@ -352,17 +380,16 @@
 
   // ── Agent status panel ────────────────────────────────────────────────────
   const REVIEWER_DISPLAY = {
-    reviewer_a: "Reviewer (reviewer_a)",
-    reviewer_b: "Reviewer (reviewer_b)",
-    reviewer_c: "Reviewer (reviewer_c)",
+    reviewer_a:        "Reviewer (reviewer_a)",
+    reviewer_b:        "Reviewer (reviewer_b)",
+    reviewer_c:        "Reviewer (reviewer_c)",
+    reviewer_nopersona:"Reviewer (no persona)",
   };
 
 
   function initAgentStatusPanel(reviewerTypes) {
-    const panel = document.getElementById("agent-status-panel");
     const cards = document.getElementById("agent-status-cards");
     cards.innerHTML = "";
-    panel.style.display = "block";
     reviewerTypes.forEach(rt => createAgentCard(REVIEWER_DISPLAY[rt] || rt));
   }
 
@@ -407,15 +434,14 @@
 
     const nIter = parseInt(document.getElementById("n-iter").value) || 3;
 
-    const logContainer  = document.getElementById("log-container");
-    const logBox        = document.getElementById("log");
-    const runBtn        = document.getElementById("btn-run");
-    const resultsRow    = document.getElementById("results-row");
-    logContainer.style.display = "block";
-    resultsRow.style.display   = "none";
-    logBox.innerHTML = "";
-    runBtn.disabled  = true;
-    runBtn.textContent = "Running…";
+    // Navigate to running page and reset state
+    document.getElementById("log").innerHTML  = "";
+    document.getElementById("chat-box").innerHTML = "";
+    document.getElementById("results-row").style.display = "none";
+    document.getElementById("btn-run").disabled = true;
+    document.getElementById("btn-run").textContent = "Running…";
+    initAgentStatusPanel(checkedReviewers);
+    goToPage3();
 
     appendLog("info", `Topic: ${selectedTopic} | Reviewers: ${checkedReviewers.join(", ")} | Iterations: ${nIter}`);
 
@@ -429,10 +455,14 @@
     });
     const data = await res.json();
 
+    function resetRunBtn() {
+      document.getElementById("btn-run").disabled = false;
+      document.getElementById("btn-run").textContent = "▶ Run Review";
+    }
+
     if (data.error) {
       appendLog("error", data.error);
-      runBtn.disabled = false;
-      runBtn.textContent = "▶ Run Review";
+      resetRunBtn();
       return;
     }
 
@@ -440,22 +470,22 @@
 
     const es = new EventSource(`/api/stream/${data.job_id}`);
     es.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      const { type, message } = data;
+      const msg = JSON.parse(e.data);
+      const { type, message } = msg;
       if (type === "heartbeat") return;
       if (type === "agent_status") {
-        updateAgentStatus(data.agent, data.status);
+        updateAgentStatus(msg.agent, msg.status);
+      } else if (type === "message") {
+        appendChat(msg.agent, msg.content);
       } else if (type === "done") {
         appendLog("done", message);
         es.close();
-        runBtn.disabled = false;
-        runBtn.textContent = "▶ Run Review";
-        resultsRow.style.display = "block";
+        resetRunBtn();
+        document.getElementById("results-row").style.display = "block";
       } else if (type === "error") {
         appendLog("error", message);
         es.close();
-        runBtn.disabled = false;
-        runBtn.textContent = "▶ Run Review";
+        resetRunBtn();
       } else {
         appendLog("info", message);
       }
@@ -463,9 +493,35 @@
     es.onerror = () => {
       appendLog("error", "Connection lost.");
       es.close();
-      runBtn.disabled = false;
-      runBtn.textContent = "▶ Run Review";
+      resetRunBtn();
     };
+  }
+
+  function appendChat(agentName, content) {
+    const chatBox = document.getElementById("chat-box");
+    const name    = agentName.toLowerCase();
+    const cls     = name.includes("reviewer") ? "bubble-reviewer"
+                  : name.includes("author")   ? "bubble-author"
+                  : name.includes("detector") ? "bubble-detector"
+                  : "bubble-other";
+
+    // Try to pretty-print JSON content
+    let displayContent = content;
+    try {
+      const parsed = JSON.parse(content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, ""));
+      displayContent = JSON.stringify(parsed, null, 2);
+    } catch (_) {}
+
+    const bubble = document.createElement("div");
+    bubble.className = `chat-bubble ${cls}`;
+    bubble.innerHTML = `
+      <div class="bubble-name">${escHtml(agentName)}</div>
+      <details>
+        <summary class="bubble-summary">View response &darr;</summary>
+        <pre class="bubble-content">${escHtml(displayContent)}</pre>
+      </details>`;
+    chatBox.appendChild(bubble);
+    chatBox.scrollTop = chatBox.scrollHeight;
   }
 
   function appendLog(type, message) {

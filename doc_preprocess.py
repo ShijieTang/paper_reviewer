@@ -162,6 +162,35 @@ def doc_preprocess(pdf_name: str, pdf_path: str = "data/pdf", md_path: str = "da
     return str(output_path)
 
 
+def preprocess_md(md_file: str, md_path: str = "data/md") -> str:
+    """
+    Run cleanup on an existing markdown file (skipping PDF conversion).
+
+    Args:
+        md_file: Path to the input .md file.
+        md_path: Directory to write the cleaned output. Defaults to "data/md".
+                 If md_file already lives there, it is overwritten in place.
+
+    Returns:
+        Path to the (cleaned) output markdown file.
+    """
+    src = Path(md_file)
+    if not src.exists():
+        raise FileNotFoundError(f"Markdown file not found: {src}")
+
+    output_dir = Path(md_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / src.name
+
+    text = src.read_text(encoding="utf-8")
+    text = _clean_document(text)
+    text = _clean_references(text)
+
+    output_path.write_text(text, encoding="utf-8")
+    print(f"Saved cleaned markdown at {output_path}")
+    return str(output_path)
+
+
 def load_or_create_markdown(pdf_file: str, md_path: str = "data/md") -> str:
     """
     Return the markdown text for a PDF, reusing an existing markdown file when present.
@@ -194,8 +223,22 @@ if __name__ == "__main__":
     pdf_dir = Path("data/pdf")
     md_dir = Path("data/md")
 
-    if len(sys.argv) >= 2:
-        # Explicit file provided — support optional overrides for paths.
+    if len(sys.argv) >= 2 and sys.argv[1] == "--md":
+        # Preprocess all .md files in data/unprocessed_md/ → data/md/
+        unprocessed_dir = Path("data/unprocessed_md")
+        mds = sorted(unprocessed_dir.glob("*.md"))
+        if not mds:
+            print(f"No markdown files found in {unprocessed_dir}")
+            sys.exit(1)
+        for md in mds:
+            out = preprocess_md(str(md), str(md_dir))
+            print(f"Markdown saved to: {out}")
+    elif len(sys.argv) >= 2 and Path(sys.argv[1]).suffix.lower() == ".md":
+        # Single .md file provided explicitly.
+        out = preprocess_md(*sys.argv[1:])
+        print(f"Markdown saved to: {out}")
+    elif len(sys.argv) >= 2:
+        # Single PDF file provided explicitly.
         out = doc_preprocess(*sys.argv[1:])
         print(f"Markdown saved to: {out}")
     else:

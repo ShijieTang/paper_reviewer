@@ -99,7 +99,7 @@ def get_review(reviewer: Reviewer, reviewer_prompt: str, iteration: int,
 
 def main(paper: str, topic: str = "", n_iter: int = 10,
          reviewer_types: list = None, api_key: str = "",
-         on_event=None, on_agent_status=None,
+         on_event=None, on_agent_status=None, on_message=None,
          run_citation_check: bool = True) -> dict:
     """
     Run the multi-agent review loop.
@@ -123,6 +123,10 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
     def emit_agent_status(agent_name: str, status: str):
         if on_agent_status:
             on_agent_status(agent_name, status)
+
+    def emit_message(agent_name: str, content: str):
+        if on_message:
+            on_message(agent_name, content)
 
     # ── Init agents ──────────────────────────────────────────────────────────
     emit("Initializing agents...")
@@ -154,6 +158,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         review = reviewer.call(init_prompt)
         emit(f"{reviewer.name} completed initial review.")
         emit_agent_status(reviewer.name, "done")
+        emit_message(reviewer.name, review)
         return i, review
 
     with ThreadPoolExecutor(max_workers=len(reviewers)) as ex:
@@ -167,8 +172,10 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         for i, reviewer in enumerate(reviewers):
             emit(f"AI Author writing rebuttal to {reviewer.name}...")
             author_resps[iteration][i] = author.call(reviews[iteration - 1][i])
+            emit_message("AI Author", author_resps[iteration][i])
             emit(f"AI Detector checking review from {reviewer.name}...")
             aicheck_resps[iteration][i] = ai_detect.call(reviews[iteration - 1][i])
+            emit_message("AI Detector", aicheck_resps[iteration][i])
 
         # Phase A: All reviewers update in parallel
         emit(f"--- Iteration {iteration + 1} / {n_iter}: Reviewer Updates ---")
@@ -184,6 +191,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
             review = reviewer.call(reviewer_prompt)
             emit(f"{reviewer.name} completed iteration {_iter + 1} review.")
             emit_agent_status(reviewer.name, "done")
+            emit_message(reviewer.name, review)
             return i, review
 
         with ThreadPoolExecutor(max_workers=len(reviewers)) as ex:
@@ -195,6 +203,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
     final_reviews = reviews[n_iter - 1]
     conf_prompt   = construct_conf_rec_prompt(topic, final_reviews)
     conf_rec_resp = conf_rec.call(conf_prompt)
+    emit_message("Conference Recommender", conf_rec_resp)
     emit("Conference recommendation complete!")
 
     # ── Citation check ────────────────────────────────────────────────────────
