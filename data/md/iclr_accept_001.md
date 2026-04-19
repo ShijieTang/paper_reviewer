@@ -34,6 +34,8 @@ a standard Gaussian sample. Diffusion models have achieved unprecedented perform
 
 ### 3 Method
 
+
+
 #### 3.1 Preliminaries
 
 **Problem Definition.** We focus on the task of text-conditioned online motion generation with spatial control. Given an H frame seed motion  $\mathbf{H}_{seed} = [\mathbf{h}^1,...,\mathbf{h}^H]$ , a sequence of N text prompts  $C = [c^1,...,c^N]$ , and spatial goals g, the objective is to autoregressively generate continuous and realistic human motion sequences  $\mathbf{M} = [\mathbf{H}_{seed},\mathbf{X}^1,...,\mathbf{X}^N]$ , where each motion segment  $\mathbf{X}^i$  matches the semantics of the corresponding text prompt  $c^i$  and satisfies the spatial goal constraints g. This task imposes challenges in high-level action semantic control, precise spatial control, and smooth temporal transition in motion generation.
@@ -210,7 +212,6 @@ Acknowledgements. We sincerely acknowledge the anonymous reviewers for their ins
 
 # REFERENCES
 
-
 [1] Simon Alexanderson, Rajmund Nagy, Jonas Beskow, and Gustav Eje Henter. Listen, denoise, action! audio-driven motion synthesis with diffusion models. *ACM Transactions on Graphics (TOG)*, 42 (4):1–20, 2023.
 
 [2] Marcin Andrychowicz, Anton Raichuk, Piotr Stanczyk, Manu Orsini, Sertan Girgin, Raphaël Marinier, ´ Leonard Hussenot, Matthieu Geist, Olivier Pietquin, Marcin Michalski, Sylvain Gelly, and Olivier Bachem. What matters for on-policy deep actor-critic methods? a large-scale study. In *International Conference on Learning Representations*, 2021.
@@ -235,7 +236,7 @@ Acknowledgements. We sincerely acknowledge the anonymous reviewers for their ins
 
 [12] Sammy Christen, Wei Yang, Claudia Pérez-D'Arpino, Otmar Hilliges, Dieter Fox, and Yu-Wei Chao. Learning human-to-robot handovers from point clouds. In *Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition*, pp. 9654–9664, 2023.
 
-[13] Simon Clavet et al. Motion matching and the road to next-gen animation. In *Proc. of GDC*, volume 2, pp. 4, 2016.
+[13] Simon Clavet. "Motion Matching and The Road to Next-Gen Animation." GDC 2016. URL https://www.gdcvault.com/play/1023280/Motion%20Matching%20and%20The%20Road.
 
 [14] Setareh Cohan, Guy Tevet, Daniele Reda, Xue Bin Peng, and Michiel van de Panne. Flexible motion in-betweening with diffusion models. In *ACM SIGGRAPH 2024 Conference Papers*, pp. 1–9, 2024.
 
@@ -331,7 +332,7 @@ Acknowledgements. We sincerely acknowledge the anonymous reviewers for their ins
 
 [60] Li Siyao, Weijiang Yu, Tianpei Gu, Chunze Lin, Quan Wang, Chen Qian, Chen Change Loy, and Ziwei Liu. Bailando: 3d dance generation by actor-critic gpt with choreographic memory. In *Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition*, pp. 11050–11059, 2022.
 
-[61] Jiaming Song, Chenlin Meng, and Stefano Ermon. Denoising diffusion implicit models. In *International Conference on Learning Representations*, 2021a.
+[61] Jiaming Song, Chenlin Meng, and Stefano Ermon. Denoising Diffusion Implicit Models. arXiv preprint arXiv:2010.02502, 2020. URL https://arxiv.org/abs/2010.02502.
 
 [62] Yang Song, Jascha Sohl-Dickstein, Diederik P Kingma, Abhishek Kumar, Stefano Ermon, and Ben Poole. Score-based generative modeling through stochastic differential equations. In *International Conference on Learning Representations*, 2021b.
 
@@ -343,9 +344,9 @@ Acknowledgements. We sincerely acknowledge the anonymous reviewers for their ins
 
 [66] Lucas Stoffl, Andy Bonnetto, Stéphane d'Ascoli, and Alexander Mathis. Elucidating the hierarchical nature of behavior with masked autoencoders. In *European conference on computer vision*, 2024.
 
-[67] Richard S Sutton and Andrew G Barto. *Introduction to reinforcement learning*, volume 135. MIT press Cambridge, 1998.
+[67] Richard S. Sutton and Andrew G. Barto. "Reinforcement Learning: An Introduction." MIT Press, Cambridge, MA, 1998. URL https://mitpress.mit.edu/9780262193986/reinforcement-learning/
 
-[68] Guy Tevet, Sigal Raab, Brian Gordon, Yoni Shafir, Daniel Cohen-or, and Amit Haim Bermano. Human motion diffusion model. In *International Conference on Learning Representations*, 2023.
+[68] Guy Tevet, Sigal Raab, Brian Gordon, Yonatan Shafir, Daniel Cohen-Or, and Amit H. Bermano. Human Motion Diffusion Model. arXiv preprint arXiv:2209.14916, 2022. doi: 10.48550/arXiv.2209.14916. URL https://arxiv.org/abs/2209.14916.
 
 [69] Guy Tevet, Sigal Raab, Setareh Cohan, Daniele Reda, Zhengyi Luo, Xue Bin Peng, Amit H Bermano, and Michiel van de Panne. CLoSD: Closing the loop between simulation and diffusion for multi-task character control. In *International Conference on Learning Representations*, 2025.
 
@@ -381,7 +382,8 @@ Acknowledgements. We sincerely acknowledge the anonymous reviewers for their ins
 
 [85] Yi Zhou, Connelly Barnes, Jingwan Lu, Jimei Yang, and Hao Li. On the continuity of rotation representations in neural networks. In *Proceedings of the IEEE/CVF conference on computer vision and pattern recognition*, pp. 5745–5753, 2019.
 
-[86] Fabio Zinno. Ml tutorial day: From motion matching to motion synthesis, and all the hurdles in between. *Proc. of GDC 2019*, 2, 2019.
+[86] Fabio Zinno. "ML Tutorial Day: From Motion Matching to Motion Synthesis, and All the Hurdles In Between." GDC 2019. URL https://www.gdcvault.com/play/1026472/ML-Tutorial-Day-From-Motion.
+
 #### A MOTION PRIMITIVE REPRESENTATION
 
 **Representation.** We represent each frame of the motion primitive as a tuple of  $(\mathbf{t},\mathbf{R},\boldsymbol{\theta},\mathbf{J},\mathrm{d}\mathbf{t},\mathrm{d}\mathbf{R},\mathrm{d}\mathbf{J})$ , where  $\mathbf{t}\in\mathbb{R}^3$  denotes the global body translation,  $\mathbf{R}\in\mathbb{R}^6$  denotes the 6D rotation representation (Zhou et al., 2019) of the global body orientation,  $\boldsymbol{\theta}\in\mathbb{R}^{21\times6}$  is the 6D representation of 21 joint rotations,  $\mathbf{J}\in\mathbb{R}^{22\times3}$  denotes the 22 joints locations,  $\mathrm{d}\mathbf{t}\in\mathbb{R}^3$  denotes the temporal difference with previous frame's translation,  $\mathrm{d}\mathbf{R}\in\mathbb{R}^6$  denotes the 6D representation of the relative rotation between current and previous frame's body orientation, and  $\mathrm{d}\mathbf{J}\in\mathbb{R}^{22\times3}$  denotes the temporal diffence between current and previous frame's joint locations.
@@ -456,6 +458,8 @@ We conduct ablation studies on the impacts of the losses. We evaluate motion pri
 
 ## D LATENT DENOISER MODEL
 
+
+
 ### D.1 LOSSES
 
 We train the latent denoiser model using DDPM [\(Ho et al., 2020\)](#page-11-8) with 10 diffusion steps and use a cosine noise scheduler. The denoiser model is trained with the following losses:
@@ -504,6 +508,8 @@ scheduled learning stage randomly replaces the ground truth history motion with 
 We use  $w_{rec}=1$  and  $w_{aux}=10000$  in our experiments. We do not use the SMPL losses  $L_{SMPL}$  in training the denoiser model because the SMPL body model inference process slows down the training. The denoiser model is trained using an AdamW optimizer. The learning rate is set to  $1e^{-4}$  with linear annealing. Our denoiser model is trained with scheduled training (Ling et al., 2020; Bengio et al., 2015), consisting of a fully supervised stage of 100K iterations, a scheduled stage of 100K iterations, and a rollout stage of 100K iterations. We set the maximum number of rollouts as 4. With the scheduled training, our latent motion primitive model can stably generate long motion sequences and better respond to the text prompt control even at poses that are not paired with the text prompt in the dataset.
 
 ### E TEXT-CONDITIONED TEMPORAL MOTION COMPOSITION
+
+
 
 #### E.1 EXPERIMENT DETAILS
 
