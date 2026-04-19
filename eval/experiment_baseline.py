@@ -35,7 +35,6 @@ import openai
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import VALID_TOPICS
-from doc_preprocess import load_or_create_markdown
 
 
 # ── Baseline prompt (no persona) ──────────────────────────────────────────────
@@ -142,6 +141,10 @@ def load_papers_from_md_dir(md_dir: str = "data/md") -> list:
 
 
 def pdf_to_markdown(pdf_dir: str) -> str:
+    p = Path(pdf_dir)
+    if p.suffix.lower() == ".md" and p.exists():
+        return p.read_text(encoding="utf-8")
+    from doc_preprocess import load_or_create_markdown
     return load_or_create_markdown(pdf_dir, md_path="data/md")
 
 

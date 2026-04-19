@@ -5,24 +5,26 @@
       "decision": "Reject",
       "scores": {
         "novelty": 4,
-        "soundness": 3,
+        "soundness": 2,
         "significance": 4,
-        "evaluation": 4,
-        "clarity": 3
+        "evaluation": 3,
+        "clarity": 2
       },
       "strengths": [
-        "Introduces a simple, permutation-invariant structural encoding based on k-hop pairwise intersection cardinalities that can capture substructures beyond standard SPD/LapPE/RWPE features.",
-        "Proposes a practical sketch-based pipeline (MinHash for Jaccard, HyperLogLog for union size) to approximate intersection counts, making the approach scalable and easy to integrate.",
-        "Demonstrates strong empirical performance across diverse benchmarks (LRGB peptides, ZINC and ZINC-full, MoleculeNet) and includes a k-hop ablation and qualitative evidence (spectral clustering) suggesting interpretability.",
-        "Provides an attention formulation and a (informal/formal) isomorphism-invariance argument for the proposed bias, aligning with desired graph-level invariances."
+        "Introduces a simple yet expressive structural encoding (GIST) based on k-hop neighborhood intersection cardinalities that is permutation-invariant and directly tailored to self-attention in Graph Transformers.",
+        "Proposes a sketching-based pipeline (MinHash + HyperLogLog) to approximate pairwise substructure statistics, reducing the naive computation from quartic to quadratic complexity in the number of nodes per graph.",
+        "Demonstrates competitive to strong empirical performance across multiple benchmarks (ZINC, ZINC-full, MoleculeNet, LRGB), with notable improvements on ZINC/ZINC-full and solid average performance on MoleculeNet.",
+        "Integrates the structural signal cleanly as an attention bias, making the method modular and potentially compatible with many transformer variants.",
+        "Includes an ablation on the k-hop parameter and a qualitative analysis suggesting that the learned GIST features can cluster meaningful substructures."
       ],
       "weaknesses": [
-        "The claim that multiplying unbiased MinHash and HyperLogLog estimates yields an unbiased estimator of intersection cardinality is not justified; product of unbiased estimators is generally biased without specific conditions, and there is no error/variance analysis or guidance on sketch parameters.",
-        "Complexity analysis is inconsistent and under-explained (e.g., O(k^2 n^4) vs more plausible precomputation strategies), and the memory footprint of storing an n×n×(k^2+2k) GIST tensor is not discussed, raising scalability concerns for larger graphs.",
-        "Several definitions and formulas are imprecise or garbled (e.g., the exact-distance intersection computation, T terms), with typos and citation mismatches, which hinder reproducibility and clarity.",
-        "Ablations are limited (no component-wise analysis of I vs T features, no sensitivity to MinHash/HLL parameters), and fairness details for baselines (pretraining, hyperparameters, data splits) are sparse, making it hard to fully assess comparative rigor."
+        "The claim of an \"unbiased\" estimator for intersection size via the product of separate unbiased estimators (MinHash for Jaccard and HyperLogLog for union cardinality) is not generally correct; the product of unbiased estimators is typically biased unless carefully constructed (and potential dependence is not addressed).",
+        "Clarity and notation issues are pervasive: key formulas are partially garbled (e.g., definitions of I_{ku,kv} and T terms), tensor shapes are inconsistent in the attention equations, and several derivations lack rigor, hindering reproducibility and verification.",
+        "Experimental evaluation lacks critical ablations and fairness checks: there is no head-to-head comparison replacing GIST with common structural encodings (e.g., SPD, LapPE, RWPE) within the same architecture, limited reporting of sketching hyperparameters (m, p, α_p), and no runtime/memory analysis for the pairwise n^2 features.",
+        "The theoretical contribution is limited to an isomorphism-invariance statement that is relatively trivial for permutation-invariant features; there is no analysis of expressivity, information content, or conditions under which GIST improves over existing positional/structural encodings.",
+        "Some reported results and claims are inconsistent (e.g., Peptides-func AP appears lower than the best baseline), and several baseline entries are missing or drawn from prior work without ensuring comparable training budgets."
       ],
-      "summary_comment": "This paper proposes GIST, a pairwise k-hop intersection-based structural encoding injected into Transformer attention, aiming to better capture substructures in graphs. The idea is well-motivated and distinct from common structural encodings, and the sketch-based approximation is practical. Empirical results are promising across multiple benchmarks, and the invariance argument is sensible. However, the theoretical/methodological rigor is lacking: the unbiasedness claim for the product of sketch estimates is questionable, complexity/memory analyses are underdeveloped, and several core definitions are unclear. Limited ablations and baseline fairness details further weaken the case. Overall, despite potential and strong results, the paper requires significant clarification and tightening before acceptance."
+      "summary_comment": "This paper proposes GIST, a graph-structural encoding for Graph Transformers based on k-hop neighborhood intersection cardinalities, with sketch-based approximations (MinHash and HyperLogLog) to reduce computational cost. The idea is intuitive, permutation-invariant, and practically appealing, and the empirical results are promising—especially on ZINC and ZINC-full—with competitive performance on MoleculeNet and LRGB. However, the paper suffers from notable issues: (1) a questionable claim of an unbiased intersection estimator obtained by multiplying two unbiased estimators, without addressing dependence or bias correction; (2) significant clarity problems and inconsistent notation in definitions and attention formulations; (3) missing ablations and fairness checks (e.g., comparing within the same architecture to standard encodings, reporting sketch hyperparameters, and measuring runtime/memory overhead); and (4) limited theoretical depth beyond a straightforward invariance result. Overall, while the approach is promising and could be impactful, the current presentation and methodological gaps warrant revision before acceptance."
     }
   ],
   "conference": {},

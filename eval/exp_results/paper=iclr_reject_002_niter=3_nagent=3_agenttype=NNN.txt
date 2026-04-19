@@ -1,0 +1,134 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The authors provide substantive theoretical clarifications in the rebuttal: invertibility of the σ-regularized conditional map ϕ_{t,x1}(x0)=(1−t+σt)x0+tx1 via det=(1−t+σt)^d (resolving the t=1 degeneracy), Lipschitzness of the discretized velocity vσ^dis as a softmax of affine functions, and a Grönwall-based prototype error bound combined with self-normalized importance sampling (SNIS) consistency (v̂−vσ=Op(N^{-1/2})).",
+        "Clear articulation of a comprehensive evaluation plan: adding CIFAR-10 (32×32) and CelebA 64×64 with FID@50k/KID/IS, fair comparisons to Rectified Flow, OT-CFM, and one-step/distillation baselines, and ablations over σ, buffer size N, solver tolerance, top-k/ANN truncation, and reporting effective sample size (ESS), NFEs, wall-clock, and memory.",
+        "Methodologically appealing core idea remains: compute prototypes by integrating the explicit FM velocity (Eq. (1)) backward using a buffer-based SIS estimator (Alg. 1/2), then train a direct one-step map vθ(x0)→x1, enabling ODE-free inference; extension to conditional generation and a color transfer pipeline are described with implementation details.",
+        "The paper and rebuttal discuss practical stability knobs and scaling strategies (e.g., tol targeted below the injected noise scale set by σ∈[1e−3,1e−2], numerically stable softmax, top-k/ANN neighbor selection, ESS-based buffer refreshing, optional rejection sampling), indicating awareness of high-dimensional variance issues.",
+        "The current draft includes concrete hyperparameters and setups that aid reproducibility: MNIST with DiT and l=15000 steps, n=128, N=6n, σ=1e−2, tol=1e−4 (odeint_adjoint), and for color transfer MLP sizes and n=N=128, which helps readers trace the training and prototype computation pipeline."
+      ],
+      "weaknesses": [
+        "Despite strong plans, the submission still lacks the expanded quantitative experiments and baseline comparisons; evidence remains limited to 2D toy data (Fig. 1–2), MNIST samples (Fig. 3) without FID/KID/IS, and qualitative color transfer (Fig. 4) without metrics, making significance and competitiveness unclear.",
+        "Practical efficiency and amortization are unproven: training requires inverse-time ODE solves with per-step aggregation over buffer elements (N or top-k), yet no current wall-clock analysis demonstrates a break-even versus standard FM/RF or distilled one-step baselines; scalability in higher dimensions remains hypothetical.",
+        "Key empirical claims (e.g., near-monotonic couplings, adequacy of prototypes across modalities) remain unsubstantiated without the proposed measurements; robustness of SNIS with finite N and stability of backward integration in higher dimensions are not demonstrated.",
+        "Clarity and presentation issues persist in the current manuscript (broken/placeholder references like 'page-9-10', '059', inconsistent notation between ρ0, ρ^0, etc.), and some application choices (pixel-wise color transfer ignoring spatial structure) understate the task complexity; the promised spatially informed variants and metrics are not yet present."
+      ],
+      "summary_comment": "The rebuttal meaningfully strengthens the paper’s theoretical underpinnings and offers a detailed, credible plan for comprehensive empirical evaluation and efficiency reporting. In particular, the σ-regularized invertibility at t=1, Lipschitzness of vσ^dis, and prototype error bounds grounded in SNIS consistency improve confidence in soundness. The practical roadmap (FID/KID/IS on CIFAR-10/CelebA, fair baselines, NFEs and wall-clock, ESS diagnostics, top-k/ANN truncation) directly addresses prior concerns. However, the current manuscript still lacks these quantitative results and remains supported primarily by 2D, MNIST, and qualitative color transfer demos, with unresolved questions about training overhead and high-dimensional robustness. I encourage resubmission once the planned experiments and comparisons are incorporated and presentation issues are fixed; in its present state, I recommend rejection."
+    },
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "Conceptually appealing one-step sampling framework: compute target-to-source prototypes via the explicit FM velocity (Eq. (1)) by integrating the inverse-time ODE (Alg. 1/2), then learn a direct map that enables O(1) inference without ODE solves.",
+        "The rebuttal provides concrete theoretical clarifications and additions: invertibility of the sigma-regularized conditional map, Lipschitz/well-posedness of the discretized velocity, SNIS consistency and a kernel-regression view, and a Grönwall-type prototype error bound linking estimator error to endpoint error.",
+        "Demonstrated flexibility across tasks (2D toy data with sigma and tolerance sweeps in Fig. 1; MNIST with DiT and 15k steps in Fig. 3; color transfer in Fig. 4). The planned evaluation expands to CIFAR-10 and CelebA with FID/KID/IS, plus strong baselines (Rectified Flow, OT-CFM, one-step/distillation).",
+        "Practicality-oriented plans for scalability and efficiency: top-k/ANN truncation of the buffer, ESS monitoring, rejection sampling ablations, vectorized/mixed-precision prototype solves, curriculum on buffer size and ODE tolerance, and explicit amortization break-even analysis with wall-clock and NFEs."
+      ],
+      "weaknesses": [
+        "In the current submission, empirical evidence remains proof-of-concept: no quantitative image metrics (e.g., FID@50k), no baseline comparisons (RF, OT-CFM, InstaFlow/KD), no ablations (sigma in 1e-2–1e-3, buffer N, solver tolerance 1e-4 vs 1e-6), and no runtime analyses (training overhead, inference throughput), despite the strong plans outlined in the rebuttal.",
+        "Key claims are not yet substantiated within the paper: near-monotonic couplings are not quantified, and prototype stability/accuracy under SNIS and backward ODE integration is not measured (e.g., cycle-consistency error, ESS trends) on higher-dimensional datasets.",
+        "Presentation and reproducibility gaps in the current draft (formatting artifacts like stray placeholders, broken references to pages/figures, notation inconsistencies such as ρ0 vs ρ^0) and missing code prevent easy verification; details like n=128, N=6n, DiT configuration, odeint_adjoint tolerance 1e-4 for MNIST need to be integrated systematically.",
+        "Training-time cost and scalability are not validated empirically: per-batch complexity O(n×S×N) due to backward ODE and buffered importance sampling is only discussed qualitatively; no wall-clock/memory breakdowns or amortization break-even measurements versus FM/RF or distilled one-step baselines are provided."
+      ],
+      "summary_comment": "This work proposes learning a one-step generator by computing prototypes via the explicit flow-matching velocity (Eq. (1)) using inverse-time ODEs (Alg. 1/2) and then training a direct mapping, thereby avoiding ODE solves at inference. The approach is promising and the rebuttal substantially strengthens soundness with concrete theoretical elements (invertibility with σ>0, well-posedness, SNIS consistency, and an error bound) and a thorough empirical plan (CIFAR-10/CelebA FID/KID/IS, baselines like Rectified Flow/OT-CFM/InstaFlow, ablations over σ, buffer N, solver tolerance, top-k/ANN, ESS diagnostics, and comprehensive wall-clock analyses). However, these additions are not yet present in the submission. The current paper still lacks quantitative metrics, baseline comparisons, ablations, and runtime evidence; several claims (e.g., near-monotonic pairings) remain unmeasured; and presentation/reproducibility issues persist. If the promised experiments, proofs, diagnostics, and code are integrated and show competitive quality and efficiency, this could become a compelling contribution. As it stands, I recommend rejection, with encouragement to resubmit after incorporating the planned evidence and fixes."
+    },
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 4,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The paper proposes a novel and practical idea: compute target-conditioned prototypes via the explicit velocity (Eq. (1)) and an inverse-time ODE (Eq. (2)), then train a one-step mapper (Algorithms 1–2), thereby avoiding ODE solves at inference.",
+        "The need for nonzero sigma is clearly motivated and illustrated in Fig. 1 (σ≈1e−5–1e−2 with tol≈1e−4 vs 1e−6), and the method naturally extends to conditional settings (Algorithm 2) and applications such as color transfer (Fig. 4).",
+        "The rebuttal substantially strengthens the technical underpinnings with planned proofs (invertibility of ϕ_{t,x1}(x0) = (1 − t + σ t) x0 + t x1, Lipschitzness of v_σ^dis), SNIS consistency discussions, and Grönwall-type bounds linking velocity error to prototype error.",
+        "The authors provide a concrete plan for scalability and efficiency: top-k/ANN truncation to reduce the O(n×S×N) cost, ESS monitoring and buffer refresh, curricula on t and σ, and a break-even analysis comparing one-step inference to K-step ODE samplers.",
+        "Implementation details currently included (e.g., MNIST: DiT backbone, n=128, N=6n, σ=1e−2, tol=1e−4, 15k steps; color transfer: MLP sizes, n=N=128, 500 steps, default odeint settings) enhance reproducibility and indicate feasibility."
+      ],
+      "weaknesses": [
+        "Despite a thorough rebuttal plan, the current manuscript still lacks quantitative evidence and fair baselines: no FID/KID/IS or precision/recall on images (beyond MNIST visuals in Fig. 3), no comparisons to CFM/Rectified Flow/OT-CFM/InstaFlow, and no measured speedups or NFEs. The presented experiments remain toy 2D (Fig. 2), MNIST (Fig. 3), and qualitative color transfer (Fig. 4) only.",
+        "Key practical aspects remain unsubstantiated in the paper as submitted: how prototype error scales with buffer size N and dimension d, robustness to ODE solver tolerances (e.g., tol≈1e−4–1e−6) in higher-dimensional image settings, and the empirical break-even point versus multi-step ODE samplers. The training-time overhead of solving inverse ODEs per target sample may be substantial.",
+        "Clarity and presentation issues persist in the current draft (e.g., broken/placeholder references like '**059**', '**061**', ambiguous 'page-9-10' citations, and occasional notation inconsistencies between ρ0, ρ^0), which impede readability and replication until the promised fixes are incorporated."
+      ],
+      "summary_comment": "This submission introduces a promising one-step sampling approach for Flow Matching: use the explicit velocity (Eq. (1)) to compute prototypes via an inverse-time ODE (Eq. (2)) and train a direct mapper (Algorithms 1–2). The idea is appealing, the σ-regularization experiments (Fig. 1 with σ≈1e−5–1e−2 and tol≈1e−4/1e−6) help motivate invertibility, and the rebuttal outlines substantial theoretical clarifications (invertibility, Lipschitzness, SNIS consistency, Grönwall bounds) and a comprehensive empirical plan (CIFAR-10 and CelebA with FID/KID/IS, comparisons to CFM/RF/OT-CFM/InstaFlow, runtime/throughput, and ablations on σ, buffer size N, and solver tolerance). However, these additions are not yet present in the manuscript. At review time, the paper still lacks quantitative metrics, baseline comparisons, and speed analyses, and it retains clarity issues (broken references and notation). I encourage the authors to incorporate the promised experiments, diagnostics (e.g., cycle-consistency error, MMD/energy distance of prototypes to ρ0), and proofs, and to fix the presentation issues. With these in place, the work could make a compelling case; in its current form, it falls short of the bar."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 4,
+      "why_it_fits": [
+        "Topic fit: The paper targets flow-based generative modeling and acceleration of sampling (one-step mapping), which aligns with ICML interests in deep learning, probabilistic methods, optimization, and ML systems.",
+        "Contribution type fit: An algorithmic method grounded in Flow Matching with theoretical clarifications (invertibility with σ>0, Lipschitzness of the discretized velocity, and SNIS-based error control) maps to ICML’s appetite for methods spanning theory and practice.",
+        "Potential systems relevance: Reducing NFEs to O(1) at inference is a performance-centric contribution that could appeal to ICML’s machine learning systems and scalability focus if substantiated."
+      ],
+      "why_it_does_not_fit": [
+        "Evaluation gaps: Reviewers note evaluation and significance scores of ~2; the current submission lacks quantitative results beyond 2D/MNIST and offers no FID/KID/IS or baseline comparisons (e.g., Rectified Flow, OT-CFM, distilled/one-step methods), which is below ICML’s empirical bar.",
+        "Unproven efficiency: Practical gains are not demonstrated—no wall-clock, NFEs, or amortization break-even analyses versus standard FM/RF or distillation pipelines, making the systems angle speculative.",
+        "Novelty concerns: Reviewers rated novelty ~3; using explicit FM velocity for coupling toward one-step generation may be viewed as incremental amid existing straightening/one-step/distillation literature, reducing perceived contribution strength for ICML.",
+        "Rigor and completeness: While the rebuttal adds useful clarifications (invertibility, Lipschitzness, Grönwall-type bounds, SNIS consistency), these are not fully integrated in the manuscript; key claims (near-monotonic couplings, high-dimensional stability) remain unmeasured.",
+        "Presentation issues: Broken/placeholder references (e.g., 'page-9-10', '**059**'), notation inconsistencies (ρ0 vs ρ^0), and missing code reduce clarity and reproducibility, which ICML reviewers typically value highly.",
+        "Reviewer risk: All reviewers recommended rejection citing lack of quantitative evidence and scalability validation, making acceptance at ICML particularly risky without substantial additions."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 4,
+      "why_it_fits": [
+        "Topic fit: NeurIPS routinely features generative modeling, probabilistic methods, optimization, and SysML; one-step sampling for flows fits well within core program themes.",
+        "Contribution type fit: Methodological acceleration and practical training heuristics (buffered SNIS, top-k/ANN truncation, ESS diagnostics) align with NeurIPS’ interest in methods that balance theory and practice.",
+        "Interdisciplinary potential: The paper’s color transfer application and planned diagnostics (e.g., break-even analyses, ESS trends) resonate with NeurIPS’ openness to empirical insights and system-level measurements."
+      ],
+      "why_it_does_not_fit": [
+        "Missing main-track evidence: Reviewers emphasized no FID/KID/IS at scale (e.g., CIFAR-10/CelebA), no fair baselines (RF, OT-CFM, InstaFlow/distillation), and no runtime/throughput data—below the empirical threshold typically expected at NeurIPS for generative modeling.",
+        "Unvalidated systems claims: Without wall-clock, memory, and NFEs analysis, the SysML/efficiency contribution remains hypothetical, weakening alignment with NeurIPS’ practice-oriented tracks.",
+        "Moderate novelty: Reviewer novelty ~3–4; the idea competes with established rectified-flow and one-step distillation lines, and the manuscript does not yet differentiate itself experimentally or theoretically at NeurIPS’ bar.",
+        "Rigor gaps in manuscript: Theoretical clarifications cited in the rebuttal (invertibility, Lipschitzness, error bounds) are not fully presented in the paper; empirical robustness (e.g., prototype stability under SNIS, high-dimensional behavior) is unverified.",
+        "Presentation/reproducibility issues: Broken references and notation inconsistencies, plus missing code, reduce clarity—NeurIPS places high value on carefully presented and verifiable work.",
+        "Reviewer risk: Given unanimous reject recommendations centered on lack of quantitative validation, the likelihood of success at NeurIPS is low without the planned experiments and analyses."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 5,
+      "why_it_fits": [
+        "Topic fit: Strong alignment with ICLR’s focus on deep generative modeling, flow/diffusion methods, and representation learning; several cited and related works are ICLR papers.",
+        "Contribution type fit: A training-time procedure to learn a one-step generator (avoiding ODEs at inference) matches ICLR’s appetite for architectural/training innovations in deep learning.",
+        "Theoretical grounding: Rebuttal clarifications (σ-regularized invertibility, Lipschitzness, SNIS consistency, Grönwall-type bounds) provide a theoretical backbone that aligns with ICLR’s tolerance for method+theory hybrids, if incorporated clearly.",
+        "Proof-of-concept demos: MNIST and simple color transfer, while limited, are closer to the empirical scope often seen in early-stage ICLR contributions compared to more systems-heavy venues."
+      ],
+      "why_it_does_not_fit": [
+        "Insufficient quantitative validation: Reviewers noted evaluation/significance ~2; the absence of CIFAR-10/CelebA metrics (FID/KID/IS), baseline comparisons, and ablations (σ, buffer size, solver tolerance) undercuts ICLR’s empirical expectations for generative modeling.",
+        "Unproven scalability/efficiency: No measured amortization break-even, NFEs, or wall-clock comparisons versus FM/RF or distilled one-step baselines; training overhead of inverse ODE + SIS remains unquantified.",
+        "Novelty and differentiation: Reviewer novelty ~3–4; without empirical differentiation against rectified flow/OT-CFM/one-step distillation, the contribution risks being seen as incremental.",
+        "Rigor and robustness gaps: Theoretical elements cited in rebuttal are not fully integrated; key empirical claims (near-monotonic couplings, high-dimensional prototype stability) are unmeasured.",
+        "Presentation issues: Broken/placeholder references and notation inconsistencies reduce clarity and may impede ICLR’s open-review scrutiny.",
+        "Reviewer risk: With unanimous rejects citing missing experiments and clarity problems, acceptance at ICLR remains risky unless the planned evaluations and fixes are incorporated."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}

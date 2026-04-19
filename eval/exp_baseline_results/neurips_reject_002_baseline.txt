@@ -4,30 +4,28 @@
       "reviewer": "Baseline Reviewer",
       "decision": "Reject",
       "scores": {
-        "novelty": 3,
+        "novelty": 4,
         "soundness": 2,
-        "significance": 2,
+        "significance": 3,
         "evaluation": 2,
         "clarity": 3
       },
       "strengths": [
-        "Clear motivation for replacing quadratic self-attention with subquadratic spectral mixing and an end-to-end encoder–decoder instantiation.",
-        "Introduces a multi-domain fusion (MDFWA) that combines Fourier and wavelet transforms to target global and local dependencies.",
-        "Presents complexity analysis and backpropagation expressions for learned frequency bases and adaptive wavelet scale weighting.",
-        "Attempts to extend spectral mixing to autoregressive decoding via a causal mechanism and proposes a spectral cross-mixing alternative to cross-attention.",
-        "Reports empirical improvements over FNet and LED baselines with an ablation study isolating components (learned frequencies, adaptive scales, multi-modal fusion).",
-        "Includes training details and a discussion of limitations and benefits, aiding reproducibility and framing."
+        "Ambitious and timely attempt to replace quadratic self-attention with subquadratic spectral mixing, integrating Fourier and wavelet domains.",
+        "Clear motivation for combining global (Fourier) and local (wavelet) structures, with a modular fusion design (gated combination, residuals, layer norm).",
+        "Complexity discussion and gradient expressions suggest attention to trainability and efficiency (e.g., FFT/DWT, adaptive scales).",
+        "Inclusion of ablations (learned frequencies, adaptive wavelet scales, multi-modal fusion) to probe design choices.",
+        "Practical training details (optimizer, schedule, hardware) and comparisons to relevant efficient baselines (FNet, LED) on a long-sequence summarization task."
       ],
       "weaknesses": [
-        "The causal masking formulation for decoder-side FFT mixing appears theoretically unsound or computationally infeasible: masking per position within a DFT sum is not compatible with a single FFT-based computation as described and would revert to O(N^2) unless further algorithmic details are provided.",
-        "The proposed spectral cross-mixing (concatenate Q and K, FFT, multiply by V) lacks a clear derivation, dimensionally consistent formulation, and justification for how conditioning and causality are preserved; it appears ad hoc.",
-        "Wavelet branch notation and shapes are inconsistent, and the pathway from wavelet coefficients back to N×d outputs is underspecified (seemingly bypassing an explicit inverse DWT).",
-        "Evaluation appears to use PubMed 200K RCT, a sentence classification dataset, for abstractive summarization with ROUGE, which raises questions about task suitability and the validity of the reported metrics.",
-        "Baselines are limited: missing comparisons to strong long-document summarization models (e.g., BigBird-Pegasus, PRIMERA/LongT5) and standard attention encoder–decoder baselines; no statistical significance analysis despite listing confidence intervals in methodology.",
-        "Efficiency claims (runtime, memory) are not empirically substantiated with wall-clock, throughput, or scaling measurements versus attention or sparse-attention baselines.",
-        "Presentation issues (typos, misnumbered sections, inconsistent indices/notation, undefined variables) hinder clarity and make it difficult to verify the mathematical development."
+        "Soundness concerns in the core method: the proposed causal masking for Fourier mixing appears to require position-dependent kernels and is not shown to be computable with FFT without reverting to O(N^2); no concrete algorithm is provided to achieve causal spectral mixing subquadratically.",
+        "Dimensional inconsistencies and unclear mappings in the wavelet branch (e.g., W in R^{(JM) x d}, P in R^{d x (JM)}, yet producing an output in R^{N x d}) and in the cross-mixing equation (concatenation, FFT, and multiplication by V^T do not align cleanly with stated output shapes or established cross-attention semantics).",
+        "Learned non-uniform frequency bases break standard FFT assumptions; no discussion of computational implications (e.g., need for NUFFT, approximations) or how subquadratic complexity is maintained.",
+        "Experimental evaluation is limited and internally inconsistent: the text claims reporting CIs via bootstrap but tables show point estimates and the checklist admits no significance analysis; only one dataset is used, and the cited PubMed 200K RCT dataset appears mismatched with abstractive summarization, casting doubt on the setup.",
+        "The proposed FFT-based cross-mixing does not provide a clear analogue to query-key-value interactions and may not preserve the conditional structure of encoder-decoder attention; no theoretical or empirical justification is provided.",
+        "Clarity and presentation issues (formatting artifacts, figure reference without accessible content, some derivations sketched rather than rigorous) hinder reproducibility and confidence in the claims."
       ],
-      "summary_comment": "The paper proposes a Fourier–wavelet alternative to self-attention with subquadratic complexity and includes interesting ideas: fusing global Fourier mixing with local wavelet features, learned spectral bases, and a multi-modal extension. However, core methodological elements are insufficiently justified or appear incorrect. In particular, the causal masking for FFT-based decoding seems incompatible with efficient FFT computation as described, and the spectral cross-mixing lacks a solid derivation. The wavelet path’s mapping back to token space is unclear. Empirically, the evaluation relies on a dataset that is not a standard abstractive summarization benchmark, lacks strong baselines and statistical rigor, and does not measure efficiency, undermining claims of practical benefits. While the direction is promising, the theoretical soundness and experimental validation need significant strengthening before acceptance."
+      "summary_comment": "The paper proposes a Fourier–wavelet alternative to attention with an appealing goal: subquadratic token mixing that captures both global and local dependencies and extends to multi-modal fusion. The high-level design is interesting and potentially impactful. However, several core technical aspects are under-specified or flawed: causal masking with FFT is not demonstrated to be subquadratic, the wavelet branch and cross-mixing contain dimensional and semantic inconsistencies, and learned frequency bases undermine FFT complexity without a proposed remedy. Empirically, the evaluation is limited to a single dataset with questionable alignment to summarization, lacks significance reporting despite claims, and omits broader comparisons and analyses that would substantiate the method’s advantages. Given these soundness and evaluation concerns, I cannot recommend acceptance at this time."
     }
   ],
   "conference": {},
