@@ -123,6 +123,24 @@ def load_papers(json_file: str) -> list:
     return [{"paper_id": pid, **meta} for pid, meta in data.items()]
 
 
+def load_papers_from_md_dir(md_dir: str = "data/md") -> list:
+    """Build a minimal paper list from all .md files in md_dir."""
+    return [
+        {
+            "paper_id":     md.stem,
+            "paper_dir":    str(md),
+            "topic":        "",
+            "conference":   "",
+            "accept_or_not": None,
+            "score":        None,
+            "strengths":    [],
+            "weaknesses":   [],
+            "summary":      "",
+        }
+        for md in sorted(Path(md_dir).glob("*.md"))
+    ]
+
+
 def pdf_to_markdown(pdf_dir: str) -> str:
     return load_or_create_markdown(pdf_dir, md_path="data/md")
 
@@ -164,13 +182,13 @@ COND = {"id": "C", "label": "baseline"}
 
 
 def _existing_result_path(output_dir: str, paper_name: str) -> Path | None:
-    pattern = f"*_nagent=1_niter=1_paper={paper_name}_cond=C_baseline.txt"
+    pattern = f"{paper_name}_baseline.txt"
     matches = sorted(Path(output_dir).glob(pattern))
     return matches[-1] if matches else None
 
 
-def save_result(result: dict, paper_name: str, output_dir: str, timestamp: str) -> str:
-    fname = f"{timestamp}_nagent=1_niter=1_paper={paper_name}_cond=C_baseline.txt"
+def save_result(result: dict, paper_name: str, output_dir: str) -> str:
+    fname = f"{paper_name}_baseline.txt"
     out_path = os.path.join(output_dir, fname)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
@@ -218,7 +236,7 @@ def run_experiment(papers: list, api_key: str, output_dir: str,
             paper_text = pdf_to_markdown(paper_meta["paper_dir"])
             print("Paper text ready.")
             result   = run_baseline_review(paper_text, api_key, model)
-            out_path = save_result(result, paper_name, output_dir, timestamp)
+            out_path = save_result(result, paper_name, output_dir)
             print(f"Saved: {out_path}")
 
         summary["papers"].append({
@@ -261,14 +279,25 @@ def main():
                         help="Optional: run only this paper_id.")
     parser.add_argument("--model",      default="gpt-5",
                         help="LLM model name (default: gpt-5).")
+    parser.add_argument("--all_md",     action="store_true",
+                        help="Run on all .md files in --md_dir, skipping existing results.")
+    parser.add_argument("--md_dir",     default="data/md",
+                        help="Directory to scan when --all_md is set (default: data/md).")
     args = parser.parse_args()
 
-    papers = load_papers(args.json_file)
-    if args.paper_id:
-        papers = [p for p in papers if p["paper_id"] == args.paper_id]
+    if args.all_md:
+        papers = load_papers_from_md_dir(args.md_dir)
         if not papers:
-            print(f"Error: paper_id '{args.paper_id}' not found.")
+            print(f"No .md files found in {args.md_dir}")
             sys.exit(1)
+        print(f"Found {len(papers)} markdown file(s) in {args.md_dir}")
+    else:
+        papers = load_papers(args.json_file)
+        if args.paper_id:
+            papers = [p for p in papers if p["paper_id"] == args.paper_id]
+            if not papers:
+                print(f"Error: paper_id '{args.paper_id}' not found.")
+                sys.exit(1)
 
     run_experiment(papers, args.api_key, args.output_dir, args.model)
     print("\nBaseline experiment complete.")
