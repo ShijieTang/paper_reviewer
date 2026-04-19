@@ -66,6 +66,19 @@ Cai, C., Terry, M., Le, Q., and Sutton, C. Program synthesis with large language
         ref = parse_references(text)[0]
         self.assertEqual(ref.title, "Program synthesis with large language models")
 
+    def test_extracts_title_with_question_mark_before_conference(self):
+        text = """
+[2] Marcin Andrychowicz, Anton Raichuk, Piotr Stanczyk, Manu Orsini, Sertan Girgin,
+Raphaël Marinier, Léonard Hussenot, Matthieu Geist, Olivier Pietquin, Marcin Michalski,
+Sylvain Gelly, and Olivier Bachem. What matters for on-policy deep actor-critic methods?
+A large-scale study. In *International Conference on Learning Representations*, 2021.
+"""
+        ref = parse_references(text)[0]
+        self.assertEqual(
+            ref.title,
+            "What matters for on-policy deep actor-critic methods? A large-scale study",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

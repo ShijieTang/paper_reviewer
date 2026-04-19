@@ -7,6 +7,7 @@ Usage:
     python check_citations.py paper.md --section references
     python check_citations.py references.md --output report.json
     python check_citations.py references.md --verbose
+    python check_citations.py references.md --enable-openreview
 
 The input file should contain the extracted references section from a paper
 (either the full MD file or just the references section).
@@ -177,6 +178,11 @@ def main():
         action="store_true",
         help="Enable debug logging",
     )
+    parser.add_argument(
+        "--enable-openreview",
+        action="store_true",
+        help="Enable OpenReview lookups in addition to arXiv/CrossRef/DBLP",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -201,7 +207,11 @@ def main():
         sys.exit(0)
 
     print("Checking each reference (this may take a moment due to API rate limits)...")
-    results = check_references(references, show_progress=True)
+    results = check_references(
+        references,
+        show_progress=True,
+        enable_openreview=args.enable_openreview,
+    )
     failed = failed_references(results)
 
     _print_report(results, verbose=args.verbose)
