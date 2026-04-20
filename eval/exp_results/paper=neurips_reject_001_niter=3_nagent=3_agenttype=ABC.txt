@@ -1,0 +1,123 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The authors further narrow and clarify scope, add compact Transformer experiments and a Tiny Shakespeare sanity check, and explicitly moderate broader claims, improving credibility and relevance.",
+        "They commit to quantifying stability and overhead of the adaptive learning-rate ratio via ablations on power-iteration frequency, EMA smoothing, and update-frequency windows, and to probing cross-block curvature with mixed HVPs, strengthening the theory–practice connection.",
+        "Practitioner-oriented guidance (PyTorch param-group recipe, monitoring signals, safeguards) plus code release, commands, and compute reporting materially improve reproducibility and practical utility.",
+        "Assumptions underlying Proposition 4.1 are now explicit, and robustness to norm choice (spectral vs. Frobenius) will be evaluated; this makes the scaling rule more transparent and easier to adopt.",
+        "The expanded evaluation suite (added baselines, multi-seed confidence intervals, grokking-time metric) remains intact, now complemented by stability diagnostics (loss spikes, divergence, gradient norms)."
+      ],
+      "weaknesses": [
+        "Despite added experiments, the evidence remains small-scale; compact Transformers and Tiny Shakespeare are limited proxies for larger, diverse settings, so generality is still tentative.",
+        "Key theoretical approximations (blockwise curvature separation and spectral-norm proxies) remain; even with mixed HVP checks, the validity of these assumptions in deeper, highly nonlinear networks is not fully established.",
+        "While overhead will be measured, the practicality of online norm estimation and frequency logging for larger models is unresolved, and potential trade-offs between overhead and gains are not yet demonstrated."
+      ],
+      "summary_comment": "The authors have addressed the remaining concerns with concrete and thoughtful additions: they clarify and narrow the scope of claims, extend validation to compact Transformers and a Tiny Shakespeare task, and add practical guidance for adoption. They also plan to quantify the stability and overhead of the adaptive learning-rate ratio, probe cross-block curvature, and test robustness to norm choices, which substantively strengthens soundness and practical relevance. While the work remains primarily small-scale and relies on approximations that may not fully carry over to larger models, the core insight—embedding-driven grokking via update sparsity and bilinear coupling—and the proposed interventions are novel, actionable, and potentially influential. With the planned revisions, the balance of novelty, significance, and improved rigor supports acceptance."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 2,
+        "significance": 3,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "Clear, concrete empirical observation that adding an embedding layer to a small MLP induces delayed generalization (grokking) on modular arithmetic tasks, while an embedding-free MLP behaves differently (Fig. 2), highlighting a specific architectural factor.",
+        "Mechanistic framing via two drivers—sparse/imbalanced embedding updates (token-frequency effects and weight decay) and bilinear coupling between embeddings and first-layer weights—supported by gradient heatmaps (Fig. 3) and curvature diagnostics (Hessian trends for E vs. W in Fig. 6/9).",
+        "A simple, practical intervention (higher learning rate on embeddings, “Adam-LR”) that appears to accelerate grokking across tasks (Fig. 5), with a sensitivity study over the LR ratio (Fig. 7) that provides actionable guidance.",
+        "The rebuttal constructively acknowledges the main issues (e.g., the erroneous η factor in the continuous-time ODE, informal smoothness derivation, and overclaiming for Proposition 4.1) and outlines concrete corrections and additions (multi-seed statistics, GrokFast and optimizer baselines, per-batch balancing and variance-aware sampling, adaptive LR tied to σ_max and update frequencies, and compact Transformer experiments)."
+      ],
+      "weaknesses": [
+        "Soundness issues in the submission remain: Eq. (9) incorrectly includes η in the continuous-time embedding dynamics; the smoothness/expected-loss derivation in Eqs. (5–6) is not cleanly set up; and Proposition 4.1 is stated as a proportionality without explicit assumptions or a full proof, while the abstract claims “we prove.” The rebuttal promises fixes but they are not present in the current version.",
+        "Evaluation lacks rigor: main results appear to be single runs without error bars or multiple seeds; no comparisons to established accelerators (e.g., GrokFast) or broader optimizers (SGD, AdamW) and limited ablations on weight decay; the proposed Adam-LR is implemented as a fixed embedding LR multiplier without quantitative linkage to σ_max(E)/σ_max(W) or update frequencies f_E/f_W in the submission.",
+        "The frequency-aware sampling study primarily manipulates train/test splits and does not implement per-batch token balancing or explicit gradient-variance control; empirical p_i and per-token gradient variance are not measured during training, weakening the claim that p_i drives the observed dynamics.",
+        "Claims about broader implications for Transformer optimization are speculative without Transformer experiments in the submission; the rebuttal proposes adding such tests but they are not available for evaluation."
+      ],
+      "summary_comment": "I find the core idea compelling: embedding layers can drive grokking via update sparsity and bilinear coupling, and increasing the embedding LR mitigates this. Figures 2–7 and 9 provide informative qualitative evidence. However, the current submission has nontrivial theoretical inaccuracies (e.g., Eq. 9’s η term; informal Eqs. 5–6; an unproven LR-ratio proposition despite a proof claim) and an empirical evaluation that lacks statistical rigor and strong baselines. The rebuttal thoughtfully commits to correcting the derivations, adding multi-seed CIs, stronger baselines (including GrokFast), per-batch/variance-aware sampling with measured p_i, an adaptive LR tied to σ_max and f, and small Transformer experiments—steps that would substantially strengthen the work. Given that these changes are not yet incorporated, soundness and evaluation remain below the bar. With the promised revisions and evidence, a future submission could be competitive. At present, I recommend rejection."
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "Identifies embedding-update imbalance and bilinear coupling between embeddings and first-layer weights as key drivers of grokking, supported by diagnostics such as gradient heatmaps (Fig. 3), Hessian spectra (Figs. 6/9), rank evolution, and Fourier analyses (Fig. 11).",
+        "Proposes simple, actionable interventions—frequency-aware sampling and an embedding-specific learning rate (Adam-LR)—that are easy to implement and mechanistically motivated.",
+        "The author response commits to substantial empirical strengthening: multi-seed runs with confidence intervals, broader optimizer baselines (AdamW, RMSProp, SGD/momentum, Grokfast), per-batch token balancing and variance-aware sampling, and explicit logging of token frequencies p_i and gradient variance tied to grokking time.",
+        "Planned extensions to compact Transformers and a small language-modeling setup (Tiny Shakespeare), plus ablations over weight decay, batch size, and embedding dimension, directly address applicability and robustness concerns.",
+        "Theory will be tightened per the rebuttal: corrected continuous-time embedding dynamics in §4.3, a cleaner smoothness-based expected-loss analysis in §4.1, and a formalized Proposition 4.1 with assumptions and a stability discussion; claims will be tempered from “prove” to “derive under assumptions.”"
+      ],
+      "weaknesses": [
+        "As submitted, the paper’s empirical validation remains confined to synthetic modular tasks with small MLPs, lacks multi-seed statistics and broader baselines, and does not yet include the promised Transformer/LM experiments; conclusions about broader applicability are therefore speculative.",
+        "Key theoretical elements are still heuristic in the current draft (e.g., smoothness-based derivations and Proposition 4.1’s learning-rate ratio) and several clarity/presentation issues persist (broken equations/footnotes, stray line numbers), hindering assessment and reproducibility.",
+        "Current evaluation omits comparisons to strong contemporaneous accelerators (e.g., Grokfast) and does not quantify the overhead or stability implications of embedding LR scaling; these additions are only promised for a revision."
+      ],
+      "summary_comment": "The paper offers a plausible and practically motivated account of grokking: embedding update imbalance and bilinear coupling can delay generalization, and simple remedies—balanced sampling and higher embedding-specific learning rates—help. The diagnostics in the submission (e.g., Hessian/gradient views) are informative, and the author response is strong, committing to multi-seed statistics, broader baselines (including Grokfast), per-batch token balancing, variance-aware sampling, corrections to the theory in §§4.1/4.3, a formalized Proposition 4.1, and extensions to compact Transformers and a small LM task, along with improved clarity and reproducibility. However, these additions are not yet present in the current manuscript. Given the present empirical narrowness, lack of statistical rigor and baselines, and theoretical looseness, I cannot recommend acceptance at this time. If the promised experiments, formal proofs, and presentation fixes are incorporated, this work could become a solid, practically relevant contribution; I encourage resubmission with the expanded evidence."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 5,
+      "why_it_fits": [
+        "Topic fit: Core ML focus on optimization, representation learning, and training dynamics aligns with ICML’s scope; the paper studies grokking mechanisms (embedding update sparsity and bilinear coupling) and proposes optimizer/sampling interventions.",
+        "Contribution fit: Mix of mechanistic analysis and an optimizer variant (embedding-specific LR) maps to ICML’s interests in optimization and trustworthy/evaluation aspects; Reviewer A highlights practical guidance (param-group recipe, monitoring signals) and code release that improve reproducibility.",
+        "Novelty/value: While incremental, the embedding-centric mechanistic framing and simple intervention are potentially useful for practitioners; Reviewer A views the insight as novel/actionable enough to be influential if properly bounded."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor fit concerns: Reviewer B and C flag theoretical inaccuracies (e.g., ODE factor mistake in Eq. 9, informal smoothness derivation in Eqs. 5–6, and Proposition 4.1 stated without full assumptions/proof despite a “we prove” claim). ICML typically expects higher theoretical soundness.",
+        "Evaluation breadth: Experiments are largely small-scale on synthetic modular tasks; even with compact Transformer/Tiny Shakespeare additions noted by Reviewer A, evidence for generality remains limited for ICML’s bar.",
+        "Scalability/practicality gaps: Reviewers note unresolved overhead of online norm estimation and frequency logging and lack of strong baselines/multi-seed CIs in the submitted version; this increases reviewer risk at ICML."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "Topic fit: NeurIPS welcomes in-depth analyses of existing methods and ML phenomena; mechanistic insights into grokking and bilinear coupling fit well, and there is community interest in grokking/optimization diagnostics.",
+        "Contribution fit: Practitioner-oriented guidance, code/commands, monitoring signals, and a simple optimizer tweak (embedding LR scaling) align with NeurIPS’s appetite for actionable insights and SysML-adjacent contributions; Reviewer A explicitly praises these additions.",
+        "Presentation/reproducibility: Reviewer A notes improved clarity, explicit assumptions for the LR-ratio rule, and stronger evaluation design (stability diagnostics, multi-seed CIs, grokking-time metric), which match NeurIPS’s emphasis on reproducibility and practical utility."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor and soundness: Reviewer B and C identify remaining theoretical issues in the submission (incorrect ODE factor, informal expected-loss derivation, unproven LR-ratio proposition) and warn that promised fixes were not yet incorporated—risking NeurIPS standards.",
+        "Empirical scope: Evidence is still small-scale; compact Transformers and Tiny Shakespeare are limited proxies, and broader claims about Transformers remain speculative without stronger experiments, as noted by multiple reviewers.",
+        "Evaluation depth: In the submitted version, key baselines (e.g., GrokFast, broader optimizers), per-batch balancing/variance-aware sampling, and measured p_i/gradient variance are missing, which weakens the central frequency-imbalance claim and may draw critical NeurIPS reviews."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Topic fit: ICLR emphasizes deep learning, representation learning, and analysis of optimization phenomena; grokking and embedding/weight coupling are directly in scope, and prior grokking work has appeared at ICLR.",
+        "Contribution fit: A phenomenon-focused study with mechanistic explanations, simple interventions (sampling and embedding LR scaling), and diagnostic tools is well aligned with ICLR’s tolerance for insightful analyses on synthetic tasks when claims are carefully scoped.",
+        "Novelty/insight: Reviewers acknowledge a clear empirical observation (embedding-induced grokking), a plausible mechanism (update sparsity + bilinearity), and simple, effective remedies; if theoretical claims are moderated and fixes added, this is a good ICLR-style contribution."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor: Theoretical inaccuracies and incomplete proofs in the current draft (Eq. 9, Eqs. 5–6, Proposition 4.1) could still be problematic for ICLR unless corrected and claims are clearly stated as assumptions/derivations.",
+        "Empirical solidity: Lack of multi-seed statistics and strong baselines in the submitted version, and limited evidence beyond modular tasks, reduce confidence—even at ICLR, which still expects careful evaluation.",
+        "Presentation/positioning: Reviewers note clarity issues (broken equations/footnotes, stray line numbers) and overreach to Transformers without strong evidence; these presentation and framing issues increase reviewer risk."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}

@@ -1,0 +1,129 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The rebuttal adds concrete methodological specifics that address stability and correctness concerns: per-prompt correct-only MEAN/STD, zero-correct fallback (disable penalty), single-correct EMA-backed global statistics, STD flooring with clipping before the sigmoid, and explicit hyperparameters and pseudocode to be included.",
+        "The core idea remains simple, tunable, and impactful: an RL objective (Eq. (4)) that trades off accuracy and chain-of-thought length with per-prompt normalization (Eq. (5)), yielding dynamic compute allocation via a single alpha. Reported reductions are substantial (e.g., for 7B on MATH ~4000→~2800 tokens at α=0.1 with ~1% accuracy drop; AIME24 ~14k→~9k tokens at α=0.2 with ~2% drop; large savings on GSM8K with similar accuracy).",
+        "Planned evaluation upgrades directly address earlier concerns: 95% bootstrap CIs, multi-seed variance, unified token accounting, and stronger baselines (length-penalized decoding, answer-aware early stopping, and RL variants including small global penalties).",
+        "Commitment to report serving metrics (time-to-first-token, time-to-EOS, throughput, p95 latency, peak memory, KV-cache) under vLLM and with speculative decoding provides a more complete view of practical efficiency beyond token counts.",
+        "Additional generalization to code-generation (HumanEval/MBPP with unit tests) and unconditional compute breakdowns (correct vs incorrect) with mitigation variants strengthen both applicability and understanding of the correct-only penalty design."
+      ],
+      "weaknesses": [
+        "Several enhancements are commitments rather than currently demonstrated results (expanded baselines, statistical uncertainty, serving metrics, code-generation experiments); acceptance presumes these will appear in the final version with consistent methodology and fair comparisons.",
+        "Despite the forthcoming serving metrics, the current draft primarily reports token counts; concrete wall-clock latency, throughput, and KV-cache memory across α and baselines are essential to substantiate deployment efficiency claims.",
+        "Scope is bounded to verifier-available domains; although the authors will add code-generation, broader applicability to non-verifier tasks remains untested and should be framed cautiously.",
+        "While the correct-only penalty is well-justified, compute spent on incorrect generations may remain less influenced; the promised unconditional token breakdown and mitigation variants are needed to fully validate overall efficiency gains."
+      ],
+      "summary_comment": "The authors have substantially addressed prior concerns with precise implementation details (per-prompt correct-only normalization, EMA fallback for sparse correctness, STD floors and clipping) and a clear plan to strengthen evaluation rigor and practical relevance (CIs, multi-seed variance, stronger baselines, serving metrics, and an additional code-generation domain). The core contribution—a simple, tunable RL objective that trains reasoning models to dynamically allocate test-time compute—remains novel and practically significant, with demonstrated large token savings and minimal accuracy degradation (e.g., MATH 7B ~30% token reduction at α=0.1; AIME24 ~35% reduction at α=0.2). Provided the final revision incorporates the promised baselines, uncertainty reporting, unconditional compute analyses, and serving metrics with fair, consistent setups, the paper will offer a valuable and timely advance for efficient deployment of reasoning models. I recommend acceptance."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The authors provide detailed methodological clarifications for per-prompt normalization, including correct-only statistics, disabling penalties when no correct samples exist, EMA-based global fallbacks for single-correct cases, and numerical stability safeguards (STD floors and clipping).",
+        "Evaluation will be substantially strengthened with comprehensive numeric tables, 95% bootstrap confidence intervals, multi-seed runs, stronger/tuned baselines (including inference-time EOS bias, length-penalized decoding, answer-aware early stopping), and explicit α=0 (RL-only) comparisons and learning curves.",
+        "Commitment to end-to-end serving metrics (latency, throughput, and KV-cache memory) on a consistent serving stack increases the practical relevance of the reported token savings.",
+        "Sensitivity analyses are planned for normalization choices (varying n, EMA half-life, STD floor, alternative robust normalizations) and stratification by difficulty to probe potential biases and stability.",
+        "A principled extension toward precise compute control via a constrained optimization view and a dual-ascent controller for targeting expected length budgets addresses latency-constrained use cases while maintaining the method’s simplicity.",
+        "Reproducibility is improved with plans to release code, scripts, de-duplication utilities, and CI computation notebooks, along with clarified token accounting."
+      ],
+      "weaknesses": [
+        "Applicability remains bounded to domains with reliable verifiers (exact match/unit tests); even with proposed mitigations, generality to open-ended tasks without strong verifiers is limited.",
+        "Several key improvements (serving metrics, expanded baselines, sensitivity/stratified analyses, and controller-based target-length experiments) are promised but not yet demonstrated; acceptance relies on their inclusion and clear reporting.",
+        "The proposed dual-ascent controller for precise length targets is not yet empirically validated and may introduce stability or tuning challenges across tasks and difficulty regimes.",
+        "Per-prompt normalization with small per-iteration sample sizes (e.g., n=8) and EMA fallbacks may still induce variance or bias; robustness to these design choices must be convincingly shown in the final results."
+      ],
+      "summary_comment": "The second rebuttal directly addresses the remaining concerns by committing to end-to-end serving metrics, detailed sensitivity analyses for normalization, difficulty-stratified results, and a principled controller for precise compute targeting. Methodological soundness is improved through explicit handling of edge cases (no/one correct responses) and stability safeguards. The evaluation plan includes stronger, better-tuned baselines, multi-seed runs, and confidence intervals, as well as α=0 ablations to isolate the effect of the length penalty. While reliance on reliable verifiers limits generality and several additions are not yet shown, the planned revisions, combined with the already demonstrated accuracy–compute trade-offs and the method’s simplicity and practicality, make the work sufficiently rigorous and impactful to merit acceptance, contingent on integrating the promised results and analyses in the camera-ready."
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Targets a highly practical deployment problem and demonstrates clear efficiency–accuracy trade-offs: e.g., AIME token usage reduced from ~14k to ~9k at alpha=0.2 with ~2% accuracy drop; MATH from ~4000 to ~2800 at alpha=0.1 with ~1% loss; large savings on GSM8K while maintaining similar accuracy.",
+        "Method is simple and easily adopted: a minor reward modification within standard PPO/RLOO pipelines with a single tunable parameter (alpha) producing a family of models with adjustable compute budgets.",
+        "Rebuttal substantially improves reproducibility and robustness: precise online per-prompt normalization procedures (n=8 samples, correct-only MEAN/STD, disable penalty if no correct, EMA fallback for single correct, STD floor, z-score clipping), explicit token counting protocol, and commitment to code release.",
+        "Promised evaluation upgrades directly address practical concerns: multi-seed results with 95% CIs, detailed tables (accuracy, tokens per sample, tokens per correct, correct/incorrect token breakdown), real serving metrics (TTFT, time-to-EOS, throughput, p95 latency, peak memory/KV-cache), and a comparison with speculative decoding.",
+        "Scope and safety are better articulated: bounded claims to verifier-available tasks, addition of a code-generation benchmark (HumanEval/MBPP), and concrete safeguards/measurements to mitigate and quantify premature truncation (answer-aware penalties, minimum reasoning budget, scheduled alpha/KL, post-answer early stopping)."
+      ],
+      "weaknesses": [
+        "Several key additions (serving metrics, stronger/tuned baselines, multi-seed uncertainty, temperature sensitivity, and premature truncation analyses) are commitments rather than already integrated results; acceptance assumes these are included clearly and consistently in the final version.",
+        "The approach still relies on reliable verifiers or answer markers; while the authors bound claims and add a code-generation extension, broader generalization to verification-sparse domains remains out of scope."
+      ],
+      "summary_comment": "This paper proposes a straightforward RL-based approach that incentivizes shorter yet correct chains-of-thought by adding a tunable length penalty to the reward for correct responses. It yields substantial token reductions with minimal accuracy loss on open-weight reasoning models and is simple to integrate into standard PPO workflows. The author’s rebuttal addresses earlier concerns with detailed normalization procedures, stability safeguards, explicit token accounting, and a strong plan for broader and more rigorous evaluation, including multi-seed uncertainty, comprehensive serving metrics, stronger baselines, and a verifier-backed code-generation extension. While many of these enhancements must be reflected in the final manuscript, the core idea is sound, practically impactful, and clearly motivated. Contingent on integrating the promised additions and formatting fixes, I recommend acceptance."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "Strong topical alignment with ICML tracks in reinforcement learning, optimization, evaluation methodology, and ML systems: the paper proposes a simple RL objective that dynamically allocates test-time compute (alpha-controlled length penalty) for LLM reasoning, directly addressing efficiency and sustainability themes highlighted in ICML.",
+        "Reviewers report solid empirical trade-offs with small accuracy losses for large token savings (e.g., ~30% fewer tokens on MATH at ~1% accuracy drop; AIME24 ~35% fewer tokens at ~2% drop), which fits ICML’s emphasis on impactful, well-validated ML contributions.",
+        "Planned additions highlighted by reviewers (95% CIs, multi-seed variance, stronger/tuned baselines, explicit α=0 ablations, learning curves) and commitments to code release improve rigor and reproducibility—key ICML values in evaluation methodology and replicability.",
+        "Commitment to serving metrics (latency, throughput, KV cache, p95) on a consistent stack (vLLM, speculative decoding) situates the work in ML systems and practical deployment, both well within ICML’s scope.",
+        "The method is minimal and easy to adopt (a small change in the PPO/RLOO pipeline), aligning with ICML’s appreciation for broadly useful ML techniques with clear implementation details (per-prompt correct-only normalization, EMA fallback, STD flooring/clipping)."
+      ],
+      "why_it_does_not_fit": [
+        "Several key elements are promised but not fully shown yet (serving metrics, broader/tuned baselines, uncertainty analyses, controller for precise length targets); ICML’s main track typically expects these to be present at submission, creating risk if the final version is not comprehensive.",
+        "Novelty is moderate per reviewers (3–4/5): the contribution is a pragmatic objective modification rather than a fundamentally new learning principle or theory, which can be a higher-bar consideration for ICML in some areas.",
+        "Scope is primarily verifier-available domains (math/code with exact-match or unit tests), limiting generality to broader application-driven ML areas ICML often highlights; reviewers note this and recommend cautious framing."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 9,
+      "why_it_fits": [
+        "Excellent topical fit with NeurIPS areas in decision-making and RL, optimization, deep learning, SysML infrastructure, and data-centric AI: the work directly tackles test-time compute allocation for LLM reasoning, a highly active NeurIPS theme (o1-style models, chain-of-thought efficiency).",
+        "Reviewers report strong practical significance and simplicity: a small, tunable RL reward shaping yields sizable efficiency gains with minimal accuracy loss, aligning with NeurIPS’ appetite for impactful, broadly adoptable ML advances and in-depth analyses of existing methods.",
+        "The planned serving metrics (TTFT, time-to-EOS, throughput, p95 latency, KV memory) and comparisons with speculative decoding ground the contribution in real-world deployment, resonating with NeurIPS’ SysML and systems-oriented audiences.",
+        "Evaluation upgrades (multi-seed runs, 95% CIs, stronger baselines like length-penalized decoding and answer-aware early stopping, α=0 comparisons, sensitivity analyses) address rigor and analysis—well aligned with NeurIPS expectations for careful empirical work.",
+        "Extension to code generation (HumanEval/MBPP with unit tests) broadens applicability beyond math, matching NeurIPS’ interdisciplinary focus and interest in practical LLM reasoning tasks."
+      ],
+      "why_it_does_not_fit": [
+        "Some key results are still commitments at review time (serving metrics, tuned baselines, controller-based precise length targeting), which increases review risk if not fully integrated and could weaken the systems story.",
+        "Novelty is incremental (reviewer novelty 3–4/5): the core idea is reward shaping for length on correct generations; while impactful, it may face competition from many practical LLM papers at NeurIPS with similar novelty levels.",
+        "The technique relies on reliable verifiers/answer markers; although code generation with unit tests helps, more open-ended domains without verifiers are out of scope, potentially limiting perceived generality for some NeurIPS reviewers."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Solid alignment with ICLR topics in deep learning, reinforcement learning, optimization, and practical training of LLMs; the paper proposes a straightforward RL objective shaping that affects learned reasoning behavior.",
+        "Reviewers highlight methodological clarity (per-prompt correct-only normalization, EMA fallbacks, STD floors/clipping) and plans for sensitivity analyses—these are valued by ICLR for empirical soundness and stability.",
+        "The method’s simplicity and promised code release improve reproducibility, an important ICLR criterion; demonstrated accuracy–compute trade-offs show clear empirical value."
+      ],
+      "why_it_does_not_fit": [
+        "ICLR often favors conceptual or representational insights; here, the main novelty is a practical reward modification with limited theoretical analysis, which may be viewed as more engineering-centric than conceptual.",
+        "Key empirical enhancements (multi-seed CIs, serving metrics, tuned baselines, controller for precise compute targets) are not all shown yet; ICLR reviews can be strict about completeness and ablations at submission time.",
+        "Applicability is bounded to verifier-available tasks (math/code), which may feel narrower for some ICLR reviewers seeking broader generalization or stronger theoretical underpinnings."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Clear and novel formulation of temporally sparse, black-box attacks on LLM-based time-series forecasters via a cardinality-constrained optimization solved with an adapted Subspace Pursuit (SP); the threat model is realistic and practically motivated.",
+        "The rebuttal substantially strengthens methodological soundness: explicit scalar objective J(w) without future labels, a principled antithetic Gaussian smoothing zero-order estimator with stated hyperparameters (m, δ), a correct ℓ1-constrained single-step update, explicit SP iteration/stopping, and a monotone, bounded objective ensuring empirical convergence; query complexity is made explicit with O(2 m K T) and planned per-sample query accounting.",
+        "Evaluation fairness is improved through two budget-alignment protocols (per-step magnitude matching and global ℓ1 budget matching) and matched-query baselines (full-series NES/SPSA, coordinate-wise ZOO, random-sparse, and greedy top-τ), which addresses prior comparability concerns.",
+        "Broader empirical scope across multiple LLM forecasters (LLMTime variants, TimeGPT, TimeLLM) and datasets, plus a non-LLM transformer, shows that modifying a small fraction of steps can materially degrade performance (e.g., IstanbulTraffic, LLMTime-Mistral MSE increases from 0.826 to 1.493 under TSA).",
+        "Commitments to release anonymized code, seeds, configs, dataset splits, and to report mean±std, per-sample query budgets, and cleaned figures/notation materially enhance reproducibility and clarity."
+      ],
+      "weaknesses": [
+        "Formal optimality guarantees for SP in this nonlinear black-box setting remain absent; the provided convergence property (monotone bounded objective) is modest, and practical query budgets may still be nontrivial despite proposed reductions.",
+        "Defense analysis, while expanded in the rebuttal, is still pending in the draft; quantitative recovered-error tables across τ/ε/query regimes and detailed defense configurations are not yet present.",
+        "Current results focus largely on univariate forecasting; demonstrating robustness of the attack and defenses on multivariate, higher-dimensional series would strengthen generality."
+      ],
+      "summary_comment": "The paper presents a timely and creative attack setting—temporally sparse, black-box perturbations for time-series LLM forecasters—cast as a cardinality-constrained optimization and solved with an adapted Subspace Pursuit. The authors’ response meaningfully addresses prior concerns: it specifies a future-label-free scalar objective, details a principled zero-order estimator (with m and δ), corrects the ℓ1-constrained update, lays out SP iteration/stopping with a monotone bounded objective, and makes query complexity and budgets explicit. It also improves evaluation rigor via budget-aligned, matched-query baselines and commits to broader defenses and recovered-error tables, alongside code and cleaned presentation. Empirically, the attack is consequential (e.g., IstanbulTraffic LLMTime-Mistral MSE from 0.826 to 1.493 with only ~10% steps perturbed). Remaining gaps include the lack of formal guarantees, potential query costs, and the need for multivariate and expanded defense results, but these do not undermine the core contribution. Given the novelty, practical significance, and strengthened methodology and evaluation plan, I recommend acceptance contingent on incorporating the promised clarifications, aligned baselines, defense tables, and reproducibility materials."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 4,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "The rebuttal provides a clear scalar attack objective J(w) = MSE(f(X_t(1+w)), f(X_t)) and replaces the ill-defined Eq. (6) with a standard antithetic Gaussian smoothing/NES-style zeroth-order gradient estimator, addressing the prior mathematical ill-posedness.",
+        "Constraint enforcement is improved by specifying principled ℓ1-constrained updates (closed-form maximizer or projection onto the ℓ1 ball) for per-step multivariate perturbations, aligning the method with the stated bounds.",
+        "The Subspace Pursuit procedure is clarified with explicit candidate selection by gain in J, prune/merge to top-τ, stopping criteria, and a justified query-complexity characterization O(m·T·τ).",
+        "The authors commit to substantially enhancing evaluation rigor: adding competitive black-box baselines (NES/SPSA, ZOO, random-sparse, greedy top-τ, adapted bandit/Square) under matched budgets and constraints, and reporting detailed query budgets and wall-clock times.",
+        "The rebuttal outlines analyses to relate the surrogate J to true error (correlation and monotonicity plots), expands defense evaluation beyond simple filters, and improves reproducibility (prompt/tokenization details, API versions, seeds/splits, code release).",
+        "Empirically, even in the current draft, TSA often causes larger degradation than GWN (e.g., Table 1, IstanbulTraffic: for LLMTime-Mistral, MSE increases from 0.826 clean to 1.493 under TSA vs 1.054 under GWN; for LLMTime-GPT-4, 0.805 to 1.179 under TSA), indicating the potential effectiveness of sparse attacks."
+      ],
+      "weaknesses": [
+        "The current manuscript still contains the flawed Eq. (6), ambiguous references to the objective, and incomplete algorithmic specification; the corrections are promised for a future version but are not implemented or validated in the present submission.",
+        "Evaluation remains limited: comparisons are primarily against Gaussian white noise, strong black-box baselines are absent, and there is no explicit accounting of query budgets or error–query trade-offs, leaving claims of efficiency and superiority unsubstantiated.",
+        "The surrogate objective J(w) measures self-discrepancy rather than ground-truth error; while the rebuttal proposes correlation analyses and a triangle-inequality discussion, the current paper lacks empirical evidence that increasing J reliably increases MSE/MAE to ground truth.",
+        "Defense analysis is narrow and does not yet include the proposed robust detectors/filters or quantitative recovered-error tables; conclusions about defense ineffectiveness are therefore tentative.",
+        "The motivation and realism of multiplicative perturbations and per-step ℓ1 budgets (ε selection, unit scaling across variables, plausibility constraints) are not yet justified with sensitivity studies or unit-aware normalization in the current text."
+      ],
+      "summary_comment": "The authors’ rebuttal convincingly addresses major methodological concerns by defining a proper scalar objective, adopting a well-posed NES-style zeroth-order estimator, enforcing per-step ℓ1 constraints with principled updates, clarifying the SP procedure and query complexity, and committing to stronger baselines with matched budgets and comprehensive reporting. These changes would materially improve soundness and evaluation rigor. However, the present manuscript still reflects the earlier issues (ill-defined Eq. (6), ambiguous objective, incomplete constraints), and the empirical evaluation lacks competitive black-box baselines and explicit query-budget accounting. Moreover, the alignment between the surrogate self-discrepancy objective and true forecast error, broader defenses, and perturbation realism remain unvalidated in the current results. Given these gaps in the submitted version, I recommend rejection at this time, with the view that a thoroughly revised paper implementing the promised changes and expanded experiments could be competitive in a future submission."
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "Addresses a meaningful, realistic threat model: temporally sparse, score-based black-box attacks on LLM forecasters with no access to future labels, training data, or model internals, and limited ability to perturb only a few time steps.",
+        "Formulates the problem as a cardinality-constrained optimization and (after rebuttal clarifications) pairs Subspace Pursuit with a principled zeroth-order estimator and ℓ1-consistent updates. The authors pledge to replace ill-posed Eq. (6) with an antithetic NES-style estimator, enforce per-step ℓ1 budgets via projection/closed-form updates, and clarify stopping rules in Algorithm 1.",
+        "Empirical results indicate substantial impact even with 9/96 steps perturbed: e.g., on IstanbulTraffic with LLMTime+Mistral, MSE/MAE increase from 0.826/0.973 (clean) to 1.493/1.204 under TSA; with LLMTime+GPT-4, 0.805/0.779 to 1.179/1.008; on Exchange with TimeGPT, 0.256/0.368 to 0.474/0.537. This highlights practically significant vulnerabilities.",
+        "Rebuttal commits to strong reproducibility and fairness improvements: explicit scalar objective, per-attack query budgets and wall-clock reporting, matched-budget baselines (NES/SPSA, random-sparse, ZOO, Square/bandit, greedy top-τ), prompt/tokenization and zero-shot protocols, code release, and formatting fixes.",
+        "Provides domain-motivated perturbation model (multiplicative, per-step ℓ1 bounds) and plans to enforce physical plausibility (nonnegativity, box constraints) and compare against additive variants under matched budgets."
+      ],
+      "weaknesses": [
+        "As submitted, key methodological and experimental details are missing or ambiguous: Eq. (6) is ill-posed, the scalar objective is not explicit, Algorithm 1’s stopping/selection is unclear, and there is no query accounting. Evaluation relies on weak baselines (mainly Gaussian noise), with no comparisons to established black-box attacks and no error-vs-queries analysis.",
+        "Claims about defenses and surrogate objectives are not yet substantiated: filter configurations (σ/window/quantiles) are unspecified; the proposed autocorrelation-based detection lacks empirical validation; and the linkage between optimizing discrepancy to Ŷ and true error is not analyzed. Formatting artifacts (tables/figures) and missing LLM prompting/tokenization and zero-shot usage details hinder reproducibility and clarity."
+      ],
+      "summary_comment": "This work targets a practically important problem—temporally sparse, black-box attacks on LLM-based time-series forecasting—and proposes a simple Subspace Pursuit framework to select a small set of high-impact time steps. The reported degradations are sizable across multiple LLM forecasters and datasets (e.g., large MSE/MAE increases on IstanbulTraffic and Exchange with only 9/96 steps perturbed), underscoring significance. The rebuttal substantially improves the methodological soundness and practicality by specifying a clear scalar objective, a well-posed zeroth-order estimator, ℓ1-consistent updates, SP stopping rules, explicit query budgets and complexity, stronger baselines under matched budgets, detailed LLM prompting/tokenization protocols, and code release. However, these crucial fixes and additional experiments are not reflected in the current submission. Given the missing objective/estimator clarity (Eq. (6)), lack of strong baselines and query accounting, under-specified defenses, and formatting/reproducibility gaps, I cannot recommend acceptance at this time. With the promised revisions and empirical validations, the work could become a strong and practically relevant contribution."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "Topic fit: The paper targets trustworthy ML and robustness in time-series forecasting with LLMs, using optimization (cardinality-constrained problem) and an adapted Subspace Pursuit algorithm—well within ICML’s core areas (optimization, probabilistic/black-box methods, trustworthy ML, and application-driven ML).",
+        "Contribution type: A methodologically motivated attack framework (zero-order, black-box, temporally sparse) plus empirical analysis across several LLM forecasters and datasets aligns with ICML’s emphasis on rigorous ML methodology applied to important applications.",
+        "Novelty level: Reviewers acknowledge a timely and creative setting (temporally sparse black-box attacks for LLM forecasters) and a realistic threat model; Reviewer A rates novelty and significance highly, suggesting the conceptual framing resonates with ICML’s interests."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor and evaluation gaps in the submitted version: Reviewers B and C flag an ill-posed estimator equation in the manuscript (Eq. 6), incomplete algorithmic specifications, lack of matched-query competitive black-box baselines, and missing query-budget accounting. ICML typically expects these to be addressed in the submission, not just promised in rebuttal.",
+        "Defense analysis and realism: Defense evaluation is narrow and under-specified (filters without clear configs; proposed detector lacks empirical validation), and perturbation realism (multiplicative model, per-step ℓ1 budgets) is not fully justified in the current text—reducing fit with ICML’s bar for trustworthy ML rigor.",
+        "Presentation and scope: Formatting/clarity artifacts and a focus largely on univariate settings (not yet extended to multivariate) raise concerns about completeness and generality; ICML reviewers often weigh thoroughness and clarity heavily, increasing acceptance risk."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Topic fit: Robustness and adversarial analysis of LLM-based systems in time series are squarely within NeurIPS (general ML, deep learning, optimization, data-centric AI, socio-technical aspects). NeurIPS explicitly welcomes in-depth analyses that reveal limitations of current methods—this work does exactly that by exposing vulnerabilities in LLM forecasters.",
+        "Contribution type: An interdisciplinary blend of black-box optimization (NES-style ZO), sparse selection (SP), and empirical vulnerability analyses across multiple foundation forecasters and datasets aligns with NeurIPS’ breadth and appetite for empirical insights about foundation models’ behavior.",
+        "Novelty and significance: Reviewers agree the temporally sparse, black-box threat model is realistic and consequential (e.g., large MSE/MAE increases with ~10% steps perturbed). This kind of practically impactful vulnerability study often resonates with NeurIPS’ community."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor/experimental completeness in the current draft: Reviewer B emphasizes the submitted manuscript still contains the flawed estimator equation, lacks competitive matched-query baselines (NES/SPSA, ZOO, Square/bandit), and omits explicit query-budget trade-offs—short of NeurIPS’ typical empirical rigor bar.",
+        "Defense evaluation and objective linkage: The current version does not provide quantitative recovered-error tables across τ/ε/query regimes or establish strong empirical linkage between the surrogate objective and true error—reducing confidence in claims about effectiveness and defenses.",
+        "Presentation/reproducibility: Clarity gaps (formatting artifacts, missing prompting/tokenization and zero-shot protocols) increase the risk that NeurIPS reviewers would judge the submission as under-specified despite the promising rebuttal commitments."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 5,
+      "why_it_fits": [
+        "Topic fit: The work deals with LLMs, zero-order optimization, and robustness—areas present at ICLR (deep learning, optimization, trustworthy ML, applications to time series). Adversarial robustness papers are regularly seen at ICLR, and the focus on foundation models is timely.",
+        "Contribution type: A method proposing a simple, scalable procedure (SP with ZO estimation) plus empirical demonstrations fits ICLR’s interest in practical techniques for deep models and evaluation insights.",
+        "Novelty: The temporally sparse, black-box framing for LLM forecasters is a fresh angle that could appeal to ICLR’s community exploring LLMs beyond text."
+      ],
+      "why_it_does_not_fit": [
+        "Topical emphasis: ICLR tends to prioritize advances in representation learning and deep learning methods themselves; this paper’s core novelty is an attack optimization and evaluation framework rather than new representation/learning mechanisms, making the fit less central than NeurIPS/ICML.",
+        "Rigor/presentation risk: As highlighted by Reviewers B and C, the current manuscript has methodological and evaluation gaps (ill-posed Eq. 6 in text, incomplete baselines, missing query budgets), and formatting/clarity issues—risky for ICLR’s standards.",
+        "Scope and generality: The current focus is largely univariate with limited defense validation; ICLR often favors broader empirical coverage and strong ablations, so the current scope may be judged insufficient without the promised multivariate and defense expansions."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}

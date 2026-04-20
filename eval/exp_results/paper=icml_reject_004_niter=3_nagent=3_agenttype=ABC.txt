@@ -1,0 +1,129 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 5,
+        "soundness": 4,
+        "significance": 5,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The authors integrate concrete mathematical fixes: exact co-distance cells I_{a,b} via inclusion–exclusion, boundary T terms derived from hop marginals, disambiguated sketch notation (M for MinHash, R=2^p for HLL), and a standard bias-corrected HLL++ estimator, with clarified pseudocode (moved to appendix) addressing issues around Def. 3.1 and Alg. 1.",
+        "They calibrate the estimator claims appropriately, providing RSE/variance formulas for MinHash and HLL, using independent seeds per sketch and hop, proposing per-entry z-scoring, and committing to empirical calibration against exact intersections on tractable subsets to quantify bias/variance and correlations.",
+        "Robust evaluation additions are promised under matched protocols: controlled comparisons against SPD, LapPE, and RWPE (and GIST+SPD) within the same backbone; reporting of parameter counts, peak memory, per-epoch time, and one-time sketching cost; sensitivity sweeps over sketch parameters (M, R) and ablations (I-only, T-only, I+T) alongside existing k-hop studies.",
+        "They delineate scalability regimes and introduce practical sparsification strategies (MinHash LSH candidate filtering, top-K intersection gating, distance-aware caps, shared ϕ_S and caching), with plans to report accuracy–cost trade-offs and recommended configurations by graph size.",
+        "Theory is strengthened beyond invariance: formal separations showing co-distance histograms refine distance-only encodings and marginals, systematic synthetic tests (e.g., cycles with chords, barbells, strongly regular graphs) against SPD/LapPE/RWPE, and a clear discussion of the relation to 2-WL-style pairwise context with scoped claims."
+      ],
+      "weaknesses": [
+        "Several improvements remain integration commitments rather than results currently reflected in the paper (comparative encodings, resource tables, sketch-parameter sweeps, exact-vs-approx calibration, corrected formulas); acceptance should be contingent on incorporating these into the camera-ready.",
+        "Engineering complexity increases with LSH filtering and pruning heuristics; reproducibility and stability may depend on additional thresholds/hyperparameters—clear code release and default settings are essential.",
+        "While independence is improved via separate seeds, correlations across hops and shared graph structure persist; the impact on downstream learning should be empirically quantified (as promised) and discussed explicitly.",
+        "Despite pruning strategies, scalability for very large graphs (n ≫ 1k) remains a concern; demonstrating end-to-end performance and memory profiles in that regime would further strengthen the practical case."
+      ],
+      "summary_comment": "The rebuttal effectively addresses prior concerns with concrete mathematical corrections, calibrated estimator claims, and a comprehensive plan to extend evaluations and report resource usage under matched protocols. It also adds theoretical context that clarifies why co-distance histograms provide information beyond SPD/LapPE/RWPE and outlines scalability strategies with empirical validation. While many additions are promised rather than yet visible, the core contribution remains novel and potentially impactful: a scalable, isomorphism-invariant structural bias based on k-hop intersection patterns that improves Graph Transformers. Provided the authors integrate the clarified formulas and the planned evaluation, calibration, and scalability reporting, I maintain an accept recommendation grounded in the work’s originality and significance."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "The rebuttal squarely addresses earlier definitional gaps by specifying the exact co-distance counts via inclusion–exclusion I_{a,b}(u,v) = C_{≤a,≤b} − C_{≤a−1,≤b} − C_{≤a,≤b−1} + C_{≤a−1,≤b−1} and clarifying boundary terms T via D_u(a) − ∑_{j=0}^k I_{a,j}, resolving ambiguities around Definition 3.1.",
+        "It provides a concrete, implementable iterative k-hop sketching procedure: per-hop MinHash and HLL++ signatures propagated via neighborwise min/max with independent hash families, together with corrected HLL++ estimation and explicit time/memory complexity O(k·(M+R)·(|V|+|E|) + k^2·(M+R)·n^2).",
+        "The authors temper overstatements (e.g., not claiming SOTA on LRGB) and commit to critical evaluation additions: calibration plots of exact vs. estimated intersections, exact-vs-approximate GIST comparisons, sketch-parameter sweeps (M, p), component ablations (I-only, T-only, off-diagonal suppression), and comprehensive runtime/memory reporting with matched backbones.",
+        "They further outline stability and scalability considerations: a Lipschitz sensitivity bound linking GIST estimation error to attention perturbations, normalization of S using analytic variances, and pragmatic sparsification strategies (MinHash LSH candidate filtering, top-K gating, SPD windowing, curriculum K, caching) to mitigate O(n^2) pairwise costs."
+      ],
+      "weaknesses": [
+        "The additions remain prospective: the manuscript as reviewed still lacks the promised empirical substantiation (no calibration figures, no exact-vs-approximate comparisons, no runtime/memory tables, no dataset-specific sketch settings M and p, no training curves), so key evaluation and reproducibility concerns remain unresolved at decision time.",
+        "Although the estimator is now correctly framed, the intersection estimate Î = Ĵ·Ũ is biased in general due to HLL++; the rebuttal does not yet quantify how this bias/variance propagates to downstream metrics or training stability beyond a planned bound, and no empirical sensitivity analyses are presented in the current submission.",
+        "Scalability and memory footprint are still not demonstrated empirically: constructing/using S(G) at O(k^2·(M+R)·n^2) and storing n×n×(k^2+2k) features can be prohibitive for larger graphs; the proposed sparsification pipelines are reasonable but unvalidated here, with no concrete accuracy–cost trade-off results.",
+        "Some claims in the original tables require careful contextualization that is not yet reflected in the paper (e.g., in Table 2 Peptides-func GRIT reports 0.6988±0.0082 AP vs. GIST 0.6783±0.0087; in Table 3 ZINC GIST improves to 0.055±0.002 MAE and ZINC-full 0.019±0.002, which are strong but should be paired with overhead reporting)."
+      ],
+      "summary_comment": "The rebuttal materially improves methodological soundness and clarity by correcting the core definitions for I and T, specifying an iterative per-hop sketching mechanism with independent hashes and HLL++, and providing accurate complexity accounting. It also responsibly tempers claims and lays out a comprehensive plan for additional experiments: estimator calibration (bias/variance vs. M,p), exact-vs-approximate downstream comparisons, component ablations, and detailed runtime/memory/parameter reporting, along with stability analysis and concrete sparsification strategies for scaling. However, these are commitments rather than results currently reflected in the manuscript. Given the emphasis on soundness and especially evaluation, acceptance requires seeing these analyses and measurements integrated: e.g., (i) figures quantifying estimator error on ZINC subset and synthetic graphs; (ii) a table of per-dataset sketch settings (M, p), exact/approximate usage, and matched baselines; (iii) per-epoch time and peak memory for k≈3, M≈128, p≈12; (iv) ablations isolating I vs. T and off-diagonal contributions; and (v) accuracy–cost trade-offs for the proposed sparsification on larger graphs. Without this empirical substantiation, the work remains promising but incomplete for a rigor-focused venue. I encourage resubmission with the proposed additions, which would likely elevate the evaluation to an acceptable standard."
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The rebuttal substantively improves rigor and practicality: it corrects estimator claims (from unbiased to consistent with quantified RSE), specifies independence assumptions for MinHash/HLL++, and adds a planned calibration study to guide sketch sizes.",
+        "Provides concrete scalability strategies to mitigate O(n^2) pairwise costs: MinHash-based LSH candidate filtering, top-K gating with coarse bounds, SPD-window distance-aware sparsification, curriculum on K, and explicit post-sparsification complexity with planned accuracy/cost trade-offs.",
+        "Commits to quantitative analyses linking GIST to behavior: distance-wise attention profiles, substructure-crossing ratios, attention–GIST correlations, negative controls, and head/layer specialization metrics, moving beyond qualitative examples.",
+        "Extends applicability and guidance: plans additional non-chemical datasets (e.g., TU benchmarks, synthetic graphs), domain-specific parameter rules of thumb, and thorough reporting of precomputation time, per-epoch wall-clock, peak memory, and parameter counts.",
+        "Clarifies previously ambiguous definitions and algorithms (inclusion–exclusion for I_{a,b} and T terms; precise per-hop MinHash/HLL++ construction), and maintains tempered claims and fairness disclosures (pretraining status, matched budgets)."
+      ],
+      "weaknesses": [
+        "Several key improvements are promised rather than currently demonstrated (sparsification ablations, quantitative attention diagnostics, non-chemical experiments); acceptance should be contingent on including these results in the final version.",
+        "Even with candidate filtering and SPD windowing, worst-case costs can remain high; clearer guidance on integrating block-sparse attention or fixed top-K per head, and comprehensive resource numbers on larger/sparser graphs, would further strengthen the case.",
+        "Candidate retrieval and top-K gating introduce additional hyperparameters (K, Δ, LSH thresholds) that may affect fairness and reproducibility; thorough ablations and consistent reporting are necessary to avoid selection bias."
+      ],
+      "summary_comment": "The paper introduces GIST, a simple and effective permutation-invariant structural prior for Graph Transformers based on k-hop intersection cardinalities estimated via MinHash and HLL++. The rebuttal satisfactorily addresses earlier concerns by correcting statistical claims, clarifying definitions and sketch construction, and proposing concrete, implementable strategies to scale beyond quadratic pair enumeration (LSH candidate filtering, top-K gating, SPD windows) with planned empirical trade-offs. It also adds quantitative diagnostics to substantiate how GIST shapes attention and broadens the evaluation beyond molecular graphs with domain-specific guidance and resource reporting. While many of these additions are planned for the camera-ready rather than fully present now, the method remains practically motivated, clearly presented after clarifications, and empirically strong. Provided the promised analyses and scalability experiments are included, the work offers a useful, reproducible contribution to structural encoding in Graph Transformers. I recommend acceptance."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Topic fit: A core ML methods paper on Graph Transformers and structural encodings (k-hop intersection features) squarely matches ICML’s focus on general ML, deep learning architectures, graph learning, and theory.",
+        "Contribution fit: Mix of methodological innovation (GIST encoding and attention), algorithmic efficiency (MinHash/HLL++), and some theory (isomorphism invariance; separations vs SPD/LapPE/RWPE; synthetic tests). This blend aligns with ICML’s appetite for advances that combine modeling and principled analysis.",
+        "Empirical scope: Evaluations on LRGB, ZINC/ZINC-full, and MoleculeNet provide broad evidence on standard ML benchmarks, which is typical of ICML graph learning papers.",
+        "Reviewer support: Two reviewers are positive (A and C), highlighting originality, clarified definitions, strengthened theory, and practical relevance—indicators ICML often values."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor/evaluation gap: Reviewer B flags missing empirical substantiation at decision time (no calibration plots, exact-vs-approx comparisons, runtime/memory tables, dataset-specific sketch settings). ICML typically expects these to be present rather than promised.",
+        "Scalability risk: Open concerns about O(n^2) pair handling and memory for n ≫ 1k (R2), with sparsification strategies not yet empirically validated. ICML reviewers frequently scrutinize scalability and resource reporting.",
+        "Engineering complexity: Added LSH filtering/top-K gating/thresholds may hurt reproducibility if defaults and ablations are not fully reported (echoed by R1/R3). ICML often rewards polished, end-to-end reproducible packages.",
+        "Claim calibration: Some performance claims need contextualization (e.g., not SOTA on Peptides-func per R2); ICML committees may penalize over-claims or incomplete framing."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "Topic fit: Strong alignment with NeurIPS tracks in deep learning, graph ML, data-centric AI, and SysML infrastructure. Using MinHash/HLL++ to enable scalable pairwise features is a systems-leaning ML contribution NeurIPS often welcomes.",
+        "Contribution fit: Method + systems + analysis. The paper introduces a structure-aware attention bias, an efficient sketching pipeline, and plans extensive empirical analysis (accuracy–cost trade-offs, calibration, ablations), matching NeurIPS’ interest in practical, scalable ML.",
+        "Empirical breadth: Results across 12 datasets (LRGB, ZINC, MoleculeNet) and clear plans for resource reporting and sensitivity sweeps resonate with NeurIPS’ emphasis on comprehensive evaluation and practical impact.",
+        "Community interest: Graph Transformers and structural priors are active NeurIPS topics; the work’s pairwise substructure encoding and invariance theory would likely attract the graph ML and SysML audiences."
+      ],
+      "why_it_does_not_fit": [
+        "Incomplete substantiation: As R2 notes, several key analyses (calibration, exact-vs-approx, runtime/memory, accuracy–cost with sparsification) are promised but not yet integrated—NeurIPS accepts many systems-oriented works but still expects concrete evidence in the submission.",
+        "Scalability uncertainty: Despite a compelling sketching design, end-to-end demonstrations for very large graphs are not shown (R1/R2), which NeurIPS reviewers may require for claims of scalability.",
+        "Pipeline complexity: Additional hyperparameters (LSH thresholds, K, SPD windows) raise reproducibility concerns unless defaults and ablations are fully reported (R3).",
+        "Mixed performance narrative: Some benchmarks favor prior methods (e.g., GRIT on Peptides-func per R2), necessitating careful positioning; NeurIPS often expects nuanced claims and matched-budget comparisons."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "Topic fit: A deep learning architectural modification to self-attention for graphs (representation learning with structural priors) fits ICLR’s remit in representation learning and graph DL.",
+        "Methodological clarity: After rebuttal, definitions and algorithms (inclusion–exclusion for I_{a,b}, T terms, per-hop MinHash/HLL++) are clearer, improving presentation and making it suitable for ICLR’s discussion-driven review process.",
+        "Empirical signal: Competitive or strong results on ZINC/ZINC-full and MoleculeNet suggest practical value, and the k-hop ablation indicates some analysis typical of ICLR papers."
+      ],
+      "why_it_does_not_fit": [
+        "Novelty concerns: Reviewer B scores novelty as moderate and sees overlap with a rich body of positional/structural encodings (SPD/LapPE/RWPE, subgraph methods). ICLR often presses for sharper conceptual novelty in representation learning.",
+        "Rigor and completeness: Key ablations/diagnostics (exact-vs-approx, component isolation I vs T vs off-diagonals, calibration plots, resource tables) are planned but not yet present—ICLR reviewers typically expect thorough ablations in the initial submission.",
+        "Systems overhead vs DL focus: Heavy reliance on sketching/LSH and new hyperparameters may be viewed as systems-heavy without the corresponding end-to-end resource evidence, which can be a tougher sell at ICLR relative to more modeling-centric advances.",
+        "Presentation risk: With several additions slated for the camera-ready, the current framing may feel incomplete to ICLR reviewers emphasizing empirical depth and clarity at review time."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}

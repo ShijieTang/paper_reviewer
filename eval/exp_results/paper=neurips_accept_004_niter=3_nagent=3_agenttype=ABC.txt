@@ -1,0 +1,137 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 5,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Comprehensive, end-to-end suite spanning pre-training, continued pre-training, SFT, and RL with >100 models trained from scratch under full LR decay and only final checkpoints analyzed; evaluations cover ID/OOD with multiple selection metrics (greedy, Maj@16, RM@16, Pass@16, correct ratio) and report seeds/error bars.",
+        "High-impact open-science release: all base and post-trained models, stage-wise datasets, and the full training/evaluation pipeline, providing a strong foundation for reproducibility and follow-on research.",
+        "Actionable, quantitatively grounded insights: (i) diminishing returns and even degradation from excessive pre-training on downstream reasoning (e.g., 1B models show small gains beyond ~80B tokens and OOD Maj@16 declines after 160B); (ii) modest replay during CPT mitigates forgetting and improves downstream math (e.g., GSM8K-Platinum Pass@1 rises to 21.01% with 8BT replay + 42BT math vs 19.27% with 50BT pure math in Table 2); (iii) SFT/RL saturation regimes and trade-offs (e.g., RL Maj@16 peaks ~8–16 epochs while Pass@16 can plateau or drop when response lengths grow).",
+        "Validation guidance with concrete evidence: ORM scores (from an 8B RM) correlate strongly with downstream Maj@16 across tasks (Pearson r roughly 0.62–0.84), while validation perplexity shows weak correlation, offering a practical unsupervised proxy during post-training.",
+        "Author rebuttal substantially strengthens robustness: commitments to correct the CPT replay optimum to a 10–20% range and add a replay-ratio sweep; perform RL ablations (dense/partial-credit rewards, ±2x KL sweeps, length controls, DPO baseline); assess ORM robustness with a second reward model and CIs; add an architectural sanity check (Mistral-style decoder slice) and a non-math instruction-following extension; and release overlap auditing scripts with exact/near-duplicate checks plus a CPT control without FineMath."
+      ],
+      "weaknesses": [
+        "Several robustness elements are promised rather than present in the submission; key claims about RL affecting confidence more than capability, the precise CPT replay optimum, and length-induced Pass@K degradation still rest on a single architecture family, PPO with a binary reward, and one primary reward model.",
+        "Generality to larger model scales and non-reasoning domains remains unproven; despite OOD tasks, the post-training focus is math-centric and models are limited to 1B/4B LLaMA-2–style variants.",
+        "Upstream cross-model comparisons (Table 4) remain subject to data-quality and filtering confounds; while caveats will be made explicit, fairness across external baselines cannot be guaranteed by the current study."
+      ],
+      "summary_comment": "The authors present EvoLM, a transparent, controlled suite that examines training dynamics across the full LM lifecycle with >100 small LMs trained from scratch. The study yields clear, practically relevant findings: pre-training beyond ~80–160B tokens for 1B models yields diminishing or even negative downstream returns; modest replay during CPT materially mitigates forgetting and boosts math performance (e.g., GSM8K-Platinum Pass@1 21.01% at 8BT+42BT vs 19.27% pure math); CPT is crucial to unlock SFT/RL gains and OOD generalization; and SFT/RL exhibit saturation and trade-offs (e.g., RL Maj@16 peaks around 8–16 epochs while Pass@16 can degrade with length growth). ORM correlates well with downstream accuracy (r ~0.62–0.84), unlike PPL, providing a useful validation signal. The rebuttal addresses earlier concerns convincingly by committing to concrete additions: correcting the CPT replay optimum to 10–20% with a sweep, RL ablations (reward shaping, KL, length controls, DPO), ORM robustness with a second RM, architectural and domain extensions, and explicit overlap auditing and fairness caveats. While these additions are not yet incorporated and generality to larger scales remains open, the core idea and resource are novel and significant, the methodology is careful, and the insights are actionable. I remain in favor of acceptance."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Comprehensive, controlled exploration across pre-training, continued pre-training (with replay), SFT, and RL using 100+ models trained from scratch with full LR schedules; only final checkpoints are analyzed, reducing confounds from intermediate snapshots.",
+        "Thorough evaluation design spanning multiple decoding/evaluation settings (greedy, Maj@16, Pass@16, RM@16, correct ratio, ORM), both in-domain and out-of-domain tasks, and multi-seed reporting; clear identification of saturation regimes and trade-offs at each stage.",
+        "Actionable findings for practitioners: diminishing returns and occasional degradation with excessive pre/post-training; catastrophic forgetting in CPT and mitigation via replay; necessity of domain CPT to unlock SFT/RL gains; RL increasing confidence more than capability beyond saturation; intermediate checkpoints are unreliable surrogates.",
+        "Rebuttal adds concrete robustness enhancements: a replay-ratio sweep at fixed CPT budget with multi-seed CIs; matched-inference contextual baselines; explicit decontamination and near-duplicate audits with confirmatory re-runs; ORM–accuracy validation with a second reward model, including partial correlations controlling for response length.",
+        "Additional scope checks pledged: a small instruction-following post-training slice and a replication with a different decoder family to probe whether CPT/SFT/RL trends persist across domains and architectures; explicit clarification of scope and compute constraints."
+      ],
+      "weaknesses": [
+        "Several critical robustness elements are promised for the camera-ready but not yet included in the manuscript (replay-ratio sweep with CIs, matched external baselines, overlap audits and filtered re-runs, multi-RM ORM validation). The acceptance recommendation presumes these additions are implemented as described.",
+        "Scope remains limited to 1B/4B models and a PPO-based RL setup with a binary verifiable reward; while the authors add modest extensions, generalization to larger models, alternative RL algorithms, and broader domains/objectives remains to be demonstrated."
+      ],
+      "summary_comment": "The authors have addressed prior concerns substantively. They corrected the replay proportion statement and committed to a replay-ratio sweep with statistical uncertainty, adding rigor to CPT replay conclusions. They will include contextual external baselines under matched prompts/decoding, release explicit decontamination and near-duplicate detection scripts with overlap statistics and confirmatory re-runs, and validate the ORM–accuracy correlation with an additional reward model and robustness analyses (including length controls). They also plan small extensions beyond math and across an alternative decoder to test whether key CPT/SFT/RL trends persist, and clarify scope limitations. The core study already exhibits careful experimental control and provides practically useful insights about scaling and trade-offs across training stages. With the promised robustness updates incorporated, the methodological soundness and utility are strong enough to warrant acceptance despite moderate novelty.",
+      "final_decision": "Accept"
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 5,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "End-to-end, controlled pipeline across pre-training, CPT, SFT, and RL with fully decayed schedules and only final checkpoints, avoiding common confounders; open release of 100+ 1B/4B models, stage-wise datasets, code, and detailed hyperparameters (Tables 6–8), plus compute transparency (up to 32× H100 80GB, vLLM inference).",
+        "Clear, actionable empirical findings anchored in the figures/tables: diminishing returns and occasional degradation when over-training beyond ~80–160× model size (Figures 2–3); modest replay during CPT mitigates forgetting and improves downstream math (Table 2: 8BT FineWeb + 42BT FineMath yields 21.01% Pass@1 vs 19.27% with pure FineMath); intermediate checkpoints underperform full runs at the same token count after SFT (Table 3: e.g., 20BT full Pass@16 17.85 vs 11.44 for an intermediate checkpoint).",
+        "Robust multi-metric ID/OOD evaluation with Greedy, Maj@16, RM@16, Pass@16, correct ratio, and ORM; RL mainly increases selection confidence after saturation (Maj@16 and correct ratio) while Pass@16 can degrade beyond ~4 epochs or with very large RL example counts due to length issues (Figures 8, 11–13).",
+        "ORM as a practical validation signal: average ORM@16 correlates strongly with Maj@16 accuracy across many tasks (Pearson ≈0.62–0.84 in Figure 10), outperforming validation perplexity (Appendix B.3/Figure 14) for post-trained models.",
+        "Author rebuttal substantially strengthens robustness: committed instruction-following slice beyond math, an architecture sanity check (Mistral-style), RL variants (dense/partial-credit rewards, KL sweeps, DPO), ORM cross-RM validation with CIs and length-controlled partial correlations, explicit decontamination and overlap reporting (n-gram/MinHash/SimHash) with re-runs after filtering, and broader validation of the intermediate checkpoint vs. full-run at 4B and on additional datasets."
+      ],
+      "weaknesses": [
+        "Generalization is still limited in the current results to 1B/4B LLaMA-2–style models and math-centric post-training; while OOD tasks are included, evidence for transfer to larger models and other domains (e.g., safety alignment, tool use) remains unproven. The proposed extensions are valuable but not yet executed.",
+        "RL analysis in the main results uses PPO with a binary/verifiable reward; the claim that RL mainly boosts confidence rather than capability would be more compelling with executed multi-reward and multi-algorithm evidence (e.g., dense rewards, DPO) and with length-control mitigations in place.",
+        "ORM-as-validation currently relies on a single reward model; cross-RM validation, bias/length sensitivity analyses, and reporting of confidence intervals are pending, which tempers the strength of this recommendation in broader settings.",
+        "Explicit decontamination and overlap statistics across CPT/SFT/RL and evaluation sets are not yet reported; potential contamination or teacher-model bias in mixed-source SFT remains an open risk until the pledged audits are completed."
+      ],
+      "summary_comment": "EvoLM provides a transparent, reproducible suite of 100+ small LMs trained from scratch across pre-training, CPT, SFT, and RL, enabling careful study of training dynamics for reasoning. The paper communicates clear, practice-relevant takeaways: pre-training benefits plateau (and can degrade) beyond ~80–160× model size (Figures 2–3), modest replay during CPT mitigates forgetting and improves downstream math (Table 2: 21.01% vs 19.27% Pass@1), RL chiefly boosts selection confidence with Pass@16 peaking early and sometimes degrading at high compute due to length (Figures 8, 11–13), and ORM correlates better with downstream accuracy than validation perplexity (Figure 10 vs Figure 14). The authors’ rebuttal addresses prior concerns with concrete, well-scoped additions (instruction-following slice, architecture check, RL variants, ORM cross-validation, and decontamination pipelines) and commits to releasing artifacts and overlap reports. While these extensions are not yet executed and generalization beyond 1B/4B math-centric settings remains to be shown, the current work is already significant, sound, and clearly presented, with open assets that will facilitate community validation and extension. I maintain an Accept recommendation."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "Topic fit: squarely within ICML areas—evaluation methodology and meta studies, ML systems and scalability, optimization/RL, and application-driven ML for reasoning; the paper studies training dynamics across pre-training, CPT, SFT, and RL with controlled setups.",
+        "Contribution fit: strong empirical and systems-style contribution with open assets (>100 models, stage-wise datasets, full training/eval pipeline) that the ICML community can build on; aligns with ICML’s emphasis on reproducibility and scalable ML systems.",
+        "Rigor fit: reviewers rated soundness/evaluation/clarity highly (mostly 4/5); multi-seed runs, error bars, careful control of confounders (final checkpoints only, matched decoding), and ablations provide robust methodology.",
+        "Presentation fit: clear framing and actionable takeaways (e.g., diminishing returns from over-training, replay to mitigate forgetting, SFT/RL saturation regimes, ORM vs. PPL validation guidance) that are valuable for practitioners and researchers.",
+        "Community impact: open release of models/data/pipeline and overlap auditing scripts (promised) increases downstream scientific value, which ICML values for community progress."
+      ],
+      "why_it_does_not_fit": [
+        "Novelty fit is moderate (reviewer novelty 3–4): the work is primarily an empirical suite and analysis rather than a new algorithm/theory; ICML often favors stronger algorithmic or theoretical contributions.",
+        "Scope risk: results center on 1B/4B LLaMA-2–style models and math-centric post-training with PPO and a binary/verifiable reward; reviewers note generality to larger models and other domains remains unproven.",
+        "Some robustness elements are promised for the camera-ready (e.g., replay-ratio sweep with CIs, multi-RM validation, decontamination reports) but not yet fully executed, which can concern ICML reviewers.",
+        "Cross-model comparisons (Table 4) may have data-quality/ filtering confounds; reviewers requested explicit fairness caveats and matched baselines, which may be scrutinized at ICML.",
+        "No new theoretical results or formal scaling-law derivations—could be seen as weaker fit relative to ICML’s strong theory/optimization tradition."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 9,
+      "why_it_fits": [
+        "Topic fit: aligns with NeurIPS areas including data-centric AI, SysML infrastructure, deep learning, decision-making/RL, optimization, probabilistic methods, and general ML; interdisciplinary, empirical focus fits well.",
+        "Contribution fit: a comprehensive, open, reproducible suite and pipeline enabling meta-analysis—highly consistent with NeurIPS’s tradition of impactful empirical resources and methodology papers; suitable for main or datasets/infrastructure-oriented interest areas.",
+        "Rigor fit: reviewers (all Accept) praised careful control (final checkpoints only), multi-metric ID/OOD evaluation (greedy, Maj@16, RM@16, Pass@16, correct ratio), multi-seed reporting, and concrete ablations; strong methodological execution.",
+        "Novelty fit: while method novelty is moderate, reviewers judged the end-to-end, controlled, open suite and the consolidated takeaways (e.g., over-training effects, CPT replay, SFT/RL saturation, ORM correlations) as significant and actionable for the community.",
+        "Presentation fit and community impact: clarity rated 4; open models, datasets, and pipeline directly enable follow-on work; the paper already uses NeurIPS-style checklist and emphasizes broader impacts and safeguards.",
+        "Reviewer risk is lower here: three positive reviews with concrete, credible commitments to strengthen robustness (replay sweep, RL ablations, multi-reward validation, decontamination and near-duplicate audits, alternative decoder check), matching NeurIPS expectations."
+      ],
+      "why_it_does_not_fit": [
+        "Moderate novelty: primarily an empirical/analysis contribution, not a new algorithm; some NeurIPS reviewers may seek more methodological innovation.",
+        "Scope limitations flagged by reviewers: focus on 1B/4B models, math-centric post-training, PPO with binary reward; cross-domain and larger-scale generalization remains open.",
+        "Some conclusions (e.g., RL boosting confidence more than capability, optimal replay range) currently rest on a single architecture family and reward setting; promised ablations mitigate but are not yet fully in-paper.",
+        "Potential baseline fairness and data-overlap concerns in cross-model comparisons require explicit caveats and audits; pending inclusion may be scrutinized.",
+        "Length-induced Pass@K degradation and ORM robustness need the pledged additional evidence (length controls, second reward model with CIs) for broader generality."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Topic fit: deep learning training dynamics, representation learning for language and reasoning, optimization, RL, and datasets/benchmarks are all within ICLR’s scope.",
+        "Contribution fit: open-source models and a reproducible pipeline are aligned with ICLR’s interest in infrastructure, datasets, and empirical insights about deep learning training and generalization.",
+        "Rigor fit: reviewers emphasized careful controls, multi-metric/ID–OOD evaluation, multi-seed error bars, and clear saturation/forgetting analyses—strong empirical rigor that ICLR appreciates.",
+        "Presentation fit: clear, well-structured study with actionable guidance (e.g., CPT replay to mitigate forgetting, SFT epoch trade-offs, RL compute saturation, ORM as a better validation signal than PPL).",
+        "Relevance to ICLR audience: findings inform representation learning and post-training practice (SFT/RL) for reasoning LMs—useful for many ICLR practitioners."
+      ],
+      "why_it_does_not_fit": [
+        "Novelty expectations: ICLR often prioritizes methodological or theoretical advances in deep learning; this paper is primarily an empirical suite and analysis without a new model/algorithm or theory.",
+        "Scope constraints: limited to small (1B/4B) LLaMA-2–like models and math-centric post-training; generalization across larger scales, alternative RL algorithms, and non-reasoning domains remains open.",
+        "Some key robustness elements (replay-ratio sweep with CIs, multi-RM ORM validation, decontamination audits) are promised but not yet fully integrated—risk of desk rejections for completeness at ICLR.",
+        "Claims about RL mainly boosting confidence vs. capability hinge on one RL algorithm (PPO) and reward design; ICLR reviewers may ask for broader evidence (e.g., DPO/other RL methods) before acceptance.",
+        "Positioning may be viewed as closer to NeurIPS’s data-centric/SysML emphasis; success at ICLR could be more variable due to the empirical, resource-oriented nature of the contribution."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}

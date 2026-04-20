@@ -1,0 +1,134 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "SWR is a simple, architecture-agnostic, per-step rescaling that preserves model behavior via proportionality while curbing weight growth, avoiding the knowledge loss of re-initialization. It yields concrete gains: e.g., VGG-16 on TinyImageNet improves from 39.1% (vanilla) to 43.5% (SWR) without LR decay, and reaches 52.2% with LR-decay settings; on smaller setups, CIFAR-10 CNN improves from 65.0% to 71.6% and CIFAR-100 CNN from 32.8% to 39.1%.",
+        "The theoretical story is strengthened by the rebuttal: proportionality is formalized (with a forthcoming lemma covering BN/LN and residual paths), boundedness is explicitly stated under mild, standard per-update conditions with added diagnostics, and inter-layer balance improvement is both analyzed and empirically illustrated.",
+        "Empirical coverage spans warm-start, continual learning (full and limited access), and standard training; SWR consistently outperforms L2/L2-Init and matches or surpasses re-initialization methods while avoiding their forgetting. Notably, on VGG-16, SWR surpasses S&P in warm-start/continual settings without incurring post-reset performance drops.",
+        "The authors commit to broaden baseline comparisons (spectral norm, Path-SGD/path-norm, normalization-aware regularizers, weight clipping) and to strengthen re-initialization baselines (two-parameter S&P, multi-layer head reset), alongside complexity/timing analyses and variance reporting across seeds, which will enhance fairness and practical guidance.",
+        "The rebuttal provides concrete guidance for practical nuances: formal handling of normalization layers and running statistics, residual-branch scaling for proportionality, and two strategies for LR schedules (SWR+re-init vs λ-scheduling) with planned ablations and numerically stable safeguards (epsilon and caps)."
+      ],
+      "weaknesses": [
+        "The boundedness guarantee remains conditional on bounded per-step updates and homogeneous activations; universal guarantees and rigorous coverage for non-homogeneous activations (e.g., GELU) and atypical optimizers are not provided, though the authors plan empirical checks and clarify scope.",
+        "Normalization-layer and residual-path proportionality will be formalized, but results across diverse normalization schemes and architectures (e.g., transformers) are pending; correctness and stability in these broader regimes need to be demonstrated.",
+        "Sensitivity to learning-rate schedules persists: while SWR+re-init and λ-scheduling are proposed, clear guidance and comprehensive ablations are still forthcoming, and minor degradations on larger models under LR decay indicate some fragility."
+      ],
+      "summary_comment": "This paper proposes Soft Weight Rescaling (SWR), a per-step layerwise rescaling that uses proportionality (including bias scaling) to regulate weight norms without altering predictions. The idea is novel relative to standard weight decay and prior rescaling work: it is simple, architecture-agnostic, and explicitly preserves outputs, enabling plasticity retention without re-initialization. The authors’ rebuttal effectively addresses prior concerns by clarifying the conditional nature of boundedness under mild, standard training assumptions, committing to a formal treatment of normalization layers and residual connections, and expanding baselines and practical diagnostics. Empirically, SWR shows consistent gains in warm-start and continual learning and delivers sizable improvements on larger models (e.g., VGG-16/TinyImageNet +4.3pp without LR decay; up to 52.2% with LR-decay settings), while avoiding the knowledge loss of re-initialization. Remaining limitations include conditional guarantees, pending validations for broader normalization/architecture regimes and non-homogeneous activations, and some sensitivity to LR schedules. Given the method’s simplicity, demonstrated impact, and strengthened theoretical and empirical framing, I recommend acceptance."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "SWR is a simple, low-overhead, architecture-agnostic per-layer rescaling that can be applied every step without modifying the primary loss; the proportionality idea aims to preserve function while curbing norm growth.",
+        "Theoretical perspective is useful: proportionality for homogeneous networks (Theorem 1), a conditional boundedness argument (Appendix B, Theorem 2), and a formal claim that SWR improves inter-layer balancedness (Appendix C).",
+        "Empirically promising: consistent gains in warm-start and continual learning across several models, with non-trivial improvements on VGG-16/TinyImageNet (e.g., Table 1: 0.4348 vs 0.3912 for vanilla; Table 5 with LR decay: 0.5221 vs 0.4126), suggesting practical impact.",
+        "The rebuttal meaningfully engages with concerns and commits to concrete additions: formal treatment of normalization layers (including BN running statistics), diagnostics validating the boundedness assumption, broader baselines (spectral norm, Path-SGD, weight clipping, recent rescaling), clearer pseudocode with safeguards, overhead reporting, and per-seed stability."
+      ],
+      "weaknesses": [
+        "Boundedness relies on a strong, unvalidated assumption (uniformly bounded per-step change of squared Frobenius norm in Appendix B/Theorem 2). The induced bound B′ = √B/λ + ||W0|| can be vacuous for small λ, and no empirical validation of per-step norm changes is provided in the current submission.",
+        "Normalization layers and proportionality are not rigorously specified in the paper as submitted: Algorithm 1’s cumulative scaling rule (updating C for l ≥ k) and bias/γ,β handling are ambiguous, and interactions with BN running statistics in train vs. eval modes are not discussed. This undermines the claim of preserving behavior with normalization.",
+        "Evaluation lacks key baselines and may be unfair: no comparisons to spectral norm regularization, Path-SGD/path-norm, weight clipping, or recent weight-rescaling methods; SWR uses split hyperparameters (λf/λc) while baselines largely use a single λ, potentially inflating fairness concerns. Added baselines and single-λ ablations are promised but not present.",
+        "Clarity and reproducibility issues remain in the current manuscript: numerous formatting/typographical errors and broken references (e.g., 'simplexity', 'CININ', 'TinyImagaNat', stray tokens like '011111110'/'•', 'we sweeped', 'scaler' vs. 'scalar'), and the algorithm presentation lacks precise pseudocode, ε-guards, and handling of branches/BN statistics. Overhead and per-seed variance are not reported in the submission."
+      ],
+      "summary_comment": "The paper proposes Soft Weight Rescaling (SWR), a practical per-layer norm-based rescaling that seeks to prevent weight explosion and recover plasticity while approximately preserving function via proportionality. The idea is appealing, and the reported results are encouraging, including sizable gains on VGG-16/TinyImageNet (Table 1 and Table 5). However, the current submission does not meet the bar for soundness and evaluation rigor. The boundedness claim (Appendix B/Theorem 2) is conditional on a strong assumption that is neither theoretically justified under standard training conditions nor empirically validated, and the resulting bound can be vacuous for small λ. The treatment of normalization layers is not rigorous: Algorithm 1’s cumulative scaling and bias/γ,β handling are ambiguous, and interactions with BN running statistics are not analyzed, leaving the proportionality claim tenuous in BN-equipped networks. The empirical comparison omits important baselines (spectral norm, Path-SGD/path-norm, weight clipping, recent rescaling), and fairness is questionable due to SWR’s extra hyperparameter flexibility (λf/λc) relative to baselines. Finally, substantial clarity issues impede reproducibility. The rebuttal constructively addresses these points and promises substantial additions (formal lemmas for normalization, diagnostics validating the boundedness assumption under standard practices, broader baselines with matched flexibility, precise pseudocode with safeguards, overhead and variance reporting). If incorporated and the results remain favorable, these revisions could elevate the work. At present, given the reliance on unvalidated assumptions, incomplete baselines, and clarity gaps in the submitted version, I recommend rejection, with encouragement to resubmit after integrating the promised theoretical clarifications and expanded experiments."
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Addresses a practical and meaningful problem (plasticity loss due to unbounded weight growth) with a simple, low-overhead mechanism that integrates easily into standard training loops.",
+        "Theoretical framing via proportionality (Theorem 1) and boundedness under mild per-update conditions (Theorem 2) is solid, and the rebuttal adds important qualifications, diagnostics, and numerical safeguards (epsilon, clipping caps) as well as guidance for normalization-heavy and residual architectures.",
+        "Empirical results already show consistent gains in warm-start, continual learning, and standard training, with notable improvements on VGG-16/TinyImageNet; the authors further commit to stronger baselines (spectral norm, Path-SGD, AdamW/decoupled WD, weight clipping, recent rescaling) and broader architectures (ResNet-18, small ViT) with modern augmentations.",
+        "Practical guidance is strengthened: clearer handling of multiple normalization layers and residual branches, two LR-schedule strategies (SWR+re-init and λ coupling), and ablations (λf vs λc, proportionality vs weight-only scaling, EMA target variant) will improve usability.",
+        "Rebuttal commits to overhead reporting, fixing clarity issues in Algorithm 1 and references, per-seed variance reporting, and code release, enhancing reproducibility and practical adoption."
+      ],
+      "weaknesses": [
+        "Novelty remains moderate; the core idea of norm-based rescaling is incremental, and the boundedness guarantee is conditional on per-step norm change assumptions and homogeneous activations for exact proportionality.",
+        "Several key improvements (broader baselines and architectures, augmentation-rich protocols, LR-schedule ablations, overhead numbers) are promised but not yet reflected in the current manuscript; conclusions about competitiveness under modern pipelines should be tempered until these results are incorporated."
+      ],
+      "summary_comment": "This paper proposes Soft Weight Rescaling, a lightweight per-layer rescaling that controls weight growth while preserving function up to a scale. It is practical, easy to implement, and shows meaningful gains in warm-start, continual-learning, and standard settings, with especially strong results on VGG-16/TinyImageNet. The theoretical narrative—proportionality and boundedness under mild assumptions—is reasonable for practice, and the authors’ rebuttal adds important clarifications, numerical safeguards, broader and fairer comparisons (spectral norm, Path-SGD, AdamW, clipping, recent rescaling), additional architectures (ResNet, ViT), modern augmentations, LR-schedule guidance, and overhead reporting. While the novelty is moderate and some evidence is pending integration, the method’s simplicity, practical relevance, and strengthened evaluation plan justify acceptance. I encourage the authors to incorporate the promised additions and clarifications in the final version."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "Topic fit: Addresses general ML and optimization/training stability by curbing weight growth to recover plasticity; aligns with ICML areas in optimization, deep learning, trustworthy ML (stability/robustness), and application-driven ML (continual learning).",
+        "Contribution fit: Mix of method + theory + empirics. Theoretical components (proportionality construction, conditional boundedness, inter-layer balance) align with ICML’s interest in principled ML; empirical evaluations across warm-start, continual learning, and standard training show consistent gains (e.g., VGG-16/TinyImageNet increases reported by reviewers).",
+        "Novelty fit: Reviewers A/C view the idea as novel relative to standard weight decay and prior rescaling by preserving model behavior via proportionality, a perspective ICML often welcomes when broadly useful.",
+        "Rigor fit (partial): There is a formal proportionality result for homogeneous activations and a boundedness claim under per-step conditions; reviewer A felt the theoretical framing was strengthened in rebuttal.",
+        "Presentation/practicality: Low-overhead, architecture-agnostic routine that integrates into standard training loops; empirical improvements on warm-start/continual-learning match ICML’s interest in practical ML with rigorous backing."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor risk: Reviewer B flags conditional boundedness (assumes bounded per-step Frobenius changes) and incomplete formal treatment for normalization/residuals in the current submission; ICML's bar for rigor is high and such gaps can be decisive.",
+        "Novelty risk: The core idea is an incremental training-time rescaling; ICML often expects either stronger theoretical advances or broader empirical scope on modern architectures (e.g., transformers), which are only promised but not yet shown.",
+        "Evaluation gaps: Missing baselines (spectral norm, Path-SGD/path-norm, weight clipping, recent rescaling) and fairness concerns (split λf/λc vs. single-λ for baselines) were noted; ICML typically requires comprehensive comparisons.",
+        "Presentation/reproducibility issues: Numerous typos/broken references and ambiguous pseudocode/BN handling in the submitted version may conflict with ICML’s expectations for clarity.",
+        "Reviewer risk profile: Mixed reviews (two positive, one negative focused on soundness and evaluation rigor) indicate a meaningful risk at ICML."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "Topic fit: Squarely within NeurIPS ‘General ML’, ‘Optimization’, ‘Data-centric aspects of AI’, and ‘Deep learning’. Addresses training dynamics/plasticity and continual learning—areas of high interest at NeurIPS.",
+        "Contribution fit: A practical training technique with theoretical grounding and broad empirical coverage (warm-start, continual learning full/limited, standard training) matches NeurIPS’s appetite for methods with demonstrated practical impact.",
+        "Novelty fit: While moderate, the proportionality-preserving rescaling is a distinct twist on norm control that avoids re-initialization’s forgetting; reviewer A/C endorse the contribution as impactful given its simplicity and consistency of gains.",
+        "Rigor fit (sufficient for NeurIPS with caveats): Theoretical elements (proportionality, conditional boundedness, balancedness) plus planned formalization for BN/residual branches and diagnostics can meet NeurIPS standards when incorporated.",
+        "Presentation/practicality: Low overhead and clear utility; reviewers cited concrete improvements (e.g., TinyImageNet VGG-16 39.1%→43.5% without LR decay; 52.2% with LR-decay setup; CIFAR gains), and practical guidance (LR-schedule strategies, numerical safeguards) increases adoption value."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor caveats: Boundedness relies on an assumption not yet empirically validated in the submission; exact proportionality assumes homogeneous activations, and BN/residual handling is not fully formalized in the current text.",
+        "Evaluation gaps: Important baselines (spectral norm, Path-SGD/path-norm, weight clipping, decoupled WD) and broader architecture coverage (e.g., ResNet, transformers) are promised but not yet presented—this could be penalized at NeurIPS.",
+        "Sensitivity to LR schedules: Some fragility under LR decay remains, even with SWR+re-init/λ-scheduling; NeurIPS reviewers often expect robust guidance across common training regimes.",
+        "Fairness/clarity concerns: Split λf/λc for SWR vs. single-λ baselines, and typos/ambiguous pseudocode/BN statistics handling noted by Reviewer B may reduce perceived evaluation quality if not fixed.",
+        "Scale/modernity: Current results center on classic image classifiers (CNNs, VGG-16). Stronger evidence under modern pipelines and augmentations would further solidify fit."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Topic fit: Directly aligned with ICLR’s focus on deep learning, optimization, regularization, and training methodology; proportionality and rescaling relate to representation learning dynamics.",
+        "Contribution fit: A simple training-time intervention with accompanying theory and broad empirical evidence fits ICLR’s tradition of accepting practical optimization/training insights with solid experiments.",
+        "Novelty fit: Moderate but acceptable for ICLR when paired with thorough ablations and clear mechanistic understanding; reviewers A/C found the impact meaningful despite incremental nature.",
+        "Rigor fit: Theoretical narrative (proportionality for homogeneous nets; conditional boundedness; improved balance) plus extensive appendices and code (promised) map well to ICLR’s OpenReview culture of detailed appendices.",
+        "Presentation/practicality: Easy to implement, architecture-agnostic, and empirically useful across warm-start and continual learning—topics often discussed at ICLR."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor and scope gaps: Conditional assumptions (bounded per-step updates), incomplete formalization for normalization/residuals/BN statistics, and reliance on homogeneous activations may be scrutinized by ICLR reviewers.",
+        "Evaluation completeness: Missing key baselines and modern architectures (e.g., ResNet, ViT) and augmentation-rich pipelines in the current submission reduce competitiveness for ICLR’s empirical standards.",
+        "Novelty limitations: Could be judged incremental relative to prior norm/scale regularization and path-based methods; needs stronger positioning against Path-SGD/path-norm and spectral norm.",
+        "Clarity/reproducibility: Formatting errors and pseudocode ambiguity (e.g., handling of γ/β, cumulative scaling rules, numerical safeguards) need correction to meet ICLR expectations.",
+        "LR schedule sensitivity: Observed degradation on larger models under decay in some settings indicates the method may require additional guidance/ablations to be competitive."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}

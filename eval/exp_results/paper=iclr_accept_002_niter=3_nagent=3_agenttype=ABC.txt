@@ -1,0 +1,125 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 5,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Clear theoretical separations are maintained and well-motivated: Theorem 2 extends parity hardness to the finite-sample approximate-gradient setting; Theorem 5 shows one-step learning with teacher forcing; Theorem 7 achieves logarithmic iterations without teacher forcing via self-consistency. Figures 4–5 empirically mirror the staged dynamics predicted by the theory.",
+        "The rebuttal adds concrete clarifications and commitments that improve robustness and practical relevance: a minimal-assumptions statement (attention concentration and a broad class of saturating φ with small local slopes), removal of the need for quantization in practice via soft filtering, and ablations that enable content-dependent attention, learned V, residuals, multi-heads, and windowed masking.",
+        "Bridges the hardness model to practical training: authors commit to an SNR-style lemma after Theorem 2 linking Proposition 3’s variance bound to unbiased SGD noise, plus an empirical cosine-alignment check of gradient signals under direct vs CoT objectives.",
+        "Expanded empirical plan increases confidence: scaling to d ∈ {128, 256} and multiple k, replacing φ with standard two-layer MLPs (e.g., GELU/tanh), mini-batch SGD with varying batch sizes, soft gating (entropy or max-attention), and a quantization toggle, with code release."
+      ],
+      "weaknesses": [
+        "Several key improvements (minimal-assumptions box, SNR lemma, and broader ablations with standard transformer components) are promised but not yet included; current experiments remain limited to synthetic parity at d=64 and lack variance across seeds or confidence intervals.",
+        "The positive proofs still rely on a specialized setup (positional-only attention reparameterization, engineered saturating φ with φ(±1)=1, φ(0)=−1, small local slopes, and level-wise causal masking). While the rebuttal argues these are not essential and proposes empirical tests, transfer to standard FFNs (e.g., GELU/ReLU) and looser masking remains to be demonstrated in the revised version.",
+        "The hardness analysis continues to use adversarial approximate-gradient oracles; although the planned SNR lemma should narrow the gap to SGD noise, a formal empirical validation under unbiased mini-batch noise is still forthcoming."
+      ],
+      "summary_comment": "The rebuttal meaningfully addresses the earlier concerns. The authors articulate minimal assumptions underpinning Theorems 5 and 7 (attention concentration plus a broad class of saturating φ with small local slopes) and commit to ablations that relax analytically convenient constraints: enabling content-dependent attention, multi-heads, learned V, residuals, and replacing level-wise masks with a fixed windowed causal mask. They also promise a formal SNR lemma after Theorem 2 to connect Proposition 3’s gradient variance to unbiased SGD noise, alongside an empirical gradient-alignment analysis. These additions, together with scaling studies (d up to 256), MLP-based φ replacements, soft self-consistency gating, mini-batch SGD, and a quantization toggle, will significantly strengthen evaluation and transferability. While the present proofs still rely on a specialized setup and the expanded experiments are not yet included, the core contribution—demonstrating, via rigorous training-time analysis, that process supervision and self-consistency enable efficient task decomposition on a canonical hard problem—is novel and impactful. Provided the promised clarifications and ablations are incorporated (minimal-assumptions box after Section 2.2; SNR lemma after Theorem 2; ablations tied to Theorems 5/7 and Lemma 6 with reporting of attention mass on true child positions, multiple seeds, and confidence intervals), I maintain an acceptance recommendation with increased confidence in the evaluation."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Technically strong contributions: finite-sample hardness for end-to-end parity (Theorem 2), one-step CoT learning with teacher forcing (Theorem 5, Section 3.2), and logarithmic-step learning without teacher forcing via self-consistency and level masking (Theorem 7, Section 3.3), supported by bounded-gradient lemmas (Lemma 4, Lemma 6) and careful higher-order interaction analyses (Appendix B/C).",
+        "The rebuttal adds a clear signal-to-noise rationale for why unbiased mini-batch SGD struggles without intermediate supervision, committing to an explicit post-Theorem 2 discussion formalizing SNR scaling and an empirical gradient-alignment diagnostic that contrasts direct training with CoT objectives.",
+        "Clarification of minimal assumptions: the authors will include a concise statement delineating the required properties (attention concentration, piecewise-smooth saturating φ with φ(±1)=1 and φ(0)=-1, small local slopes, masking mechanism, and process or consistency supervision), and a robustness statement tying dependence to ||φ′|| via Lemma 6’s exponent g.",
+        "Promised ablations and scaling better connect theory to practice: relaxing positional-only attention to content-dependent K/Q, learned V, residuals, and multi-head attention; windowed masks; soft gating (attention entropy/threshold) instead of strict filters; toggling quantization; mini-batch SGD; sensitivity to step size and seeds; and scaling to larger d,k, with code release. These will help verify that the staged CoT dynamics seen in Figures 4/5 persist under more standard settings."
+      ],
+      "weaknesses": [
+        "The negative result still hinges on an adversarial approximate-gradient oracle and does not formally preclude success under exact empirical gradients or unbiased SGD; the rebuttal’s SNR argument usefully clarifies scope, but a formal impossibility under unbiased noise remains open.",
+        "The positive theorems rely on specialized modeling/training components (positional-only attention, per-level masks, a saturating φ with small slopes near 0 and ±1, explicit self-consistency gates, and quantization in Theorem 7). While the authors motivate these as proof devices and promise ablations, the current proofs do not cover standard multi-head/residual transformers with learned value projections.",
+        "Evaluation remains limited in the submission (synthetic parity at d=64); many helpful additions (larger d/k, φ and attention ablations, SGD with soft gating, quantization toggles, sensitivity analyses) are commitments for the camera-ready, not yet included."
+      ],
+      "summary_comment": "The paper offers a rigorous and insightful account of how chain-of-thought training can induce task decomposition in transformers on the k-parity problem. It strengthens hardness to a finite-sample MSE setting and, crucially, provides constructive guarantees: with teacher forcing (Section 3.2), a single update suffices to nearly solve parity (Theorem 5); without teacher forcing (Section 3.3), hierarchical masking plus self-consistency yields logarithmic-step learning with tight control of gradient propagation (Theorem 7). The rebuttal meaningfully addresses scope and generality: it adds an SNR-based explanation for why unbiased SGD struggles without intermediate supervision, clarifies minimal assumptions and robustness of φ, positions quantization/gating as proof devices, and commits to ablations and scaling experiments that relax architectural constraints and test robustness under standard training (including content-based attention, residuals/multi-heads, and mini-batch SGD). Some theoretical assumptions remain idealized and several empirical extensions are promised rather than present, but the core analysis is methodologically solid and the separation between end-to-end and CoT-trained objectives is convincingly established. I recommend acceptance, with the expectation that the camera-ready incorporates the promised clarifications and ablations."
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 5
+      },
+      "strengths": [
+        "Strong theoretical contributions with clear separations: Theorem 2 extends hardness to finite samples, Theorem 5 shows one-step learning with teacher forcing, and Theorem 7 achieves logarithmic-step learning without teacher forcing via self-consistency; these align with observed staged dynamics (Sections 3.2/3.3; Figures 4–5).",
+        "Rebuttal directly addresses practicality: planned ablations reintroduce standard transformer components (content-dependent K/Q and learned V, residuals, multi-head attention), replace level-wise masks with windowed masks, and swap the crafted φ with a small learned MLP while removing quantization and using soft gating.",
+        "Bridging to realistic optimization noise: the authors propose a formal SNR discussion connecting gradient variance across parities to unbiased mini-batch SGD and commit to mini-batch experiments, clarifying the gap between adversarial oracle hardness and practical training.",
+        "Expanded empirical plan: scaling to larger d and varying k, multiple seeds, sensitivity to gating thresholds and step sizes, and additional hierarchical synthetic tasks (balanced Boolean formulas, tree arithmetic, parenthesized expressions) to probe transfer of the CoT mechanism beyond parity.",
+        "Improved clarity and reproducibility: a minimal-assumptions summary, explicit mapping from theoretical constructs (e.g., ι, level-wise masks) to practical analogues (soft gates, windowed masks), and code release."
+      ],
+      "weaknesses": [
+        "Despite the comprehensive plan, the core framework still relies on specialized structure (saturating φ with small local slopes, masking approximating a known decomposition, hierarchical tasks); the extent to which results carry over to unconstrained, open-ended reasoning remains to be demonstrated empirically.",
+        "Several robustness claims hinge on promised camera-ready additions (ablations, SGD noise studies, additional tasks); acceptance assumes these will be executed and clearly reported with per-level CoT metrics and attention concentration analyses.",
+        "The hardness framing via an adversarial approximate-gradient oracle, while standard for lower bounds, still differs from typical training; the proposed SNR argument will help but does not formally close this gap."
+      ],
+      "summary_comment": "This paper offers a clear theoretical account of how chain-of-thought training enables a one-layer transformer to solve parity efficiently, contrasting sharply with end-to-end training. The key results (Theorems 2, 5, 7) are sound and well-motivated, and the empirical evidence (Figures 4–5) illustrates staged learning and the importance of teacher forcing or self-consistency. The authors’ rebuttal substantially strengthens practical relevance: they commit to ablations that relax specialized assumptions (content-based attention, residuals, multi-heads, windowed masks, learned φ), soft gating without quantization, mini-batch SGD studies with noise, scaling experiments, and additional hierarchical tasks. They also clarify minimal assumptions and provide an SNR perspective linking hardness to unbiased SGD. While broader generalization beyond parity and hierarchical synthetic tasks remains to be established, the contributions are significant and clearly presented. I recommend acceptance, contingent on inclusion of the promised ablations, sensitivity analyses, and clarifications in the final version."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "Topic fit: The paper is squarely about machine learning theory and optimization dynamics of transformers, aligning with ICML areas in theory of ML, deep learning, and evaluation methodology. It analyzes why end-to-end training fails for parity and how CoT-style training enables efficient learning—core ML questions ICML often features.",
+        "Contribution fit: Strong theoretical contributions (finite-sample hardness; constructive guarantees with teacher forcing and with self-consistency) supported by targeted experiments. Reviewers highlight rigorous lemmas and higher-order interaction analyses (Lemmas 4/6; Appendices B/C), which match ICML’s appetite for principled, proof-driven ML work.",
+        "Novelty fit: Reviewers rate novelty/significance highly (4–5/5), emphasizing the clear separations (Theorems 2/5/7) and the bridge from hardness to practical training signals. ICML values such conceptual advances that clarify when and why certain training setups succeed or fail.",
+        "Rigor and clarity: Soundness and clarity are rated 4/5 by all reviewers. The rebuttal adds a minimal-assumptions statement and an SNR-style lemma connecting gradient variance to unbiased SGD noise, improving the theoretical/practical linkage—good matches for ICML’s standards.",
+        "Presentation and broader ML relevance: The empirical section illustrates theory-predicted staged dynamics and the role of process supervision/self-consistency. Planned ablations (content-based attention, learned V, residuals, multi-heads, windowed masking; replacing φ with standard MLPs; mini-batch SGD) increase relevance to the broader ML audience ICML serves."
+      ],
+      "why_it_does_not_fit": [
+        "Specialized modeling assumptions: Reviewers note reliance on positional-only attention reparameterization, a crafted saturating φ with small local slopes, level-wise masks, and (in theory) quantization/filters. While motivated as proof devices, this specialization may be viewed as narrow relative to ICML’s broad ML audience unless the promised ablations are included.",
+        "Limited empirical scope at submission time: Current experiments focus on synthetic parity at d=64 without multi-seed variance or CIs; ICML often expects more extensive validation. Although the authors commit to scaling and ablations, acceptance hinges on delivering these additions.",
+        "Hardness model gap: Negative results use adversarial approximate-gradient oracles; reviewers request a concrete SNR analysis for unbiased mini-batch SGD. If underdeveloped, some ICML reviewers may see a gap between the lower bounds and typical training regimes."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 9,
+      "why_it_fits": [
+        "Topic fit: Chain-of-thought reasoning in transformers, learning dynamics, and theory are highly active NeurIPS themes (deep learning, optimization, theory, decision-making). The paper’s focus on CoT-induced task decomposition resonates with NeurIPS interest in understanding and improving reasoning in LLMs.",
+        "Contribution fit: Clear theoretical separations plus constructive algorithms (teacher forcing; self-consistency with hierarchical masking) and supporting experiments. Reviewers emphasize the staged dynamics that mirror the theory—an attractive combination for NeurIPS’s theory+practice community.",
+        "Novelty and community interest: Reviewers rate novelty/significance 4–5/5, highlighting the bridge from hardness to practical CoT training. CoT and reasoning are especially topical at NeurIPS, increasing the likelihood of strong community engagement.",
+        "Rigor: Reviewers find the work technically strong and sound (4/5 soundness), with high-order interaction analysis and bounded-gradient lemmas. The rebuttal’s SNR rationale and planned gradient-alignment diagnostics further tie the theory to typical training noise—well-aligned with NeurIPS’s appetite for analytical insights with practical implications.",
+        "Presentation and extensibility: Planned ablations move toward standard transformer components (content-based K/Q, learned V, residuals, multi-heads), windowed masks, soft gating without quantization, and mini-batch SGD, plus scaling to larger d/k and additional tasks. This breadth suits NeurIPS’s multi-track, interdisciplinary nature."
+      ],
+      "why_it_does_not_fit": [
+        "Specialized setup in the current proofs: Positional-only attention, engineered φ, level-wise masking, and quantization/filters are not standard; while reviewers accept these as proof devices, some NeurIPS reviewers may prefer broader architectural coverage if promised ablations are not fully delivered.",
+        "Empirical limitations at submission: Experiments are currently on synthetic parity (d=64) with limited seeds. NeurIPS typically values stronger empirical corroboration or broader benchmarks; the promised scaling/ablations mitigate but must be realized.",
+        "Hardness framework dependence: Negative results invoke adversarial approximate-gradient oracles; despite the planned SNR lemma, a formal impossibility under unbiased SGD is not provided, which could invite scope questions from some theory-minded NeurIPS reviewers."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Topic fit: ICLR emphasizes deep learning and representation learning; this work analyzes how transformers acquire CoT-style reasoning via training—squarely within ICLR’s interests (optimization, learning theory, generative/transformer models).",
+        "Contribution fit: Theorems 2/5/7 provide a training-time theory of CoT-induced task decomposition with supporting experiments that show staged dynamics. Reviewers praise clarity and soundness (4–5/5), and planned ablations replace φ with small learned MLPs and add standard transformer components—aligning with ICLR’s focus on practical deep learning setups.",
+        "Novelty and rigor: Reviewers rate novelty and soundness 4–5/5; the added minimal-assumptions summary and robustness connections via ||φ′|| (Lemma 6’s exponent g) speak to ICLR’s preference for clear, well-scoped theoretical claims with practical relevance."
+      ],
+      "why_it_does_not_fit": [
+        "Empirical breadth: ICLR often expects stronger empirical validation and ablations in more standard deep learning settings. Current experiments are limited to synthetic parity at modest scale; acceptance likely hinges on delivering the promised mini-batch SGD studies, φ-MLP replacements, soft gating, and multi-seed reporting.",
+        "Specialized assumptions in proofs: Dependence on positional-only attention, level-wise masks, and a specific saturating φ may feel narrow for ICLR’s applied audience unless the ablations convincingly show similar dynamics under standard architectures/residuals/multi-heads.",
+        "Scope beyond parity: Reviewers note the mechanism is demonstrated on parity and (promised) hierarchical synthetic tasks; ICLR reviewers may seek evidence that insights transfer to broader reasoning tasks or practical benchmarks."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}
