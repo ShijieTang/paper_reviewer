@@ -1,0 +1,130 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 5,
+        "soundness": 4,
+        "significance": 5,
+        "evaluation": 5,
+        "clarity": 4
+      },
+      "strengths": [
+        "The paper formulates in-context denoising as an unsupervised ICL probe and delivers a tight theory-to-mechanism story: Bayes-optimal denoisers for subspaces, spheres, and mixtures (Props. 2–4), convergence for sphere-supported distributions (Thm. 3.1), and a concrete mapping from a trained attention step to a one-step gradient descent on a context-conditioned modern Hopfield energy (Eqs. 16–17).",
+        "The authors’ rebuttal commits to substantial empirical strengthening: systematic MSE-vs-L scaling with error bands and d-dependence (surfacing Appendix E, Props. 5–6), expanded baselines (k-NN, Nadaraya–Watson with Gaussian kernel, James–Stein, Gaussian-kernel attention, Performer, hard-attention β→∞), and explicit quantification of one-step vs multi-step behavior of Eq. (17).",
+        "They address anisotropy and structure by extending Appendix H (Eq. A.12) with non-orthogonal transforms and anisotropic covariances, measuring performance against the generalized Bayes estimator ΣY(ΣY+ΣV)^{-1}X̃ (Eq. A.13), reinforcing the link between near-identity (or structured) weights and Bayes-optimality.",
+        "For Gaussian mixtures beyond σ0 → 0, they will add a perturbative derivation (Appendix C.3) yielding a first-order correction for the optimal β*, and controlled sweeps over σ0, L, mixture imbalance, and centroid overlap, empirically mapping when Eq. (8) is a good approximation and why learned β deviates in finite samples (Appendix G).",
+        "Broader relevance is strengthened by higher-dimensional proxies (n ∈ {64,128}) on RMS-normalized image patches/sentence embeddings, multi-head and two-layer tied-weight ablations (emulating multiple gradient steps), and by explicitly clarifying the Jacobian symmetry condition for the gradient interpretation (Appendix I.2, Eq. A.19) together with empirical checks of the antisymmetric Jacobian component."
+      ],
+      "weaknesses": [
+        "Despite planned additions, experiments remain primarily on controlled or proxy datasets with minimal architectures; the leap to truly realistic, high-dimensional tasks and deep multi-head transformers is suggestive rather than demonstrated.",
+        "Key arguments still rely on symmetry/isotropy and asymptotic regimes (L → ∞, σ0 → 0); while Appendix E provides rates, constants (e.g., sinh(R||x̃||/σZ) in Prop. 6) may be loose, and the exact gradient-descent interpretation hinges on the Jacobian symmetry condition (Appendix I.2, Eq. A.19) that may not broadly hold outside the highlighted regimes.",
+        "In mixtures with σ0 > 0 and imbalanced contexts, the characterization of the optimal temperature β* will be perturbative and empirical; a fully general, rigorous treatment of β* and performance guarantees remains open."
+      ],
+      "summary_comment": "The work advances a compelling, novel perspective on in-context learning by casting denoising as a clean probe connecting attention to dense associative memory beyond exact retrieval. It derives Bayes-optimal predictors (Props. 2–4), proves convergence on sphere-supported distributions (Thm. 3.1), and shows a mechanistic equivalence between a trained attention step and a single gradient step on a modern Hopfield energy (Eqs. 16–17). The rebuttal effectively addresses earlier concerns: it adds strong baselines, non-asymptotic scaling analyses (Appendix E), anisotropy tests aligned with Appendix H (Eqs. A.12, A.13), and a careful treatment of Gaussian mixtures beyond σ0 → 0 (Appendix C.3/G), along with quantitative comparisons of one-step vs iterative updates. While the empirical scope remains simplified and some assumptions limit generality, the core idea is original, sound at the stated scope, and likely to influence future mechanistic studies of ICL and attention-as-associative-memory. I recommend acceptance."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 3,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The authors commit to and detail concrete evaluation enhancements that directly target prior concerns: higher-dimensional settings (n in {64, 128}, L up to 3000), real-data proxies consistent with fixed-norm assumptions (RMS-normalized image patches and sentence embeddings), and a comprehensive set of baselines (nearest neighbor/k-NN, Nadaraya–Watson kernel smoother, James–Stein shrinkage, Gaussian-kernel and hard-attention variants, and iterative energy/Hopfield updates) with standardized protocols and confidence intervals.",
+        "Finite-sample characterization is strengthened: beyond the existing non-asymptotic bounds (Appendix E, Props. 5–6), the authors will surface these in the main text, provide systematic MSE-vs-L curves with fitted rates and CIs, perform an explicit error decomposition (finite-context aggregation vs. parameter estimation), and discuss tighter analyses (e.g., a matrix-Bernstein route for the linear case) and data-dependent constants to address looseness in bounds.",
+        "External validity is addressed with non-spherical covariances and architectural variations: experiments with anisotropic ΣX ∝ AA^T and non-orthogonal A, evaluating recovery of structured optimal weights and performance against the generalized Bayes baseline (Appendix H, Eq. A.13); plus multi-head and two-layer tied-weights variants to probe whether multi-step/multi-head extensions help or harm.",
+        "Mechanistic clarity is enhanced: the rebuttal adds a contraction-based proposition for the linear case (iteration s_{t+1} = γ S s_t achieves the Bayes shrinked projection at K = 1 and contracts toward zero for ρ(γS) < 1, explaining degradation for K > 1) and a local Jacobian analysis for the softmax/DAM case (via Eq. A.18), including quantifying the antisymmetric component to assess the quality of the gradient-descent interpretation.",
+        "Overall exposition stands to improve with promised cross-references, explicit reporting standards (CIs over seeds, full hyperparameters), and clearer discussion of why near-identity/structured weights arise (symmetry/isotropy and anisotropy via Appendix H), which will make the paper more self-contained and reproducible."
+      ],
+      "weaknesses": [
+        "Many of the valuable improvements are promised for the camera-ready but are not yet reflected in the current submission; the recommendation relies on the authors delivering the extended experiments, baselines, and analyses as described.",
+        "Despite added scope, external validity remains partly limited: real-data proxies only approximate fixed-norm inputs, and broader departures (e.g., non-Gaussian noise, substantially non-spherical or heavy-tailed distributions) and larger architectural gaps (multi-layer/heads closer to practical transformers) are only partially explored.",
+        "Even with tighter analyses, the non-asymptotic bounds may retain conservative constants in practice; the empirical validation of fitted rates and constants will be crucial to substantiate claims about finite-sample behavior."
+      ],
+      "summary_comment": "The paper develops a principled bridge between one-layer attention and Bayes-optimal in-context denoising for three tractable task families, and provides a clear mechanistic interpretation via a single gradient step on a dense associative memory energy. My initial concerns centered on narrow experimental scope, asymptotic focus with limited finite-sample quantification, and the underexplored generality of single-step vs. iterative behavior. The authors’ detailed rebuttal substantially addresses these points: they commit to higher-dimensional regimes and real-data proxies aligned with their fixed-norm assumptions; expand baselines and standardize protocols with confidence intervals; surface and empirically validate non-asymptotic rates (including error decompositions and tighter analyses); extend to anisotropic covariances and modest architectural variants; and add theory and experiments clarifying why K = 1 is preferable for the studied energies. While these additions are not yet executed, they directly strengthen evaluation and clarity around finite-sample behavior and external validity. Given the soundness of the theoretical framework and the planned, well-targeted empirical augmentations, I recommend acceptance."
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 5
+      },
+      "strengths": [
+        "Clear and well-scoped theoretical development that derives Bayes-optimal denoisers for linear subspaces, spheres, and Gaussian mixtures (Propositions 2–4) and shows convergence of one-layer attention to these predictors under SLLN (Theorem 3.1), with explicit links to equations (10), (12), (13)/(A.10).",
+        "Compelling mechanistic connection to dense associative memory: the trained attention step is a one-step gradient descent on a context-aware energy landscape (Eqs. 16–17), with illustrative evidence (Fig. 5) and a formal symmetry condition for gradient flows (Eq. A.19).",
+        "Experiments are clean and reproducible, showing near Bayes-optimal MSE as L increases (Figs. 3–4), hyperbolic loss valleys (Appendix G, Fig. 6), and learned scaled-identity or structured weights including prompt transformations (Appendix H, Eq. A.12). Code is provided.",
+        "The rebuttal substantively addresses practical concerns with concrete, targeted additions: real-data proxies (RMS-normalized image patches and sentence embeddings), higher-dimensional regimes (n ∈ {64, 128}, L up to 3000), anisotropy and non-orthogonal transforms with comparisons to the generalized Bayes estimator (Eq. A.13), and multi-head/multi-layer variants.",
+        "Finite-sample behavior will be surfaced in the main text with non-asymptotic bounds (Appendix E: Props. 5–6), MSE-vs-L curves with confidence intervals and 1/L^α fits, d-dependence studies, and sensitivity analyses to non-isotropy, nonzero mean, and non-Gaussian noise.",
+        "For mixtures, the authors commit to kernel/attention comparisons (Gaussian-kernel attention, Nadaraya–Watson, hard-attention, Performer), controlled σ0 and L sweeps, β (temperature) sweeps, and a perturbative explanation of finite-σ0 effects, directly addressing scaling mismatches observed around Eq. (8)/Appendix G."
+      ],
+      "weaknesses": [
+        "As submitted, experiments are confined to synthetic, structured distributions; the promised real-data proxies, higher-dimensional runs, and broader baselines are not yet in the paper and should be included to substantiate external validity.",
+        "Several results lean on idealized assumptions (fixed norm, isotropy, large L), and most finite-sample guarantees reside in appendices; the main text currently under-emphasizes uncertainty reporting (e.g., confidence intervals) and sensitivity to assumption violations, though the rebuttal proposes to address this.",
+        "In the Gaussian mixture setting, the current treatment relies on the σ0 → 0 limit, and the conditions under which softmax approximates the Bayes update are not fully charted; the planned kernel comparisons and β sweeps need to be realized to make the evaluation comprehensive."
+      ],
+      "summary_comment": "This work presents a clear, mechanistically insightful study that connects one-layer attention to Bayes-optimal in-context denoising and dense associative memory. The theory (posterior-mean derivations; Theorem 3.1) is sound and maps neatly onto experiments that approach Bayes-optimal MSE with increasing context (Figs. 3–4), reveal informative loss geometries (Appendix G), and learn scaled-identity or structured weights (Appendix H). The attention-as-one-step-gradient-descent perspective (Eqs. 16–17; Fig. 5) adds valuable clarity beyond exact retrieval. My earlier concerns about practical scope, finite-sample behavior, and kernel/mixture nuances are addressed convincingly in the rebuttal with concrete commitments: real-data proxies, higher-dimensional and anisotropic regimes, non-Gaussian noise, confidence intervals and finite-sample fits in the main text, kernel/attention baselines (Gaussian-kernel, Nadaraya–Watson, hard-attention, Performer), β sweeps, and multi-step/multi-layer analyses, including a formal statement for the linear case and a local Jacobian analysis for softmax. I recommend acceptance, contingent on integrating these additions. To maximize practical impact, please: (i) include confidence intervals across seeds and full hyperparameter details; (ii) surface finite-sample bounds and MSE-vs-L with 1/√L-like fits in the main text; (iii) provide β sweep plots to delineate when softmax approximates Gaussian-kernel behavior; (iv) report MSE vs step count K and step size γ for Eq. (17) across tasks; and (v) present a unified comparison table of baselines (Gaussian-kernel attention, Nadaraya–Watson, hard-attention, Performer, and a simple k-NN/kernel regressor) with calibrated hyperparameters. With these additions, the paper will offer both conceptual clarity and stronger practical relevance."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 9,
+      "why_it_fits": [
+        "Topic fit: Directly aligned with ICML’s core areas (theory of ML, probabilistic methods, optimization, deep learning) via Bayes-optimal denoisers (Propositions 2–4), a convergence guarantee for sphere-supported distributions (Theorem 3.1), and a mechanistic link between attention and associative memory/energy descent (Eqs. 16–17).",
+        "Contribution fit: Strong theory-to-mechanism story with clean empirical verification on controlled tasks and principled baselines. Reviewers highlight soundness and evaluation (R1/R2/R3 soundness 4, evaluation 4–5), and value the non-asymptotic rates (Appendix E, Props. 5–6) and anisotropy extension (Appendix H, Eq. A.12; Eq. A.13).",
+        "Novelty fit: Reviewers judge the perspective as original and influential for mechanistic ICL (R1 novelty 5, R2 novelty 4). The work extends attention–Hopfield connections beyond exact retrieval to in-context denoising with a precise single-step gradient interpretation.",
+        "Rigor fit: Formal derivations (posterior means, Theorem 3.1), finite-sample analyses with rates, and planned tighter bounds (matrix-Bernstein route) match ICML’s expectations for rigor. Reviewers explicitly note improved baselines and standardized protocols with CIs.",
+        "Presentation fit: Clear exposition (clarity 4–5), code release, and planned integration of error bars, larger n and L, and comprehensive baselines will meet ICML’s reproducibility standards.",
+        "Reviewer risk: All three reviewers recommend acceptance and view the additions as directly addressing earlier concerns, suggesting high likelihood of positive reception at ICML."
+      ],
+      "why_it_does_not_fit": [
+        "Empirical scope remains primarily controlled/proxy despite planned additions; some ICML reviewers may want more realistic, high-dimensional tasks or deeper/multi-head transformers beyond minimal setups (R1, R2, R3).",
+        "Key arguments rely on symmetry/isotropy and asymptotics (L → ∞, σ0 → 0); constants in finite-sample bounds can be loose (R1, R2), potentially limiting appeal to application-driven ICML audience segments.",
+        "The gradient-descent interpretation depends on the Jacobian symmetry condition (Appendix I.2, Eq. A.19); outside highlighted regimes the interpretation may weaken, which could raise scope concerns for a general ICML audience."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "Topic fit: NeurIPS welcomes theory, deep learning, probabilistic methods, and interdisciplinary links (neuroscience/cognitive science). This work’s attention–associative memory bridge and in-context learning mechanism analysis are squarely on-topic.",
+        "Contribution fit: Combines theory (Bayes-optimal derivations, convergence) with mechanistic insights (one-step Hopfield energy descent) and empirical probes, including planned baselines (k-NN, Nadaraya–Watson, Gaussian-kernel/hard attention, Performer) and larger n/L runs with CIs.",
+        "Novelty fit: Reviewers see the framing (in-context denoising) and single-step DAM update as a meaningful extension beyond exact retrieval, relevant to current NeurIPS interest in ICL mechanisms.",
+        "Rigor fit: Sound theoretical development and strengthened evaluation plan (higher dimensions, anisotropy, error decomposition), matching NeurIPS’ expectations for principled analysis.",
+        "Presentation fit: Clear writing and code availability; planned standardized reporting and CI inclusion improve reproducibility and clarity for the NeurIPS audience."
+      ],
+      "why_it_does_not_fit": [
+        "NeurIPS often expects broader empirical validation at scale and across realistic domains; current experiments are largely synthetic with proxies planned but not yet fully executed (R2 weakness on relying on promised additions).",
+        "Some results hinge on isotropy/fixed-norm assumptions and asymptotic regimes; generality to non-Gaussian noise, heavy-tailed or strongly anisotropic real settings and deep multi-head architectures is only partially explored (R1/R2/R3).",
+        "In Gaussian mixtures with σ0 > 0, the treatment of optimal temperature β* is perturbative and empirical; a fully general rigorous treatment and guarantees remain open, which may be viewed as a gap for NeurIPS’ broad audience."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Topic fit: Strongly aligned with ICLR’s focus on deep learning, representation learning, attention mechanisms, and in-context learning. Builds on and extends prior ICLR-interest works linking transformers and Hopfield-like memories.",
+        "Contribution fit: A minimal one-layer transformer trained to approximate Bayes-optimal denoisers and a mechanistic energy-descent interpretation resonate with ICLR’s appetite for understanding representation-learning dynamics.",
+        "Novelty/Rigor fit: New framing (in-context denoising) and formal results (Propositions 2–4, Theorem 3.1; mapping to Eqs. 16–17) with code and clear demonstrations; reviewers rate novelty and soundness highly.",
+        "Presentation fit: Clear, reproducible, and promises to surface finite-sample bounds and uncertainty in the main text, matching ICLR’s expectations for clarity and empirical transparency."
+      ],
+      "why_it_does_not_fit": [
+        "ICLR often emphasizes empirical validation on realistic deep-learning tasks; current scope is mostly synthetic with proxies, and deeper/multi-head models are only lightly explored (R1–R3). This may be seen as underpowered empirically for ICLR’s standards.",
+        "Several key assumptions (fixed norm, isotropy, large L) and asymptotic arguments could limit perceived generality; violations (non-Gaussian noise, heavy tails, strong anisotropy) are only partially addressed.",
+        "Some advances (e.g., mixture case with σ0 > 0, multi-step vs one-step behaviors) remain perturbative/empirical without full general guarantees, which may temper enthusiasm in a representation-learning venue prioritizing broader empirical reach."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer A - Novelty Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The rebuttal provides a clear split-CP/CV+ protocol that preserves exchangeability: the transport map is trained only on calibration residuals with a permutation-invariant objective and a data-independent (fixed or independently sampled) sphere grid, avoiding leave-one-out retraining while retaining finite-sample validity.",
+        "Practicality and reproducibility are strengthened by an explicit algorithmic summary, calibration-only hyperparameter selection for ε and m (minimize size subject to empirical coverage), commitment to code release with fixed grids and seeds, and clearer notation and formatting.",
+        "Fairness of evaluation is improved by sharing the same point predictor across Merge-CP and OT-CP, adding a sampler-agnostic size metric (quantiles of ||T(S(X,Y))||) and planned sensitivity analyses with alternative samplers, alongside sampler-independent coverage reporting.",
+        "Scalability considerations are addressed with a concrete complexity and memory accounting (O(n_cal·m) training; O(m) per evaluation), plans for wall-clock and peak memory tables across (n_cal, d, m), and practical accelerations (streamed K·v, QMC directions, stochastic Sinkhorn, Nyström subsampling, early stopping).",
+        "The core idea—using center-outward (Kantorovich) ranks to impose a multivariate ordering and reduce to scalar conformal scores—is conceptually novel in this context and unifies common scalarizations (Euclidean/Mahalanobis) as special cases."
+      ],
+      "weaknesses": [
+        "Despite the clarifications, computational overhead and memory demands of entropic OT mapping can remain substantial in higher dimensions; the method’s practicality still hinges on careful tuning of m and ε and on the efficiency of proposed accelerations.",
+        "Guarantees remain marginal (split-CP/CV+); there is no advance toward conditional coverage or robustness beyond standard assumptions, which limits theoretical scope.",
+        "Region-size conclusions have depended on MQF^2 sampling; while sampler-agnostic metrics and sensitivity analyses are promised, fairness could still be influenced by the chosen sampler until those additions are realized.",
+        "Some of the improved clarity and reporting (algorithm boxes, runtime/memory tables, sensitivity analyses) are contingent on camera-ready updates rather than present in the current manuscript."
+      ],
+      "summary_comment": "The paper proposes OT-CP, a principled approach to multivariate conformal prediction by mapping vector-valued scores through optimal-transport-based center-outward ranks to obtain scalar conformity scores with distribution-free finite-sample guarantees. The authors’ rebuttal satisfactorily addresses prior concerns: it specifies a split-CP/CV+ protocol ensuring exchangeability, details permutation-invariant training on calibration residuals with a fixed or independent sphere grid, and outlines calibration-only hyperparameter selection without test leakage. They also commit to code release, algorithmic summaries, sampler-agnostic size metrics with sensitivity analyses, and concrete runtime/memory reporting with practical accelerations. While compute costs in high dimensions and the focus on marginal (not conditional) coverage remain limitations, the core idea is novel and significant, the methodological soundness is now well-justified, and the evaluation will be strengthened with the planned additions. I recommend acceptance."
+    },
+    {
+      "reviewer": "Reviewer B - Rigor Focused",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 2,
+        "significance": 3,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The rebuttal explicitly corrects the exchangeability issue by proposing two valid protocols: a three-way split with a separate map-fitting set (D_map) and a cross-fitted CV+/jackknife+ variant; both align with conformal prediction best practices and, if implemented as stated, can restore finite-sample marginal coverage.",
+        "A clear plan to restate theorems with precise conditions and a proof sketch is provided: the scalar score g(x,y)=||T̂(S(x,y))|| is fixed conditional on (Ŷ, T̂), and calibration/test scores are i.i.d. under a data-independent sphere grid and permutation-invariant T̂, enabling standard rank-based guarantees.",
+        "The authors commit to comprehensive experimental documentation: exact splits and seeds, training location of T̂, full marginal coverage tables across datasets/seeds, sampler-robustness checks for region-size estimates, and fairness controls that ensure identical point predictors for Merge-CP and OT-CP.",
+        "Concrete computational guidance is promised, including complexity and memory reporting, streaming implementations to avoid n×m kernels, and stabilizations (QMC sphere grids, early stopping, stochastic/Nyström variants), along with a calibration-only hyperparameter selection procedure that enforces empirical coverage constraints.",
+        "The relationship to elliptical regimes (where Mahalanobis/linear whitening suffice) will be clarified, with new synthetic studies to delineate when OT-based scalarization provides advantages over simpler baselines."
+      ],
+      "weaknesses": [
+        "At review time, the manuscript still lacks the formal theorem statements, conditions, and proofs underpinning finite-sample validity under the revised protocols; the guarantees remain promises rather than realized contributions in the current draft.",
+        "The comprehensive empirical evidence (coverage tables, exact split details, robustness analyses, and fair baseline comparisons) is not yet present, so key claims about achieving nominal coverage and smaller regions cannot be verified.",
+        "The proposed three-way split reduces effective calibration data (and adds an extra D_map), potentially impacting region tightness; while CV+ mitigates this, it increases computational burden and complexity—these trade-offs are not yet quantified in the paper.",
+        "Sensitivity to ε and grid size m, especially in higher dimensions, remains a practical concern; although defaults and selection procedures are proposed, robustness across d and n has not been demonstrated in the current submission."
+      ],
+      "summary_comment": "The authors have constructively addressed the central soundness concern by proposing valid conformal protocols (three-way split and CV+/jackknife+), outlining the necessary conditions for exchangeability, and committing to restate guarantees accordingly. They also pledge substantial improvements to empirical completeness and computational guidance. These revisions, if fully integrated with clear theorems, proofs, algorithms, and comprehensive results, would likely resolve the main issues. However, the current manuscript does not yet contain these elements, and thus the core claims remain insufficiently substantiated at review time. Given the outstanding need for rigorous theoretical statements and complete, reproducible evaluation, I recommend rejection, with encouragement to resubmit once the revised protocols, proofs, and expanded experiments are incorporated."
+    },
+    {
+      "reviewer": "Reviewer C - Practicality Focused",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Authors provide precise, reproducible definitions of the vector-valued score S(x, y) = y − ŷ(x) and the OT-based scalarization g(x, y) = ||Ť(S(x, y))||, and commit to a split conformal (and CV+) protocol with permutation-invariant fitting on calibration residuals.",
+        "Robust evaluation plan: comprehensive coverage tables, expanded experimental reporting (splits, seeds, compute environment), and triangulated size metrics including sampler-agnostic pushforward radii and alternative samplers (Gaussian copula, QMC/KDE) to assess sensitivity.",
+        "Concrete computational guidance and optimizations (streaming/blockwise Sinkhorn, GPU vectorization, warm starts/ε continuation, Nyström and coarse-to-fine grids) with planned reporting of wall-clock and peak memory, making deployment more feasible.",
+        "Practical robustness diagnostics (dual residuals, radial histograms of ||Ť(S)||), synthetic studies contrasting residual distributions, and clear defaults/heuristics for m and ε as a function of dimension improve practitioner usability.",
+        "Commitment to code release with fixed seeds, pre-generated sphere grids, unified notation and fixed figures, and algorithmic descriptions for split-CP/CV+ and inverse-map visualization enhances reproducibility."
+      ],
+      "weaknesses": [
+        "Compute and scalability remain nontrivial for large calibration sets or high-dimensional outputs; despite optimizations, training entropic OT maps can be heavy and may limit adoption without further engineering.",
+        "Performance guarantees beyond coverage remain empirical; no formal high-dimensional rates or conditions for entropic map estimation quality are provided, leaving generalization of efficiency gains to practice.",
+        "The evaluation pipeline is still relatively complex and depends on careful hyperparameter selection; while defaults and inner calibration-only selection are proposed, sensitivity across diverse datasets may persist."
+      ],
+      "summary_comment": "The authors have adequately and concretely addressed the key practical concerns. They clarified the residual-based score and scalarization, established a split/CV+ protocol ensuring exchangeability and finite-sample validity, and committed to significantly improved experimental reporting and reproducibility. Importantly, they provided actionable computational strategies, defaults, and diagnostics, and plan to triangulate region-size metrics to reduce reliance on any single sampler. While computational cost and the absence of formal high-dimensional estimation rates remain limitations, the clarified methodology and enhanced evaluation and deployment guidance make the contribution both useful and credible for practitioners. I recommend acceptance contingent on integrating these clarifications and reporting improvements in the camera-ready."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "Topic fit: Core machine learning methodology on uncertainty quantification (conformal prediction) and probabilistic/optimization methods (optimal transport) aligns with ICML areas such as probabilistic methods, trustworthy ML, and optimization.",
+        "Contribution fit: A principled method that combines statistical guarantees (distribution-free finite-sample marginal coverage), an OT-based scalarization, and empirical benchmarking across 24 datasets matches ICML’s emphasis on theory+methods with empirical validation.",
+        "Novelty fit: Reviewers A and C highlight conceptual novelty in using center-outward (Kantorovich) ranks to order multivariate scores and unify Euclidean/Mahalanobis scalarizations; this is the kind of statistically grounded innovation often seen at ICML.",
+        "Rigor fit (conditional): Reviewer A notes a clarified split-CP/CV+ protocol preserving exchangeability (map trained on calibration residuals, permutation-invariant objective, data-independent sphere grid) and a clear theorem restatement plan; this aligns with ICML’s standards for soundness.",
+        "Presentation/practicality: Commitments to code release, algorithmic summaries, and concrete complexity/memory accounting (O(n_cal·m) training; O(m) evaluation), plus practical accelerations, improve reproducibility and practical relevance in line with ICML expectations."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor risk at submission time: Reviewer B flags missing formal theorem statements and complete proofs in the current draft; ICML often expects guarantees and assumptions to be fully stated in the submission, not just promised for camera-ready.",
+        "Scope of guarantees: The paper focuses on marginal (split-CP/CV+) coverage without advances toward conditional coverage or robustness beyond standard assumptions, which may limit theoretical breadth relative to some ICML standards.",
+        "Computational burden/sensitivity: Entropic OT map estimation can be heavy and sensitive to ε and grid size m (noted by all reviewers), which may dampen practicality compared to simpler baselines.",
+        "Evaluation dependence: Region-size conclusions partially relied on MQF^2 sampling at review time; although sampler-agnostic metrics and sensitivity analyses are promised, ICML reviewers may view current evidence as incomplete."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Topic fit: Strong alignment with NeurIPS tracks in probabilistic methods, optimization, theory, and SysML infrastructure (entropic OT, Sinkhorn), as well as data-centric uncertainty quantification.",
+        "Contribution fit: Methodological advance with a unifying scalarization of multivariate scores via OT, finite-sample guarantees, and extensive tabular experiments fits NeurIPS’ methods-and-analysis focus.",
+        "Novelty fit: As Reviewer A and C note, the use of center-outward ranks to impose a multivariate ordering in CP is conceptually fresh within this context and bridges statistical theory with practical ML.",
+        "Presentation/practicality: Clear computational guidance (streamed K·v, stochastic/Nyström Sinkhorn, QMC directions) and plans for thorough runtime/memory reporting suit NeurIPS’ interest in scalable methods and practical deployment.",
+        "Community interest: OT and conformal prediction are active NeurIPS topics, and the paper’s systematic evaluation across many datasets can appeal to a broad methods audience."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor and completeness risk: Reviewer B emphasizes missing formal theorem statements/proofs and incomplete empirical documentation in the current submission, which is risky given NeurIPS’ competitive bar.",
+        "Scope and breadth: Advances are primarily on marginal coverage and scalarization; lack of deeper theoretical extensions (e.g., conditional coverage) or broad neural benchmarks may limit perceived general impact amid NeurIPS’ diverse tracks.",
+        "Computational overhead: The entropic OT map can be costly/sensitive (ε, m), a practical hurdle that may deter adoption without more streamlined engineering evidence at submission time.",
+        "Empirical focus: Datasets are mostly tabular; without stronger ties to high-profile NeurIPS application areas (e.g., vision, language, RL), broader appeal could be somewhat narrower."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 5,
+      "why_it_fits": [
+        "Topic fit (partial): Falls within ICLR’s probabilistic methods, optimization, and general ML categories, and touches representation-learning-adjacent tools (normalizing flows used for evaluation).",
+        "Contribution fit: Provides a method with finite-sample guarantees and an implementable OT-based scalarization; code and algorithmic clarity are promised, which aligns with ICLR’s reproducibility ethos.",
+        "Novelty fit: The center-outward rank-based approach has conceptual novelty noted by Reviewers A and C, which could interest a subset of ICLR’s theory/probabilistic community."
+      ],
+      "why_it_does_not_fit": [
+        "Topic emphasis mismatch: ICLR is more centered on deep learning and representation learning contributions; this work is primarily a statistical/OT conformal method rather than a representation-learning advance.",
+        "Application orientation: Experiments are tabular and not oriented around core ICLR domains (vision, language, reinforcement learning) or deep architectures; the main DL component (flows) is used for evaluation rather than as a core contribution.",
+        "Rigor and completeness risk: Reviewer B’s concerns (missing formal theorem statements/proofs, incomplete empirical reporting at submission time) create risk in a venue that often demands tight, self-contained presentations.",
+        "Practical complexity: Computational overhead and hyperparameter sensitivity (ε, m) may be viewed as engineering-heavy for a paper that is not deeply tied to neural representation advances."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}
