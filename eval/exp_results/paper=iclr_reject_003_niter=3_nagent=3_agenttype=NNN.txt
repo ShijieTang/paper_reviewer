@@ -1,0 +1,130 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 2,
+        "significance": 2,
+        "evaluation": 1,
+        "clarity": 2
+      },
+      "strengths": [
+        "The rebuttal directly addresses the core flaw by withdrawing the finite/co-finite claim and replacing it with a finite-state (regular-language) upper bound under fixed precision, NoPE, and stable-softmax, which is more plausible and consistent with prior literature.",
+        "A concrete, IEEE-754–aware plan is outlined: formalizing numerically stable softmax, correcting the parameter assumption, and introducing a rounding lemma parameterized by the minimum positive representable value to control exact zeroing of non-target weights.",
+        "Constructive lower bounds are made more rigorous and implementation-aligned: head-per-symbol constructions for letter-set languages under NoPE and periodic APE for m-cyclic languages, both relying on logit gaps and stable rounding rather than overflow.",
+        "The authors commit to empirical sanity checks across fp16/bf16/fp32 and to a clearer positioning relative to encoder/circuit/logic results, which would strengthen practical relevance and novelty if carried through."
+      ],
+      "weaknesses": [
+        "The current manuscript remains unsound and inconsistent: the main claims and proofs in Sections 5–6 still depend on flawed arguments; the proposed finite-state upper bound and precision-aware constructions are not yet integrated into the paper, representing major post-rebuttal changes.",
+        "The revised lower bounds hinge on exact rounding to zero under stable-softmax via format-dependent gaps; robustness across IEEE-754 formats, subnormal handling, library implementations of exp/softmax, and fused kernels needs careful, fully rigorous treatment and validation, which is not present yet.",
+        "Novelty appears moderate: the finite-state transducer viewpoint under fixed precision and bounded resources is conceptually familiar; the paper needs to delineate its contribution beyond existing encoder and circuit/logic bounds and demonstrate what is uniquely decoder-specific.",
+        "Assumptions such as constant decode budget, NoPE, and greedy decoding materially narrow the scope; the significance of results for practical systems remains limited without broader settings or empirical corroboration.",
+        "Presentation issues identified earlier (typos, malformed tables/equations, ambiguous notation) persist in the current draft and must be systematically fixed to ensure clarity and confidence."
+      ],
+      "summary_comment": "The authors’ rebuttal is thoughtful and substantially improves the technical direction: it replaces the untenable finite/co-finite claim with a finite-state upper bound under fixed precision and NoPE, formalizes stable-softmax and IEEE-754 rounding, and proposes constructive lower bounds for letter-set and m-cyclic languages that are better aligned with practical implementations. These changes, along with planned empirical checks, would make the work far more sound and relevant. However, the current manuscript still contains the unsound arguments and lacks the revised proofs and validations; the required corrections are extensive and central to the contribution. Additionally, the precision-dependent rounding conditions demand careful, implementation-robust proofs and experiments that are not yet included, and the novelty relative to existing finite-domain and logic/circuit results remains to be clearly articulated. I recommend rejection at this time, with encouragement to incorporate the proposed revisions, provide full formal proofs and empirical validations, and clearly position the contributions before resubmission."
+    },
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The rebuttal substantially improves the technical direction: it abandons overflow-based reasoning, adopts numerically stable softmax, and corrects the assumption to exclude non-finite QK^T values, aligning with practical implementations.",
+        "Provides a more convincing path to a regular-language upper bound via a refined state definition that includes clipped histograms of key/value patterns and final-position activations, together with a κ-threshold lemma to ensure attention outputs depend only on finitely many summary counts.",
+        "Clarifies IEEE-754 portability for the zeroing/rounding strategy with explicit bounds based on min_pos and ulp, and plans to handle both subnormal-preserving and flush-to-zero regimes; proposes cross-backend empirical checks to validate thresholds.",
+        "Outlines concrete, constant-precision constructions for letter-set (NoPE) and m-cyclic (periodic APE) languages that avoid universal approximation and length-dependent scaling, making them more plausible under fixed precision."
+      ],
+      "weaknesses": [
+        "The key results remain proposed but not proved in the submission: the DFA reduction hinges on nontrivial lemmas (finite pattern sets, κ-threshold rounding, and especially the right-congruence property s(w) = s(w′) ⇒ s(wσ) = s(w′σ)) that are not yet included; without these, the main upper bound is still unsubstantiated.",
+        "The clipped-histogram approach requires careful justification that the finite summaries indeed determine all subsequent attention and FFN computations across layers/heads (including nonlinearities and residuals) under fixed precision; this dependence is asserted but not demonstrated, and the precise definition of the state and update δ needs formalization.",
+        "The rounding/underflow conditions, while more principled, depend sensitively on IEEE-754 details (subnormals, FTZ, exp implementations) and chosen Δ; robustness across precisions and backends remains to be established empirically and formally.",
+        "Given the scope of revisions (replacing the headline theorems, adding new lemmas, formal proofs, and experiments), the current manuscript does not yet meet the standard for completeness and rigor required for acceptance."
+      ],
+      "summary_comment": "The authors’ second response addresses prior concerns with a much more rigorous plan: redefining the state to clipped histograms to make the δ transition well-defined under causal attention, proposing κ-threshold and negligible-contribution lemmas in IEEE-754 terms, and outlining constant-precision constructions for letter-set and m-cyclic languages without relying on overflow or universal approximation. These directions are promising and better grounded in practical numerics. However, the crucial components are not yet in the paper: the well-definedness of the DFA reduction (i.e., that the chosen state forms a right congruence under appending symbols) and the rounding lemmas remain to be formally proved and integrated; similarly, the portability of the zeroing strategy across precisions/backends must be demonstrated. Given the magnitude of changes required and the absence of complete proofs and validations in the current draft, I recommend rejection at this time, with encouragement to resubmit once the new theoretical results and supporting experiments are fully developed and incorporated."
+    },
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The authors withdraw the unsound overflow-based softmax reasoning and adopt a numerically stable softmax within an explicit IEEE-754 fixed-precision model, correcting the infinity-freeness assumption and aligning the setup with practice.",
+        "They substantially refine the finite-state (regular) upper-bound argument by defining a concrete, finite state S(w) comprising query-indexed accumulation tables (unnormalized sums Z_lh(q), U_lh(q)) per layer/head and the final-position activation, together with a right-congruence and well-defined transition δ(S, σ). This directly addresses the earlier concern about causal attention recomputing over all past keys/values.",
+        "For lower bounds, they replace underflow-to-zero dependence with a portable ULP-Separation Lemma that guarantees exact outputs under round-to-nearest when non-target contributions are below ulp thresholds, and outline precision-aware constructions for letter-set (NoPE) and m-cyclic (APE) languages.",
+        "They plan to add empirical validations (across fp32/fp16/bf16 and common backends) and a cleaned, rigorous presentation (numerical model specification, full proofs, corrected notation), which would materially improve the paper."
+      ],
+      "weaknesses": [
+        "The key technical pieces remain promises rather than completed results. The finite-state reduction hinges on nontrivial lemmas (finiteness of Q_lh and table ranges, well-defined δ, and the right-congruence proof under causal attention), as well as the Clipped Accumulation Lemma; these are not yet provided in the manuscript. Until these proofs are presented in full, the main claim remains unverified.",
+        "The ULP-Separation-based lower bounds depend on precise control of rounding and value norms across IEEE-754 formats and backend behaviors (round-to-nearest-even, subnormals, FTZ/DAZ). Concrete Δ and ulp bounds, and portability across hardware/software stacks, need to be fully specified and proved; currently they are only outlined.",
+        "Novelty and scope are moderate after revision. A decoder-specific, finite-state upper bound under fixed precision and NoPE is plausible but may overlap with existing finite-state intuitions; lower bounds cover letter-set and m-cyclic families, which are relatively limited subclasses. Clearer positioning against prior theorems and a broader characterization would strengthen significance.",
+        "The current submission still lacks the promised empirical validation and substantial rewriting for clarity. Accepting on the basis of intended revisions is premature."
+      ],
+      "summary_comment": "The rebuttal makes strong progress: it corrects the numerical model, retracts the finite/co-finite claim, and proposes a rigorous path to a finite-state upper bound via an explicit, query-indexed state that appears sufficient to define a right-congruent transition under causal attention. It also replaces fragile underflow arguments with a portable ULP-Separation approach for precision-aware lower bounds and commits to empirical checks and a substantial rewrite. These changes address the core issues I raised and, if fully executed, could yield a solid contribution. However, the crucial lemmas and complete proofs are not yet in the manuscript, the portability and parameter bounds for the lower bounds remain to be formalized, and empirical evidence is pending. Given the extent of outstanding work and the modest novelty, I recommend rejection at this stage, with encouragement to resubmit a thoroughly revised version with full proofs, clarified assumptions, and supporting experiments."
+    }
+  ],
+  "conference": {
+    "ICML": {
+      "fit_score": 4,
+      "why_it_fits": [
+        "Topic fit: The paper studies the expressivity of Transformers under fixed precision and positional encoding choices, connecting to formal languages, logic, and circuit complexity—well within ICML’s “theory of machine learning” and “general machine learning” topics, and close to prior ICML work on fixed-precision expressivity (e.g., encoder bounds).",
+        "Contribution type: A theoretical upper bound (now positioned as a finite-state/regular-language upper bound under fixed precision, NoPE, and numerically stable softmax) plus constructive lower bounds (letter-set under NoPE, m-cyclic under APE) aligns with ICML’s appetite for rigorous ML theory with practical implications.",
+        "Practical framing: The rebuttal moves to IEEE-754–aware modeling (stable softmax, infinity-free QK^T), κ-threshold/rounding lemmas, and plans empirical checks across fp16/bf16/fp32; this bridges theory and real-world implementations, which ICML values."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor and completeness issues (reviewers): The current manuscript still contains unsound arguments and lacks the integrated revised proofs. The proposed finite-state upper bound and IEEE-754 rounding/threshold lemmas are not yet in the paper; key right-congruence and clipped-histogram/state-transition lemmas remain unproved.",
+        "Novelty and scope concerns (reviewers): Reviewers cite moderate novelty and overlap with existing encoder/circuit/logic bounds; the decoder-specific angle and what is uniquely new are not yet clearly delimited.",
+        "Assumption narrowness and significance (reviewers): Constant decode budget, NoPE, greedy decoding, and other constraints reduce practical impact; without the promised empirical corroboration, significance for deployed systems is limited.",
+        "Presentation (reviewers): Typos, malformed tables/equations, and ambiguous notation undermine clarity; ICML expectations for polish are not met.",
+        "Reviewer risk: All reviewers recommend rejection pending major revisions and validations, indicating high risk at ICML’s competitive bar."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 5,
+      "why_it_fits": [
+        "Topic fit: NeurIPS explicitly welcomes theory, probabilistic methods, SysML infrastructure, and in-depth analyses of existing methods. A numerically grounded expressivity analysis of Transformers under IEEE-754 fixed precision fits the Theory track and resonates with systems-aware analysis.",
+        "Contribution type: The shift to numerically stable softmax and an IEEE-754 model, a finite-state (regular-language) upper bound under fixed precision/NoPE, and precision-aware lower bounds align with NeurIPS’s interdisciplinary scope (theory × systems).",
+        "Positioning potential: If completed, the DFA-style reduction, κ-threshold/negligible-contribution lemmas, and ULP-Separation arguments would provide practically relevant theoretical insights that NeurIPS often features, and the planned cross-backend experiments would strengthen the case."
+      ],
+      "why_it_does_not_fit": [
+        "Incomplete core results (reviewers): The headline theorems are being replaced and the crucial proofs (finite pattern/state definition, right-congruence s(w)=s(w′)⇒s(wσ)=s(w′σ), κ-threshold, clipped accumulations across layers/heads) are not yet in the submission.",
+        "Portability/robustness gaps (reviewers): The rounding/underflow conditions depend on IEEE-754 details (subnormals, FTZ/DAZ, exp/softmax implementations); reviewers require formal bounds and cross-precision/backend validations, which are not yet provided.",
+        "Moderate novelty and narrow lower bounds (reviewers): The finite-state perspective under fixed precision may be seen as expected; the lower bounds target letter-set and m-cyclic subclasses, limiting breadth unless expanded or better positioned.",
+        "Presentation and polish (reviewers): Existing clarity issues and the need for substantial rewriting detract from suitability for NeurIPS’s broad audience.",
+        "Reviewer risk: Given unanimous rejection due to missing proofs/validations, the likelihood of success without major revisions is low even if topic fit is good."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 3,
+      "why_it_fits": [
+        "Topic overlap: ICLR includes deep learning and learning theory, and has interest in positional encodings and representation-related behavior of Transformers; the work touches on APE/NoPE and fixed-precision constraints.",
+        "Methodological angle: A theory-heavy analysis that aspires to connect to practical implementations (IEEE-754, stable softmax) can be of interest if framed around implications for representation learning/generalization.",
+        "Potential relevance: If paired with strong empirical evidence on real models across precisions, the work could appeal to ICLR’s community interested in how architecture and numerics affect behavior."
+      ],
+      "why_it_does_not_fit": [
+        "Contribution fit: ICLR tends to prioritize deep learning advances with clear implications for representation learning and often expects empirical support; the current paper is predominantly formal and lacks the promised experiments.",
+        "Rigor and completeness (reviewers): The submission still contains unsound sections and is missing the revised proofs; this falls short of ICLR’s standards for theoretical clarity and completeness.",
+        "Novelty/scope (reviewers): Reviewers judge novelty as moderate and scope as narrow due to restrictive assumptions (constant decode, NoPE, greedy decoding); without broader characterization or applications, perceived ICLR impact is limited.",
+        "Presentation (reviewers): Persistent notation and formatting issues reduce readability; ICLR’s open-review process further penalizes unclear drafts.",
+        "Reviewer risk: Given the extent of missing core proofs and validations noted by all reviewers, the chance of acceptance at ICLR is very low at this stage."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  }
+}
