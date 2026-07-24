@@ -12,10 +12,11 @@ from prompts.reviewer_iter import reviewer_iteration
 # ── JSON helpers ────────────────────────────────────────────────────────────
 
 def _parse_json(text: str) -> dict:
-    """Strip optional ```json fences then parse JSON."""
+    """Strip optional ```json fences and trailing commas, then parse JSON."""
     text = text.strip()
     text = re.sub(r'^```(?:json)?\s*', '', text, flags=re.IGNORECASE)
     text = re.sub(r'\s*```$', '', text)
+    text = re.sub(r',(\s*[}\]])', r'\1', text)
     return json.loads(text)
 
 
@@ -162,6 +163,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
          run_citation_check: bool = True,
          enable_ai_detector: bool = False,
          enable_rag: bool = False,
+         enable_author_rebuttal: bool = True,
          precomputed_rag_package: dict | None = None,
          rag_config: dict | None = None) -> dict:
     """
@@ -300,16 +302,21 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
     for iteration in range(1, n_iter):
         # Phase B: Author and optional review-style evaluator process previous reviews.
         phase_label = "Author & Review Style Evaluator" if enable_ai_detector else "Author"
+        if not enable_author_rebuttal:
+            phase_label = "Review Style Evaluator" if enable_ai_detector else "No-op"
         emit(f"--- Iteration {iteration + 1} / {n_iter}: {phase_label} Processing ---")
         for i, reviewer in enumerate(reviewers):
-            emit(f"AI Author writing rebuttal to {reviewer.name}...")
-            emit_agent_status(author.name, "running")
-            author_resps[iteration][i] = author.call(
-                f"[Reviewer name — use exactly this in your JSON: {reviewer.name}]\n\n"
-                f"{reviews[iteration - 1][i]}"
-            )
-            emit_agent_status(author.name, "done")
-            emit_message(author.name, author_resps[iteration][i])
+            if enable_author_rebuttal:
+                emit(f"AI Author writing rebuttal to {reviewer.name}...")
+                emit_agent_status(author.name, "running")
+                author_resps[iteration][i] = author.call(
+                    f"[Reviewer name — use exactly this in your JSON: {reviewer.name}]\n\n"
+                    f"{reviews[iteration - 1][i]}"
+                )
+                emit_agent_status(author.name, "done")
+                emit_message(author.name, author_resps[iteration][i])
+            else:
+                author_resps[iteration][i] = "(No rebuttal was submitted for this iteration.)"
             if ai_detect is not None:
                 emit_agent_status(ai_detect.name, "running")
                 aicheck_resps[iteration][i] = ai_detect.call(reviews[iteration - 1][i])
@@ -445,6 +452,9 @@ if __name__ == "__main__":
     parser.add_argument("--enable_rag", action="store_true")
     parser.add_argument("--enable_ai_detector", action="store_true",
                         help="Enable conference-review style evaluation during rebuttal iterations.")
+    parser.add_argument("--disable_author_rebuttal", action="store_true",
+                        help="Skip the AI Author rebuttal step in rebuttal iterations "
+                             "(enabled by default).")
     args = parser.parse_args()
 
     with open(args.paper, "r", encoding="utf-8") as f:
@@ -455,6 +465,7 @@ if __name__ == "__main__":
         provider=args.provider, model=args.model, api_key=args.api_key,
         enable_rag=args.enable_rag,
         enable_ai_detector=args.enable_ai_detector,
+        enable_author_rebuttal=not args.disable_author_rebuttal,
     )
 
     lines = []

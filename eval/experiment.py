@@ -1,18 +1,18 @@
 """
 experiment.py
 
-Run two experimental conditions for each paper in papers.json and save
+Run five experimental conditions for each paper in papers.json and save
 results for later quantitative comparison.
 
-Condition A — Single agent:
-    agents = [reviewer_a], n_iter = len(agents) = 1
-
-Condition B — Multi-agent:
-    agents = [reviewer_a, reviewer_b, reviewer_c], n_iter = len(agents) = 3
+Condition 1 — No RAG, 1 iteration, 1 reviewer
+Condition 2 — RAG,    1 iteration, 1 reviewer
+Condition 3 — No RAG, 2 iterations, 1 reviewer, AI Detector, no author rebuttal
+Condition 4 — No RAG, 3 iterations, 1 reviewer, author rebuttal, no AI Detector
+Condition 5 — No RAG, 1 iteration, 3 reviewers
 
 Result files (in --output_dir):
-    {timestamp}_nagent=1_niter=1_styledetector=1_paper={name}_cond=A_single.txt
-    {timestamp}_nagent=3_niter=3_styledetector=1_paper={name}_cond=B_multi.txt
+    {timestamp}_nagent=1_niter=1_paper={name}_cond=1_no_rag_1iter_1rev.txt
+    ...
 
 Each .txt file contains the raw result dict (identical structure to the
 normal webapp output):
@@ -22,11 +22,12 @@ A summary JSON is also saved:
     experiment_summary_{timestamp}.json
 
 Usage (run from the project root):
-    python evaluation/experiment.py \\
-        --json_file  evaluation/papers.json \\
-        --api_key    YOUR_API_KEY            \\
-        --output_dir evaluation/exp_results  \\
-        [--paper_id  example_001]
+    python eval/experiment.py \\
+        --json_file  eval/openreview_60_module_test.json \\
+        --api_key    YOUR_API_KEY                        \\
+        --output_dir eval/exp_results                    \\
+        [--paper_id  example_001]                         \\
+        [--conditions 1,2,3,4,5]
 """
 
 from __future__ import annotations
@@ -55,23 +56,40 @@ def normalize_topic(topic: str) -> str:
 
 
 # ── Condition definitions ─────────────────────────────────────────────────────
-
-_CONDITIONS_AGENTS = [
-    ("A", "single", ["reviewer_a"]),
-    ("B", "multi",  ["reviewer_a", "reviewer_b", "reviewer_c"]),
+# (id, label, desc, agents, n_iter, enable_rag, enable_ai_detector, enable_author_rebuttal)
+_CONDITIONS_SPEC = [
+    ("1", "no_rag_1iter_1rev",
+     "No RAG, 1 iteration, 1 reviewer",
+     ["reviewer_a"], 1, False, False, True),
+    ("2", "rag_1iter_1rev",
+     "RAG, 1 iteration, 1 reviewer",
+     ["reviewer_a"], 1, True, False, True),
+    ("3", "no_rag_2iter_aidetect_noauthor",
+     "No RAG, 2 iterations, 1 reviewer, AI Detector enabled, no author rebuttal",
+     ["reviewer_a"], 2, False, True, False),
+    ("4", "no_rag_3iter_author",
+     "No RAG, 3 iterations, 1 reviewer, author rebuttal, no AI Detector",
+     ["reviewer_a"], 3, False, False, True),
+    ("5", "no_rag_1iter_3rev",
+     "No RAG, 1 iteration, 3 reviewers",
+     ["reviewer_a", "reviewer_b", "reviewer_c"], 1, False, False, True),
 ]
 
 ENABLE_AI_DETECTOR = True
 
 CONDITIONS = [
     {
-        "id":     cid,
-        "label":  label,
-        "desc":   f"{'Single' if len(agents) == 1 else 'Multi'}-agent, {len(agents)} iteration{'s' if len(agents) > 1 else ''}",
-        "agents": agents,
-        "n_iter": len(agents),
+        "id":                     cid,
+        "label":                  label,
+        "desc":                   desc,
+        "agents":                 agents,
+        "n_iter":                 n_iter,
+        "enable_rag":             enable_rag,
+        "enable_ai_detector":     enable_ai_detector,
+        "enable_author_rebuttal": enable_author_rebuttal,
     }
-    for cid, label, agents in _CONDITIONS_AGENTS
+    for cid, label, desc, agents, n_iter, enable_rag, enable_ai_detector, enable_author_rebuttal
+    in _CONDITIONS_SPEC
 ]
 
 
@@ -85,10 +103,14 @@ def load_papers(json_file: str) -> list:
 
 def pdf_to_markdown(pdf_dir: str) -> str:
     """Load an existing markdown file when present, otherwise convert the PDF."""
+    p = Path(pdf_dir)
+    if p.suffix.lower() == ".md" and p.exists():
+        return p.read_text(encoding="utf-8")
     return load_or_create_markdown(pdf_dir, md_path="data/md")
 
 
-def run_condition(paper_text: str, topic: str, cond: dict, api_key: str) -> dict:
+def run_condition(paper_text: str, topic: str, cond: dict, api_key: str,
+                  model: str = "") -> dict:
     """Run one experimental condition and return the raw result dict."""
     return mas_main(
         paper=paper_text,
@@ -96,8 +118,11 @@ def run_condition(paper_text: str, topic: str, cond: dict, api_key: str) -> dict
         n_iter=cond["n_iter"],
         reviewer_types=cond["agents"],
         api_key=api_key,
+        model=model,
         run_citation_check=False,
-        enable_ai_detector=ENABLE_AI_DETECTOR,
+        enable_rag=cond.get("enable_rag", False),
+        enable_ai_detector=cond.get("enable_ai_detector", False),
+        enable_author_rebuttal=cond.get("enable_author_rebuttal", True),
     )
 
 
@@ -111,7 +136,6 @@ def save_result(result: dict, paper_name: str, cond: dict,
         f"{timestamp}"
         f"_nagent={len(cond['agents'])}"
         f"_niter={cond['n_iter']}"
-        f"_styledetector={int(ENABLE_AI_DETECTOR)}"
         f"_paper={paper_name}"
         f"_cond={cond['id']}_{cond['label']}.txt"
     )
@@ -126,7 +150,6 @@ def _existing_result_path(output_dir: str, paper_name: str, cond: dict) -> Path 
     pattern = (
         f"*_nagent={len(cond['agents'])}"
         f"_niter={cond['n_iter']}"
-        f"_styledetector={int(ENABLE_AI_DETECTOR)}"
         f"_paper={paper_name}"
         f"_cond={cond['id']}_{cond['label']}.txt"
     )
@@ -144,19 +167,25 @@ def _load_existing_result(path: Path) -> dict | None:
 
 # ── Main experiment loop ──────────────────────────────────────────────────────
 
-def run_experiment(papers: list, api_key: str, output_dir: str) -> dict:
+def run_experiment(papers: list, api_key: str, output_dir: str,
+                   conditions: list = None, model: str = "") -> dict:
     """
-    Run all conditions on all papers. Returns a summary dict for analysis.
+    Run the given conditions (default: all of CONDITIONS) on all papers.
+    Returns a summary dict for analysis.
     """
+    conditions = conditions if conditions is not None else CONDITIONS
     os.makedirs(output_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%y%m%d%H%M")
 
     summary = {
         "timestamp": timestamp,
+        "model": model,
         "conditions": {c["id"]: {"desc": c["desc"], "agents": c["agents"],
                                   "n_iter": c["n_iter"],
-                                  "enable_ai_detector": ENABLE_AI_DETECTOR}
-                       for c in CONDITIONS},
+                                  "enable_rag": c.get("enable_rag", False),
+                                  "enable_ai_detector": c.get("enable_ai_detector", False),
+                                  "enable_author_rebuttal": c.get("enable_author_rebuttal", True)}
+                       for c in conditions},
         "papers": [],
     }
 
@@ -171,7 +200,7 @@ def run_experiment(papers: list, api_key: str, output_dir: str) -> dict:
 
         existing_paths = {
             cond["id"]: _existing_result_path(output_dir, paper_name, cond)
-            for cond in CONDITIONS
+            for cond in conditions
         }
 
         paper_entry = {
@@ -190,7 +219,7 @@ def run_experiment(papers: list, api_key: str, output_dir: str) -> dict:
         }
 
         paper_text = None
-        for cond in CONDITIONS:
+        for cond in conditions:
             print(f"\n--- Condition {cond['id']}: {cond['desc']} ---")
             existing_path = existing_paths[cond["id"]]
             reused_existing = False
@@ -211,7 +240,7 @@ def run_experiment(papers: list, api_key: str, output_dir: str) -> dict:
                     paper_text = pdf_to_markdown(paper_meta["paper_dir"])
                     print("Paper text ready.")
 
-                result = run_condition(paper_text, topic, cond, api_key)
+                result = run_condition(paper_text, topic, cond, api_key, model=model)
                 out_path = save_result(result, paper_name, cond, output_dir, timestamp)
                 print(f"Saved: {out_path}")
 
@@ -246,6 +275,13 @@ def main():
                         help="Directory to save all result files.")
     parser.add_argument("--paper_id",   default=None,
                         help="Optional: run only this paper_id.")
+    parser.add_argument("--conditions", default=None,
+                        help="Comma-separated condition ids to run, e.g. 'A,C,D1,D2' "
+                             f"(default: all of {[c['id'] for c in CONDITIONS]}).")
+    parser.add_argument("--model", default="",
+                        help="Model name to pass through to mas_loop (e.g. "
+                             "'openai/gpt-4o-mini-2024-07-18' via OpenRouter). "
+                             "Default: provider's default model.")
     args = parser.parse_args()
 
     papers = load_papers(args.json_file)
@@ -255,7 +291,16 @@ def main():
             print(f"Error: paper_id '{args.paper_id}' not found.")
             sys.exit(1)
 
-    run_experiment(papers, args.api_key, args.output_dir)
+    conditions = CONDITIONS
+    if args.conditions:
+        wanted = {c.strip() for c in args.conditions.split(",")}
+        conditions = [c for c in CONDITIONS if c["id"] in wanted]
+        missing = wanted - {c["id"] for c in conditions}
+        if missing:
+            print(f"Error: unknown condition id(s): {sorted(missing)}")
+            sys.exit(1)
+
+    run_experiment(papers, args.api_key, args.output_dir, conditions=conditions, model=args.model)
     print("\nExperiment complete.")
 
 
