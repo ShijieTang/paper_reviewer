@@ -10,6 +10,10 @@ Condition 3 — No RAG, 2 iterations, 1 reviewer, AI Detector, no author rebutta
 Condition 4 — No RAG, 3 iterations, 1 reviewer, author rebuttal, no AI Detector
 Condition 5 — No RAG, 1 iteration, 3 reviewers
 Condition 6 — No RAG, 2 iterations, 1 reviewer, no AI Detector, no author rebuttal
+Condition 7 — Related-work + review-memory RAG, 1 iteration, 1 reviewer
+
+Conditions 2 and 7 differ only in the review-memory RAG (OpenReview reviews of
+the ranked related papers), so (7 - 2) measures that second RAG on its own.
 
 Conditions 3 and 6 differ only in the AI Detector, so (3 - 6) measures the
 detector and (6 - 1) measures the extra iteration on its own. Note that with
@@ -69,29 +73,42 @@ def normalize_topic(topic: str) -> str:
 
 
 # ── Condition definitions ─────────────────────────────────────────────────────
-# (id, label, desc, agents, n_iter, enable_rag, enable_ai_detector, enable_author_rebuttal)
+_N = ["reviewer_nopersona"]
+
 _CONDITIONS_SPEC = [
-    ("1", "no_rag_1iter_1rev",
-     "No RAG, 1 iteration, 1 neutral reviewer",
-     ["reviewer_nopersona"], 1, False, False, True),
-    ("2", "rag_1iter_1rev",
-     "RAG, 1 iteration, 1 neutral reviewer",
-     ["reviewer_nopersona"], 1, True, False, True),
-    ("3", "no_rag_2iter_aidetect_noauthor",
-     "No RAG, 2 iterations, 1 neutral reviewer, AI Detector enabled, no author rebuttal",
-     ["reviewer_nopersona"], 2, False, True, False),
-    ("4", "no_rag_3iter_author",
-     "No RAG, 3 iterations, 1 neutral reviewer, author rebuttal, no AI Detector",
-     ["reviewer_nopersona"], 3, False, False, True),
-    ("5", "no_rag_1iter_3rev",
-     "No RAG, 1 iteration, 3 persona reviewers",
-     ["reviewer_a", "reviewer_b", "reviewer_c"], 1, False, False, True),
+    dict(id="1", label="no_rag_1iter_1rev",
+         desc="No RAG, 1 iteration, 1 neutral reviewer",
+         agents=_N, n_iter=1),
+    dict(id="2", label="rag_1iter_1rev",
+         desc="Related-work RAG, 1 iteration, 1 neutral reviewer",
+         agents=_N, n_iter=1, enable_rag=True),
+    dict(id="3", label="no_rag_2iter_aidetect_noauthor",
+         desc="No RAG, 2 iterations, 1 neutral reviewer, AI Detector enabled, no author rebuttal",
+         agents=_N, n_iter=2, enable_ai_detector=True, enable_author_rebuttal=False),
+    dict(id="4", label="no_rag_3iter_author",
+         desc="No RAG, 3 iterations, 1 neutral reviewer, author rebuttal, no AI Detector",
+         agents=_N, n_iter=3),
+    dict(id="5", label="no_rag_1iter_3rev",
+         desc="No RAG, 1 iteration, 3 persona reviewers",
+         agents=["reviewer_a", "reviewer_b", "reviewer_c"], n_iter=1),
     # Control for condition 3: identical except the AI Detector is off, so
     # (3 - 6) isolates the detector and (6 - 1) isolates the extra iteration.
-    ("6", "no_rag_2iter_noaidetect_noauthor",
-     "No RAG, 2 iterations, 1 neutral reviewer, no AI Detector, no author rebuttal",
-     ["reviewer_nopersona"], 2, False, False, False),
+    dict(id="6", label="no_rag_2iter_noaidetect_noauthor",
+         desc="No RAG, 2 iterations, 1 neutral reviewer, no AI Detector, no author rebuttal",
+         agents=_N, n_iter=2, enable_author_rebuttal=False),
+    # Condition 2 plus the review-memory RAG, so (7 - 2) isolates the second RAG
+    # while condition 2 stays comparable to earlier related-work-only runs.
+    dict(id="7", label="rag_reviewmem_1iter_1rev",
+         desc="Related-work + review-memory RAG, 1 iteration, 1 neutral reviewer",
+         agents=_N, n_iter=1, enable_rag=True, enable_review_memory=True),
 ]
+
+_CONDITION_DEFAULTS = {
+    "enable_rag":             False,
+    "enable_ai_detector":     False,
+    "enable_author_rebuttal": True,
+    "enable_review_memory":   False,
+}
 
 _TYPE_CODE = {
     "reviewer_a":         "A",
@@ -107,19 +124,8 @@ def agenttype_code(agents: list) -> str:
 
 
 CONDITIONS = [
-    {
-        "id":                     cid,
-        "label":                  label,
-        "desc":                   desc,
-        "agents":                 agents,
-        "agenttype":              agenttype_code(agents),
-        "n_iter":                 n_iter,
-        "enable_rag":             enable_rag,
-        "enable_ai_detector":     enable_ai_detector,
-        "enable_author_rebuttal": enable_author_rebuttal,
-    }
-    for cid, label, desc, agents, n_iter, enable_rag, enable_ai_detector, enable_author_rebuttal
-    in _CONDITIONS_SPEC
+    {**_CONDITION_DEFAULTS, **spec, "agenttype": agenttype_code(spec["agents"])}
+    for spec in _CONDITIONS_SPEC
 ]
 
 
@@ -141,7 +147,15 @@ def pdf_to_markdown(pdf_dir: str) -> str:
 
 def run_condition(paper_text: str, topic: str, cond: dict, api_key: str,
                   model: str = "", rag_config: dict | None = None) -> dict:
-    """Run one experimental condition and return the raw result dict."""
+    """Run one experimental condition and return the raw result dict.
+
+    The condition's own enable_review_memory turns the second RAG on; the
+    caller's rag_config can force it on for every condition but never off.
+    """
+    rag_config = dict(rag_config or {})
+    if cond.get("enable_review_memory"):
+        rag_config["enable_review_memory_rag"] = True
+
     return mas_main(
         paper=paper_text,
         topic=topic,
@@ -307,7 +321,8 @@ def run_experiment(papers: list, api_key: str, output_dir: str,
                                   "n_iter": c["n_iter"],
                                   "enable_rag": c.get("enable_rag", False),
                                   "enable_ai_detector": c.get("enable_ai_detector", False),
-                                  "enable_author_rebuttal": c.get("enable_author_rebuttal", True)}
+                                  "enable_author_rebuttal": c.get("enable_author_rebuttal", True),
+                                  "enable_review_memory": c.get("enable_review_memory", False)}
                        for c in conditions},
         "papers": [],
     }

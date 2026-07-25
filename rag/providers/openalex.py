@@ -19,13 +19,15 @@ def _abstract_from_index(index: dict[str, list[int]] | None) -> str:
 
 class OpenAlexProvider(PaperSearchProvider):
     name = "OpenAlex"
+    inter_query_delay_seconds = 1.0
 
     def search(self, queries: list[RelatedWorkQuery], limit: int = 10) -> ProviderResult:
         warnings: list[str] = []
         papers: list[PaperMetadata] = []
         seen: dict[str, PaperMetadata] = {}
         query_limit = per_query_limit(limit, len(queries))
-        for query in queries:
+        for index, query in enumerate(queries):
+            self._sleep_between_queries(index)
             url = (
                 "https://api.openalex.org/works"
                 f"?search={encoded_query(query.query)}&per-page={query_limit}"

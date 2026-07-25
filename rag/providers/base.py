@@ -56,10 +56,22 @@ def is_forbidden_error(exc: BaseException) -> bool:
     return status == 403 or "403" in str(exc)
 
 
+def is_retryable_error(exc: BaseException) -> bool:
+    """Transient failure worth retrying: rate limit, server error, or timeout."""
+    status = http_status_code(exc)
+    if status is not None:
+        return status == 429 or 500 <= status < 600
+    return isinstance(exc, (urllib.error.URLError, TimeoutError, OSError))
+
+
 class PaperSearchProvider:
     name = "provider"
     default_headers = {"User-Agent": "paper-reviewer-rag/1.0"}
     inter_query_delay_seconds = 0.0
+    # A batch run hammers these public APIs from several workers at once, so a
+    # single 429 or read timeout must not silently drop a paper's evidence.
+    max_retries = 4
+    retry_base_delay_seconds = 3.0
 
     def __init__(self, cache_dir: str = "data/rag_cache", timeout: int = 20):
         self.cache = JsonCache(cache_dir, self.name)
@@ -69,33 +81,43 @@ class PaperSearchProvider:
         if query_index > 0 and self.inter_query_delay_seconds > 0:
             time.sleep(self.inter_query_delay_seconds)
 
-    def _json_get(self, url: str, headers: dict[str, str] | None = None) -> Any:
+    def _retry_delay(self, exc: BaseException, attempt: int) -> float:
+        """Backoff for one retry, honouring Retry-After when the server sends it."""
+        retry_after = getattr(exc, "headers", None)
+        if retry_after is not None:
+            try:
+                return max(1.0, float(retry_after.get("Retry-After")))
+            except (TypeError, ValueError):
+                pass
+        return self.retry_base_delay_seconds * (2 ** attempt)
+
+    def _fetch(self, url: str, headers: dict[str, str] | None, decode) -> Any:
         cached = self.cache.get(url)
         if cached is not None:
             return cached
         request = urllib.request.Request(url, headers={**self.default_headers, **(headers or {})})
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                data = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            reason = getattr(exc, "reason", "") or getattr(exc, "msg", "")
-            raise ProviderHTTPError(url, exc.code, reason) from exc
+        for attempt in range(self.max_retries):
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                    data = decode(response.read())
+                break
+            except urllib.error.HTTPError as exc:
+                reason = getattr(exc, "reason", "") or getattr(exc, "msg", "")
+                error = ProviderHTTPError(url, exc.code, reason)
+                error.headers = getattr(exc, "headers", None)
+            except Exception as exc:                       # timeouts, connection resets
+                error = exc
+            if attempt == self.max_retries - 1 or not is_retryable_error(error):
+                raise error
+            time.sleep(self._retry_delay(error, attempt))
         self.cache.set(url, data)
         return data
 
+    def _json_get(self, url: str, headers: dict[str, str] | None = None) -> Any:
+        return self._fetch(url, headers, lambda raw: json.loads(raw.decode("utf-8")))
+
     def _text_get(self, url: str, headers: dict[str, str] | None = None) -> str:
-        cached = self.cache.get(url)
-        if cached is not None:
-            return cached
-        request = urllib.request.Request(url, headers={**self.default_headers, **(headers or {})})
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                data = response.read().decode("utf-8", errors="replace")
-        except urllib.error.HTTPError as exc:
-            reason = getattr(exc, "reason", "") or getattr(exc, "msg", "")
-            raise ProviderHTTPError(url, exc.code, reason) from exc
-        self.cache.set(url, data)
-        return data
+        return self._fetch(url, headers, lambda raw: raw.decode("utf-8", errors="replace"))
 
     def search(self, queries: list[RelatedWorkQuery], limit: int = 10) -> ProviderResult:
         raise NotImplementedError
