@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import re
+import time
 import urllib.parse
 import urllib.request
 import urllib.error
@@ -338,6 +339,14 @@ class OpenReviewMemoryProvider(PaperSearchProvider):
         self._openreview_auth_attempted = False
         self._openreview_auth_warning = ""
 
+    def _should_cache(self, data: Any) -> bool:
+        # searchUnavailable is a transient backend hiccup on OpenReview's end, not
+        # a real "no results" answer; caching it would make our own retry loop
+        # in _lookup_forum_by_title just replay the same failure from disk.
+        if isinstance(data, dict) and data.get("searchUnavailable"):
+            return False
+        return True
+
     def _has_openreview_auth_config(self) -> bool:
         return bool(
             os.environ.get("OPENREVIEW_ACCESS_TOKEN")
@@ -410,14 +419,21 @@ class OpenReviewMemoryProvider(PaperSearchProvider):
         }
         return self._json_get(f"{base_url}?{query}", headers=headers)
 
-    def _lookup_forum_by_title(self, title: str) -> str:
+    def _lookup_forum_by_title(self, title: str, max_attempts: int = 3) -> str:
         if not title:
             return ""
         search_term = _normalize_title(title)
-        data = self._json_endpoint(
-            OPENREVIEW_SEARCH_URL,
-            {"term": search_term, "limit": 50, "source": "forum"},
-        )
+        params = {"term": search_term, "limit": 50, "source": "forum"}
+        data = self._json_endpoint(OPENREVIEW_SEARCH_URL, params)
+        # OpenReview's search backend intermittently returns a 200 with
+        # searchUnavailable=True (not an HTTP error, so the generic retry in
+        # base.py never sees it); re-issuing the same request moments later
+        # reliably succeeds, so retry a few times before giving up.
+        attempt = 1
+        while data.get("searchUnavailable") and attempt < max_attempts:
+            time.sleep(2.0 * attempt)
+            data = self._json_endpoint(OPENREVIEW_SEARCH_URL, params)
+            attempt += 1
         for note in data.get("notes", []):
             note_title = _as_text(_content(note).get("title"))
             if note_title and _title_similarity(title, note_title) >= 0.75:

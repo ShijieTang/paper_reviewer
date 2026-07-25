@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 import urllib.error
@@ -11,6 +12,21 @@ from typing import Any
 
 from rag.cache import JsonCache
 from rag.models import PaperMetadata, RelatedWorkQuery
+
+
+def _rag_opener() -> urllib.request.OpenerDirector:
+    """Opener used only for RAG provider HTTP fetches.
+
+    Deliberately keyed off RAG_HTTP_PROXY rather than the standard HTTP_PROXY /
+    HTTPS_PROXY env vars: those are also read by the OpenRouter/OpenAI clients,
+    and routing LLM traffic through a scraping proxy is not what we want.
+    """
+    proxy_url = os.environ.get("RAG_HTTP_PROXY", "").strip()
+    if not proxy_url:
+        return urllib.request.build_opener()
+    return urllib.request.build_opener(
+        urllib.request.ProxyHandler({"http": proxy_url, "https": proxy_url})
+    )
 
 
 @dataclass
@@ -92,6 +108,10 @@ class PaperSearchProvider:
                 pass
         return self.retry_base_delay_seconds * (2 ** attempt)
 
+    def _should_cache(self, data: Any) -> bool:
+        """Hook for subclasses to reject soft-failure 200 responses from the cache."""
+        return True
+
     def _fetch(self, url: str, headers: dict[str, str] | None, decode) -> Any:
         cached = self.cache.get(url)
         if cached is not None:
@@ -102,9 +122,10 @@ class PaperSearchProvider:
         if getattr(self, "_rate_limited", None) is not None:
             raise self._rate_limited
         request = urllib.request.Request(url, headers={**self.default_headers, **(headers or {})})
+        opener = _rag_opener()
         for attempt in range(self.max_retries):
             try:
-                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                with opener.open(request, timeout=self.timeout) as response:
                     data = decode(response.read())
                 break
             except urllib.error.HTTPError as exc:
@@ -118,7 +139,8 @@ class PaperSearchProvider:
                     self._rate_limited = error
                 raise error
             time.sleep(self._retry_delay(error, attempt))
-        self.cache.set(url, data)
+        if self._should_cache(data):
+            self.cache.set(url, data)
         return data
 
     def _json_get(self, url: str, headers: dict[str, str] | None = None) -> Any:
