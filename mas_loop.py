@@ -381,55 +381,74 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         }
 
     # ── Parse structured outputs ──────────────────────────────────────────────
-    parsed_reviews = []
-    for raw in final_reviews:
+    def _parse_or_raw(raw):
         if raw is None:
-            continue
+            return None
         try:
-            parsed_reviews.append(_normalize_review_weaknesses(_parse_json(raw)))
+            return _parse_json(raw)
         except Exception:
-            parsed_reviews.append({"raw": raw, "parse_error": True})
+            return {"raw": raw, "parse_error": True}
+
+    def _parse_review_or_raw(raw):
+        parsed = _parse_or_raw(raw)
+        if isinstance(parsed, dict) and not parsed.get("parse_error"):
+            return _normalize_review_weaknesses(parsed)
+        return parsed
+
+    parsed_reviews = [
+        _parse_review_or_raw(raw) for raw in final_reviews if raw is not None
+    ]
 
     parsed_style_analyses = []
     for iteration, row in enumerate(aicheck_resps, start=1):
         for reviewer_index, raw in enumerate(row):
             if raw is None:
                 continue
-            try:
-                analysis = _parse_json(raw)
-            except Exception:
-                analysis = {"raw": raw, "parse_error": True}
             parsed_style_analyses.append({
                 "iteration": iteration,
                 "stage": "pre_update",
                 "reviewer": reviewers[reviewer_index].name,
-                "analysis": analysis,
+                "analysis": _parse_or_raw(raw),
             })
 
     for reviewer_index, raw in enumerate(final_style_resps):
         if raw is None:
             continue
-        try:
-            analysis = _parse_json(raw)
-        except Exception:
-            analysis = {"raw": raw, "parse_error": True}
         parsed_style_analyses.append({
             "iteration": n_iter,
             "stage": "final_review",
             "reviewer": reviewers[reviewer_index].name,
-            "analysis": analysis,
+            "analysis": _parse_or_raw(raw),
         })
 
-    try:
-        parsed_conf = _parse_json(conf_rec_resp)
-    except Exception:
-        parsed_conf = {"raw": conf_rec_resp, "parse_error": True}
+    parsed_conf = _parse_or_raw(conf_rec_resp)
+
+    # Full per-iteration trace. Only the last round feeds "reviewers"; this keeps
+    # the earlier rounds together with the author rebuttal and AI Detector text
+    # that produced them, so an ablation can see what the detector actually said
+    # and how the review moved in response.
+    iterations = [
+        {
+            "iteration": it + 1,
+            "reviewers": [
+                {
+                    "reviewer":             reviewer.name,
+                    "review":               _parse_review_or_raw(reviews[it][i]),
+                    "author_response":      author_resps[it][i],
+                    "ai_detector_response": aicheck_resps[it][i],
+                }
+                for i, reviewer in enumerate(reviewers)
+            ],
+        }
+        for it in range(n_iter)
+    ]
 
     return {
         "reviewers":  parsed_reviews,
         "review_style_analyses": parsed_style_analyses,
         "conference": parsed_conf,
         "citations":  citation_results,
+        "iterations": iterations,
         "rag_package": rag_package,
         "rag_warnings": rag_warnings,
         "cutoff_report": cutoff_report,

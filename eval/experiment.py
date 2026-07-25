@@ -9,6 +9,12 @@ Condition 2 — RAG,    1 iteration, 1 reviewer
 Condition 3 — No RAG, 2 iterations, 1 reviewer, AI Detector, no author rebuttal
 Condition 4 — No RAG, 3 iterations, 1 reviewer, author rebuttal, no AI Detector
 Condition 5 — No RAG, 1 iteration, 3 reviewers
+Condition 6 — No RAG, 2 iterations, 1 reviewer, no AI Detector, no author rebuttal
+
+Conditions 3 and 6 differ only in the AI Detector, so (3 - 6) measures the
+detector and (6 - 1) measures the extra iteration on its own. Note that with
+n_iter=1 the rebuttal loop never runs, so enable_author_rebuttal has no effect
+in conditions 1, 2 and 5.
 
 Result files (in --output_dir):
     {timestamp}_nagent=1_niter=1_paper={name}_cond=1_no_rag_1iter_1rev.txt
@@ -80,6 +86,11 @@ _CONDITIONS_SPEC = [
     ("5", "no_rag_1iter_3rev",
      "No RAG, 1 iteration, 3 persona reviewers",
      ["reviewer_a", "reviewer_b", "reviewer_c"], 1, False, False, True),
+    # Control for condition 3: identical except the AI Detector is off, so
+    # (3 - 6) isolates the detector and (6 - 1) isolates the extra iteration.
+    ("6", "no_rag_2iter_noaidetect_noauthor",
+     "No RAG, 2 iterations, 1 neutral reviewer, no AI Detector, no author rebuttal",
+     ["reviewer_nopersona"], 2, False, False, False),
 ]
 
 _TYPE_CODE = {
@@ -129,7 +140,7 @@ def pdf_to_markdown(pdf_dir: str) -> str:
 
 
 def run_condition(paper_text: str, topic: str, cond: dict, api_key: str,
-                  model: str = "") -> dict:
+                  model: str = "", rag_config: dict | None = None) -> dict:
     """Run one experimental condition and return the raw result dict."""
     return mas_main(
         paper=paper_text,
@@ -142,6 +153,7 @@ def run_condition(paper_text: str, topic: str, cond: dict, api_key: str,
         enable_rag=cond.get("enable_rag", False),
         enable_ai_detector=cond.get("enable_ai_detector", False),
         enable_author_rebuttal=cond.get("enable_author_rebuttal", True),
+        rag_config=rag_config,
     )
 
 
@@ -200,7 +212,8 @@ def _log(paper_id: str, message: str) -> None:
 
 
 def _run_paper(paper_meta: dict, conditions: list, api_key: str,
-               output_dir: str, timestamp: str, model: str) -> dict:
+               output_dir: str, timestamp: str, model: str,
+               rag_config: dict | None = None) -> dict:
     """Run every condition for one paper and return its summary entry."""
     paper_id   = paper_meta["paper_id"]
     paper_name = Path(paper_meta["paper_dir"]).stem
@@ -247,7 +260,8 @@ def _run_paper(paper_meta: dict, conditions: list, api_key: str,
             if paper_text is None:
                 paper_text = pdf_to_markdown(paper_meta["paper_dir"])
             _log(paper_id, f"Condition {cond['id']}: {cond['desc']}")
-            result = run_condition(paper_text, topic, cond, api_key, model=model)
+            result = run_condition(paper_text, topic, cond, api_key, model=model,
+                                   rag_config=rag_config)
             out_path = save_result(result, paper_name, cond, output_dir, timestamp)
             _log(paper_id, f"Condition {cond['id']}: saved {os.path.basename(out_path)}")
 
@@ -267,7 +281,8 @@ def _run_paper(paper_meta: dict, conditions: list, api_key: str,
 
 def run_experiment(papers: list, api_key: str, output_dir: str,
                    conditions: list = None, model: str = "",
-                   concurrency: int = DEFAULT_CONCURRENCY) -> dict:
+                   concurrency: int = DEFAULT_CONCURRENCY,
+                   rag_config: dict | None = None) -> dict:
     """
     Run the given conditions (default: all of CONDITIONS) on all papers.
 
@@ -286,6 +301,7 @@ def run_experiment(papers: list, api_key: str, output_dir: str,
         "timestamp": timestamp,
         "model": model,
         "concurrency": concurrency,
+        "rag_config": rag_config or {},
         "conditions": {c["id"]: {"desc": c["desc"], "agents": c["agents"],
                                   "agenttype": c.get("agenttype", agenttype_code(c["agents"])),
                                   "n_iter": c["n_iter"],
@@ -307,7 +323,8 @@ def run_experiment(papers: list, api_key: str, output_dir: str,
     with ThreadPoolExecutor(max_workers=concurrency) as pool:
         futures = {
             pool.submit(_run_paper, paper_meta, conditions, api_key,
-                        output_dir, timestamp, model): (i, paper_meta["paper_id"])
+                        output_dir, timestamp, model,
+                        rag_config): (i, paper_meta["paper_id"])
             for i, paper_meta in enumerate(papers)
         }
         for future in as_completed(futures):
@@ -357,6 +374,10 @@ def main():
     parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY,
                         help=f"Number of papers reviewed in parallel "
                              f"(default: {DEFAULT_CONCURRENCY}; use 1 to run sequentially).")
+    parser.add_argument("--enable_review_memory", action="store_true",
+                        help="Also run the review-memory RAG (OpenReview reviews of "
+                             "related papers) in RAG conditions. Off by default, "
+                             "matching RAGConfig.")
     args = parser.parse_args()
 
     if args.concurrency < 1:
@@ -379,8 +400,11 @@ def main():
             print(f"Error: unknown condition id(s): {sorted(missing)}")
             sys.exit(1)
 
+    rag_config = {"enable_review_memory_rag": True} if args.enable_review_memory else None
+
     run_experiment(papers, args.api_key, args.output_dir, conditions=conditions,
-                   model=args.model, concurrency=args.concurrency)
+                   model=args.model, concurrency=args.concurrency,
+                   rag_config=rag_config)
     print("\nExperiment complete.")
 
 
