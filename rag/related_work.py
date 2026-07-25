@@ -25,6 +25,56 @@ QUERY_GROUPS = [
     "limitations_counterevidence",
 ]
 
+QUERY_GROUP_FALLBACK_LABELS = {
+    "same_problem": "the same research problem or task",
+    "same_method": "a related method or architecture",
+    "same_constraints": "similar assumptions, constraints, or deployment conditions",
+    "benchmark_baseline": "a benchmark, dataset, metric, or baseline",
+    "novelty_competitor": "a prior contribution relevant to the target paper's novelty",
+    "limitations_counterevidence": "limitations, negative results, or counterevidence",
+}
+
+SUMMARY_ASPECT_TERMS = {
+    "contribution": (
+        "contribution", "introduce", "propose", "present", "develop", "novel", "new",
+        "first", "release", "create",
+    ),
+    "dataset": (
+        "benchmark", "dataset", "corpus", "data", "suite", "sample", "example", "split",
+        "domain", "task", "annotation", "training set", "test set",
+    ),
+    "performance": (
+        "performance", "result", "achieve", "outperform", "improve", "accuracy", "precision",
+        "recall", "f1", "bleu", "rouge", "score", "state-of-the-art", "sota", "speedup",
+        "faster", "latency", "memory", "throughput", "percent", "%",
+    ),
+    "method": (
+        "method", "model", "architecture", "mechanism", "framework", "algorithm", "approach",
+        "attention", "convolution", "transformer", "fusion",
+    ),
+    "problem": (
+        "problem", "task", "application", "study", "investigate", "address", "prediction",
+        "classification", "generation",
+    ),
+    "constraints": (
+        "constraint", "assumption", "efficient", "efficiency", "quadratic", "subquadratic",
+        "compute", "resource", "scalable", "deployment", "hardware", "runtime",
+    ),
+    "limitations": (
+        "limitation", "failure", "fail", "negative", "however", "degrade", "weakness",
+        "boundary", "trade-off", "tradeoff", "counterexample",
+    ),
+}
+
+QUERY_GROUP_ASPECT_PRIORITY = {
+    "same_problem": ("problem", "performance", "contribution"),
+    "same_method": ("method", "contribution", "performance"),
+    "same_constraints": ("constraints", "performance", "method"),
+    "benchmark_baseline": ("dataset", "performance", "contribution"),
+    "novelty_competitor": ("contribution", "method", "performance"),
+    "limitations_counterevidence": ("limitations", "performance", "constraints"),
+}
+
 
 FALLBACK_QUERY_STOPWORDS = {
     "a",
@@ -171,26 +221,71 @@ def _canonical_title(title: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", title.lower()).strip()
 
 
+def _canonical_doi(doi: str) -> str:
+    value = str(doi or "").strip().lower()
+    value = re.sub(r"^https?://(?:dx\.)?doi\.org/", "", value)
+    return value.removeprefix("doi:").strip()
+
+
+def _canonical_arxiv_id(arxiv_id: str) -> str:
+    value = str(arxiv_id or "").strip().lower()
+    value = re.sub(r"^https?://arxiv\.org/(?:abs|pdf)/", "", value)
+    value = value.removeprefix("arxiv:").removesuffix(".pdf")
+    return re.sub(r"v\d+$", "", value).strip()
+
+
+def _paper_identity_keys(paper: PaperMetadata) -> list[str]:
+    keys = []
+    doi = _canonical_doi(paper.doi)
+    arxiv_id = _canonical_arxiv_id(paper.arxiv_id)
+    title = _canonical_title(paper.title)
+    if doi:
+        keys.append(f"doi:{doi}")
+    if arxiv_id:
+        keys.append(f"arxiv:{arxiv_id}")
+    if title:
+        keys.append(f"title:{title}")
+    return keys
+
+
+def _merge_paper_metadata(existing: PaperMetadata, paper: PaperMetadata) -> None:
+    existing.sources = sorted(set(existing.sources + paper.sources))
+    existing.matched_query_groups = sorted(
+        set(existing.matched_query_groups + paper.matched_query_groups)
+    )
+    existing.source_ids.update({key: value for key, value in paper.source_ids.items() if value})
+    if len(paper.abstract or "") > len(existing.abstract or ""):
+        existing.abstract = paper.abstract
+    if len(paper.authors) > len(existing.authors):
+        existing.authors = paper.authors
+    for field_name in ("year", "publication_date", "venue", "url", "doi", "arxiv_id"):
+        if not getattr(existing, field_name) and getattr(paper, field_name):
+            setattr(existing, field_name, getattr(paper, field_name))
+    counts = [count for count in (existing.citation_count, paper.citation_count) if count is not None]
+    if counts:
+        existing.citation_count = max(counts)
+
+
 def _dedupe_papers(papers: list[PaperMetadata]) -> list[PaperMetadata]:
-    merged: dict[str, PaperMetadata] = {}
+    merged: list[PaperMetadata] = []
+    identity_index: dict[str, PaperMetadata] = {}
     for paper in papers:
         if not paper.title:
             continue
-        key = paper.doi or (f"arxiv:{paper.arxiv_id.lower()}" if paper.arxiv_id else "") or _canonical_title(paper.title)
-        if key in merged:
-            existing = merged[key]
-            existing.sources = sorted(set(existing.sources + paper.sources))
-            existing.matched_query_groups = sorted(set(existing.matched_query_groups + paper.matched_query_groups))
-            existing.source_ids.update({k: v for k, v in paper.source_ids.items() if v})
-            if not existing.abstract and paper.abstract:
-                existing.abstract = paper.abstract
-            if not existing.url and paper.url:
-                existing.url = paper.url
-            if existing.citation_count is None and paper.citation_count is not None:
-                existing.citation_count = paper.citation_count
-            continue
-        merged[key] = paper
-    deduped = list(merged.values())
+        identity_keys = _paper_identity_keys(paper)
+        existing = next(
+            (identity_index[key] for key in identity_keys if key in identity_index),
+            None,
+        )
+        if existing is None:
+            existing = paper
+            merged.append(existing)
+        else:
+            _merge_paper_metadata(existing, paper)
+        for key in set(identity_keys + _paper_identity_keys(existing)):
+            identity_index[key] = existing
+
+    deduped = merged
     for idx, paper in enumerate(deduped, 1):
         seed = paper.doi or paper.arxiv_id or paper.source_ids.get("OpenAlex") or paper.source_ids.get("Semantic Scholar") or paper.title
         suffix = hashlib.sha1(seed.encode("utf-8")).hexdigest()[:9]
@@ -247,64 +342,242 @@ def _looks_like_reviewer_guidance(summary: str) -> bool:
         for phrase in (
             "reviewers should",
             "reviewer should",
+            "the reviewer should",
             "reviewers can",
             "reviewer can",
-            "to evaluate",
-            "should refer",
+            "reviewers must",
+            "reviewer must",
+            "for reviewers to",
+            "should refer to",
             "should compare",
-            "must use",
-            "must be",
+            "must compare",
         )
     )
 
 
-def _compose_intro_summary(target: TargetPaperSummary, papers: list[PaperMetadata]) -> str:
+def _neutralize_summary_voice(summary: str, protected_phrases: tuple[str, ...] = ()) -> str:
+    """Convert accidental source-author voice without rejecting useful content."""
+    text = str(summary or "")
+    protected: dict[str, str] = {}
+    for index, phrase in enumerate(sorted(set(protected_phrases), key=len, reverse=True)):
+        if not phrase or phrase not in text:
+            continue
+        placeholder = f"__RAG_PROTECTED_TITLE_{index}__"
+        text = text.replace(phrase, placeholder)
+        protected[placeholder] = phrase
+
+    first_person = re.compile(
+        r"(?P<our>\bour\s+(?:works?|paper|study|method|approach|model|results?|findings?|experiments?)\b)"
+        r"|(?P<we>\bwe\s+(?:propose|introduce|present|develop|describe|demonstrate|show|find|report|"
+        r"release|create|construct|evaluate|achieve|outperform|use)\b)"
+        r"|(?P<our_generic>\bour\b)"
+        r"|(?P<we_generic>\bwe\b)",
+        flags=re.IGNORECASE,
+    )
+
+    def replace(match: re.Match) -> str:
+        phrase = match.group(0)
+        if match.group("our"):
+            noun = re.sub(r"^our\s+", "", phrase, flags=re.IGNORECASE)
+            if noun.casefold() in {"work", "works", "paper", "study"}:
+                return "the paper" if phrase[:1].islower() else "The paper"
+            replacement = f"the {noun.lower()}"
+            return replacement if phrase[:1].islower() else replacement.capitalize()
+        if match.group("our_generic"):
+            return "the authors'" if phrase[:1].islower() else "The authors'"
+        if match.group("we_generic"):
+            return "the authors" if phrase[:1].islower() else "The authors"
+        verb = re.sub(r"^we\s+", "", phrase, flags=re.IGNORECASE).lower()
+        replacement = f"the authors {verb}"
+        return replacement if phrase[:1].islower() else replacement.capitalize()
+
+    text = first_person.sub(replace, text)
+    for placeholder, phrase in protected.items():
+        text = text.replace(placeholder, phrase)
+    return text
+
+
+def _author_phrase(paper: PaperMetadata) -> str:
+    authors = [
+        re.sub(r"\s+", " ", str(author)).strip()
+        for author in paper.authors
+        if str(author).strip()
+    ]
+    if not authors:
+        return "the authors"
+    if len(authors) == 1:
+        return authors[0]
+    if len(authors) == 2:
+        return f"{authors[0]} and {authors[1]}"
+    return f"{authors[0]} et al."
+
+
+def _publication_sentence(paper: PaperMetadata) -> str:
+    title = paper.title or "an untitled paper"
+    authors = _author_phrase(paper)
+    year = paper.year or (paper.publication_date or "")[:4]
+    venue = re.sub(r"\s+", " ", str(paper.venue or "")).strip()
+    venue_clause = f" in {venue}" if venue else ""
+    if year and authors == "the authors":
+        return f'In {year}, "{title}" was published{venue_clause}.'
+    if year:
+        return f'In {year}, {authors} published "{title}"{venue_clause}.'
+    author_lead = authors[:1].upper() + authors[1:]
+    return f'{author_lead} published "{title}"{venue_clause}.'
+
+
+def _abstract_sentences(abstract: str) -> list[str]:
+    text = re.sub(r"<[^>]+>", " ", str(abstract or ""))
+    text = re.sub(r"\s+", " ", text).strip()
+    if not text:
+        return []
+    return [
+        sentence.strip()
+        for sentence in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", text)
+        if sentence.strip()
+    ] or [text]
+
+
+def _sentence_aspect_score(sentence: str, aspect: str) -> int:
+    lowered = sentence.casefold()
+    score = sum(lowered.count(term) for term in SUMMARY_ASPECT_TERMS.get(aspect, ()))
+    if aspect == "performance":
+        score += len(re.findall(r"\b\d+(?:\.\d+)?\s*%", sentence))
+        score += len(re.findall(r"\b\d+(?:\.\d+)?\s*(?:x|times|points?)\b", lowered))
+    if aspect == "dataset":
+        score += len(re.findall(r"\b\d[\d,]*(?:\.\d+)?\s+(?:examples?|samples?|images?|documents?|tasks?|domains?)\b", lowered))
+    return score
+
+
+def _summary_aspect_priority(paper: PaperMetadata) -> list[str]:
+    priority: list[str] = []
+    for group in paper.matched_query_groups:
+        for aspect in QUERY_GROUP_ASPECT_PRIORITY.get(group, ()):
+            if aspect not in priority:
+                priority.append(aspect)
+    for aspect in ("contribution", "dataset", "performance", "method", "problem", "constraints", "limitations"):
+        if aspect not in priority:
+            priority.append(aspect)
+    return priority
+
+
+def _clean_evidence_sentence(sentence: str, paper_title: str) -> str:
+    text = _neutralize_summary_voice(sentence, (paper_title,) if paper_title else ())
+    text = re.sub(r"\s+", " ", text).strip()
+    if len(text) > 500:
+        text = text[:497].rsplit(" ", 1)[0].rstrip(" ,;:") + "..."
+    elif text and text[-1] not in ".!?":
+        text += "."
+    return text
+
+
+def _focused_abstract_evidence(paper: PaperMetadata, max_sentences: int = 3) -> str:
+    sentences = _abstract_sentences(paper.abstract)
+    if not sentences:
+        groups = [
+            group
+            for group in paper.matched_query_groups
+            if group in QUERY_GROUP_FALLBACK_LABELS
+        ]
+        if not groups:
+            return "The available metadata does not include an abstract with contribution, dataset, or result details."
+        labels = "; ".join(QUERY_GROUP_FALLBACK_LABELS[group] for group in groups[:3])
+        return (
+            f"The paper was retrieved as {labels}, but the available metadata does not include "
+            "an abstract with concrete contribution, dataset, or result details."
+        )
+
+    priority = _summary_aspect_priority(paper)
+    selected: list[int] = []
+    covered_aspects: set[str] = set()
+    for aspect in priority:
+        if aspect in covered_aspects:
+            continue
+        candidates = [
+            (_sentence_aspect_score(sentence, aspect), index)
+            for index, sentence in enumerate(sentences)
+            if index not in selected
+        ]
+        if not candidates:
+            continue
+        score, index = max(candidates, key=lambda item: (item[0], -item[1]))
+        if score <= 0:
+            continue
+        selected.append(index)
+        covered_aspects.update(
+            candidate_aspect
+            for candidate_aspect in SUMMARY_ASPECT_TERMS
+            if _sentence_aspect_score(sentences[index], candidate_aspect) > 0
+        )
+        if len(selected) >= max_sentences:
+            break
+
+    if len(selected) < max_sentences:
+        remaining = []
+        for index, sentence in enumerate(sentences):
+            if index in selected:
+                continue
+            detail_score = sum(
+                _sentence_aspect_score(sentence, aspect)
+                for aspect in SUMMARY_ASPECT_TERMS
+            )
+            remaining.append((detail_score, index))
+        for score, index in sorted(remaining, key=lambda item: (-item[0], item[1])):
+            if score <= 0 and selected:
+                break
+            selected.append(index)
+            if len(selected) >= max_sentences:
+                break
+
+    if not selected:
+        selected = [0]
+    return " ".join(_clean_evidence_sentence(sentences[index], paper.title) for index in selected)
+
+
+def _compose_background_summary(papers: list[PaperMetadata]) -> str:
     papers = [paper for paper in papers if paper.title][:6]
     if not papers:
-        return "No cutoff-valid related-work metadata was available to compose a related-work introduction."
+        return "No cutoff-valid related-work metadata was available to summarize."
+    return " ".join(
+        f"{_publication_sentence(paper)} {_focused_abstract_evidence(paper)}"
+        for paper in papers
+    )
 
-    if target.title:
-        opening = (
-            f"The literature around {target.title} sits within a broader effort to replace or augment quadratic "
-            "self-attention with more efficient token-mixing mechanisms."
-        )
-    else:
-        opening = (
-            "Prior work on efficient sequence modeling has explored alternatives to quadratic self-attention, "
-            "including spectral token mixing, wavelet-based feature decompositions, long convolutions, state-space models, "
-            "and benchmark suites for long-context evaluation."
-        )
 
-    sentences = [opening]
-    for paper in papers[:4]:
-        groups = set(paper.matched_query_groups)
-        ref = _reference_text(paper)
-        if "benchmark_baseline" in groups:
-            role = "provides benchmark or baseline context for evaluating efficient long-sequence models"
-        elif "same_method" in groups or "novelty_competitor" in groups:
-            role = "is a close methodological reference for token-mixing design"
-        elif "same_constraints" in groups:
-            role = "frames the efficiency and hardware constraints that motivate subquadratic architectures"
-        elif "limitations_counterevidence" in groups:
-            role = "highlights limitations or counterpoints relevant to fixed spectral mixing"
-        else:
-            role = "contributes adjacent evidence on efficient sequence modeling"
-        sentences.append(f"{ref} {role}.")
-    return " ".join(sentences)
+def _looks_like_publication_results(summary: str, papers: list[PaperMetadata]) -> bool:
+    summary_folded = summary.casefold()
+    checked_papers = [paper for paper in papers if paper.title][:6]
+    if not checked_papers:
+        return False
+    for paper in checked_papers:
+        if paper.title.casefold() not in summary_folded:
+            return False
+        year = str(paper.year or (paper.publication_date or "")[:4] or "")
+        if year and year not in summary:
+            return False
+    return len(re.findall(r"\bpublished\b", summary_folded)) >= len(checked_papers)
 
 
 def _summary_from_ranked(
     summary: str,
     papers: list[PaperMetadata],
     ranked: list[RerankedPaper],
-    target: TargetPaperSummary,
 ) -> str:
     by_id = {paper.paper_id: paper for paper in papers}
     ranked_papers = [by_id[item.paper_id] for item in ranked if item.paper_id in by_id]
     source_papers = ranked_papers or papers
     normalized = _replace_internal_ids_with_references(str(summary or "").strip(), source_papers)
-    if not normalized or re.search(r"\brw_[A-Za-z0-9_]+\b", normalized) or _looks_like_reviewer_guidance(normalized):
-        return _compose_intro_summary(target, source_papers)
+    normalized = _neutralize_summary_voice(
+        normalized,
+        tuple(paper.title for paper in source_papers if paper.title),
+    )
+    if (
+        not normalized
+        or re.search(r"\brw_[A-Za-z0-9_]+\b", normalized)
+        or _looks_like_reviewer_guidance(normalized)
+        or not _looks_like_publication_results(normalized, source_papers)
+    ):
+        return _compose_background_summary(source_papers)
     return normalized
 
 
@@ -336,6 +609,7 @@ def _fallback_rerank(papers: list[PaperMetadata], target: TargetPaperSummary, to
     for paper in papers:
         scored.append((_lexical_relevance_score(paper, target), paper))
     scored.sort(key=lambda item: item[0], reverse=True)
+    selected_papers = [paper for _, paper in scored[:top_k]]
     reranked = [
         RerankedPaper(
             rank=i + 1,
@@ -343,11 +617,11 @@ def _fallback_rerank(papers: list[PaperMetadata], target: TargetPaperSummary, to
             relevance_score=round(float(score), 3),
             relevance_types=paper.matched_query_groups[:3],
             rationale="Fallback lexical overlap ranking because LLM reranking was unavailable.",
-            evidence_summary=paper.abstract[:300],
+            evidence_summary=_focused_abstract_evidence(paper, max_sentences=2)[:1000],
         )
         for i, (score, paper) in enumerate(scored[:top_k])
     ]
-    summary = _compose_intro_summary(target, [paper for _, paper in scored[:top_k]])
+    summary = _compose_background_summary(selected_papers)
     return reranked, summary, "fallback"
 
 
@@ -389,7 +663,7 @@ def _fill_missing_reranked(
             relevance_score=score,
             relevance_types=paper.matched_query_groups[:3],
             rationale="LLM omitted this candidate; appended in cleaned candidate order to preserve the rerank input set.",
-            evidence_summary=paper.abstract[:300],
+            evidence_summary=_focused_abstract_evidence(paper, max_sentences=2)[:1000],
         ))
         seen.add(paper.paper_id)
         filled = True
@@ -408,8 +682,12 @@ def _rerank_with_llm(
 ) -> tuple[list[RerankedPaper], str, str]:
     if not papers:
         return [], "No cutoff-valid related-work metadata was available for reranking.", "none"
+    summary_limit = min(6, top_k, len(papers))
     system_prompt = (
-        "You are a related-work reranking agent. Use only the provided candidate metadata. "
+        "You are a neutral background-information provider for downstream scholarly-review agents "
+        "and a related-work reranking agent. "
+        "Report what prior papers published and found using third-person attribution. "
+        "Use only the provided candidate metadata. "
         "Do not invent titles, authors, venues, years, URLs, DOIs, or paper IDs. "
         "Return only valid JSON."
     )
@@ -434,9 +712,33 @@ Score on a calibrated 0.0-1.0 scale:
 - below 0.40: weakly related.
 Avoid giving the same score to every paper.
 
-Write the summary as a related-work introduction paragraph for the target paper. Do not write instructions to reviewers.
-Do not say "reviewers should", "must compare", or similar guidance. Do not cite internal paper IDs in the summary.
-When citing prior work in the summary, use the supplied "reference" or "citation_label" fields, e.g. "FNet: Mixing Tokens with Fourier Transforms (Lee-Thorp et al., 2022)".
+The summary will be passed to downstream agents as background information. It is evidence, not reviewer guidance.
+Write it as neutral, factual reporting of the first {summary_limit} ranked prior papers, in ranked order. Use two or three concise sentences per paper when the metadata contains enough detail.
+Begin each paper's result with its supplied year, authors, and title, following this style:
+"In 2022, Lee-Thorp et al. published 'FNet: Mixing Tokens with Fourier Transforms,' which introduced ..."
+If a venue is supplied, it may be stated. Do not invent a venue or publication status.
+
+Use third-person attribution throughout. Avoid source-author or target-author language such as "our work", "our paper", "our method", "our results", "we propose", or "we show".
+Do not praise, recommend, or instruct. Do not say "reviewers should", "must compare", "important", "promising", or similar evaluative guidance.
+Do not write a generic introduction about the target paper. State concrete details about each retrieved paper.
+Do not cite internal paper IDs or expose internal query-group names in the prose.
+
+For each paper, report every concrete aspect supported by its metadata:
+- its main contribution or what was new;
+- its method or architecture;
+- datasets or benchmarks used, including scale, splits, domains, tasks, metrics, and baselines when available;
+- quantitative or qualitative performance results when available;
+- constraints, efficiency findings, limitations, or negative results when available.
+Never invent a missing detail. If the metadata does not provide an aspect, omit it.
+
+Use each candidate's matched_query_groups and the matching search query to decide which supported details to emphasize first:
+- same_problem: the research problem, task, application setting, and main result.
+- same_method: the method, architecture, mechanism, and how it operates.
+- same_constraints: assumptions, efficiency requirements, resource constraints, or deployment setting.
+- benchmark_baseline: the benchmark or dataset, its contents and scale, metrics, and baselines.
+- novelty_competitor: the main contribution, claimed innovation, method, and result.
+- limitations_counterevidence: the limitation, failure mode, negative result, boundary condition, or counterevidence.
+When a paper matches multiple groups, combine all supported aspects into one paper entry instead of repeating the paper.
 
 Return JSON:
 {{
@@ -446,14 +748,15 @@ Return JSON:
       "paper_id": "rw_...",
       "relevance_score": 0.0,
       "relevance_types": ["same_problem"],
-      "rationale": "why this paper matters for reviewing the target",
-      "evidence_summary": "one-sentence factual summary using only metadata"
+      "rationale": "which supplied metadata makes this paper relevant to the target",
+      "evidence_summary": "two or three neutral factual sentences covering all supported aspects"
     }}
   ],
-  "summary": "A compact introduction-style related-work paragraph with real title/author/year references, not internal paper IDs."
+  "summary": "Neutral publication-style results for each unique ranked paper, including concrete contribution, dataset, and performance details when supplied."
 }}
 """.strip()
-    valid_ids = {paper.paper_id for paper in papers}
+    paper_by_id = {paper.paper_id: paper for paper in papers}
+    valid_ids = set(paper_by_id)
     try:
         data = llm_agent.complete_json(system_prompt, user_prompt)
         raw_ranked = data.get("reranked_papers", [])
@@ -473,13 +776,27 @@ Return JSON:
             score = float(item.get("relevance_score", 0.0))
         except (TypeError, ValueError):
             score = 0.0
+        candidate = paper_by_id[paper_id]
+        protected_title = (candidate.title,) if candidate.title else ()
+        rationale = _neutralize_summary_voice(
+            str(item.get("rationale", "")).strip(),
+            protected_title,
+        )[:1000]
+        if _looks_like_reviewer_guidance(rationale):
+            rationale = "The supplied metadata matched the related-work retrieval criteria."
+        evidence_summary = _neutralize_summary_voice(
+            str(item.get("evidence_summary", "")).strip(),
+            protected_title,
+        )[:1000]
+        if not evidence_summary or _looks_like_reviewer_guidance(evidence_summary):
+            evidence_summary = _focused_abstract_evidence(candidate, max_sentences=2)[:1000]
         ranked.append(RerankedPaper(
             rank=len(ranked) + 1,
             paper_id=paper_id,
             relevance_score=max(0.0, min(1.0, score)),
             relevance_types=[str(x) for x in item.get("relevance_types", []) if str(x)],
-            rationale=str(item.get("rationale", "")).strip()[:1000],
-            evidence_summary=str(item.get("evidence_summary", "")).strip()[:1000],
+            rationale=rationale,
+            evidence_summary=evidence_summary,
         ))
         if len(ranked) >= top_k:
             break
@@ -489,8 +806,10 @@ Return JSON:
     _calibrate_saturated_scores(ranked)
     filled_from_fallback = _fill_missing_reranked(ranked, papers, target, top_k, seen)
     if not summary:
-        summary = _compose_intro_summary(target, [next(p for p in papers if p.paper_id == item.paper_id) for item in ranked if item.paper_id in valid_ids])
-    summary = _summary_from_ranked(summary, papers, ranked, target)
+        summary = _compose_background_summary(
+            [paper_by_id[item.paper_id] for item in ranked if item.paper_id in valid_ids]
+        )
+    summary = _summary_from_ranked(summary, papers, ranked)
     return ranked, summary, "mixed" if filled_from_fallback else "llm"
 
 
@@ -540,11 +859,19 @@ def build_related_work_rag(
         warnings.extend(result.warnings)
 
     deduped = _dedupe_papers(retrieved)
+    target_title = _canonical_title(target.title)
+    related_only = [
+        candidate
+        for candidate in deduped
+        if not target_title or _canonical_title(candidate.title) != target_title
+    ]
+    num_removed_as_target = len(deduped) - len(related_only)
     cutoff_valid, cutoff_report = filter_by_cutoff(
-        deduped,
+        related_only,
         cutoff_date=config.cutoff_date,
         allow_undated=config.allow_undated_evidence,
     )
+    cutoff_report["num_removed_as_target"] = num_removed_as_target
     candidate_cap = max(0, int(config.rerank_top_k))
     filtered = cutoff_valid[:candidate_cap] if candidate_cap else []
     cutoff_report["num_cutoff_valid"] = len(cutoff_valid)

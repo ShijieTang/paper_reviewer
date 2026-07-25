@@ -394,9 +394,9 @@ class TestRelatedWorkRAG(unittest.TestCase):
         self.assertEqual(package["reranking_results"][0]["paper_id"], paper["paper_id"])
         self.assertNotIn(paper["paper_id"], package["related_work_summary"])
         self.assertIn("Relevant Motion Control Baselines", package["related_work_summary"])
-        self.assertIn("Researcher, 2024", package["related_work_summary"])
+        self.assertIn("In 2024, A. Researcher published", package["related_work_summary"])
 
-    def test_related_work_summary_uses_intro_style_not_reviewer_guidance(self):
+    def test_related_work_summary_uses_background_style_not_reviewer_guidance(self):
         class GuidanceSummaryLLM(FakeLLM):
             def complete_json(self, system_prompt, user_prompt):
                 if "Candidate metadata:" in user_prompt:
@@ -442,7 +442,110 @@ class TestRelatedWorkRAG(unittest.TestCase):
         self.assertNotIn("Reviewers should", summary)
         self.assertNotRegex(summary, r"rw_[A-Za-z0-9_]+")
         self.assertIn("FNet: Mixing Tokens with Fourier Transforms", summary)
-        self.assertIn("Lee-Thorp et al., 2022", summary)
+        self.assertIn("In 2022, James Lee-Thorp et al. published", summary)
+
+    def test_fallback_deduplicates_cross_identifier_records_and_reports_details(self):
+        provider = FakeProvider("OpenAlex", [
+            PaperMetadata(
+                paper_id="",
+                title="Unified Vision-Benchmark",
+                authors=["Alice Smith", "Bob Jones"],
+                year=2023,
+                publication_date="2023-05-01",
+                abstract="The paper introduces a new multi-modal fusion architecture.",
+                doi="10.1000/unified",
+                sources=["OpenAlex"],
+                source_ids={"OpenAlex": "oa-unified"},
+                matched_query_groups=["novelty_competitor"],
+            ),
+            PaperMetadata(
+                paper_id="",
+                title="Unified Vision Benchmark",
+                authors=["Alice Smith", "Bob Jones"],
+                year=2023,
+                publication_date="2023-05-01",
+                abstract=(
+                    "We introduce a new multi-modal fusion architecture for robust classification. "
+                    "The Unified Vision Benchmark contains 50,000 images across five domains with fixed "
+                    "training and test splits. "
+                    "The method improves accuracy by 4.2 percentage points over the strongest baseline."
+                ),
+                arxiv_id="2305.00001v2",
+                sources=["arXiv"],
+                source_ids={"arXiv": "2305.00001v2"},
+                matched_query_groups=["benchmark_baseline"],
+            ),
+        ])
+
+        package = build_related_work_rag(
+            paper="# Target Fusion Model\n\n## Abstract\n\nA multi-modal classification system.",
+            api_key="test",
+            config=RAGConfig(rerank_top_k=5),
+            providers=[provider],
+            llm_agent=FailingLLM(),
+        )
+
+        self.assertEqual(package["reranking"]["source"], "fallback")
+        self.assertEqual(len(package["paper_metadata"]), 1)
+        self.assertEqual(
+            package["paper_metadata"][0]["matched_query_groups"],
+            ["benchmark_baseline", "novelty_competitor"],
+        )
+        self.assertEqual(package["paper_metadata"][0]["sources"], ["OpenAlex", "arXiv"])
+
+        summary = package["related_work_summary"]
+        self.assertEqual(summary.count('published "Unified Vision-Benchmark"'), 1)
+        self.assertIn("new multi-modal fusion architecture", summary)
+        self.assertIn("50,000 images across five domains", summary)
+        self.assertIn("improves accuracy by 4.2 percentage points", summary)
+        self.assertNotIn("Our work", summary)
+        self.assertNotIn("provides benchmark or baseline context", summary)
+
+    def test_fallback_excludes_the_target_paper_from_related_work(self):
+        provider = FakeProvider("OpenAlex", [
+            PaperMetadata(
+                paper_id="",
+                title="Beyond Self Attention A Subquadratic Fourier Wavelet Transformer",
+                authors=["Target Author"],
+                year=2024,
+                publication_date="2024-01-01",
+                abstract="The target paper itself.",
+                doi="10.1000/target",
+                sources=["OpenAlex"],
+                source_ids={"OpenAlex": "oa-target"},
+                matched_query_groups=["same_method"],
+            ),
+            PaperMetadata(
+                paper_id="",
+                title="Simple Hardware-Efficient Long Convolutions",
+                authors=["Daniel Fu", "Elli Triantafillou", "Tatsunori Hashimoto"],
+                year=2023,
+                publication_date="2023-01-01",
+                abstract=(
+                    "The authors introduce a hardware-efficient long convolution architecture. "
+                    "Experiments show higher throughput and lower memory use on long-sequence benchmarks."
+                ),
+                sources=["OpenAlex"],
+                source_ids={"OpenAlex": "oa-long-conv"},
+                matched_query_groups=["same_constraints", "benchmark_baseline"],
+            ),
+        ])
+
+        package = build_related_work_rag(
+            paper=(
+                "# Beyond Self-Attention: A Subquadratic Fourier-Wavelet Transformer\n\n"
+                "## Abstract\n\nA subquadratic transformer."
+            ),
+            api_key="test",
+            config=RAGConfig(rerank_top_k=5),
+            providers=[provider],
+            llm_agent=FailingLLM(),
+        )
+
+        self.assertEqual(package["cutoff_report"]["num_removed_as_target"], 1)
+        self.assertEqual(len(package["paper_metadata"]), 1)
+        self.assertNotIn("Beyond Self Attention", package["related_work_summary"])
+        self.assertIn("Simple Hardware-Efficient Long Convolutions", package["related_work_summary"])
 
     def test_reranker_invalid_ids_fall_back_to_valid_candidates(self):
         class BadRerankLLM(FakeLLM):
