@@ -73,6 +73,9 @@ OUTPUT_REQUIRE = """###Output requirements###
 - Output MUST be valid JSON.
 - Do NOT include explanations outside the JSON.
 - Do NOT include markdown or additional text.
+- Inside any JSON string value, never use un-escaped double quotes. If you need to quote a
+  term, phrase, or table/column label from the paper, either escape the quotes (\\"like this\\")
+  or use single quotes ('like this') instead — never bare double quotes inside a string.
 """
 
 OUTPUT_FORMAT = """\
