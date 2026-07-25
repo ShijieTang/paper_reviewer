@@ -76,6 +76,7 @@ class PaperSearchProvider:
     def __init__(self, cache_dir: str = "data/rag_cache", timeout: int = 20):
         self.cache = JsonCache(cache_dir, self.name)
         self.timeout = timeout
+        self._rate_limited: BaseException | None = None
 
     def _sleep_between_queries(self, query_index: int) -> None:
         if query_index > 0 and self.inter_query_delay_seconds > 0:
@@ -95,6 +96,11 @@ class PaperSearchProvider:
         cached = self.cache.get(url)
         if cached is not None:
             return cached
+        # A sustained 429 is an IP-level block, not a per-request limit: once one
+        # query has exhausted its retries there is nothing to gain from putting
+        # every remaining query through the same backoff.
+        if getattr(self, "_rate_limited", None) is not None:
+            raise self._rate_limited
         request = urllib.request.Request(url, headers={**self.default_headers, **(headers or {})})
         for attempt in range(self.max_retries):
             try:
@@ -108,6 +114,8 @@ class PaperSearchProvider:
             except Exception as exc:                       # timeouts, connection resets
                 error = exc
             if attempt == self.max_retries - 1 or not is_retryable_error(error):
+                if is_rate_limited_error(error):
+                    self._rate_limited = error
                 raise error
             time.sleep(self._retry_delay(error, attempt))
         self.cache.set(url, data)
