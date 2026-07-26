@@ -178,16 +178,6 @@ class TestRunExperimentTopicNormalization(unittest.TestCase):
         for c in mock_mas.call_args_list:
             self.assertFalse(c[1]["run_citation_check"])
 
-    def test_review_memory_enabled_only_for_its_condition(self):
-        """Only conditions declaring enable_review_memory switch the second RAG on."""
-        mock_mas = self._run(self._make_papers("NLP"))
-        enabled = [
-            c[1]["rag_config"].get("enable_review_memory_rag", False)
-            for c in mock_mas.call_args_list
-        ]
-        expected = [c["enable_review_memory"] for c in experiment_module.CONDITIONS]
-        self.assertEqual(enabled, expected)
-
     def _result_filename(self, cond: dict) -> str:
         return (
             f"2501010000_nagent={len(cond['agents'])}_niter={cond['n_iter']}"

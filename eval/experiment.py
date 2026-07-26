@@ -10,10 +10,6 @@ Condition 3 — No RAG, 2 iterations, 1 reviewer, AI Detector, no author rebutta
 Condition 4 — No RAG, 3 iterations, 1 reviewer, author rebuttal, no AI Detector
 Condition 5 — No RAG, 1 iteration, 3 reviewers
 Condition 6 — No RAG, 2 iterations, 1 reviewer, no AI Detector, no author rebuttal
-Condition 7 — Related-work + review-memory RAG, 1 iteration, 1 reviewer
-
-Conditions 2 and 7 differ only in the review-memory RAG (OpenReview reviews of
-the ranked related papers), so (7 - 2) measures that second RAG on its own.
 
 Conditions 3 and 6 differ only in the AI Detector, so (3 - 6) measures the
 detector and (6 - 1) measures the extra iteration on its own. Note that with
@@ -96,18 +92,12 @@ _CONDITIONS_SPEC = [
     dict(id="6", label="no_rag_2iter_noaidetect_noauthor",
          desc="No RAG, 2 iterations, 1 neutral reviewer, no AI Detector, no author rebuttal",
          agents=_N, n_iter=2, enable_author_rebuttal=False),
-    # Condition 2 plus the review-memory RAG, so (7 - 2) isolates the second RAG
-    # while condition 2 stays comparable to earlier related-work-only runs.
-    dict(id="7", label="rag_reviewmem_1iter_1rev",
-         desc="Related-work + review-memory RAG, 1 iteration, 1 neutral reviewer",
-         agents=_N, n_iter=1, enable_rag=True, enable_review_memory=True),
 ]
 
 _CONDITION_DEFAULTS = {
     "enable_rag":             False,
     "enable_ai_detector":     False,
     "enable_author_rebuttal": True,
-    "enable_review_memory":   False,
 }
 
 _TYPE_CODE = {
@@ -147,14 +137,8 @@ def pdf_to_markdown(pdf_dir: str) -> str:
 
 def run_condition(paper_text: str, topic: str, cond: dict, api_key: str,
                   model: str = "", rag_config: dict | None = None) -> dict:
-    """Run one experimental condition and return the raw result dict.
-
-    The condition's own enable_review_memory turns the second RAG on; the
-    caller's rag_config can force it on for every condition but never off.
-    """
+    """Run one experimental condition and return the raw result dict."""
     rag_config = dict(rag_config or {})
-    if cond.get("enable_review_memory"):
-        rag_config["enable_review_memory_rag"] = True
 
     return mas_main(
         paper=paper_text,
@@ -321,8 +305,7 @@ def run_experiment(papers: list, api_key: str, output_dir: str,
                                   "n_iter": c["n_iter"],
                                   "enable_rag": c.get("enable_rag", False),
                                   "enable_ai_detector": c.get("enable_ai_detector", False),
-                                  "enable_author_rebuttal": c.get("enable_author_rebuttal", True),
-                                  "enable_review_memory": c.get("enable_review_memory", False)}
+                                  "enable_author_rebuttal": c.get("enable_author_rebuttal", True)}
                        for c in conditions},
         "papers": [],
     }
@@ -389,10 +372,6 @@ def main():
     parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY,
                         help=f"Number of papers reviewed in parallel "
                              f"(default: {DEFAULT_CONCURRENCY}; use 1 to run sequentially).")
-    parser.add_argument("--enable_review_memory", action="store_true",
-                        help="Also run the review-memory RAG (OpenReview reviews of "
-                             "related papers) in RAG conditions. Off by default, "
-                             "matching RAGConfig.")
     args = parser.parse_args()
 
     if args.concurrency < 1:
@@ -415,11 +394,8 @@ def main():
             print(f"Error: unknown condition id(s): {sorted(missing)}")
             sys.exit(1)
 
-    rag_config = {"enable_review_memory_rag": True} if args.enable_review_memory else None
-
     run_experiment(papers, args.api_key, args.output_dir, conditions=conditions,
-                   model=args.model, concurrency=args.concurrency,
-                   rag_config=rag_config)
+                   model=args.model, concurrency=args.concurrency)
     print("\nExperiment complete.")
 
 

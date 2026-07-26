@@ -40,37 +40,6 @@ def format_rag_prompt_block(package: dict[str, Any], max_papers: int = 8) -> str
                 f"Authors: {authors or 'unknown'}. "
                 f"Relevance: {item.get('relevance_score')}. {item.get('rationale', '')}"
             )
-    review_memory = package.get("review_memory") or {}
-    if review_memory.get("status") == "used":
-        selected = review_memory.get("selected_case") or {}
-        summary = review_memory.get("summary") or {}
-        lines.extend([
-            "",
-            "Review-memory auxiliary context:",
-            "This summarizes how one closely related OpenReview paper was evaluated. Use it for calibration only; it is not direct evidence about the target paper.",
-            (
-                f"Selected related paper: [{selected.get('source_paper_id')}] "
-                f"{selected.get('title', '')} "
-                f"({selected.get('year') or 'year unknown'}), rank {selected.get('source_rank') or 'unknown'}, "
-                f"OpenReview forum {selected.get('openreview_forum_id') or 'unknown'}."
-            ),
-            f"Decision pattern: {summary.get('decision_pattern') or selected.get('decision') or 'unknown'}.",
-            f"Score range: {summary.get('score_range') or selected.get('score_range') or {}}.",
-        ])
-        if summary.get("summary"):
-            lines.append(f"Pattern summary: {summary.get('summary')}")
-        if summary.get("common_strengths"):
-            lines.append("Common strengths: " + "; ".join(summary.get("common_strengths", [])[:5]))
-        if summary.get("common_weaknesses"):
-            lines.append("Common weaknesses: " + "; ".join(summary.get("common_weaknesses", [])[:5]))
-        if summary.get("calibration_notes"):
-            lines.append("Calibration notes: " + "; ".join(summary.get("calibration_notes", [])[:4]))
-    elif review_memory.get("status") in {"not_found", "failed", "unavailable"}:
-        lines.extend([
-            "",
-            "Review-memory auxiliary context:",
-            "No usable public OpenReview official reviews were found for the ranked related-work candidates.",
-        ])
     cutoff = package.get("cutoff_report") or {}
     if cutoff:
         lines.extend([
