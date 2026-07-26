@@ -362,9 +362,9 @@ class Author(Agent):
 
 
 class AIDetector(Agent):
-    """An LLM agent that detects whether writing is AI-generated."""
+    """An LLM agent that evaluates human-like conference-review writing style."""
 
-    name = "AI Detector"
+    name = "AI Detector (Review Style)"
 
     def __init__(self, paper: str, topic: str = "", model: str = "",
                  api_key: str = "", provider: str = "cmu"):

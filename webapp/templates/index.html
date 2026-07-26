@@ -165,8 +165,8 @@
 
     <div class="config-sublabel">Optional agents</div>
     <label class="rag-toggle">
-      <input id="enable-ai-detector" type="checkbox" />
-      <span>AI Detector <span class="muted">— analyze reviewer text during rebuttal iterations</span></span>
+      <input id="enable-ai-detector" type="checkbox" checked />
+      <span>AI Detector <span class="muted">— coach human-like conference-review style without changing scores</span></span>
     </label>
 
     <div class="config-sublabel">Always included</div>
@@ -895,9 +895,12 @@
         // ── AI Detector ──────────────────────────────────────────
         const score  = r.human_likeness_score;
         const pct    = Math.round((score / 10) * 100);
+        const fitScore = r.conference_review_fit_score;
+        const fitPct = fitScore === undefined ? 0 : Math.round((fitScore / 10) * 100);
         const conf   = r.confidence ? ` · confidence: ${r.confidence}` : "";
         const reasoning   = (r.reasoning             || []).map(s => `<li>${escHtml(s)}</li>`).join("");
         const signals     = (r.ai_like_signals        || []).map(s => `<li>${escHtml(s)}</li>`).join("");
+        const mismatches  = (r.conference_style_mismatches || []).map(s => `<li>${escHtml(s)}</li>`).join("");
         const suggestions = (r.improvement_suggestions|| []).map(s => `<li>${escHtml(s)}</li>`).join("");
         bodyHTML = `
           <div class="bubble-section-title">Human-likeness score${conf}</div>
@@ -905,8 +908,15 @@
             <span class="bubble-score-big">${score}/10</span>
             <div class="score-bar-wrap" style="flex:1"><div class="score-bar" style="width:${pct}%"></div></div>
           </div>
+          ${fitScore !== undefined ? `
+            <div class="bubble-section-title">Conference-review fit</div>
+            <div class="bubble-score-bar-row">
+              <span class="bubble-score-big">${fitScore}/10</span>
+              <div class="score-bar-wrap" style="flex:1"><div class="score-bar" style="width:${fitPct}%"></div></div>
+            </div>` : ""}
           ${reasoning   ? `<div class="bubble-section-title">Reasoning</div><ul class="bubble-list">${reasoning}</ul>`           : ""}
           ${signals     ? `<div class="bubble-section-title">AI-like signals</div><ul class="bubble-list">${signals}</ul>`       : ""}
+          ${mismatches  ? `<div class="bubble-section-title">Conference-style mismatches</div><ul class="bubble-list">${mismatches}</ul>` : ""}
           ${suggestions ? `<div class="bubble-section-title">Suggestions</div><ul class="bubble-list">${suggestions}</ul>`      : ""}`;
 
       } else if (r.ICML || r.NeurIPS || r.ICLR) {

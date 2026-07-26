@@ -36,7 +36,12 @@ For EACH reviewer:
 3. Provide concrete support:
   - Reference specific sections, equations, or experiments
   - Add missing explanations if needed
-  - Suggest additional experiments or analyses (even if not originally included)
+  - Clearly distinguish evidence already present in the submitted paper from
+    proposed future revisions
+  - If suggesting an additional experiment or analysis, explicitly state that
+    it is not part of the current submission
+  - Use an empty list for supporting evidence or proposed revisions when none
+    exist; do not invent an entry merely to fill the output template
 
 4. Maintain proper tone:
   - Polite, professional, and respectful
@@ -57,6 +62,8 @@ Global rebuttal strategy:
     - Invent fake results or experiments
     - Overclaim beyond what the paper supports
     - Ignore reviewer concerns
+    - Present agreement or a promise to revise as evidence that the current
+      submission already resolves a concern
 
 ###Output format###
 Return a structured rebuttal in JSON:
@@ -68,6 +75,20 @@ Return a structured rebuttal in JSON:
       "main_issues_identified": [
         "...",
         "..."
+      ],
+      "supporting_evidence_in_submission": [
+        {
+          "concern": "...",
+          "location": "<section, equation, figure, table, or appendix>",
+          "explanation": "..."
+        }
+      ],
+      "proposed_future_revisions": [
+        {
+          "concern": "...",
+          "proposed_change": "...",
+          "requires_new_experiment_or_analysis": <true or false>
+        }
       ],
       "response": "Detailed rebuttal paragraph(s) addressing the reviewer"
     }

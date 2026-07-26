@@ -19,6 +19,52 @@ def _parse_json(text: str) -> dict:
     return json.loads(text)
 
 
+def _normalize_review_weaknesses(review: dict) -> dict:
+    """Keep the public weaknesses field string-only for UI and evaluation."""
+    raw_weaknesses = review.get("weaknesses", [])
+    if not isinstance(raw_weaknesses, list):
+        return review
+
+    details = review.get("weakness_details", [])
+    if not isinstance(details, list):
+        details = []
+
+    normalized = []
+    for index, item in enumerate(raw_weaknesses):
+        if isinstance(item, str):
+            normalized.append(item)
+            continue
+
+        if isinstance(item, dict):
+            text = str(
+                item.get("weakness")
+                or item.get("concern")
+                or item.get("description")
+                or ""
+            ).strip()
+            if not text:
+                text = json.dumps(item, ensure_ascii=False)
+            normalized.append(text)
+            if index >= len(details):
+                details.append({
+                    "weakness": text,
+                    "severity": item.get("severity", ""),
+                    "evidence": item.get("evidence", ""),
+                    "affected_claim": item.get("affected_claim", ""),
+                    "fixable_without_substantial_new_work": item.get(
+                        "fixable_without_substantial_new_work"
+                    ),
+                })
+            continue
+
+        normalized.append(str(item))
+
+    review["weaknesses"] = normalized
+    if details:
+        review["weakness_details"] = details
+    return review
+
+
 # ── Citation check ───────────────────────────────────────────────────────────
 
 def _extract_refs_section(text: str) -> str:
@@ -85,7 +131,7 @@ def _run_citation_check(paper_text: str, on_citation_event=None) -> dict:
 def construct_reviewer_prompt(author_resp: str, aicheck_resp: str | None = None) -> str:
     prompt = f"###AUTHOR_RESPONSE###\n{author_resp}\n\n"
     if aicheck_resp is not None:
-        prompt += f"###AICHECKER_RESPONSE###\n{aicheck_resp}\n\n"
+        prompt += f"###REVIEW_STYLE_ANALYSIS###\n{aicheck_resp}\n\n"
     return prompt + f"###TASK###\n{reviewer_iteration}"
 
 
@@ -125,6 +171,8 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         {
           "reviewers"  : [ {reviewer, decision, scores, strengths,
                             weaknesses, summary_comment}, ... ],
+          "review_style_analyses": [
+                            {iteration, reviewer, analysis}, ... ],
           "conference" : { "ICML": {...}, "NeurIPS": {...}, "ICLR": {...} },
           "citations"  : { "stats": {...}, "failed": [...] },
         }
@@ -250,8 +298,8 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
 
     # ── Iterations 1..n_iter-1: rebuttal loop ────────────────────────────────
     for iteration in range(1, n_iter):
-        # Phase B: Author and optional Detector process previous reviews.
-        phase_label = "Author & Detector" if enable_ai_detector else "Author"
+        # Phase B: Author and optional review-style evaluator process previous reviews.
+        phase_label = "Author & Review Style Evaluator" if enable_ai_detector else "Author"
         emit(f"--- Iteration {iteration + 1} / {n_iter}: {phase_label} Processing ---")
         for i, reviewer in enumerate(reviewers):
             emit(f"AI Author writing rebuttal to {reviewer.name}...")
@@ -289,6 +337,17 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
             for i, review in ex.map(_run_update, enumerate(reviewers)):
                 reviews[iteration][i] = review
 
+    # ── Final review-style audit (measurement only; no substantive update) ───
+    final_style_resps = [None] * len(reviewers)
+    if ai_detect is not None:
+        emit("--- Final Review Style Audit ---")
+        for i, reviewer in enumerate(reviewers):
+            emit(f"Review Style Evaluator auditing final review from {reviewer.name}...")
+            emit_agent_status(ai_detect.name, "running")
+            final_style_resps[i] = ai_detect.call(reviews[n_iter - 1][i])
+            emit_agent_status(ai_detect.name, "done")
+            emit_message(ai_detect.name, final_style_resps[i])
+
     # ── Conference recommendation ─────────────────────────────────────────────
     emit("Generating conference recommendation...")
     final_reviews = reviews[n_iter - 1]
@@ -320,9 +379,39 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         if raw is None:
             continue
         try:
-            parsed_reviews.append(_parse_json(raw))
+            parsed_reviews.append(_normalize_review_weaknesses(_parse_json(raw)))
         except Exception:
             parsed_reviews.append({"raw": raw, "parse_error": True})
+
+    parsed_style_analyses = []
+    for iteration, row in enumerate(aicheck_resps, start=1):
+        for reviewer_index, raw in enumerate(row):
+            if raw is None:
+                continue
+            try:
+                analysis = _parse_json(raw)
+            except Exception:
+                analysis = {"raw": raw, "parse_error": True}
+            parsed_style_analyses.append({
+                "iteration": iteration,
+                "stage": "pre_update",
+                "reviewer": reviewers[reviewer_index].name,
+                "analysis": analysis,
+            })
+
+    for reviewer_index, raw in enumerate(final_style_resps):
+        if raw is None:
+            continue
+        try:
+            analysis = _parse_json(raw)
+        except Exception:
+            analysis = {"raw": raw, "parse_error": True}
+        parsed_style_analyses.append({
+            "iteration": n_iter,
+            "stage": "final_review",
+            "reviewer": reviewers[reviewer_index].name,
+            "analysis": analysis,
+        })
 
     try:
         parsed_conf = _parse_json(conf_rec_resp)
@@ -331,6 +420,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
 
     return {
         "reviewers":  parsed_reviews,
+        "review_style_analyses": parsed_style_analyses,
         "conference": parsed_conf,
         "citations":  citation_results,
         "rag_package": rag_package,
@@ -354,7 +444,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", default=None)
     parser.add_argument("--enable_rag", action="store_true")
     parser.add_argument("--enable_ai_detector", action="store_true",
-                        help="Enable the optional AI Detector agent (disabled by default).")
+                        help="Enable conference-review style evaluation during rebuttal iterations.")
     args = parser.parse_args()
 
     with open(args.paper, "r", encoding="utf-8") as f:

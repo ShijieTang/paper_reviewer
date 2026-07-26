@@ -65,7 +65,8 @@ def test_ai_detector_is_disabled_by_default():
 
     result = _run(False, UnexpectedDetector)
 
-    assert "AICHECKER_RESPONSE" not in result["reviewers"][0].get("raw", "")
+    assert "REVIEW_STYLE_ANALYSIS" not in result["reviewers"][0].get("raw", "")
+    assert result["review_style_analyses"] == []
 
 
 def test_ai_detector_can_be_enabled():
@@ -78,16 +79,19 @@ def test_ai_detector_can_be_enabled():
             calls.append(prompt)
             return "detector response"
 
-    _run(True, FakeDetector)
+    result = _run(True, FakeDetector)
 
-    assert len(calls) == 1
+    assert len(calls) == 2
     assert calls[0]
+    assert len(result["review_style_analyses"]) == 2
+    assert result["review_style_analyses"][0]["analysis"]["parse_error"] is True
+    assert result["review_style_analyses"][-1]["stage"] == "final_review"
 
 
 def test_reviewer_prompt_omits_detector_section_when_disabled():
     prompt = mas_loop.construct_reviewer_prompt("author response")
     assert "###AUTHOR_RESPONSE###" in prompt
-    assert "###AICHECKER_RESPONSE###" not in prompt
+    assert "###REVIEW_STYLE_ANALYSIS###" not in prompt
 
     enabled_prompt = mas_loop.construct_reviewer_prompt("author response", "detector response")
-    assert "###AICHECKER_RESPONSE###\ndetector response" in enabled_prompt
+    assert "###REVIEW_STYLE_ANALYSIS###\ndetector response" in enabled_prompt

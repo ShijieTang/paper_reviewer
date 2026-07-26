@@ -4,7 +4,7 @@ experiment_persona.py
 Run 3 persona reviewers (A, B, C) × 3 iterations for every conference paper.
 
 Result files (in --output_dir):
-    paper={name}_niter=3_nagent=3_agenttype=ABC.txt
+    paper={name}_niter=3_nagent=3_agenttype=ABC_styledetector=1.txt
 
 A summary JSON is also saved:
     experiment_persona_summary_{timestamp}.json
@@ -33,6 +33,7 @@ from mas_loop import main as mas_main
 REVIEWER_TYPES = ["reviewer_a", "reviewer_b", "reviewer_c"]
 N_ITER = 3
 N_AGENT = len(REVIEWER_TYPES)
+ENABLE_AI_DETECTOR = True
 
 _TYPE_CODE = {
     "reviewer_a":         "A",
@@ -51,7 +52,8 @@ def _result_filename(paper_name: str) -> str:
         f"paper={paper_name}"
         f"_niter={N_ITER}"
         f"_nagent={N_AGENT}"
-        f"_agenttype={AGENTTYPE}.txt"
+        f"_agenttype={AGENTTYPE}"
+        f"_styledetector={int(ENABLE_AI_DETECTOR)}.txt"
     )
 
 
@@ -82,6 +84,7 @@ def run_experiment(papers: list, api_key: str, output_dir: str) -> dict:
             "niter":     N_ITER,
             "agenttype": AGENTTYPE,
             "reviewers": REVIEWER_TYPES,
+            "enable_ai_detector": ENABLE_AI_DETECTOR,
         },
         "papers": [],
     }
@@ -119,6 +122,7 @@ def run_experiment(papers: list, api_key: str, output_dir: str) -> dict:
                 reviewer_types=REVIEWER_TYPES,
                 api_key=api_key,
                 run_citation_check=False,
+                enable_ai_detector=ENABLE_AI_DETECTOR,
             )
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(result, f, indent=2, ensure_ascii=False)

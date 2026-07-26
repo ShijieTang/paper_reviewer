@@ -182,7 +182,7 @@ class TestRunExperimentTopicNormalization(unittest.TestCase):
         fake_result = {"reviewers": [], "conference": {}, "citations": {}}
         papers = self._make_papers("NLP")
         with tempfile.TemporaryDirectory() as tmpdir:
-            existing_path = Path(tmpdir) / "2501010000_nagent=1_niter=1_paper=test_001_cond=A_single.txt"
+            existing_path = Path(tmpdir) / "2501010000_nagent=1_niter=1_styledetector=1_paper=test_001_cond=A_single.txt"
             existing_path.write_text(json.dumps(fake_result), encoding="utf-8")
 
             with patch("eval.experiment.pdf_to_markdown", return_value="paper text"), \
@@ -197,10 +197,10 @@ class TestRunExperimentTopicNormalization(unittest.TestCase):
         fake_result = {"reviewers": [], "conference": {}, "citations": {}}
         papers = self._make_papers("NLP")
         with tempfile.TemporaryDirectory() as tmpdir:
-            Path(tmpdir, "2501010000_nagent=1_niter=1_paper=test_001_cond=A_single.txt").write_text(
+            Path(tmpdir, "2501010000_nagent=1_niter=1_styledetector=1_paper=test_001_cond=A_single.txt").write_text(
                 json.dumps(fake_result), encoding="utf-8"
             )
-            Path(tmpdir, "2501010001_nagent=3_niter=3_paper=test_001_cond=B_multi.txt").write_text(
+            Path(tmpdir, "2501010001_nagent=3_niter=3_styledetector=1_paper=test_001_cond=B_multi.txt").write_text(
                 json.dumps(fake_result), encoding="utf-8"
             )
 
@@ -218,7 +218,7 @@ class TestRunExperimentTopicNormalization(unittest.TestCase):
         papers = self._make_papers("NLP")
         with tempfile.TemporaryDirectory() as tmpdir:
             # Old output from a previous experiment shape; should not match current condition B.
-            Path(tmpdir, "2501010000_nagent=2_niter=2_paper=test_001_cond=B_multi.txt").write_text(
+            Path(tmpdir, "2501010000_nagent=2_niter=2_styledetector=1_paper=test_001_cond=B_multi.txt").write_text(
                 json.dumps(fake_result), encoding="utf-8"
             )
 

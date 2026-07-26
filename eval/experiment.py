@@ -8,11 +8,11 @@ Condition A — Single agent:
     agents = [reviewer_a], n_iter = len(agents) = 1
 
 Condition B — Multi-agent:
-    agents = [reviewer_a, reviewer_b], n_iter = len(agents) = 2
+    agents = [reviewer_a, reviewer_b, reviewer_c], n_iter = len(agents) = 3
 
 Result files (in --output_dir):
-    {timestamp}_nagent=1_niter=1_paper={name}_cond=A_single.txt
-    {timestamp}_nagent=2_niter=2_paper={name}_cond=B_multi.txt
+    {timestamp}_nagent=1_niter=1_styledetector=1_paper={name}_cond=A_single.txt
+    {timestamp}_nagent=3_niter=3_styledetector=1_paper={name}_cond=B_multi.txt
 
 Each .txt file contains the raw result dict (identical structure to the
 normal webapp output):
@@ -28,6 +28,8 @@ Usage (run from the project root):
         --output_dir evaluation/exp_results  \\
         [--paper_id  example_001]
 """
+
+from __future__ import annotations
 
 import argparse
 import json
@@ -58,6 +60,8 @@ _CONDITIONS_AGENTS = [
     ("A", "single", ["reviewer_a"]),
     ("B", "multi",  ["reviewer_a", "reviewer_b", "reviewer_c"]),
 ]
+
+ENABLE_AI_DETECTOR = True
 
 CONDITIONS = [
     {
@@ -93,6 +97,7 @@ def run_condition(paper_text: str, topic: str, cond: dict, api_key: str) -> dict
         reviewer_types=cond["agents"],
         api_key=api_key,
         run_citation_check=False,
+        enable_ai_detector=ENABLE_AI_DETECTOR,
     )
 
 
@@ -106,6 +111,7 @@ def save_result(result: dict, paper_name: str, cond: dict,
         f"{timestamp}"
         f"_nagent={len(cond['agents'])}"
         f"_niter={cond['n_iter']}"
+        f"_styledetector={int(ENABLE_AI_DETECTOR)}"
         f"_paper={paper_name}"
         f"_cond={cond['id']}_{cond['label']}.txt"
     )
@@ -120,6 +126,7 @@ def _existing_result_path(output_dir: str, paper_name: str, cond: dict) -> Path 
     pattern = (
         f"*_nagent={len(cond['agents'])}"
         f"_niter={cond['n_iter']}"
+        f"_styledetector={int(ENABLE_AI_DETECTOR)}"
         f"_paper={paper_name}"
         f"_cond={cond['id']}_{cond['label']}.txt"
     )
@@ -147,7 +154,9 @@ def run_experiment(papers: list, api_key: str, output_dir: str) -> dict:
     summary = {
         "timestamp": timestamp,
         "conditions": {c["id"]: {"desc": c["desc"], "agents": c["agents"],
-                                  "n_iter": c["n_iter"]} for c in CONDITIONS},
+                                  "n_iter": c["n_iter"],
+                                  "enable_ai_detector": ENABLE_AI_DETECTOR}
+                       for c in CONDITIONS},
         "papers": [],
     }
 
