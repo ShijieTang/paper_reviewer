@@ -151,7 +151,7 @@ def doc_preprocess(pdf_name: str, pdf_path: str = "data/pdf", md_path: str = "da
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / pdf_name.with_suffix(".md")
 
-    converter = PdfConverter(artifact_dict=_get_model_dict())
+    converter = PdfConverter(artifact_dict=_get_model_dict(), config={"mode": "fast"})
     rendered = converter(str(full_pdf_path))
     text, _, _ = text_from_rendered(rendered)
     text = _clean_document(text)
