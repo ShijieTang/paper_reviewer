@@ -92,6 +92,9 @@ _CONDITIONS_SPEC = [
     dict(id="6", label="no_rag_2iter_noaidetect_noauthor",
          desc="No RAG, 2 iterations, 1 neutral reviewer, no AI Detector, no author rebuttal",
          agents=_N, n_iter=2, enable_author_rebuttal=False),
+    dict(id="7", label="rag_3iter_author",
+         desc="Related-work RAG, 3 iterations, 1 neutral reviewer, author rebuttal, no AI Detector",
+         agents=_N, n_iter=3, enable_rag=True),
 ]
 
 _CONDITION_DEFAULTS = {
@@ -136,7 +139,8 @@ def pdf_to_markdown(pdf_dir: str) -> str:
 
 
 def run_condition(paper_text: str, topic: str, cond: dict, api_key: str,
-                  model: str = "", rag_config: dict | None = None) -> dict:
+                  model: str = "", rag_config: dict | None = None,
+                  precomputed_rag_package: dict | None = None) -> dict:
     """Run one experimental condition and return the raw result dict."""
     rag_config = dict(rag_config or {})
 
@@ -152,6 +156,7 @@ def run_condition(paper_text: str, topic: str, cond: dict, api_key: str,
         enable_ai_detector=cond.get("enable_ai_detector", False),
         enable_author_rebuttal=cond.get("enable_author_rebuttal", True),
         rag_config=rag_config,
+        precomputed_rag_package=precomputed_rag_package if cond.get("enable_rag", False) else None,
     )
 
 
@@ -211,7 +216,8 @@ def _log(paper_id: str, message: str) -> None:
 
 def _run_paper(paper_meta: dict, conditions: list, api_key: str,
                output_dir: str, timestamp: str, model: str,
-               rag_config: dict | None = None) -> dict:
+               rag_config: dict | None = None,
+               rag_packages: dict | None = None) -> dict:
     """Run every condition for one paper and return its summary entry."""
     paper_id   = paper_meta["paper_id"]
     paper_name = Path(paper_meta["paper_dir"]).stem
@@ -258,8 +264,17 @@ def _run_paper(paper_meta: dict, conditions: list, api_key: str,
             if paper_text is None:
                 paper_text = pdf_to_markdown(paper_meta["paper_dir"])
             _log(paper_id, f"Condition {cond['id']}: {cond['desc']}")
+            precomputed_rag_package = (rag_packages or {}).get(paper_id)
+            if cond.get("enable_rag", False):
+                if precomputed_rag_package is not None:
+                    _log(paper_id, f"Condition {cond['id']}: using precomputed RAG package "
+                                    f"(num_used={precomputed_rag_package.get('cutoff_report', {}).get('num_used', '?')})")
+                else:
+                    _log(paper_id, f"Condition {cond['id']}: no precomputed RAG package found, "
+                                    f"will build RAG evidence live")
             result = run_condition(paper_text, topic, cond, api_key, model=model,
-                                   rag_config=rag_config)
+                                   rag_config=rag_config,
+                                   precomputed_rag_package=precomputed_rag_package)
             out_path = save_result(result, paper_name, cond, output_dir, timestamp)
             _log(paper_id, f"Condition {cond['id']}: saved {os.path.basename(out_path)}")
 
@@ -280,7 +295,8 @@ def _run_paper(paper_meta: dict, conditions: list, api_key: str,
 def run_experiment(papers: list, api_key: str, output_dir: str,
                    conditions: list = None, model: str = "",
                    concurrency: int = DEFAULT_CONCURRENCY,
-                   rag_config: dict | None = None) -> dict:
+                   rag_config: dict | None = None,
+                   rag_packages: dict | None = None) -> dict:
     """
     Run the given conditions (default: all of CONDITIONS) on all papers.
 
@@ -322,7 +338,7 @@ def run_experiment(papers: list, api_key: str, output_dir: str,
         futures = {
             pool.submit(_run_paper, paper_meta, conditions, api_key,
                         output_dir, timestamp, model,
-                        rag_config): (i, paper_meta["paper_id"])
+                        rag_config, rag_packages): (i, paper_meta["paper_id"])
             for i, paper_meta in enumerate(papers)
         }
         for future in as_completed(futures):
@@ -372,6 +388,11 @@ def main():
     parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY,
                         help=f"Number of papers reviewed in parallel "
                              f"(default: {DEFAULT_CONCURRENCY}; use 1 to run sequentially).")
+    parser.add_argument("--rag_cache", default=None,
+                        help="Path to a JSON file of precomputed RAG packages keyed by "
+                             "paper_id (e.g. eval/related_work_rag_30.json). When a paper_id "
+                             "has an entry here, RAG-enabled conditions reuse it instead of "
+                             "hitting OpenAlex/arXiv/the LLM reranker live.")
     args = parser.parse_args()
 
     if args.concurrency < 1:
@@ -394,8 +415,15 @@ def main():
             print(f"Error: unknown condition id(s): {sorted(missing)}")
             sys.exit(1)
 
+    rag_packages = None
+    if args.rag_cache:
+        with open(args.rag_cache, "r", encoding="utf-8") as f:
+            rag_packages = json.load(f)
+        print(f"Loaded {len(rag_packages)} precomputed RAG package(s) from {args.rag_cache}")
+
     run_experiment(papers, args.api_key, args.output_dir, conditions=conditions,
-                   model=args.model, concurrency=args.concurrency)
+                   model=args.model, concurrency=args.concurrency,
+                   rag_packages=rag_packages)
     print("\nExperiment complete.")
 
 
