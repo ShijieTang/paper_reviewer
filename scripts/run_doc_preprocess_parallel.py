@@ -63,7 +63,8 @@ def discover_pdfs(pdf_dir: Path) -> list[Path]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("pdf_dir", help="Directory containing input PDF files (e.g. data/openreview_pdf)")
-    parser.add_argument("md_dir", help="Directory for output markdown files (e.g. data/openreview_md)")
+    parser.add_argument("md_dir", nargs="?", default="data/md",
+                        help="Directory for output markdown files (default: data/md)")
     parser.add_argument("--workers", "-w", type=int, default=4,
                         help="Number of parallel worker processes (default: 4)")
     parser.add_argument("--limit", "-n", type=int, default=None,
@@ -88,10 +89,24 @@ def main() -> int:
     if args.limit is not None:
         tasks = tasks[: args.limit]
 
+    # Pre-filter in the main process: skip PDFs whose .md already exists unless
+    # --overwrite. This avoids spawning a worker (and importing torch/marker)
+    # for files that are already converted — important when resuming a long run.
+    n_before = len(tasks)
+    tasks = [t for t in tasks
+             if args.overwrite or not (Path(t[2]) / Path(t[0]).with_suffix(".md").name).exists()]
+    n_skipped = n_before - len(tasks)
+
     n_total = len(tasks)
-    n_workers = max(1, min(args.workers, n_total))
+    n_workers = max(1, min(args.workers, n_total)) if n_total else 0
     print(f"Processing {n_total} PDF(s) with {n_workers} worker(s) "
           f"-> {pdf_dir} -> {md_dir}", flush=True)
+    if n_skipped:
+        print(f"Skipping {n_skipped} PDF(s) that already have .md output "
+              f"in {md_dir} (use --overwrite to reconvert).", flush=True)
+    if n_total == 0:
+        print("Nothing to do.", flush=True)
+        return 0
 
     # spawn avoids fork-inherited torch/marker state and forces a fresh
     # interpreter per worker, so the _MODEL_DICT singleton starts clean.

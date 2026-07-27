@@ -34,6 +34,18 @@ RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# llama.cpp server: marker 2.0's fast mode spawns `llama-server` to run the
+# surya VLM for equation/OCR repair on pages that need it. The slim image has
+# no such binary, so install the prebuilt CPU Linux x86_64 release. All needed
+# .so libs are bundled in the tarball; we just set LD_LIBRARY_PATH so they're
+# found, and LLAMA_CPP_BINARY so marker/surya locates the executable.
+RUN curl -sL https://github.com/ggml-org/llama.cpp/releases/download/b10153/llama-b10153-bin-ubuntu-x64.tar.gz \
+        -o /tmp/llama.tar.gz \
+    && mkdir -p /opt/llama.cpp \
+    && tar xzf /tmp/llama.tar.gz -C /opt/llama.cpp --strip-components=1 \
+    && chmod +x /opt/llama.cpp/llama-server \
+    && rm /tmp/llama.tar.gz
+
 # App code: the preprocessing module and the parallel runner.
 COPY doc_preprocess.py ./
 COPY scripts/run_doc_preprocess_parallel.py ./scripts/
@@ -42,7 +54,9 @@ COPY scripts/run_doc_preprocess_parallel.py ./scripts/
 # named volume if you want to avoid re-downloading models on every run).
 ENV HF_HOME=/app/.cache/huggingface \
     PYTHONUNBUFFERED=1 \
-    TORCH_DEVICE=cpu
+    TORCH_DEVICE=cpu \
+    LLAMA_CPP_BINARY=/opt/llama.cpp/llama-server \
+    LD_LIBRARY_PATH=/opt/llama.cpp
 
 # Default command: convert every PDF in data/openreview_pdf -> data/openreview_md
 # in parallel. Override args to change inputs/workers, e.g.
