@@ -1,0 +1,212 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The paper identifies a genuine problem: learning across hierarchies of dynamical systems with varying degrees of relatedness. The motivation for hierarchical meta-learning is well-articulated, and the comparison in Figure 2 effectively demonstrates limitations of both task-specific meta-learners and naive MoEs.",
+        "The proposed gating mechanism combining K-means clustering with least squares is a reasonable engineering solution to the identified gradient-based routing problem. The approach is technically sound and shows clear improvements over gradient-based gating in the motivating example (ODEBench-2).",
+        "The paper demonstrates extensive experimental coverage across multiple datasets (ODEBench variants, classical DSR benchmarks, synthetic time series, neuroscientific data) and integrates the approach with several different contextual meta-learning backbones (NCF, CoDA, GEPS)."
+      ],
+      "weaknesses": [
+        "MixER significantly underperforms state-of-the-art meta-learners on the very datasets it is designed for. On classical DSR benchmarks (Table 4), MixER consistently shows worse performance than single meta-learners across all backbones and datasets (LV, GO, SM). On ODEBench-10B, MixER often achieves substantially worse adaptation performance than baselines, particularly with gradient-based gating (Table 3 shows MIXER-10† sometimes performing better, undermining the core contribution).",
+        "The core claim about hierarchical learning is not convincingly validated. The paper shows MixER works on loosely related families (ODEBench) but then admits it fails when data is highly related (classical benchmarks, Epilepsy2). This severely limits the practical applicability, as the method only helps when manual partitioning would already be straightforward. The Epilepsy2 results (Figure 7) explicitly show the method produces poor and ambiguous clusters when environments are closely related—precisely the scenario that foundational models should handle.",
+        "The computational cost is acknowledged but not adequately addressed. The paper states 'computational demands typically exceed those of individually trained meta-learners, as all experts must remain simultaneously loaded in memory' but provides no comparative analysis. This is a major practical limitation for a method claiming to enable foundation models.",
+        "The gating update algorithm introduces additional hyperparameters and design choices (context splitting, context shifting, noise injection) that appear to require dataset-specific tuning. These implementation details suggest the method is fragile and may not generalize well. The noise standard deviation σ=10^-4 and splitting/shifting mechanisms seem ad-hoc.",
+        "The experimental evaluation has several concerning aspects: (1) Table 2 shows high variance in results (e.g., MIXER-10 ADAPT for NCF: 2.38±0.23 vs naive MoE: 5.28±1.04, but only 3 seeds); (2) the paper admits GEPS with naive MoE (MIXER-10†) sometimes outperforms their proposed method; (3) relative MSE metrics in Equation 9 can be unstable when trajectories have small L2 norms, and the filtering threshold of 10^-6 is not well justified.",
+        "The paper overclaims about foundational models. The title and framing suggest this is work toward foundational models for DSR, but the results show: (a) the method only works when families are maximally unrelated (rare in practice), (b) it fails when relationships are complex (common in practice), (c) it requires more computation than alternatives. This does not represent meaningful progress toward foundational DSR models."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "MixER significantly underperforms state-of-the-art meta-learners on the very datasets it is designed for. On classical DSR benchmarks (Table 4), MixER consistently shows worse performance than single meta-learners across all backbones and datasets (LV, GO, SM). On ODEBench-10B, MixER often achieves substantially worse adaptation performance than baselines, particularly with gradient-based gating (Table 3 shows MIXER-10† sometimes performing better, undermining the core contribution).",
+          "severity": "major",
+          "evidence": "Table 4 shows MixER-NCF, MixER-CoDA, and MixER-GEPS all perform worse than their baseline counterparts on LV, GO, and SM datasets. For example, CODA achieves IND=1.40±0.13 on LV vs MIXER-CODA=4.00±0.01. Table 3 shows MIXER-10 underperforming MIXER-10† (gradient-based), contradicting the main methodological claim. The paper itself states 'MixER underperforms relative to its baseline meta-learners' (line 294-295).",
+          "affected_claim": "The core claim that MixER enables effective hierarchical learning across families while maintaining performance",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The core claim about hierarchical learning is not convincingly validated. The paper shows MixER works on loosely related families (ODEBench) but then admits it fails when data is highly related (classical benchmarks, Epilepsy2). This severely limits the practical applicability, as the method only helps when manual partitioning would already be straightforward. The Epilepsy2 results (Figure 7) explicitly show the method produces poor and ambiguous clusters when environments are closely related—precisely the scenario that foundational models should handle.",
+          "severity": "major",
+          "evidence": "Lines 293-301 explicitly state: 'MixER underperforms relative to its baseline meta-learners...Clustering and routing analysis shows that MixER logically partitions datasets into three subsets, but this partitioning limits each expert meta-learner's exposure to the full dataset...performance degradation despite clear cross-environment commonalities.' Figure 7 shows Epilepsy2 classification accuracy degradation with MixER. The paper admits (lines 383-384) 'MixER's interpretability performance on closely related datasets is inferior to single meta-learners.'",
+          "affected_claim": "MixER enables foundational models capable of learning across families of arbitrary relatedness",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The computational cost is acknowledged but not adequately addressed. The paper states 'computational demands typically exceed those of individually trained meta-learners, as all experts must remain simultaneously loaded in memory' but provides no comparative analysis. This is a major practical limitation for a method claiming to enable foundation models.",
+          "severity": "major",
+          "evidence": "Lines 386-387 acknowledge the computational limitation. Appendix C.3 (lines 932-937) provides only wall-clock training times without memory analysis or comparison to baselines. No FLOPs analysis is provided. The paper mentions hardware used (GPU with 16GB or 480GB) but does not compare to baseline requirements.",
+          "affected_claim": "MixER is a practical solution for hierarchical DSR that enables foundational models",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The gating update algorithm introduces additional hyperparameters and design choices (context splitting, context shifting, noise injection) that appear to require dataset-specific tuning. These implementation details suggest the method is fragile and may not generalize well. The noise standard deviation σ=10^-4 and splitting/shifting mechanisms seem ad-hoc.",
+          "severity": "major",
+          "evidence": "Appendix C.1 describes two ad-hoc mechanisms: 'Context Splitting' (applied only to IVPs) and 'Context Shifting' (applied to all experiments). Algorithm 1 includes noise injection (line 23) with σ specified in C.3 as 10^-4. No ablation studies justify these choices or show robustness to hyperparameter variation. The paper states these mechanisms 'improve the clustering when the relatedness of families is minimal' but provides no systematic analysis.",
+          "affected_claim": "MixER provides a principled, generalizable solution to hierarchical DSR",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The experimental evaluation has several concerning aspects: (1) Table 2 shows high variance in results with only 3 seeds; (2) the paper admits GEPS with naive MoE (MIXER-10†) sometimes outperforms their proposed method; (3) relative MSE metrics in Equation 9 can be unstable when trajectories have small L2 norms, and the filtering threshold of 10^-6 is not well justified.",
+          "severity": "major",
+          "evidence": "Table 2 uses only 3 runs with standard deviations often large relative to means (e.g., MIXER-10 CoDA ADAPT: 15.9±4.2). Table 3 shows MIXER-10† (gradient-based) achieving better or comparable ADAPT performance to MIXER-10 on several metrics, contradicting the method's core innovation. The relative MSE definition (Equation 9) divides by ||x_t^{e,i}||_2^2 which is unstable for small values. Lines 729-730 mention filtering with threshold 10^-6 but provide minimal justification.",
+          "affected_claim": "The K-means + least squares gating mechanism is superior to gradient-based gating for DSR",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The paper overclaims about foundational models. The title and framing suggest this is work toward foundational models for DSR, but the results show: (a) the method only works when families are maximally unrelated (rare in practice), (b) it fails when relationships are complex (common in practice), (c) it requires more computation than alternatives. This does not represent meaningful progress toward foundational DSR models.",
+          "severity": "major",
+          "evidence": "The title promises 'Foundational Models For Dynamical System Reconstruction.' However, the abstract (lines 20-23) and results contradictorily show 'MixER underperforms state-of-the-art meta-learners in high-data regimes' and shows 'limited contextual representations resulting from MixER when the data is ambiguous and closely related.' The Conclusion (lines 401-406) admits the method 'conversely underperforms classical meta-learning baselines on datasets exhibiting high degrees of relatedness.'",
+          "affected_claim": "This work represents progress toward foundational models for dynamical system reconstruction",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The mathematical formulation is technically sound. The K-means clustering + least squares optimization for gating is a valid approach, and proximal alternating minimization is properly motivated. However, the empirical validation of the core claims is weak (see evaluation gate)."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The specific combination of context-based routing with K-means + least squares gating for MoEs in DSR is novel. While MoEs and K-means are well-established, their application to hierarchical DSR with this particular design is new. However, the novelty is primarily engineering-focused rather than methodological."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "The significance is severely limited by the empirical results. The method shows consistent underperformance on standard benchmarks, computational overhead, and only works when families are maximally unrelated (a rare scenario where manual partitioning is already straightforward). The paper fails to demonstrate that MixER solves a practically important problem or advances the state-of-the-art. The claimed contribution to foundational models is not supported."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "While experiments are numerous, they collectively demonstrate the method's limitations rather than validate its core claims. Critical issues: (1) MixER underperforms baselines on the classical benchmarks (Table 4) it claims to target; (2) results with only 3 seeds and high variance; (3) gradient-based gating (MIXER-10†) sometimes outperforms the proposed method, undermining the contribution; (4) failures on highly-related data (Epilepsy2, classical benchmarks) contradict the hierarchical learning narrative; (5) no ablation studies, computational cost comparisons, or robustness analyses; (6) ad-hoc design choices (context splitting/shifting/noise) lack justification."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-written with clear motivation, adequate figures, and comprehensive appendices. The problem statement is well-articulated and the limitations section is honest. However, presentation alone cannot compensate for weak empirical results."
+        }
+      },
+      "summary_comment": "This paper addresses an interesting problem—learning dynamical systems across hierarchies of varying relatedness—and proposes a reasonable technical solution combining K-means clustering with least squares for MoE routing. However, the work is fundamentally undermined by its empirical results. MixER consistently underperforms established meta-learners on standard benchmarks (Table 4), shows high variance with limited seeds, and admits to working poorly precisely when hierarchical learning would be most valuable (closely-related environments). Paradoxically, the method only demonstrates benefits on loosely-related families where manual dataset partitioning would already be straightforward, severely limiting practical impact. The claim of progress toward foundational models is not supported—foundational models must handle diverse data well, yet MixER fails on complex relationships. The computational overhead is acknowledged but not addressed. While the technical approach is sound, the empirical validation is insufficient for a top-tier venue, and the gap between claims (hierarchical learning for foundational models) and reality (underperforms on related data, requires manual engineering) is too large."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper addresses meta-learning and dynamical systems reconstruction, which are core ICML topics (general machine learning, meta-learning, optimization)\",\n      \"The work combines established techniques (K-means, least squares, MoE) in a novel way for a specific application domain, which aligns with ICML's interest in improved implementations and algorithms\",\n      \"The experimental scope is broad with multiple datasets and baselines, reflecting ICML's value for empirical machine learning research\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The core empirical results show consistent underperformance on standard benchmarks (Table 4: MixER underperforms baselines across LV, GO, SM datasets), which directly contradicts claims of methodological advancement. ICML prioritizes work that demonstrates clear improvements over existing methods.\",\n      \"The paper admits that MixER only benefits loosely-related families while failing on closely-related data (classical benchmarks, Epilepsy2). This is a fundamental limitation for a method claiming to enable hierarchical learning—the failure cases precisely where the method should excel undermines its value.\",\n      \"The experimental rigor is insufficient for ICML standards: only 3 random seeds with high variance, gradient-based gating (MIXER-10†) sometimes outperforming the proposed method (Table 3), and lack of ablation studies on ad-hoc design choices (context splitting/shifting, noise injection)\",\n      \"The computational overhead (acknowledged but not quantified) contradicts the practical utility claim. ICML values scalable, efficient methods; a solution requiring all experts simultaneously in memory that also underperforms is difficult to justify.\",\n      \"The work is primarily an engineering contribution (combining existing techniques) rather than a methodological advance. While ICML publishes systems work, it typically requires demonstrable improvements—this work shows degradation on standard benchmarks.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"NeurIPS welcomes interdisciplinary submissions and in-depth analysis of method limitations. The paper honestly discusses when and why MixER fails, which aligns with NeurIPS's recent emphasis on understanding method behavior.\",\n      \"The work touches on multiple NeurIPS-relevant topics: meta-learning, reinforcement learning/control (through dynamical systems), and applications to neuroscience (EEG data in Epilepsy2 experiment)\",\n      \"The paper provides extensive experimental analysis across synthetic and real-world datasets, with custom implementations of multiple baselines (NCF, CoDA, GEPS)\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The core contribution does not advance NeurIPS's mission of presenting novel research that improves the state-of-the-art. MixER consistently underperforms established meta-learners on multiple standard benchmarks (Table 4), which is the opposite of what a top venue expects. NeurIPS publishes work that either achieves SOTA results or provides significant insights—this work does neither.\",\n      \"The claimed contribution (hierarchical learning across arbitrary families) is not validated. The method works only on loosely-related families (where manual partitioning is straightforward) and fails on closely-related data (where hierarchical learning would be valuable). This is a critical gap between claims and evidence.\",\n      \"Experimental design issues are significant: only 3 seeds for variance estimation (insufficient for statistical significance), gradient-based gating (MIXER-10†) sometimes outperforming the proposed method (contradicting core innovation claims), and no ablation studies justifying design choices.\",\n      \"The computational cost disadvantage (all experts must be loaded in memory simultaneously) without corresponding performance benefits is problematic. NeurIPS values efficient, scalable methods; a proposal that increases compute while degrading results faces an uphill battle.\",\n      \"The 'foundational model' framing is misleading. The paper's own results show the method fails precisely when handling the diversity and complexity that foundational models must manage. This represents a disconnect between narrative and evidence that NeurIPS reviewers would scrutinize carefully.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"ICLR strongly emphasizes representation learning and meta-learning, which are central to this paper's contextual meta-learning approach and hierarchical structure learning\",\n      \"The paper's focus on learning across dynamical systems with varied relationships touches on ICLR's interest in transfer learning, domain generalization, and multi-task learning\",\n      \"ICLR values in-depth analysis of method limitations and behavior beyond the original scope. The paper's honest treatment of failure cases (classical benchmarks, Epilepsy2) and the discussion of when hierarchical learning helps vs. hurts aligns with this value\",\n      \"The application to neuroscience (EEG data) and the interpretability analysis of learned representations (Sections 4.3) align with ICLR's interest in applications and interpretable representation learning\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The fundamental empirical results show consistent underperformance on standard benchmarks (Table 4). While ICLR values understanding method behavior, it typically requires either strong empirical results or deep theoretical insights—this work has neither. The underperformance on classical DSR benchmarks directly contradicts the method's goals.\",\n      \"The core claim about hierarchical learning is not convincingly validated. MixER works on loosely-related families but fails on closely-related data (the very scenarios where hierarchical learning is most needed). This is a critical limitation for a paper claiming to advance representation learning across hierarchies.\",\n      \"Experimental rigor is below ICLR standards: only 3 random seeds, high variance in key metrics, gradient-based gating (MIXER-10†) sometimes outperforming the proposed method, and no systematic ablation studies for the ad-hoc design choices (context splitting, context shifting, noise injection σ=10⁻⁴).\",\n      \"The contribution is primarily engineering-focused (combining K-means + least squares for routing) rather than providing novel insights about representation learning or meta-learning. ICLR prioritizes conceptual advances in representation learning; this work mostly applies existing techniques to a new domain without succeeding.\",\n      \"The computational overhead without corresponding benefits is problematic for ICLR, which values efficient learning and scalability. A method that requires more memory while achieving worse results is difficult to justify as advancing the field.\"\n    ]\n  }\n}\n```\n\n---\n\n## Detailed Reasoning\n\n### Overall Assessment\n\nThis paper proposes **MixER** (Mixture of Expert Reconstructors), a sparse MoE layer with K-means + least squares-based routing for learning hierarchical families of dynamical systems. While the problem is well-motivated and the technical approach is sound, the empirical validation is insufficient and contradicts core claims.\n\n**Critical Issues:**\n\n1. **Empirical Underperformance (Major)**: On the classical DSR benchmarks that represent standard evaluation scenarios, MixER consistently underperforms baseline meta-learners (Table 4). This is fatal for a methods paper claiming to advance the field.\n\n2. **Fundamental Contradiction**: The method works on loosely-related families but fails on closely-related data. This is backwards—hierarchical learning should be most useful when relationships are complex and ambiguous. Instead, it only helps when manual partitioning is already straightforward.\n\n3. **Weak Experimental Rigor**: Only 3 random seeds, high variance, results where naive MoE (MIXER-10†) sometimes outperforms the proposed method (Table 3), and no ablation studies on design choices.\n\n4. **Unrealistic Framing**: The \"foundational models\" narrative is not supported. Foundational models must generalize across diverse data; MixER fails precisely in diverse/related scenarios.\n\n### Venue-Specific Analysis\n\n**ICML (Score: 4/10 - Weak Fit)**\n- ICML values empirical improvements on standard benchmarks. MixER fails this test fundamentally.\n- The contribution is engineering-focused without clear advantages in efficiency, interpretability, or performance.\n- While meta-learning and DSR are relevant topics, the execution and results do not meet ICML's standards for acceptance.\n\n**NeurIPS (Score: 4/10 - Weak Fit)**\n- NeurIPS appreciates analysis of method limitations, which the paper provides honestly. However, NeurIPS still requires SOTA results or significant insights—this work has neither.\n- The interdisciplinary applications (neuroscience) are appreciated, but results on neuroscientific data show degradation (Figure 7).\n- The scale of experiments is good, but insufficient rigor (3 seeds, high variance) and contradictions (MIXER-10† outperforming MIXER-10) are problematic.\n\n**ICLR (Score: 5/10 - Borderline/Risky)**\n- ICLR's focus on representation learning and meta-learning makes this paper superficially relevant.\n- However, ICLR requires advances in understanding representation learning or meta-learning. This paper combines existing techniques without new insights and shows performance degradation.\n- The honest treatment of failures is appreciated, but failures on core benchmarks undermine the contribution.\n- Score slightly higher than other venues because ICLR values understanding method behavior, and this paper does provide that analysis—but it's analysis of *why* the method fails, not why it succeeds.\n\n### Strategic Recommendation\n\n**Do not submit to any of these three venues in current form.** The empirical results are fundamentally misaligned with the claims. The paper needs either:\n- Substantial improvements to achieve competitive performance on standard benchmarks, or\n- A complete reframing to focus on understanding when/why hierarchical learning fails (more of a negative result paper), with theoretical insights to explain the limitations.\n\nThe current submission conflates two incompatible narratives: (1) advancing hierarchical DSR toward foundational models, and (2) analyzing limitations of contextual meta-learning. The empirical results support only the latter.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper identifies a genuine problem: learning across hierarchies of dynamical systems with varying degrees of relatedness. The motivation for hierarchical meta-learning is well-articulated, and the comparison in Figure 2 effectively demonstrates limitations of both task-specific meta-learners and naive MoEs.",
+              "The proposed gating mechanism combining K-means clustering with least squares is a reasonable engineering solution to the identified gradient-based routing problem. The approach is technically sound and shows clear improvements over gradient-based gating in the motivating example (ODEBench-2).",
+              "The paper demonstrates extensive experimental coverage across multiple datasets (ODEBench variants, classical DSR benchmarks, synthetic time series, neuroscientific data) and integrates the approach with several different contextual meta-learning backbones (NCF, CoDA, GEPS)."
+            ],
+            "weaknesses": [
+              "MixER significantly underperforms state-of-the-art meta-learners on the very datasets it is designed for. On classical DSR benchmarks (Table 4), MixER consistently shows worse performance than single meta-learners across all backbones and datasets (LV, GO, SM). On ODEBench-10B, MixER often achieves substantially worse adaptation performance than baselines, particularly with gradient-based gating (Table 3 shows MIXER-10† sometimes performing better, undermining the core contribution).",
+              "The core claim about hierarchical learning is not convincingly validated. The paper shows MixER works on loosely related families (ODEBench) but then admits it fails when data is highly related (classical benchmarks, Epilepsy2). This severely limits the practical applicability, as the method only helps when manual partitioning would already be straightforward. The Epilepsy2 results (Figure 7) explicitly show the method produces poor and ambiguous clusters when environments are closely related—precisely the scenario that foundational models should handle.",
+              "The computational cost is acknowledged but not adequately addressed. The paper states 'computational demands typically exceed those of individually trained meta-learners, as all experts must remain simultaneously loaded in memory' but provides no comparative analysis. This is a major practical limitation for a method claiming to enable foundation models.",
+              "The gating update algorithm introduces additional hyperparameters and design choices (context splitting, context shifting, noise injection) that appear to require dataset-specific tuning. These implementation details suggest the method is fragile and may not generalize well. The noise standard deviation σ=10^-4 and splitting/shifting mechanisms seem ad-hoc.",
+              "The experimental evaluation has several concerning aspects: (1) Table 2 shows high variance in results (e.g., MIXER-10 ADAPT for NCF: 2.38±0.23 vs naive MoE: 5.28±1.04, but only 3 seeds); (2) the paper admits GEPS with naive MoE (MIXER-10†) sometimes outperforms their proposed method; (3) relative MSE metrics in Equation 9 can be unstable when trajectories have small L2 norms, and the filtering threshold of 10^-6 is not well justified.",
+              "The paper overclaims about foundational models. The title and framing suggest this is work toward foundational models for DSR, but the results show: (a) the method only works when families are maximally unrelated (rare in practice), (b) it fails when relationships are complex (common in practice), (c) it requires more computation than alternatives. This does not represent meaningful progress toward foundational DSR models."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "MixER significantly underperforms state-of-the-art meta-learners on the very datasets it is designed for. On classical DSR benchmarks (Table 4), MixER consistently shows worse performance than single meta-learners across all backbones and datasets (LV, GO, SM). On ODEBench-10B, MixER often achieves substantially worse adaptation performance than baselines, particularly with gradient-based gating (Table 3 shows MIXER-10† sometimes performing better, undermining the core contribution).",
+                "severity": "major",
+                "evidence": "Table 4 shows MixER-NCF, MixER-CoDA, and MixER-GEPS all perform worse than their baseline counterparts on LV, GO, and SM datasets. For example, CODA achieves IND=1.40±0.13 on LV vs MIXER-CODA=4.00±0.01. Table 3 shows MIXER-10 underperforming MIXER-10† (gradient-based), contradicting the main methodological claim. The paper itself states 'MixER underperforms relative to its baseline meta-learners' (line 294-295).",
+                "affected_claim": "The core claim that MixER enables effective hierarchical learning across families while maintaining performance",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The core claim about hierarchical learning is not convincingly validated. The paper shows MixER works on loosely related families (ODEBench) but then admits it fails when data is highly related (classical benchmarks, Epilepsy2). This severely limits the practical applicability, as the method only helps when manual partitioning would already be straightforward. The Epilepsy2 results (Figure 7) explicitly show the method produces poor and ambiguous clusters when environments are closely related—precisely the scenario that foundational models should handle.",
+                "severity": "major",
+                "evidence": "Lines 293-301 explicitly state: 'MixER underperforms relative to its baseline meta-learners...Clustering and routing analysis shows that MixER logically partitions datasets into three subsets, but this partitioning limits each expert meta-learner's exposure to the full dataset...performance degradation despite clear cross-environment commonalities.' Figure 7 shows Epilepsy2 classification accuracy degradation with MixER. The paper admits (lines 383-384) 'MixER's interpretability performance on closely related datasets is inferior to single meta-learners.'",
+                "affected_claim": "MixER enables foundational models capable of learning across families of arbitrary relatedness",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The computational cost is acknowledged but not adequately addressed. The paper states 'computational demands typically exceed those of individually trained meta-learners, as all experts must remain simultaneously loaded in memory' but provides no comparative analysis. This is a major practical limitation for a method claiming to enable foundation models.",
+                "severity": "major",
+                "evidence": "Lines 386-387 acknowledge the computational limitation. Appendix C.3 (lines 932-937) provides only wall-clock training times without memory analysis or comparison to baselines. No FLOPs analysis is provided. The paper mentions hardware used (GPU with 16GB or 480GB) but does not compare to baseline requirements.",
+                "affected_claim": "MixER is a practical solution for hierarchical DSR that enables foundational models",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The gating update algorithm introduces additional hyperparameters and design choices (context splitting, context shifting, noise injection) that appear to require dataset-specific tuning. These implementation details suggest the method is fragile and may not generalize well. The noise standard deviation σ=10^-4 and splitting/shifting mechanisms seem ad-hoc.",
+                "severity": "major",
+                "evidence": "Appendix C.1 describes two ad-hoc mechanisms: 'Context Splitting' (applied only to IVPs) and 'Context Shifting' (applied to all experiments). Algorithm 1 includes noise injection (line 23) with σ specified in C.3 as 10^-4. No ablation studies justify these choices or show robustness to hyperparameter variation. The paper states these mechanisms 'improve the clustering when the relatedness of families is minimal' but provides no systematic analysis.",
+                "affected_claim": "MixER provides a principled, generalizable solution to hierarchical DSR",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental evaluation has several concerning aspects: (1) Table 2 shows high variance in results with only 3 seeds; (2) the paper admits GEPS with naive MoE (MIXER-10†) sometimes outperforms their proposed method; (3) relative MSE metrics in Equation 9 can be unstable when trajectories have small L2 norms, and the filtering threshold of 10^-6 is not well justified.",
+                "severity": "major",
+                "evidence": "Table 2 uses only 3 runs with standard deviations often large relative to means (e.g., MIXER-10 CoDA ADAPT: 15.9±4.2). Table 3 shows MIXER-10† (gradient-based) achieving better or comparable ADAPT performance to MIXER-10 on several metrics, contradicting the method's core innovation. The relative MSE definition (Equation 9) divides by ||x_t^{e,i}||_2^2 which is unstable for small values. Lines 729-730 mention filtering with threshold 10^-6 but provide minimal justification.",
+                "affected_claim": "The K-means + least squares gating mechanism is superior to gradient-based gating for DSR",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The paper overclaims about foundational models. The title and framing suggest this is work toward foundational models for DSR, but the results show: (a) the method only works when families are maximally unrelated (rare in practice), (b) it fails when relationships are complex (common in practice), (c) it requires more computation than alternatives. This does not represent meaningful progress toward foundational DSR models.",
+                "severity": "major",
+                "evidence": "The title promises 'Foundational Models For Dynamical System Reconstruction.' However, the abstract (lines 20-23) and results contradictorily show 'MixER underperforms state-of-the-art meta-learners in high-data regimes' and shows 'limited contextual representations resulting from MixER when the data is ambiguous and closely related.' The Conclusion (lines 401-406) admits the method 'conversely underperforms classical meta-learning baselines on datasets exhibiting high degrees of relatedness.'",
+                "affected_claim": "This work represents progress toward foundational models for dynamical system reconstruction",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical formulation is technically sound. The K-means clustering + least squares optimization for gating is a valid approach, and proximal alternating minimization is properly motivated. However, the empirical validation of the core claims is weak (see evaluation gate)."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The specific combination of context-based routing with K-means + least squares gating for MoEs in DSR is novel. While MoEs and K-means are well-established, their application to hierarchical DSR with this particular design is new. However, the novelty is primarily engineering-focused rather than methodological."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The significance is severely limited by the empirical results. The method shows consistent underperformance on standard benchmarks, computational overhead, and only works when families are maximally unrelated (a rare scenario where manual partitioning is already straightforward). The paper fails to demonstrate that MixER solves a practically important problem or advances the state-of-the-art. The claimed contribution to foundational models is not supported."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "While experiments are numerous, they collectively demonstrate the method's limitations rather than validate its core claims. Critical issues: (1) MixER underperforms baselines on the classical benchmarks (Table 4) it claims to target; (2) results with only 3 seeds and high variance; (3) gradient-based gating (MIXER-10†) sometimes outperforms the proposed method, undermining the contribution; (4) failures on highly-related data (Epilepsy2, classical benchmarks) contradict the hierarchical learning narrative; (5) no ablation studies, computational cost comparisons, or robustness analyses; (6) ad-hoc design choices (context splitting/shifting/noise) lack justification."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear motivation, adequate figures, and comprehensive appendices. The problem statement is well-articulated and the limitations section is honest. However, presentation alone cannot compensate for weak empirical results."
+              }
+            },
+            "summary_comment": "This paper addresses an interesting problem—learning dynamical systems across hierarchies of varying relatedness—and proposes a reasonable technical solution combining K-means clustering with least squares for MoE routing. However, the work is fundamentally undermined by its empirical results. MixER consistently underperforms established meta-learners on standard benchmarks (Table 4), shows high variance with limited seeds, and admits to working poorly precisely when hierarchical learning would be most valuable (closely-related environments). Paradoxically, the method only demonstrates benefits on loosely-related families where manual dataset partitioning would already be straightforward, severely limiting practical impact. The claim of progress toward foundational models is not supported—foundational models must handle diverse data well, yet MixER fails on complex relationships. The computational overhead is acknowledged but not addressed. While the technical approach is sound, the empirical validation is insufficient for a top-tier venue, and the gap between claims (hierarchical learning for foundational models) and reality (underperforms on related data, requires manual engineering) is too large."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

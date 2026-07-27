@@ -1,0 +1,187 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Introduces a novel two-level elasticity paradigm (Elastic Multimodal Parallelism) specifically designed to address the unique compute heterogeneity and dynamic workload challenges of MLLM serving, decoupling both by modality and by inference stage.",
+        "Provides a comprehensive system design with concrete techniques (modality-aware load balancing, elastic partitioned scheduling) and optimizations (unified multimodal prefix cache, non-blocking encoding), backed by detailed algorithmic descriptions and rationale.",
+        "Presents strong experimental results on real-world datasets, demonstrating significant performance improvements over strong baselines (vLLM, DistServe), including up to 4.2x reduction in TTFT and 3.2-4.5x higher throughput while meeting SLOs. Ablation studies effectively validate the contributions of the core components."
+      ],
+      "weaknesses": [
+        "The evaluation is limited to a single-node, 8-GPU setup. The paper acknowledges multi-node evaluation as future work, but this limits the demonstrated scalability of the proposed elastic scheduling and partitioning schemes under large-scale, distributed conditions which are common in production.",
+        "The gain-cost models for instance preemption (Equations 2 and 3) are central to the elastic scheduling but are presented with limited justification for the specific formulation (e.g., normalization by input/output length, choice of penalty factor w). A more detailed analysis of their sensitivity and optimality would strengthen the technical soundness."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The evaluation is limited to a single-node, 8-GPU setup. The paper acknowledges multi-node evaluation as future work, but this limits the demonstrated scalability of the proposed elastic scheduling and partitioning schemes under large-scale, distributed conditions which are common in production.",
+          "severity": "minor",
+          "evidence": "Section 4.1 states: 'We leave multi-node distributed studies to future work, as this testbed already demonstrates superior performance.'",
+          "affected_claim": "Claims regarding the system's effectiveness and scalability for 'efficiently serving MLLMs' and handling 'dynamic workloads' in a general serving context.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The gain-cost models for instance preemption (Equations 2 and 3) are central to the elastic scheduling but are presented with limited justification for the specific formulation (e.g., normalization by input/output length, choice of penalty factor w). A more detailed analysis of their sensitivity and optimality would strengthen the technical soundness.",
+          "severity": "minor",
+          "evidence": "Equations 2 and 3 in Section 3.2 define the gain and cost for preemption decisions. The text states 'A tunable penalty factor w is introduced to control the aggressiveness of preemption' but does not provide analysis or empirical guidance on setting w.",
+          "affected_claim": "Claim that elastic partition scheduling 'enables flexible parallelism tailored to the needs of each inference stage' and maximizes 'GPU efficiency'.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The central claims—decoupling by modality and stage, elastic resource adaptation, and specific optimizations—are technically supported. The system design is logically described, the algorithms are specified, and the experiments show consistent, significant improvements over baselines. The models and assumptions, while not exhaustively analyzed, are reasonable."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The work introduces Elastic Multimodal Parallelism, a new serving paradigm that combines modality-level and stage-level decoupling with elasticity, specifically for MLLMs. While building on prior work in disaggregated LLM serving (e.g., DistServe, LoongServe), the focus on multimodal heterogeneity, the two-level elasticity framework, and techniques like modality-aware load balancing and unified multimodal caching represent a distinct and novel contribution."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "Efficiently serving multimodal LLMs is a pressing challenge due to their increasing adoption. The paper demonstrates substantial performance gains (4.2x TTFT reduction, 3.2-4.5x throughput) over state-of-the-art systems on real datasets, directly addressing a major bottleneck. The proposed paradigm could meaningfully influence the design of future MLLM serving systems."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Experiments are comprehensive, using two representative MLLM architectures (encoder-decoder, decoder-only) and two real-world datasets. Comparisons against strong, adapted baselines (vLLM, DistServe) are fair and convincing. Ablation studies effectively isolate the contributions of EMP and the individual optimizations. Metrics (latency, throughput under SLOs) are appropriate and results are clearly presented."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written and well-structured. The problem motivation, key insights, system design, and evaluation are logically presented. Figures and tables effectively illustrate the architecture and results. The technical descriptions are sufficiently detailed for assessment."
+        }
+      },
+      "summary_comment": "This paper presents a well-designed and impactful system, ElasticMM, for efficient Multimodal LLM serving. It identifies a clear gap in existing tightly coupled systems and proposes a novel two-level elastic parallelism paradigm (EMP) with concrete techniques. The strengths are substantial: a novel and well-motivated approach, a complete system design, and compelling experimental results showing major performance gains. The weaknesses are minor: the single-node evaluation scope is acknowledged, and some algorithmic details could be further elaborated. Overall, the paper clearly meets the standards of a top-tier conference. It passes all acceptance gates, offering a significant, sound, and novel contribution to the field of efficient AI system serving."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "ICML": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "The paper focuses on machine learning systems and optimization, which aligns with ICML's 'machine learning systems (improved implementation and scalability, hardware, libraries, distributed methods, etc.)' track.",
+        "The work involves optimization techniques for inference serving, including scheduling algorithms and load balancing, which fits ICML's 'optimization' topic area.",
+        "The evaluation uses real-world datasets and demonstrates significant performance improvements, meeting ICML's emphasis on empirical validation and practical impact."
+      ],
+      "why_it_does_not_fit": [
+        "The core contribution is primarily a systems engineering solution rather than a machine learning algorithm or theory contribution, which may be less aligned with ICML's primary focus on ML models and algorithms.",
+        "While the paper mentions optimization, it's focused on system-level resource optimization rather than mathematical optimization of learning objectives.",
+        "The novelty is more in system architecture and scheduling rather than fundamental ML advances, which might place it at the periphery of ICML's main interests."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "The paper addresses efficient inference serving for multimodal LLMs, directly relevant to NeurIPS's 'SysML Infrastructure' track and 'Language and multimodal language models' area.",
+        "The work tackles a practical challenge in deploying state-of-the-art AI models (MLLMs), aligning with NeurIPS's emphasis on impactful AI/ML systems research.",
+        "The evaluation includes diverse real-world datasets and comparisons against SOTA baselines, meeting NeurIPS's standards for rigorous empirical evaluation.",
+        "The paper discusses broader impacts and societal benefits of efficient MLLM serving, addressing NeurIPS's requirements for impact considerations."
+      ],
+      "why_it_does_not_fit": [
+        "The technical depth is more systems-focused than algorithm/theory-focused, which might appeal more to the systems track than the broader NeurIPS audience.",
+        "While the paper mentions multimodal models, the core contribution is in serving infrastructure rather than multimodal learning algorithms per se.",
+        "The gain-cost models (Equations 2-3) lack theoretical analysis or justification, which might be expected for more theoretical NeurIPS submissions."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "The paper focuses on efficient inference for deep learning models (MLLMs), which aligns with ICLR's focus on deep learning systems and infrastructure.",
+        "Multimodal models are a core interest area for ICLR, as evidenced by tracks on 'representation learning for computer vision, audio, language, and other modalities'.",
+        "The optimizations like prefix caching and non-blocking encoding are relevant to ICLR's interest in efficient deep learning inference."
+      ],
+      "why_it_does_not_fit": [
+        "ICLR primarily emphasizes novel deep learning architectures, training methods, and theoretical understanding, whereas this paper is primarily about serving systems engineering.",
+        "The work doesn't introduce new model architectures or learning algorithms, which are ICLR's main focus areas.",
+        "The evaluation lacks ablation studies on model accuracy or learning properties, focusing instead on system performance metrics.",
+        "Reviewer concerns about limited multi-node evaluation and algorithmic justification might be more critical for ICLR, which often expects comprehensive scalability analysis."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Introduces a novel two-level elasticity paradigm (Elastic Multimodal Parallelism) specifically designed to address the unique compute heterogeneity and dynamic workload challenges of MLLM serving, decoupling both by modality and by inference stage.",
+              "Provides a comprehensive system design with concrete techniques (modality-aware load balancing, elastic partitioned scheduling) and optimizations (unified multimodal prefix cache, non-blocking encoding), backed by detailed algorithmic descriptions and rationale.",
+              "Presents strong experimental results on real-world datasets, demonstrating significant performance improvements over strong baselines (vLLM, DistServe), including up to 4.2x reduction in TTFT and 3.2-4.5x higher throughput while meeting SLOs. Ablation studies effectively validate the contributions of the core components."
+            ],
+            "weaknesses": [
+              "The evaluation is limited to a single-node, 8-GPU setup. The paper acknowledges multi-node evaluation as future work, but this limits the demonstrated scalability of the proposed elastic scheduling and partitioning schemes under large-scale, distributed conditions which are common in production.",
+              "The gain-cost models for instance preemption (Equations 2 and 3) are central to the elastic scheduling but are presented with limited justification for the specific formulation (e.g., normalization by input/output length, choice of penalty factor w). A more detailed analysis of their sensitivity and optimality would strengthen the technical soundness."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The evaluation is limited to a single-node, 8-GPU setup. The paper acknowledges multi-node evaluation as future work, but this limits the demonstrated scalability of the proposed elastic scheduling and partitioning schemes under large-scale, distributed conditions which are common in production.",
+                "severity": "minor",
+                "evidence": "Section 4.1 states: 'We leave multi-node distributed studies to future work, as this testbed already demonstrates superior performance.'",
+                "affected_claim": "Claims regarding the system's effectiveness and scalability for 'efficiently serving MLLMs' and handling 'dynamic workloads' in a general serving context.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The gain-cost models for instance preemption (Equations 2 and 3) are central to the elastic scheduling but are presented with limited justification for the specific formulation (e.g., normalization by input/output length, choice of penalty factor w). A more detailed analysis of their sensitivity and optimality would strengthen the technical soundness.",
+                "severity": "minor",
+                "evidence": "Equations 2 and 3 in Section 3.2 define the gain and cost for preemption decisions. The text states 'A tunable penalty factor w is introduced to control the aggressiveness of preemption' but does not provide analysis or empirical guidance on setting w.",
+                "affected_claim": "Claim that elastic partition scheduling 'enables flexible parallelism tailored to the needs of each inference stage' and maximizes 'GPU efficiency'.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The central claims—decoupling by modality and stage, elastic resource adaptation, and specific optimizations—are technically supported. The system design is logically described, the algorithms are specified, and the experiments show consistent, significant improvements over baselines. The models and assumptions, while not exhaustively analyzed, are reasonable."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The work introduces Elastic Multimodal Parallelism, a new serving paradigm that combines modality-level and stage-level decoupling with elasticity, specifically for MLLMs. While building on prior work in disaggregated LLM serving (e.g., DistServe, LoongServe), the focus on multimodal heterogeneity, the two-level elasticity framework, and techniques like modality-aware load balancing and unified multimodal caching represent a distinct and novel contribution."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "Efficiently serving multimodal LLMs is a pressing challenge due to their increasing adoption. The paper demonstrates substantial performance gains (4.2x TTFT reduction, 3.2-4.5x throughput) over state-of-the-art systems on real datasets, directly addressing a major bottleneck. The proposed paradigm could meaningfully influence the design of future MLLM serving systems."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive, using two representative MLLM architectures (encoder-decoder, decoder-only) and two real-world datasets. Comparisons against strong, adapted baselines (vLLM, DistServe) are fair and convincing. Ablation studies effectively isolate the contributions of EMP and the individual optimizations. Metrics (latency, throughput under SLOs) are appropriate and results are clearly presented."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written and well-structured. The problem motivation, key insights, system design, and evaluation are logically presented. Figures and tables effectively illustrate the architecture and results. The technical descriptions are sufficiently detailed for assessment."
+              }
+            },
+            "summary_comment": "This paper presents a well-designed and impactful system, ElasticMM, for efficient Multimodal LLM serving. It identifies a clear gap in existing tightly coupled systems and proposes a novel two-level elastic parallelism paradigm (EMP) with concrete techniques. The strengths are substantial: a novel and well-motivated approach, a complete system design, and compelling experimental results showing major performance gains. The weaknesses are minor: the single-node evaluation scope is acknowledged, and some algorithmic details could be further elaborated. Overall, the paper clearly meets the standards of a top-tier conference. It passes all acceptance gates, offering a significant, sound, and novel contribution to the field of efficient AI system serving."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

@@ -1,0 +1,212 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 2,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The paper addresses a practically important question about whether inference-time compute can defend against adversarial vision attacks, building on recent findings about reasoning-based defenses for text attacks.",
+        "The hypothesis (RICH) is intuitive and well-motivated: the observation that adversarially robust models are forced to generate in-distribution attacks that may be amenable to reasoning is insightful and grounded in prior work on the nature of adversarial perturbations in robust models.",
+        "The paper includes multiple experimental approaches (white-box PGD, black-box transfer, CoT) across models with varying robustness levels (LLaVA, FARE-LLaVA, Delta2LLaVA), demonstrating effort toward robustness in the evaluation."
+      ],
+      "weaknesses": [
+        "The inference-time compute scaling mechanism used in white-box experiments (textual repetition with K repetitions) is a poor proxy for actual reasoning-based defenses like o1, fundamentally undermining the validity of the core claims.",
+        "The experimental evaluation uses only three vision-language models at small to medium scale, and the paper explicitly acknowledges testing at 'comparatively much smaller scale' than the frontier models (o1) that motivate the work, limiting generalizability.",
+        "The paper conflates correlation with causation regarding the in-distribution hypothesis; while robust models do show greater benefits, the mechanism explaining why is not rigorously established, and alternative explanations (e.g., models trained on adversarial examples simply learning to defer to text) are not adequately ruled out.",
+        "No quantitative analysis of the cost-benefit tradeoff is provided despite the title's emphasis on 'profitably trading' compute for robustness; the paper does not compare the computational cost versus robustness gains across models or attack strengths.",
+        "The black-box transfer attacks use only 200 images from Attack-Bard, a relatively small dataset optimized for different models (Bard/GPT-4V), raising questions about the transferability and significance of these results.",
+        "The white-box attack design (providing correct text information while perturbing images) is somewhat artificial and may not reflect realistic adversarial scenarios; it essentially tests whether the model can be made to override visual input with textual priors."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The inference-time compute scaling mechanism used in white-box experiments (textual repetition with K repetitions) is a poor proxy for actual reasoning-based defenses like o1, fundamentally undermining the validity of the core claims.",
+          "severity": "major",
+          "evidence": "Section 3.1 states: 'Notably, this is not the same inference-time compute scaling performed by reasoning models like o1, but it allows us to investigate how naively scaling inference-time compute affects robustness.' The authors acknowledge the difference but proceed to use this proxy as the main evidence for their hypothesis. This proxy mechanism is fundamentally different from chain-of-thought reasoning that generates problem-solving traces.",
+          "affected_claim": "The claim that inference-time compute provides synergistic benefits with robust models; the core hypothesis (RICH) that 'inference-time compute is most effective as a defense when attacks are forced into in-distribution regimes.'",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The experimental evaluation uses only three vision-language models at small to medium scale, and the paper explicitly acknowledges testing at 'comparatively much smaller scale' than the frontier models (o1) that motivate the work, limiting generalizability.",
+          "severity": "major",
+          "evidence": "Section 5 Limitations states: 'We explored a phenomenon first uncovered in a large-scale reasoning model (o1) using experiments at a comparatively much smaller scale.' The models tested (LLaVA-v1.5, FARE-LLaVA-v1.5, Delta2LLaVA-v1.5) are not frontier-scale models. Figure 2 references o1-v performance but does not conduct white-box attacks on it, relying instead on comparison with smaller models.",
+          "affected_claim": "The generalizability of RICH to frontier models and the practical significance of the findings for real-world deployment where the most critical vulnerabilities lie.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The paper conflates correlation with causation regarding the in-distribution hypothesis; while robust models do show greater benefits, the mechanism explaining why is not rigorously established, and alternative explanations are not adequately ruled out.",
+          "severity": "major",
+          "evidence": "Section 4.1-4.3 show correlations between model robustness and compute scaling benefits, but the paper does not rigorously establish that this is due to attacks being in-distribution versus other factors. For example, in Section 4.2, the authors test reducing ε to make attacks more in-distribution, but FARE-LLaVA-v1.5 still shows limited benefits compared to Delta2LLaVA-v1.5, which could be explained by the textual repetition mechanism simply interacting differently with models trained on adversarial examples.",
+          "affected_claim": "The causal mechanism underlying RICH: that inference-compute benefits arise specifically because attacks are in-distribution in robust models.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "No quantitative analysis of the cost-benefit tradeoff is provided despite the title's emphasis on 'profitably trading' compute for robustness; the paper does not compare the computational cost versus robustness gains across models or attack strengths.",
+          "severity": "major",
+          "evidence": "The title is 'Get Rich Or Die Scaling: Profitably Trading Inference Compute For Robustness' but the paper provides no analysis of computational costs, latency, or cost-benefit metrics. Section 2 mentions that 'the economic cost of raising inference-time compute to such levels' is prohibitive, but no quantitative analysis follows. Table 1 shows PGD steps but no per-token computation cost or real-world latency analysis.",
+          "affected_claim": "The practical significance of the proposed approach and whether the inference-compute costs are justified by robustness gains.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The black-box transfer attacks use only 200 images from Attack-Bard, a relatively small dataset optimized for different models (Bard/GPT-4V), raising questions about the transferability and significance of these results.",
+          "severity": "minor",
+          "evidence": "Section 3.2 states: 'Attack-Bard consists of 200 images generated from a white-box adversarial attack on an ensemble of surrogate models.' These attacks were optimized for Bard and GPT-4V, not the LLaVA-based models being tested. While transfer attacks are common practice, the small dataset and model-specificity of optimization limits the strength of evidence.",
+          "affected_claim": "The robustness of findings to black-box transfer attacks and the generality of RICH across different attack types.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The white-box attack design (providing correct text information while perturbing images) is somewhat artificial and may not reflect realistic adversarial scenarios; it essentially tests whether the model can be made to override visual input with textual priors.",
+          "severity": "minor",
+          "evidence": "Section 3.1 describes the attack: 'Our attack creates a conflict between modalities by providing correct information in the text input (e.g., mentioning that a soccer ball is 'round') while simultaneously applying a PGD attack on the image input that targets an incorrect model output.' This setup explicitly biases the evaluation toward text-based defenses since the 'defense' (textual repetition) directly strengthens the correct modality that is provided as input.",
+          "affected_claim": "Whether the benefits of inference-compute scaling represent genuine robustness improvements or simply reflect the model's tendency to defer to text when it is repeated/emphasized.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The core experimental methodology has fundamental soundness issues. The white-box experiments use textual repetition as a proxy for inference-time compute scaling, which the authors acknowledge is 'not the same' as reasoning-based defenses. This breaks the connection between the experiments and the motivating phenomenon (o1's reasoning-based defenses). Additionally, the white-box attack design itself biases toward text-based defenses by providing correct textual information and then testing whether textual repetition can override visual attacks—this is a somewhat artificial scenario that may not reflect genuine robustness. The causal mechanism (in-distribution hypothesis) is not rigorously established; alternative explanations are not ruled out. Black-box experiments use a very small dataset (200 images) optimized for different models."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper proposes a novel hypothesis (RICH) that connects base model robustness to the effectiveness of inference-time compute for defense. The observation that robust models force attacks to be more in-distribution is grounded in prior work but the specific application to inference-compute scaling is novel. The white-box multimodal PGD attack is claimed to be novel (first white-box test of multimodal reasoning defenses). However, the novelty is somewhat limited as it builds directly on Zaremba et al. [2025] and extends existing insights about interpretable perturbations in robust models."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "The significance is limited by several factors: (1) The experiments use small to medium-scale models, not frontier-scale models like o1 that motivate the work, limiting practical relevance. (2) No cost-benefit analysis is provided despite the title emphasizing 'profitably trading' compute, so it's unclear if the approach is actually economically viable. (3) The inference-compute scaling mechanism (textual repetition) is not a realistic proxy for actual reasoning-based defenses, limiting the applicability of findings. (4) The core insight—that more robust models benefit more from compute scaling—while interesting, does not fundamentally advance understanding of either robustness or reasoning-based defenses in a way that would meaningfully impact the field. The work essentially confirms that robust models are more robust, which is less surprising than claimed."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The evaluation has several critical gaps: (1) Only three models tested, all small-scale, while the phenomenon is motivated by frontier models. (2) Black-box experiments use only 200 images from a dataset optimized for different models. (3) No computational cost analysis despite claims about 'profitably trading' compute. (4) The white-box attack design is somewhat artificial (providing correct text while attacking visual input), biasing toward text-based defenses. (5) The in-distribution hypothesis is not rigorously tested—while the paper shows correlation between robustness and compute benefits, it does not definitively establish that this is due to in-distribution attacks rather than other factors (e.g., models trained on adversarial examples simply learning to defer to text). (6) Limited to vision attacks without comparison to text attacks where prior work showed benefits."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-written with clear motivation, a well-articulated hypothesis, and organized experiments. The figures (especially Figure 1 and Figure 4) effectively communicate the main findings. The methodology sections provide sufficient detail. However, there are some clarity issues: the distinction between the white-box textual repetition proxy and actual reasoning-based defenses could be more prominent throughout, and the limitations section, while present, could be more thorough in discussing the implications of the scale gap."
+        }
+      },
+      "summary_comment": "The paper proposes an interesting hypothesis (RICH) explaining why inference-time compute provides limited robustness benefits against vision attacks: robust models force attacks to remain in-distribution where reasoning can help, while non-robust models are vulnerable to out-of-distribution perturbations that reasoning cannot defend against. However, the work suffers from critical soundness and significance issues that prevent it from meeting top-tier standards. Most importantly, the white-box experiments use textual repetition as a proxy for reasoning-based defenses, which fundamentally differs from the o1-style chain-of-thought reasoning that motivates the work. The black-box experiments use a tiny dataset (200 images). The evaluation is at small model scales while claiming relevance to frontier models. No cost-benefit analysis is provided despite the title emphasizing profitability. The causal mechanism (in-distribution hypothesis) is not rigorously established; the observed correlation between robustness and compute benefits could reflect other factors like models trained on adversarial examples simply learning to defer to text. While the paper makes a contribution to understanding robustness-compute interactions, these methodological limitations and the lack of practical analysis undermine its significance for a top-tier venue. The work would benefit from: (1) experiments with actual reasoning-based compute scaling (not textual repetition), (2) frontier-scale models, (3) comprehensive cost-benefit analysis, (4) rigorous testing of the in-distribution mechanism, and (5) larger-scale evaluation with more diverse datasets and attack types."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper addresses adversarial robustness, a core ICML topic in trustworthy machine learning\",\n      \"It provides systematic evaluation across models with varying robustness levels, which aligns with ICML's emphasis on rigorous evaluation methodology\",\n      \"The work investigates the interaction between train-time and test-time defenses, touching on optimization and defense mechanisms central to ML systems\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The foundational methodology has critical soundness issues: the white-box experiments use textual repetition as a proxy for inference-time compute, which the authors acknowledge is fundamentally different from reasoning-based defenses like o1. This breaks the connection between the experimental design and the motivating phenomenon, making it unsuitable for ICML's standards of rigor\",\n      \"The paper lacks the kind of methodological contribution or algorithmic innovation that ICML values. It essentially proposes a hypothesis and tests it via existing attack methods with a different scaling proxy, rather than introducing new techniques or substantially advancing the field's understanding of robustness mechanisms\",\n      \"No cost-benefit analysis is provided despite the title's emphasis on 'profitably trading' compute for robustness. ICML values practical considerations and the paper provides no computational cost analysis, latency measurements, or economic feasibility assessment\",\n      \"The evaluation is limited to small-to-medium scale models (LLaVA variants) when the motivation comes from frontier models like o1, creating a significant credibility gap for ICML's applied ML audience\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"The paper addresses AI safety and robustness to adversarial attacks, which are explicitly listed NeurIPS topics under 'trustworthy machine learning' and 'socio-technical aspects of AI'\",\n      \"The hypothesis (RICH) is intuitive and well-motivated, grounded in observations about how robust models force attacks into interpretable, in-distribution regimes—this kind of insight aligns with NeurIPS's appreciation for novel conceptual contributions\",\n      \"The work includes multiple experimental approaches (white-box, black-box transfer, CoT) across models with varying robustness levels, demonstrating comprehensive evaluation effort\",\n      \"The paper connects vision robustness to inference-time compute, which resonates with NeurIPS's broad interest in multimodal systems and reasoning-based defenses\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The core experimental methodology has fundamental soundness issues that would concern NeurIPS reviewers: textual repetition (K repetitions) is used as a proxy for reasoning-based compute scaling, which the authors acknowledge is 'not the same' as o1-style reasoning. This breaks the causal chain from hypothesis to evidence\",\n      \"The black-box evaluation uses only 200 images from Attack-Bard, a small dataset optimized for different models (Bard/GPT-4V), which NeurIPS would find insufficient for strong claims about generalizability\",\n      \"The paper explicitly acknowledges testing at 'comparatively much smaller scale' than the frontier models (o1) that motivate the work. Given NeurIPS's emphasis on understanding frontier models and real-world impact, this scale gap significantly undermines relevance\",\n      \"The causal mechanism is not rigorously established: while the paper shows correlation between model robustness and compute scaling benefits, it does not definitively prove this is due to in-distribution attacks. Alternative explanations (e.g., models trained on adversarial examples simply learning to defer to text) are not adequately ruled out\",\n      \"No quantitative cost-benefit analysis despite the title emphasizing 'profitably trading' compute. NeurIPS reviewers would expect concrete computational cost analysis, latency metrics, or feasibility assessments for practical robustness claims\",\n      \"The white-box attack design is somewhat artificial: providing correct text while attacking images essentially tests whether textual repetition can override visual attacks, which may not reflect realistic adversarial scenarios and introduces bias toward text-based defenses\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"ICLR explicitly welcomes papers on 'trustworthy machine learning' including 'robustness' and 'safety,' making adversarial robustness a natural fit\",\n      \"The paper provides analysis of representation learning under adversarial perturbations, touching on how robust models develop different internal representations that support interpretable attacks—a topic ICLR values\",\n      \"The hypothesis connects base model robustness to the effectiveness of inference-time reasoning, which relates to ICLR's interest in learning theory and how model properties affect downstream performance\",\n      \"The work includes novel white-box attacks on multimodal models, which aligns with ICLR's focus on deep learning safety and understanding model behavior\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The experimental design uses a fundamentally flawed proxy for the phenomenon: textual repetition as a stand-in for reasoning-based inference-time compute. This is explicitly acknowledged as 'not the same' as o1-style reasoning, making it a poor test of the core hypothesis that ICLR would reject for lacking internal validity\",\n      \"ICLR emphasizes deep learning innovation and insights; this paper is primarily an empirical investigation of a hypothesis using existing models and attack methods. The contribution is incremental rather than introducing new architectures, algorithms, or deep theoretical insights\",\n      \"The scale mismatch is critical: the motivating phenomenon comes from frontier reasoning models like o1, but experiments use small vision-language models. ICLR reviewers would expect either frontier-scale experiments or a clear mechanism explaining why small-scale results transfer\",\n      \"The causal mechanism (in-distribution hypothesis) lacks rigor. ICLR values precise characterization of why phenomena occur; the paper shows correlation but does not establish causation through controlled experiments that isolate the in-distribution factor from other variables\",\n      \"Limited novelty in the experimental methodology: the white-box attack (conflicting text/vision inputs) is relatively straightforward, and black-box evaluation reuses existing Attack-Bard dataset. ICLR expects more methodological innovation for adversarial robustness papers\",\n      \"No analysis of what representations robust models learn that enable this synergy with inference-time compute. ICLR would expect deeper investigation into the representation learning perspective, not just the empirical correlation\"\n    ]\n  }\n}\n```\n\n### Summary\n\nThis paper proposes an interesting hypothesis (RICH) explaining why inference-time compute provides limited robustness benefits against vision attacks, but it has **critical soundness issues that make it a poor fit across all three venues**, though slightly better suited to NeurIPS than ICML/ICLR:\n\n**Core Problems:**\n\n1. **Methodological flaw**: The white-box experiments use textual repetition (K repetitions) as a proxy for reasoning-based compute, which the authors acknowledge is fundamentally different from o1-style reasoning. This breaks the link between the hypothesis and evidence.\n\n2. **Scale mismatch**: Experiments use small vision-language models while claiming relevance to frontier models like o1 that motivate the work—a gap the authors acknowledge but do not adequately address.\n\n3. **Missing analysis**: Despite the title's emphasis on \"profitably trading\" compute for robustness, there is no cost-benefit analysis, computational cost estimation, or economic feasibility assessment.\n\n4. **Insufficient causal evidence**: Correlation between robustness and compute benefits is shown, but causation is not rigorously established; alternative explanations (e.g., models learning to defer to text) are not ruled out.\n\n5. **Limited evaluation scope**: Black-box uses only 200 images from a dataset optimized for different models.\n\n**Fit Assessment:**\n- **NeurIPS (5/10)**: Best fit given its broad scope and interest in AI safety, but soundness issues are disqualifying\n- **ICML (4/10)**: Requires stronger methodological rigor; lacks the algorithmic/systems contributions ICML values\n- **ICLR (5/10)**: Good topical fit but misses ICLR's emphasis on deep learning innovation and representation learning insights\n\nThe paper would need substantial revisions before being suitable for any top-tier venue.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 2,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a practically important question about whether inference-time compute can defend against adversarial vision attacks, building on recent findings about reasoning-based defenses for text attacks.",
+              "The hypothesis (RICH) is intuitive and well-motivated: the observation that adversarially robust models are forced to generate in-distribution attacks that may be amenable to reasoning is insightful and grounded in prior work on the nature of adversarial perturbations in robust models.",
+              "The paper includes multiple experimental approaches (white-box PGD, black-box transfer, CoT) across models with varying robustness levels (LLaVA, FARE-LLaVA, Delta2LLaVA), demonstrating effort toward robustness in the evaluation."
+            ],
+            "weaknesses": [
+              "The inference-time compute scaling mechanism used in white-box experiments (textual repetition with K repetitions) is a poor proxy for actual reasoning-based defenses like o1, fundamentally undermining the validity of the core claims.",
+              "The experimental evaluation uses only three vision-language models at small to medium scale, and the paper explicitly acknowledges testing at 'comparatively much smaller scale' than the frontier models (o1) that motivate the work, limiting generalizability.",
+              "The paper conflates correlation with causation regarding the in-distribution hypothesis; while robust models do show greater benefits, the mechanism explaining why is not rigorously established, and alternative explanations (e.g., models trained on adversarial examples simply learning to defer to text) are not adequately ruled out.",
+              "No quantitative analysis of the cost-benefit tradeoff is provided despite the title's emphasis on 'profitably trading' compute for robustness; the paper does not compare the computational cost versus robustness gains across models or attack strengths.",
+              "The black-box transfer attacks use only 200 images from Attack-Bard, a relatively small dataset optimized for different models (Bard/GPT-4V), raising questions about the transferability and significance of these results.",
+              "The white-box attack design (providing correct text information while perturbing images) is somewhat artificial and may not reflect realistic adversarial scenarios; it essentially tests whether the model can be made to override visual input with textual priors."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The inference-time compute scaling mechanism used in white-box experiments (textual repetition with K repetitions) is a poor proxy for actual reasoning-based defenses like o1, fundamentally undermining the validity of the core claims.",
+                "severity": "major",
+                "evidence": "Section 3.1 states: 'Notably, this is not the same inference-time compute scaling performed by reasoning models like o1, but it allows us to investigate how naively scaling inference-time compute affects robustness.' The authors acknowledge the difference but proceed to use this proxy as the main evidence for their hypothesis. This proxy mechanism is fundamentally different from chain-of-thought reasoning that generates problem-solving traces.",
+                "affected_claim": "The claim that inference-time compute provides synergistic benefits with robust models; the core hypothesis (RICH) that 'inference-time compute is most effective as a defense when attacks are forced into in-distribution regimes.'",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental evaluation uses only three vision-language models at small to medium scale, and the paper explicitly acknowledges testing at 'comparatively much smaller scale' than the frontier models (o1) that motivate the work, limiting generalizability.",
+                "severity": "major",
+                "evidence": "Section 5 Limitations states: 'We explored a phenomenon first uncovered in a large-scale reasoning model (o1) using experiments at a comparatively much smaller scale.' The models tested (LLaVA-v1.5, FARE-LLaVA-v1.5, Delta2LLaVA-v1.5) are not frontier-scale models. Figure 2 references o1-v performance but does not conduct white-box attacks on it, relying instead on comparison with smaller models.",
+                "affected_claim": "The generalizability of RICH to frontier models and the practical significance of the findings for real-world deployment where the most critical vulnerabilities lie.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The paper conflates correlation with causation regarding the in-distribution hypothesis; while robust models do show greater benefits, the mechanism explaining why is not rigorously established, and alternative explanations are not adequately ruled out.",
+                "severity": "major",
+                "evidence": "Section 4.1-4.3 show correlations between model robustness and compute scaling benefits, but the paper does not rigorously establish that this is due to attacks being in-distribution versus other factors. For example, in Section 4.2, the authors test reducing ε to make attacks more in-distribution, but FARE-LLaVA-v1.5 still shows limited benefits compared to Delta2LLaVA-v1.5, which could be explained by the textual repetition mechanism simply interacting differently with models trained on adversarial examples.",
+                "affected_claim": "The causal mechanism underlying RICH: that inference-compute benefits arise specifically because attacks are in-distribution in robust models.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "No quantitative analysis of the cost-benefit tradeoff is provided despite the title's emphasis on 'profitably trading' compute for robustness; the paper does not compare the computational cost versus robustness gains across models or attack strengths.",
+                "severity": "major",
+                "evidence": "The title is 'Get Rich Or Die Scaling: Profitably Trading Inference Compute For Robustness' but the paper provides no analysis of computational costs, latency, or cost-benefit metrics. Section 2 mentions that 'the economic cost of raising inference-time compute to such levels' is prohibitive, but no quantitative analysis follows. Table 1 shows PGD steps but no per-token computation cost or real-world latency analysis.",
+                "affected_claim": "The practical significance of the proposed approach and whether the inference-compute costs are justified by robustness gains.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The black-box transfer attacks use only 200 images from Attack-Bard, a relatively small dataset optimized for different models (Bard/GPT-4V), raising questions about the transferability and significance of these results.",
+                "severity": "minor",
+                "evidence": "Section 3.2 states: 'Attack-Bard consists of 200 images generated from a white-box adversarial attack on an ensemble of surrogate models.' These attacks were optimized for Bard and GPT-4V, not the LLaVA-based models being tested. While transfer attacks are common practice, the small dataset and model-specificity of optimization limits the strength of evidence.",
+                "affected_claim": "The robustness of findings to black-box transfer attacks and the generality of RICH across different attack types.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The white-box attack design (providing correct text information while perturbing images) is somewhat artificial and may not reflect realistic adversarial scenarios; it essentially tests whether the model can be made to override visual input with textual priors.",
+                "severity": "minor",
+                "evidence": "Section 3.1 describes the attack: 'Our attack creates a conflict between modalities by providing correct information in the text input (e.g., mentioning that a soccer ball is 'round') while simultaneously applying a PGD attack on the image input that targets an incorrect model output.' This setup explicitly biases the evaluation toward text-based defenses since the 'defense' (textual repetition) directly strengthens the correct modality that is provided as input.",
+                "affected_claim": "Whether the benefits of inference-compute scaling represent genuine robustness improvements or simply reflect the model's tendency to defer to text when it is repeated/emphasized.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The core experimental methodology has fundamental soundness issues. The white-box experiments use textual repetition as a proxy for inference-time compute scaling, which the authors acknowledge is 'not the same' as reasoning-based defenses. This breaks the connection between the experiments and the motivating phenomenon (o1's reasoning-based defenses). Additionally, the white-box attack design itself biases toward text-based defenses by providing correct textual information and then testing whether textual repetition can override visual attacks—this is a somewhat artificial scenario that may not reflect genuine robustness. The causal mechanism (in-distribution hypothesis) is not rigorously established; alternative explanations are not ruled out. Black-box experiments use a very small dataset (200 images) optimized for different models."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper proposes a novel hypothesis (RICH) that connects base model robustness to the effectiveness of inference-time compute for defense. The observation that robust models force attacks to be more in-distribution is grounded in prior work but the specific application to inference-compute scaling is novel. The white-box multimodal PGD attack is claimed to be novel (first white-box test of multimodal reasoning defenses). However, the novelty is somewhat limited as it builds directly on Zaremba et al. [2025] and extends existing insights about interpretable perturbations in robust models."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The significance is limited by several factors: (1) The experiments use small to medium-scale models, not frontier-scale models like o1 that motivate the work, limiting practical relevance. (2) No cost-benefit analysis is provided despite the title emphasizing 'profitably trading' compute, so it's unclear if the approach is actually economically viable. (3) The inference-compute scaling mechanism (textual repetition) is not a realistic proxy for actual reasoning-based defenses, limiting the applicability of findings. (4) The core insight—that more robust models benefit more from compute scaling—while interesting, does not fundamentally advance understanding of either robustness or reasoning-based defenses in a way that would meaningfully impact the field. The work essentially confirms that robust models are more robust, which is less surprising than claimed."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The evaluation has several critical gaps: (1) Only three models tested, all small-scale, while the phenomenon is motivated by frontier models. (2) Black-box experiments use only 200 images from a dataset optimized for different models. (3) No computational cost analysis despite claims about 'profitably trading' compute. (4) The white-box attack design is somewhat artificial (providing correct text while attacking visual input), biasing toward text-based defenses. (5) The in-distribution hypothesis is not rigorously tested—while the paper shows correlation between robustness and compute benefits, it does not definitively establish that this is due to in-distribution attacks rather than other factors (e.g., models trained on adversarial examples simply learning to defer to text). (6) Limited to vision attacks without comparison to text attacks where prior work showed benefits."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear motivation, a well-articulated hypothesis, and organized experiments. The figures (especially Figure 1 and Figure 4) effectively communicate the main findings. The methodology sections provide sufficient detail. However, there are some clarity issues: the distinction between the white-box textual repetition proxy and actual reasoning-based defenses could be more prominent throughout, and the limitations section, while present, could be more thorough in discussing the implications of the scale gap."
+              }
+            },
+            "summary_comment": "The paper proposes an interesting hypothesis (RICH) explaining why inference-time compute provides limited robustness benefits against vision attacks: robust models force attacks to remain in-distribution where reasoning can help, while non-robust models are vulnerable to out-of-distribution perturbations that reasoning cannot defend against. However, the work suffers from critical soundness and significance issues that prevent it from meeting top-tier standards. Most importantly, the white-box experiments use textual repetition as a proxy for reasoning-based defenses, which fundamentally differs from the o1-style chain-of-thought reasoning that motivates the work. The black-box experiments use a tiny dataset (200 images). The evaluation is at small model scales while claiming relevance to frontier models. No cost-benefit analysis is provided despite the title emphasizing profitability. The causal mechanism (in-distribution hypothesis) is not rigorously established; the observed correlation between robustness and compute benefits could reflect other factors like models trained on adversarial examples simply learning to defer to text. While the paper makes a contribution to understanding robustness-compute interactions, these methodological limitations and the lack of practical analysis undermine its significance for a top-tier venue. The work would benefit from: (1) experiments with actual reasoning-based compute scaling (not textual repetition), (2) frontier-scale models, (3) comprehensive cost-benefit analysis, (4) rigorous testing of the in-distribution mechanism, and (5) larger-scale evaluation with more diverse datasets and attack types."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

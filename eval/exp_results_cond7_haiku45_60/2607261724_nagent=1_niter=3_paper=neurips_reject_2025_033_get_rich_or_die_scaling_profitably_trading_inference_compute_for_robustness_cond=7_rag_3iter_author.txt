@@ -1,0 +1,796 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 2,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 2
+      },
+      "strengths": [
+        "The paper introduces an interesting and testable hypothesis (RICH) that offers a novel perspective on why inference-time compute provides limited robustness benefits against vision attacks—namely, that robust models force attacks into in-distribution regimes where reasoning-based defenses can be effective.",
+        "The paper attempts to provide multiple lines of evidence through white-box PGD attacks, black-box transfer attacks, and external reasoning approaches (CoT prompting and Claude reasoning), which shows methodological diversity.",
+        "The systematic evaluation across models with varying robustness levels (LLaVA-v1.5, FARE-LLaVA-v1.5, Delta2LLaVA-v1.5) is a structured approach to testing the hypothesis, addressing a gap in prior work that only studied single models."
+      ],
+      "weaknesses": [
+        "The paper's main results narrative (Sections 4.1-4.3) heavily emphasizes white-box textual repetition experiments without clearly distinguishing them from more realistic reasoning proxies (CoT, external Claude reasoning in Table 2 and Section 3.2), obscuring which evidence most directly validates RICH. The author's second rebuttal acknowledges this is 'a significant presentation issue' but does not fix it in the submitted paper.",
+        "The white-box attack explicitly instructs models to 'defer to the text modality when text and vision inputs conflict,' creating an unrealistic confound that artificially boosts the textual-repetition defense. No ablation separates the contribution of this explicit instruction from textual repetition itself, and the safety-critical framing (self-driving vehicles, lines 123-125) is not maintained in the main results sections.",
+        "The core theoretical claim—that robust models force attacks into in-distribution regimes—is inferred solely from visual interpretability (semantic shapes in Figure 4) rather than validated through quantitative OOD detection metrics, likelihood estimation, or distribution shift analysis. This is the foundation of RICH but lacks empirical grounding.",
+        "Statistical analysis is inadequate: no significance tests, confidence intervals, or explicit trial counts are reported despite modest sample sizes (200 Attack-Bard images, unspecified white-box trials). Claims like 'nearly a 5× improvement' (line 264) lack statistical validation.",
+        "Experiments are limited to small-scale models (LLaVA-v1.5 variants) with no evidence or theoretical argument that RICH generalizes to frontier scales where inference-compute scaling is actually deployed and would matter practically."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The paper's main results narrative (Sections 4.1-4.3) heavily emphasizes white-box textual repetition experiments without clearly distinguishing them from more realistic reasoning proxies (CoT, external Claude reasoning in Table 2 and Section 3.2), obscuring which evidence most directly validates RICH. The author's second rebuttal acknowledges this is 'a significant presentation issue' but does not fix it in the submitted paper.",
+          "severity": "major",
+          "evidence": "Sections 4.1-4.3 (lines 216-267) present white-box textual repetition as the core evidence, with Figure 5, 6, and Table 1 dominating the results narrative. Section 4.4 (lines 269-292) and Section 3.2 (lines 191-202) provide CoT and external Claude reasoning approaches that better proxy actual reasoning models, but these are positioned as secondary: Table 2 appears only in Section 4.4, and external Claude reasoning is mentioned briefly in methodology without prominent results. The rebuttal states: 'In the current paper, lines 290-292 do state that...we still find that the robustness benefits...improve with base model robustness (Table 2). However, Table 2 is presented as Section 4.4, suggesting it is less central.' The rebuttal acknowledges this structural problem but proposes to 'restructure the narrative to highlight CoT and external reasoning results as the primary evidence'—a proposed revision, not evidence in the submitted paper. The submitted paper presents textual repetition (which the rebuttal and paper acknowledge is 'not the same...inference-time compute scaling performed by reasoning models like o1', line 168) as the main evidence.",
+          "affected_claim": "The paper claims to validate RICH ('inference-time compute is most effective as a defense when attacks are forced into in-distribution regimes'), but the primary evidence uses a simplified proxy mechanism (textual repetition) rather than the reasoning-based defenses that RICH is about.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The white-box attack explicitly instructs models to 'defer to the text modality when text and vision inputs conflict,' creating an unrealistic confound that artificially boosts the textual-repetition defense. No ablation separates the contribution of this explicit instruction from textual repetition itself, and the safety-critical framing (self-driving vehicles, lines 123-125) is not maintained in the main results sections.",
+          "severity": "major",
+          "evidence": "Section 3.1, lines 164-165 state: 'we explicitly instruct the model to defer to the text modality when the text and vision inputs conflict.' The rebuttal acknowledges: 'no ablation is provided in the submitted paper. We acknowledge this is a limitation... A revision should: (1) add an ablation removing the explicit instruction, isolating textual-repetition effects, or (2) explicitly reframe the white-box setup as testing a specific safety scenario.' However, neither action is taken in the submitted paper. The safety-critical motivation (lines 123-125) mentions self-driving vehicles and 'following safety specifications regardless of adversarially persuasive user inputs,' but the main results sections (4.1-4.3) do not maintain this framing—they present findings as general evidence for RICH. This creates ambiguity: are these results about general robustness or a specialized safety scenario? The explicit instruction artificially simplifies the task in a way that would not apply to general adversarial robustness.",
+          "affected_claim": "The white-box results (Figures 5-6, Table 1) are presented as evidence that robust models benefit more from inference-compute scaling generally, but the experimental setup (explicit deferral instruction + textual repetition) may not reflect general robustness.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The core theoretical claim—that robust models force attacks into in-distribution regimes—is inferred solely from visual interpretability (semantic shapes in Figure 4) rather than validated through quantitative OOD detection metrics, likelihood estimation, or distribution shift analysis. This is the foundation of RICH but lacks empirical grounding.",
+          "severity": "major",
+          "evidence": "Lines 127-136 argue: 'If this is the case [attacks on robust models are in-distribution], then reasoning may become more relevant as a defense.' The evidence is visual: 'Rather than remaining imperceptible or noise-like, attacks become visually interpretable' (lines 43-45), and Figure 4 shows shape transformations (sphere to cube). The rebuttal states: 'we have not quantitatively measured whether interpretable perturbations actually occupy more in-distribution regions. The reviewer proposes quantitative OOD analysis (Mahalanobis distance, likelihood estimation, distribution shift metrics). We agree this would directly test the hypothesis.' However, no such quantitative analysis appears in the submitted paper. The paper infers in-distribution status from visual similarity without measuring likelihood, OOD detection scores, or distribution shift metrics. This is the theoretical foundation of RICH, yet it rests on inference rather than measurement.",
+          "affected_claim": "RICH posits that 'inference-time compute is most effective as a defense when attacks are forced into in-distribution regimes.' This claim depends on demonstrating that robust models produce in-distribution attacks, but this is assumed rather than empirically validated.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Statistical analysis is inadequate: no significance tests, confidence intervals, or explicit trial counts are reported despite modest sample sizes (200 Attack-Bard images, unspecified white-box trials). Claims like 'nearly a 5× improvement' (line 264) lack statistical validation.",
+          "severity": "major",
+          "evidence": "Table 1 provides means and standard deviations but no p-values or confidence intervals. Table 2 reports accuracy percentages without error bars or statistical tests. Line 264 states: 'Delta2LLaVA-v1.5 demonstrates strong improvements under high ε = 64/255 attacks when more compute is added: mean PGD attack steps increase from 13.7 at k = 0 to 67.0 at k = 3, nearly a 5× improvement.' No significance test validates whether this difference is statistically meaningful or due to random variation. The paper does not specify the number of random seeds or PGD trials for white-box experiments. Attack-Bard contains only 200 images (line 187), a modest size for robust statistical conclusions. The rebuttal acknowledges: 'Tables 1 and 2 report means and standard deviations but no p-values, confidence intervals, or explicit trial counts' and proposes adding these in a revision. However, the submitted paper lacks this rigor.",
+          "affected_claim": "Claims about differential robustness improvements across models and compute levels cannot be validated as statistically significant without p-values or confidence intervals.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Experiments are limited to small-scale models (LLaVA-v1.5 variants) with no evidence or theoretical argument that RICH generalizes to frontier scales where inference-compute scaling is actually deployed and would matter practically.",
+          "severity": "major",
+          "evidence": "Section 5, Limitations (lines 305-310): 'We explored a phenomenon first uncovered in a large-scale reasoning model (o1) using experiments at a comparatively much smaller scale.' The paper does not provide evidence that RICH holds at frontier scales. The rebuttal states: 'While we cannot directly test frontier models (access limitations), a revision could: (1) add theoretical reasoning about whether RICH should hold at larger scales based on scaling laws for robustness and reasoning, (2) analyze how RICH's effect size varies with model scale within available models to provide evidence for or against scale-dependence.' However, the submitted paper does not include scaling law analysis or multi-scale comparisons within available models. The practical significance of RICH depends on its applicability to frontier models, but this is unestablished in the submitted work.",
+          "affected_claim": "The title and abstract claim a practical trade-off for 'profitably trading inference compute for robustness,' but this applicability to deployment-scale models remains unvalidated.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "Multiple soundness issues remain unresolved even after the author's second rebuttal. (1) The white-box evidence, which constitutes the main results narrative (Sections 4.1-4.3), uses textual repetition that the paper and rebuttal acknowledge does not faithfully proxy reasoning-based defenses. While CoT and external reasoning results exist, they are presented as secondary. (2) The explicit 'defer to text' instruction is an unrealistic confound that artificially boosts the defense—the rebuttal acknowledges this but the submitted paper provides no ablation to isolate its contribution. (3) The core theoretical claim that robust models produce in-distribution attacks is inferred from visual interpretability without quantitative OOD validation, which the rebuttal acknowledges should be done but is absent from the submitted work. (4) The paper reports no statistical significance tests or confidence intervals, making it impossible to assess whether observed improvements (e.g., '5× improvement') are meaningful. (5) The rebuttal explicitly concedes that 'evaluated on the submitted paper alone, the core issues stand.' This concession from the authors indicates that the submitted paper's soundness is inadequate."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper presents a genuinely novel hypothesis (RICH) explaining why inference-compute scaling provides limited robustness against vision attacks through the lens of in-distribution vs. out-of-distribution attacks. While building on prior work on adversarial robustness (Zaremba et al. 2025, Wang et al. 2025) and the observation that robust models produce interpretable attacks (Gaziv et al. 2023, Bartoldson et al. 2024), the specific contribution—that base model robustness modulates the benefits of inference-time compute—is novel and represents a clear advance."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "Significance is limited for reasons that the rebuttal does not resolve. (1) Experiments use small-scale models (LLaVA-v1.5 and variants) far below frontier scales where inference-compute scaling is deployed. The rebuttal argues that adversarially-trained LLaVA variants are 'the most comparable test bed available,' but this does not establish whether RICH holds at deployment scales. (2) The white-box defense (textual repetition with explicit defer-to-text instruction) does not reflect general robustness practice and would not be deployed in real systems. (3) The paper does not provide actionable guidance for practitioners—it merely demonstrates a correlation between base robustness and inference-compute benefits, without explaining how to build robust models or showing that reasoning-based defenses are cost-effective at scale. (4) The rebuttal acknowledges: 'The practical significance of our work depends on this generalization [to frontier scales], and we acknowledge the limitation should be articulated more clearly.' The submitted paper does not adequately articulate this, severely limiting significance for a top-tier ML venue."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "Evaluation remains inadequate. (1) The explicit 'defer to text' instruction is a confound without an ablation to show its contribution—the rebuttal acknowledges this should be done but it is not in the submitted paper. (2) The in-distribution assumption, which is RICH's theoretical foundation, is not validated with quantitative OOD metrics—the rebuttal proposes adding such analysis but the submitted work lacks it. (3) Statistical analysis is weak: no p-values, confidence intervals, or explicit trial counts despite modest sample sizes. The rebuttal acknowledges this should be 'straightforward to add' but it is not added in the submitted paper. (4) The main results narrative (Sections 4.1-4.3) presents white-box textual repetition as primary evidence without clearly distinguishing it from more realistic reasoning proxies in Table 2 and Section 3.2. (5) The paper does not clearly map which experiments most directly validate RICH—the rebuttal proposes adding 'a results synthesis section' but this is absent. The rebuttal's own assessment: 'Evaluated on the submitted paper alone, the core issues stand' indicates that evaluation is insufficient."
+        },
+        "presentation": {
+          "result": "fail",
+          "justification": "Clarity is compromised by structural and framing issues that the rebuttal acknowledges but the submitted paper does not address. (1) The main results sections (4.1-4.3) emphasize white-box textual repetition as primary evidence, but the rebuttal acknowledges this 'obscures which evidence most directly validates RICH' and suggests 'restructuring the narrative to highlight CoT and external reasoning results as the primary evidence.' The submitted paper does not make this restructuring. (2) The safety-critical motivation (self-driving vehicles, multimodal command prioritization) appears in the introduction but is not maintained in results sections, creating ambiguity about whether findings apply to general robustness or a specific scenario. (3) The paper does not provide a clear map of which experiments best support RICH. The rebuttal proposes adding 'a results synthesis section or table' but this is not in the submitted work. (4) The distinction between textual repetition (a proxy mechanism) and actual reasoning-based defenses should be prominent given the paper's focus on inference-compute scaling, but the paper acknowledges the gap without emphasizing it sufficiently. These presentation issues prevent readers from clearly assessing which evidence most directly supports the main hypothesis."
+        }
+      },
+      "summary_comment": "The paper proposes an interesting hypothesis (RICH) that offers a novel perspective on adversarial robustness and inference-time compute. However, the submitted work falls significantly short of publication standards for a top-tier venue. The second rebuttal, notably, includes an explicit concession from the authors: 'Evaluated on the submitted paper alone, the core issues stand.' This self-assessment is accurate. The fundamental problems are: (1) **Presentation and evidence hierarchy**: The main results narrative emphasizes white-box textual repetition (acknowledged as not faithfully proxying reasoning-based defenses) without clearly prioritizing more realistic CoT and external reasoning results that appear in Table 2 and Section 3.2. Which evidence most directly validates RICH remains obscured. (2) **Unrealistic experimental setup**: The explicit instruction to 'defer to text' creates a confound that artificially boosts the defense mechanism being tested. Without an ablation, it is impossible to assess how much this instruction contributes to robustness gains vs. textual repetition alone. (3) **Unvalidated core assumption**: The central claim that robust models produce in-distribution attacks is inferred from visual interpretability (semantic shapes) rather than validated through quantitative OOD metrics, likelihood estimation, or distribution shift analysis. This is the theoretical foundation of RICH but lacks empirical grounding. (4) **Statistical rigor**: No significance tests, confidence intervals, or explicit trial counts are reported despite modest sample sizes. Claims like '5× improvement' are unvalidated. (5) **Generalization to frontier scales**: Experiments use small-scale models with no evidence that RICH holds at deployment scales. The practical significance depends on this generalization, which is unestablished. The rebuttal demonstrates that the authors understand these limitations and have thoughtful proposals to address them. However, the standard for evaluation is the submitted paper. The rebuttal's own assessment that 'the core issues stand' when evaluated on the submitted paper is an accurate reflection of the work's state. To meet publication standards, the paper would require substantial revision addressing the experimental confounds, statistical rigor, validation of core assumptions, and restructuring of the results narrative to properly prioritize evidence."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper addresses adversarial robustness, which is a core ICML topic (trustworthy machine learning: robustness, reliability)\",\n      \"Proposes a hypothesis (RICH) about the interaction between model robustness and inference-time compute, which could contribute to understanding robustness mechanisms\",\n      \"Includes systematic empirical evaluation across multiple models and attack types, demonstrating experimental rigor in approach\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Reviewer identifies fundamental soundness issues that undermine publication at a top venue: (1) white-box evidence uses textual repetition acknowledged as not faithfully proxying actual reasoning-based defenses; (2) explicit 'defer to text' instruction is a confound without ablation; (3) core theoretical claim (robust models produce in-distribution attacks) is inferred from visual interpretability without quantitative OOD validation\",\n      \"Statistical rigor is severely deficient: no significance tests, confidence intervals, or explicit trial counts despite modest sample sizes (200 images, unspecified white-box trials). Claims like '5× improvement' are unvalidated\",\n      \"Experiments limited to small-scale models (LLaVA-v1.5 variants) with no evidence that findings generalize to frontier scales where inference-compute scaling is actually deployed; ICML values practical applicability and scalability\",\n      \"Reviewer explicitly notes the rebuttal itself concedes 'Evaluated on the submitted paper alone, the core issues stand'—indicating authors acknowledge the submitted work is insufficient\",\n      \"Presentation obscures which evidence most directly validates RICH: main results emphasize white-box textual repetition while more realistic CoT/external reasoning results are secondary (Table 2 in Section 4.4), violating ICML's clarity expectations\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Paper addresses adversarial robustness and safety of VLMs, directly aligned with NeurIPS's trustworthy AI and safety focus\",\n      \"Proposes novel hypothesis (RICH) explaining interaction between base robustness and inference-time compute benefits, contributing new conceptual understanding\",\n      \"Tests hypothesis across multiple attack modalities (white-box PGD, black-box transfer, CoT reasoning) and attack targets (color, shape, material), showing methodological diversity NeurIPS values\",\n      \"Engages with frontier model capabilities (o1-v) and practical deployment concerns (self-driving vehicles), addressing NeurIPS's applied AI interests\",\n      \"Novel white-box attack on multimodal models (line 72) represents technical contribution to adversarial attack methodology\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Soundness concerns identified by reviewer are critical: (1) main evidence (Sections 4.1-4.3) uses white-box textual repetition without ablation of the 'defer to text' confound; (2) in-distribution assumption (core to RICH) is inferred from visual interpretability rather than quantitatively validated with OOD metrics; (3) no statistical significance testing despite modest sample sizes\",\n      \"Experiments at limited scale (small LLaVA variants) with explicit acknowledgment (Section 5 Limitations) that findings were validated on 'comparatively much smaller scale' than o1; unclear if RICH holds at frontier scales where this matters practically—NeurIPS emphasizes significance of claimed contributions\",\n      \"Reviewer notes the rebuttal's own assessment: 'the core issues stand' when evaluated on submitted paper alone, suggesting insufficient rigor for NeurIPS's high bar\",\n      \"Main results narrative structure obscures evidence hierarchy: white-box textual repetition presented as primary (Figures 5-6, Table 1) despite acknowledged limitations; more realistic CoT and external reasoning results relegated to Section 4.4, making it unclear which evidence most directly validates RICH\",\n      \"White-box setup with explicit instruction to defer to text is not representative of general adversarial robustness and may not transfer to realistic deployment scenarios that NeurIPS values\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"Deep learning robustness is a core ICLR topic; paper investigates robustness of VLMs to adversarial attacks, directly relevant to conference focus\",\n      \"Proposes novel hypothesis about interaction between model robustness and inference-time compute, contributing to understanding of deep learning mechanisms\",\n      \"Systematic evaluation across models with varying robustness levels (low, medium, high) demonstrates structured experimental approach ICLR values\",\n      \"Addresses representation learning aspects: paper engages with how robust image encoders (CLIP variants) affect multimodal reasoning, relevant to ICLR's representation learning focus\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Critical soundness issues undermine publication: (1) white-box evidence uses textual repetition as proxy for reasoning-based defenses, acknowledged as not equivalent to actual inference-time compute scaling; (2) explicit 'defer to text' instruction is untested confound; (3) core assumption that robust models produce in-distribution attacks lacks quantitative OOD validation—just visual interpretability\",\n      \"Severely inadequate statistical rigor: no significance tests, confidence intervals, or explicit trial counts reported. ICLR emphasizes methodological rigor, and this deficiency is especially problematic given modest sample sizes (200 Attack-Bard images, unspecified white-box trials)\",\n      \"Limited experimental scale (small LLaVA-v1.5 variants) with no evidence of scaling to larger models; ICLR increasingly values work that demonstrates how findings scale with model and dataset size\",\n      \"Reviewer explicitly identifies that rebuttal concedes 'core issues stand' when evaluated on submitted paper—indicating authors themselves acknowledge insufficiency\",\n      \"Presentation obscures evidence hierarchy: main results emphasize white-box approach while more realistic CoT/external reasoning (Table 2) appear as secondary, violating ICLR's expectation for clear evidence-based reasoning\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\nThis paper proposes RICH (Robustness from Inference Compute Hypothesis), arguing that inference-time compute is most effective as a defense when attacks are in-distribution—which occurs when base models are already somewhat robust. While **novel in framing**, the work suffers from **critical soundness, rigor, and presentation issues** that make it unsuitable for any of the three top-tier venues.\n\n### Key Problems (from Reviewer):\n\n1. **Experimental Confounds**: The white-box attack includes an explicit instruction to \"defer to text,\" which is an unrealistic confound that artificially boosts the defense. No ablation separates this instruction's contribution from textual repetition itself.\n\n2. **Mismatched Mechanisms**: The main evidence uses textual repetition (acknowledged as not faithfully proxying actual reasoning-based defenses like o1 uses), while more realistic CoT and external reasoning results are presented secondarily.\n\n3. **Unvalidated Core Assumption**: RICH's foundation—that robust models force attacks into in-distribution regimes—is inferred from visual interpretability (semantic shapes) rather than validated with quantitative OOD metrics, likelihood estimation, or distribution shift analysis.\n\n4. **Statistical Deficiency**: No significance tests, p-values, confidence intervals, or explicit trial counts despite modest sample sizes (200 images). Claims like \"5× improvement\" are unvalidated.\n\n5. **Scale Limitations**: Experiments use small-scale models with no evidence RICH generalizes to frontier scales where inference-compute scaling is actually deployed.\n\n6. **Presentation**: Main results narrative emphasizes white-box textual repetition without clearly prioritizing more realistic reasoning-based approaches, obscuring which evidence most directly validates RICH.\n\n**Notably, the rebuttal itself concedes: \"Evaluated on the submitted paper alone, the core issues stand.\"**\n\n### Venue Fit Assessment:\n\n- **ICML (4/10)**: Robustness is an ICML topic, but the soundness issues, statistical deficiency, limited scale, and unclear evidence hierarchy make it a weak fit. ICML values reproducibility and rigorous empirical work.\n\n- **NeurIPS (5/10)**: Slightly better fit due to safety/robustness focus and engagement with frontier models. However, the same core issues apply. NeurIPS has high bar for significance and rigor.\n\n- **ICLR (4/10)**: Strong topic fit (deep learning robustness), but the soundness concerns, statistical rigor deficiency, and presentation issues make it unsuitable. ICLR increasingly values methodological rigor and scaling analysis.\n\n**All three venues would likely reject this paper as currently submitted.**",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper introduces an interesting and testable hypothesis (RICH) that explains why inference-time compute provides limited robustness benefits against vision attacks—namely, that robust models force attacks to be in-distribution, enabling reasoning-based defenses to work better. This provides a novel perspective connecting adversarial robustness to the nature of attacks against robust models.",
+              "The paper includes a novel white-box vision attack that creates multimodal conflicts (correct text input vs. adversarial image input), which the authors claim is the first white-box attack used to test multimodal robustness benefits of scaling inference-time compute. This addresses a gap in prior work (Zaremba et al. 2025) which only studied black-box attacks.",
+              "The experimental design systematically varies model robustness (LLaVA-v1.5, FARE-LLaVA-v1.5, Delta2LLaVA-v1.5) and provides multiple lines of evidence through both white-box PGD attacks and black-box transfer attacks with different inference-compute scaling methods (textual repetition, CoT prompting, external reasoning), strengthening the generalizability of findings."
+            ],
+            "weaknesses": [
+              "The inference-time compute scaling methodology does not faithfully proxy reasoning-based defenses. Using textual repetition (repeating correct descriptions K times) is not equivalent to generating long reasoning traces as in o1 or other reasoning models. This undermines the central claim's applicability to actual frontier reasoning models and introduces a gap between what the paper tests and what it claims to evaluate.",
+              "The experimental evaluation is limited to small-scale models (LLaVA-v1.5 and variants) at scales far below frontier models where inference-time compute scaling is deployed. The authors acknowledge this limitation but do not adequately address how findings might differ at larger scales where model behavior could change qualitatively. This severely limits the significance for practical deployment scenarios.",
+              "The attack designs and experimental setup introduce potential confounds. The white-box attack explicitly instructs models to 'defer to the text modality when text and vision inputs conflict,' which may artificially boost the effectiveness of the textual repetition defense and is not realistic for safety-critical applications where models should handle adversarial inputs without such explicit instructions.",
+              "The statistical analysis is weak. Standard deviations are provided in some tables but not others. No significance tests or confidence intervals are reported. For example, Table 1 shows means and standard deviations but no assessment of whether observed differences are statistically significant. The sample sizes appear modest (200 images for Attack-Bard, unclear for other experiments).",
+              "The paper relies heavily on the assumption that in-distribution attacks are more amenable to reasoning-based defenses, but this core assumption is not rigorously validated. The connection between 'interpretable perturbations' and being 'in-distribution' is assumed rather than empirically demonstrated (e.g., through distribution analysis, OOD detection metrics, or likelihood estimation)."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The inference-time compute scaling methodology does not faithfully proxy reasoning-based defenses. Using textual repetition (repeating correct descriptions K times) is not equivalent to generating long reasoning traces as in o1 or other reasoning models. This undermines the central claim's applicability to actual frontier reasoning models and introduces a gap between what the paper tests and what it claims to evaluate.",
+                "severity": "major",
+                "evidence": "Section 3.1 and lines 163-177 describe the inference-compute scaling: 'we repeat the correct text description K times in the instruction prompt.' The authors acknowledge this is 'not the same inference-time compute scaling performed by reasoning models like o1' but argue it 'proxies' for such scaling by making models 'more inclined to defer to the answer given in the text input.' However, this is fundamentally different from reasoning-based defenses that generate interpretable problem-solving steps.",
+                "affected_claim": "The paper claims to test whether 'inference-time compute (e.g., long reasoning traces) is most effective as a defense when attacks are forced into in-distribution regimes' (lines 50-53). Using textual repetition rather than actual reasoning undermines this claim.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental evaluation is limited to small-scale models (LLaVA-v1.5 and variants) at scales far below frontier models where inference-time compute scaling is deployed. The authors acknowledge this limitation but do not adequately address how findings might differ at larger scales where model behavior could change qualitatively. This severely limits the significance for practical deployment scenarios.",
+                "severity": "major",
+                "evidence": "Section 5 states: 'We explored a phenomenon first uncovered in a large-scale reasoning model (o1) using experiments at a comparatively much smaller scale.' The authors note this is a limitation but assert it is necessary for testing robustified models. However, they provide no evidence or analysis of whether RICH holds at the scale where it matters most—frontier models like o1-v, which is mentioned in background exploration but not directly tested.",
+                "affected_claim": "The claims about inference-time compute being 'most effective as a defense' and providing 'cost-effective defense to attacks' assume these findings generalize to practical deployment with frontier models. The reliance on small-scale models undermines this generalization.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The attack designs and experimental setup introduce potential confounds. The white-box attack explicitly instructs models to 'defer to the text modality when text and vision inputs conflict,' which may artificially boost the effectiveness of the textual repetition defense and is not realistic for safety-critical applications where models should handle adversarial inputs without such explicit instructions.",
+                "severity": "major",
+                "evidence": "Section 3.1, lines 164-165: 'we explicitly instruct the model to defer to the text modality when the text and vision inputs conflict.' This instruction is problematic because: (1) it simplifies the task in an unrealistic way, (2) it may strongly bias results toward the text-based defense mechanism being tested, and (3) real adversarial robustness requires handling conflicts without such guidance.",
+                "affected_claim": "The claim that 'inference-time compute provides larger benefits when the base model is more robust' is supported by an experimental design that artificially biases results toward text-based defenses by explicit instruction.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The statistical analysis is weak. Standard deviations are provided in some tables but not others. No significance tests or confidence intervals are reported. For example, Table 1 shows means and standard deviations but no assessment of whether observed differences are statistically significant. The sample sizes appear modest (200 images for Attack-Bard, unclear for other experiments).",
+                "severity": "major",
+                "evidence": "Tables 1 and 2 provide results with standard deviations but no p-values, confidence intervals, or significance tests. The Attack-Bard dataset contains only 200 images (line 187), which is small for drawing robust conclusions. The number of attacks or trials per configuration is not clearly specified for the white-box experiments.",
+                "affected_claim": "Claims about differential benefits across models (e.g., 'Delta2LLaVA-v1.5 demonstrates strong improvements... nearly a 5× improvement' at line 264) lack statistical validation. With small sample sizes and no significance tests, some observed differences may be within noise.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The paper relies heavily on the assumption that in-distribution attacks are more amenable to reasoning-based defenses, but this core assumption is not rigorously validated. The connection between 'interpretable perturbations' and being 'in-distribution' is assumed rather than empirically demonstrated (e.g., through distribution analysis, OOD detection metrics, or likelihood estimation).",
+                "severity": "major",
+                "evidence": "Lines 127-136 argue that 'robust models may ease the problem... by making reasoning about the relationship of those inputs to the specifications easier' and that 'attacks on robust models may rely on their ability to produce responses based on an accurate understanding of the attacked data.' However, there is no empirical validation that interpretable perturbations are actually in-distribution—this is inferred from visual similarity (e.g., Figure 4 showing a shape change from sphere to cube) rather than measured with OOD detection metrics or likelihood estimates.",
+                "affected_claim": "RICH is predicated on the claim that robust models force attacks to be in-distribution, but this is not empirically demonstrated. The paper assumes visual interpretability implies in-distribution status without rigorous validation.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The paper has multiple soundness issues: (1) The inference-compute scaling using textual repetition does not faithfully proxy reasoning-based defenses as claimed. (2) The white-box attack explicitly instructs models to defer to text, biasing the experimental outcome. (3) The core assumption—that interpretable perturbations are in-distribution—is assumed rather than empirically validated. (4) Statistical analysis is weak without significance tests or confidence intervals. These issues undermine the validity of the central claims."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper presents a novel hypothesis (RICH) with new insights: (1) explaining why inference-compute scaling fails for vision attacks through an in-distribution lens, (2) proposing that robust models force attacks into in-distribution regimes, and (3) designing a novel white-box multimodal attack. While related to prior work on adversarial training and reasoning for robustness (Zaremba et al. 2025), the specific contribution—systematically characterizing how base robustness modulates benefits of inference-compute—appears novel."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The significance is limited for several reasons: (1) Experiments are conducted on small-scale models (LLaVA variants) far below frontier scales where inference-compute scaling is actually deployed and would matter. (2) The testable defense mechanism (textual repetition) does not scale to actual reasoning-based defenses used in practice. (3) The practical implications are unclear—real models would not use explicit instructions to defer to text modalities as tested. (4) The paper does not provide actionable guidance for improving robustness at scale. For a top-tier ML conference, the work needs stronger connections to practical deployment and frontier models."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Evaluation has critical gaps: (1) Experiments are limited to small-scale models; no evaluation on frontier reasoning models like o1-v (only background exploration). (2) Statistical rigor is insufficient—no significance tests, confidence intervals, or power analysis despite modest sample sizes (200 Attack-Bard images). (3) Experimental design confounds: explicit instructions to defer to text artificially boost the defense mechanism being tested. (4) The core assumption (interpretable perturbations are in-distribution) is not validated through quantitative OOD analysis. (5) Missing ablations: e.g., does the explicit 'defer to text' instruction drive results rather than the repetition mechanism itself?"
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear motivation, figures, and organization. The hypothesis is stated explicitly, and experimental sections describe methodologies adequately. However, there are clarity issues: (1) the gap between textual repetition and reasoning-based compute scaling could be highlighted more prominently, (2) the distinction between what is tested vs. claimed could be clearer, and (3) limitations section could discuss the feasibility of validating RICH at frontier scales."
+              }
+            },
+            "summary_comment": "This paper proposes an interesting hypothesis (RICH) explaining why inference-time compute provides limited robustness against vision attacks, arguing that robust models force attacks into in-distribution regimes where reasoning-based defenses work better. While the core idea has merit and the paper includes novel contributions (white-box multimodal attacks, systematic robustness variation), critical soundness and significance issues prevent acceptance at a top-tier venue. The main problems are: (1) the inference-compute scaling via textual repetition does not faithfully proxy reasoning-based defenses as claimed in o1-style models, (2) experiments are restricted to small-scale models far below practical frontier scales, (3) the central assumption that interpretable perturbations are in-distribution is assumed rather than validated, (4) the explicit instruction to defer to text artificially biases results and is unrealistic, and (5) statistical analysis lacks rigor. The paper would benefit from: testing on larger models or with actual reasoning implementations, rigorous OOD validation of the in-distribution assumption, removing confounding experimental instructions, and proper statistical analysis. In its current form, the work is premature for a top-tier conference, though the core insight may be valuable with substantial improvements."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper introduces an interesting and testable hypothesis (RICH) that explains why inference-time compute provides limited robustness benefits against vision attacks—namely, that robust models force attacks to be in-distribution, enabling reasoning-based defenses to work better. This provides a novel perspective connecting adversarial robustness to the nature of attacks against robust models.",
+              "The paper includes a novel white-box vision attack that creates multimodal conflicts (correct text input vs. adversarial image input), which the authors claim is the first white-box attack used to test multimodal robustness benefits of scaling inference-time compute. This addresses a gap in prior work (Zaremba et al. 2025) which only studied black-box attacks.",
+              "The experimental design systematically varies model robustness (LLaVA-v1.5, FARE-LLaVA-v1.5, Delta2LLaVA-v1.5) and provides multiple lines of evidence through both white-box PGD attacks and black-box transfer attacks with different inference-compute scaling methods (textual repetition, CoT prompting, external reasoning), strengthening the generalizability of findings."
+            ],
+            "weaknesses": [
+              "The inference-time compute scaling methodology in white-box experiments does not faithfully proxy reasoning-based defenses. Using textual repetition (repeating correct descriptions K times) is not equivalent to generating long reasoning traces as in o1 or other reasoning models, undermining direct applicability to frontier models, though black-box CoT results provide partial mitigation.",
+              "The experimental evaluation is limited to small-scale models (LLaVA-v1.5 and variants) at scales far below frontier models where inference-time compute scaling is deployed. The authors acknowledge this limitation but do not adequately address how findings might differ at larger scales, severely limiting practical significance.",
+              "The white-box attack setup explicitly instructs models to 'defer to the text modality when text and vision inputs conflict,' which artificially boosts the effectiveness of textual-repetition defenses and is not realistic for general adversarial robustness. No ablation is provided to isolate the contribution of textual repetition alone from this explicit instruction.",
+              "The statistical analysis lacks rigor. Standard deviations are provided in Table 1 but no significance tests, confidence intervals, or number of trials are reported. With modest sample sizes (200 images for Attack-Bard), the reliability of observed differences is unclear.",
+              "The core assumption that interpretable perturbations are in-distribution is assumed rather than empirically validated. The connection is inferred from visual similarity (Figure 4) rather than measured with quantitative OOD detection metrics, likelihood estimates, or distribution shift analysis."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The inference-time compute scaling methodology in white-box experiments does not faithfully proxy reasoning-based defenses. Using textual repetition (repeating correct descriptions K times) is not equivalent to generating long reasoning traces as in o1 or other reasoning models, undermining direct applicability to frontier models, though black-box CoT results provide partial mitigation.",
+                "severity": "major",
+                "evidence": "Section 3.1, lines 163-177 describe textual repetition scaling. The authors acknowledge this is 'not the same inference-time compute scaling performed by reasoning models like o1.' The rebuttal notes that Section 4.4 (Table 2) provides black-box CoT results that better proxy actual reasoning, and that external Claude reasoning (Section 3.2) also uses realistic reasoning baselines. However, the main white-box results (Figures 5-6, Table 1, lines 226-267) rely on textual repetition and are presented as the core evidence for RICH. The rebuttal's suggestion to 'more clearly distinguish which experiments use realistic vs. proxy compute scaling' acknowledges the problem but is not implemented in the submitted paper.",
+                "affected_claim": "The claim that inference-time compute provides robustness benefits (RICH hypothesis) is most directly tested via white-box textual repetition in the paper's main narrative, though the CoT results provide secondary support.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental evaluation is limited to small-scale models (LLaVA-v1.5 and variants) at scales far below frontier models where inference-time compute scaling is deployed. The authors acknowledge this limitation but do not adequately address how findings might differ at larger scales, severely limiting practical significance.",
+                "severity": "major",
+                "evidence": "Section 5, Limitations: 'We explored a phenomenon first uncovered in a large-scale reasoning model (o1) using experiments at a comparatively much smaller scale.' The rebuttal argues that 'adversarially-trained variants of LLaVA [are] the most comparable test bed currently available' for testing robustness mechanisms. However, this does not address whether RICH holds at frontier scales. The rebuttal suggests adding 'discussion of what frontier-scale validation would require' but this is not in the submitted paper. The practical significance of RICH depends critically on its applicability to actual frontier models, which remains unestablished.",
+                "affected_claim": "Claims about inference-time compute providing 'cost-effective defense' and the trade-off analysis in 'profitably trading inference compute for robustness' (title, abstract) assume findings generalize to deployment-scale models.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The white-box attack setup explicitly instructs models to 'defer to the text modality when text and vision inputs conflict,' which artificially boosts the effectiveness of textual-repetition defenses and is not realistic for general adversarial robustness. No ablation is provided to isolate the contribution of textual repetition alone from this explicit instruction.",
+                "severity": "major",
+                "evidence": "Section 3.1, lines 164-165: 'we explicitly instruct the model to defer to the text modality when the text and vision inputs conflict.' The rebuttal acknowledges this as a 'valid confound' and proposes an ablation experiment, but this experiment is not present in the submitted paper. The rebuttal suggests reframing this as testing 'a specific safety constraint rather than general robustness,' but the paper's main narrative presents these results as general evidence for RICH (lines 226-267 do not clearly delineate this as a specialized scenario). The rebuttal states 'A revision could: (1) add an ablation' but this is a promise, not evidence in the submitted work.",
+                "affected_claim": "The white-box results (Figures 5-6, Table 1) are presented as core evidence that robust models benefit more from inference-compute scaling. The degree to which this is due to the explicit defer-to-text instruction vs. the textual repetition mechanism remains unclear.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The statistical analysis lacks rigor. Standard deviations are provided in Table 1 but no significance tests, confidence intervals, or number of trials are reported. With modest sample sizes (200 images for Attack-Bard), the reliability of observed differences is unclear.",
+                "severity": "major",
+                "evidence": "Tables 1 and 2 provide results with standard deviations but no p-values or confidence intervals. Table 2 shows accuracy without error bars at all. The number of random seeds or trials for white-box PGD experiments is not specified anywhere in the paper. The Attack-Bard dataset contains 200 images (line 187). The rebuttal acknowledges this: 'We provided standard deviations in Table 1 but did not report confidence intervals, significance tests, or the number of random seeds/trials.' The rebuttal commits to adding these in a revision, but they are absent from the submitted paper.",
+                "affected_claim": "Claims about differential robustness improvements (e.g., line 264: 'nearly a 5× improvement') lack statistical validation. With small sample sizes and no significance tests, the reliability of observed patterns is questionable.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The core assumption that interpretable perturbations are in-distribution is assumed rather than empirically validated. The connection is inferred from visual similarity (Figure 4) rather than measured with quantitative OOD detection metrics, likelihood estimates, or distribution shift analysis.",
+                "severity": "major",
+                "evidence": "Lines 127-136 argue that attacks on robust models 'may rely on their ability to produce responses based on an accurate understanding of the attacked data,' suggesting such attacks are in-distribution. Figure 4 shows visual changes (sphere to cube) that are interpretable. However, the paper provides no quantitative evidence (OOD detection, likelihood ratios, distribution metrics) that these perturbations are actually closer to the training distribution than noise-like perturbations on non-robust models. The rebuttal acknowledges: 'we infer in-distribution status from visual interpretability... rather than quantitative OOD metrics. This is a core assumption of RICH that deserves empirical validation.' It then proposes adding 'quantitative OOD analysis' but this analysis is not in the submitted paper.",
+                "affected_claim": "RICH is predicated on the claim that robust models force attacks into more in-distribution regimes. This is the theoretical foundation of the hypothesis but is not empirically demonstrated.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The paper has multiple unresolved soundness issues even after considering the rebuttal. (1) The white-box results, which are the main evidence for RICH, rely on textual repetition that does not proxy reasoning-based defenses well (though the rebuttal correctly notes that CoT results in Table 2 provide better evidence). However, in the submitted paper's main narrative, white-box results are presented prominently without clear distinction. (2) The explicit defer-to-text instruction is a confound that artificially boosts the defense—the rebuttal acknowledges this but no ablation is present in the submitted work. (3) The in-distribution assumption is the theoretical foundation of RICH but is only supported by visual evidence, not quantitative OOD metrics—the rebuttal acknowledges this should be validated but the validation is not in the paper. (4) Statistical analysis lacks rigor with no significance tests or confidence intervals. While the rebuttal is responsive and constructive, it does not resolve these issues because it consists of promises to revise rather than evidence that the issues are resolved in the submitted paper."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper presents a genuinely novel hypothesis (RICH) explaining the limited effectiveness of inference-compute scaling against vision attacks through the lens of in-distribution vs. OOD attacks. While building on prior work on adversarial robustness and inference-compute scaling (Zaremba et al. 2025), the specific contribution—that base model robustness modulates the benefits of inference-time compute—is novel. The systematic evaluation across models of varying robustness is a clear advance over prior work that only studied one model."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "Significance remains limited despite the rebuttal. (1) The experiments are on small-scale models (LLaVA-v1.5 and variants), far below frontier scales. The rebuttal argues that 'adversarially-trained variants of LLaVA are the most comparable test bed available,' but this does not address whether RICH holds at deployment scales or provide evidence it would. (2) The practical applicability of the main white-box defense (textual repetition with explicit defer-to-text instruction) is questionable and not reflective of general robustness. (3) The paper does not provide actionable guidance for improving robustness at scales where it matters. For a top-tier ML conference, the work needs stronger connections to practical deployment, frontier models, or clearer theoretical contributions. The rebuttal acknowledges these limitations but does not resolve them in the submitted paper."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Evaluation gaps remain largely unresolved. (1) The rebuttal acknowledges that the explicit defer-to-text instruction is a confound but no ablation is provided in the submitted paper. (2) Statistical analysis lacks rigor—no significance tests, confidence intervals, or explicit trial counts are reported, despite modest sample sizes. The rebuttal commits to adding these but they are absent from the submission. (3) The in-distribution assumption is not validated with quantitative OOD metrics. The rebuttal proposes adding such analysis but it is not in the submitted work. (4) The paper does not clearly distinguish which results use realistic reasoning proxies (CoT, external reasoning) vs. proxies (textual repetition), making it difficult to assess which evidence most directly supports RICH. While the rebuttal correctly identifies these gaps and proposes solutions, the evaluation in the submitted paper remains inadequate."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear motivation, figures, and organization. The RICH hypothesis is stated explicitly, methodologies are described, and experimental sections are organized logically. The rebuttal's suggestion to 'more clearly distinguish which experiments use realistic vs. proxy compute scaling' is valid but the paper already distinguishes white-box (Section 3.1) from black-box approaches (Section 3.2), even if this distinction could be emphasized more in the results narrative."
+              }
+            },
+            "summary_comment": "The paper presents a novel and interesting hypothesis (RICH) that offers a fresh perspective on why inference-time compute provides limited robustness against vision attacks. However, critical soundness and significance issues prevent acceptance despite a thoughtful and constructive rebuttal from the authors. The core problems are: (1) The white-box experiments use textual repetition rather than true reasoning, and though black-box CoT results exist (Table 2), the submitted paper's main narrative emphasizes white-box textual repetition without clear distinction about which approach better proxies actual reasoning defenses; (2) The explicit instruction to 'defer to text' in the white-box attack is a confound that the rebuttal acknowledges but for which no ablation is provided in the submitted work; (3) The central theoretical claim—that robust models force attacks into in-distribution regimes—is inferred from visual interpretability rather than validated with quantitative OOD metrics, as the rebuttal acknowledges; (4) Experiments are limited to small-scale models without evidence RICH holds at frontier scales, limiting practical significance; (5) Statistical rigor is lacking (no significance tests, confidence intervals, or explicit trial counts). The rebuttal demonstrates the authors understand these limitations and have thoughtful proposals to address them. However, evaluation must be based on the submitted paper, not on promised revisions. The rebuttal's framework—that CoT results (Table 2) better support RICH and that the white-box setup tests a specific safety scenario—would strengthen the work if made explicit in the paper itself. In its current form, the submission conflates evidence from different experimental paradigms and lacks the rigor expected for a top-tier venue. The core contribution is valuable but needs substantial revision to fully validate RICH and clarify which results most directly support it."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Inference-time compute scaling using textual repetition does not faithfully proxy reasoning-based defenses\",\n        \"Experimental evaluation limited to small-scale models, far below frontier models where the technique would be deployed\",\n        \"Explicit instruction to defer to text modality introduces unrealistic confounds and biases experimental results\",\n        \"Weak statistical analysis lacking significance tests, confidence intervals, and power analysis\",\n        \"Core assumption about in-distribution attacks not empirically validated through quantitative OOD metrics\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Textual repetition as proxy for reasoning\",\n          \"location\": \"Section 3.1, lines 163-177\",\n          \"explanation\": \"The paper acknowledges that repeating text K times is 'not the same inference-time compute scaling performed by reasoning models like o1' but justifies it as a proxy. However, the paper does use black-box transfer attacks with actual CoT prompting (Section 4.4, lines 269-292 and Table 2), which provides a more realistic reasoning baseline that partially addresses this concern for the black-box setting.\"\n        },\n        {\n          \"concern\": \"Small-scale model experiments vs. frontier models\",\n          \"location\": \"Section 5, Limitations\",\n          \"explanation\": \"The paper explicitly acknowledges this limitation: 'We explored a phenomenon first uncovered in a large-scale reasoning model (o1) using experiments at a comparatively much smaller scale.' The authors note this is necessary for testing robustified models and call for future work at larger scales.\"\n        },\n        {\n          \"concern\": \"Explicit defer-to-text instruction in white-box attack\",\n          \"location\": \"Section 3.1, lines 164-165\",\n          \"explanation\": \"The paper explicitly states the instruction: 'we explicitly instruct the model to defer to the text modality when the text and vision inputs conflict.' This is presented as part of the multimodal conflict attack design.\"\n        },\n        {\n          \"concern\": \"Statistical analysis\",\n          \"location\": \"Tables 1 and 2\",\n          \"explanation\": \"Standard deviations are provided in Table 1, though no formal significance tests are reported. Table 2 shows classification accuracy without error bars. The paper does not report the number of random seeds or trials for white-box experiments.\"\n        },\n        {\n          \"concern\": \"In-distribution assumption validation\",\n          \"location\": \"Lines 127-136 and Figure 4\",\n          \"explanation\": \"The paper infers in-distribution status from visual interpretability (e.g., semantic shapes) rather than quantitative metrics. However, the connection between shape changes and model training distribution is not formally validated.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Inference-time compute scaling methodology gap\",\n          \"proposed_change\": \"Acknowledge more prominently in abstract/introduction that white-box experiments use textual repetition (a proxy) while black-box experiments use CoT (a more realistic reasoning baseline). Consider adding explicit comparison between the two approaches to clarify which results generalize to actual reasoning models. Strengthen the framing that CoT results (Table 2) better address the original RICH hypothesis.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Limited scale of experiments\",\n          \"proposed_change\": \"In the limitations section, add specific discussion of: (1) what model scale would be needed to validate RICH at deployment-relevant sizes, (2) preliminary discussion of whether RICH would likely hold or fail at frontier scales based on theoretical reasoning about scaling laws, (3) specific roadmap for future work testing with adversarially-trained larger models.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Unrealistic experimental setup (defer-to-text instruction)\",\n          \"proposed_change\": \"Add a new ablation experiment testing: (1) attacks without the explicit defer-to-text instruction, (2) attacks where the instruction is implicit only through repetition. Report results to show how much the explicit instruction contributes to the observed robustness benefits. Alternatively, reframe this instruction as a specific safety-critical scenario (e.g., models trained to prioritize textual commands) rather than a general robustness mechanism.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Statistical rigor\",\n          \"proposed_change\": \"For Tables 1 and 2: (1) Add 95% confidence intervals or error bars for all reported metrics, (2) Report number of random seeds/trials per condition, (3) Add statistical significance tests (e.g., paired t-tests comparing compute levels within each model), (4) Report sample sizes explicitly for each experiment.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"In-distribution assumption not validated\",\n          \"proposed_change\": \"Add quantitative analysis in appendix: (1) Apply OOD detection methods (e.g., Mahalanobis distance, energy-based) to compare attacked images from robust vs. non-robust models, (2) Estimate log-likelihoods of attacked images under the model's training distribution (if feasible), (3) Provide empirical distribution shift metrics (e.g., MMD, Wasserstein) between clean and adversarial examples for each model. These analyses would directly test whether interpretable perturbations are actually closer to the training distribution.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Clarity on which results support RICH\",\n          \"proposed_change\": \"Add a results summary table clearly indicating: (1) which experiments use realistic reasoning proxies (CoT, external reasoning) vs. proxies (textual repetition), (2) scale of models used, (3) attack type (white-box vs. black-box). This would help readers understand which results most directly validate RICH as stated vs. which are preliminary or limited-scope validations.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We thank the reviewer for the detailed and constructive critique. We address the major concerns below:\\n\\n**On inference-time compute scaling methodology:** The reviewer correctly identifies a gap between our white-box experiments (textual repetition) and the reasoning-based defenses of frontier models like o1. We acknowledge this is a valid concern, and we note that our black-box experiments in Section 4.4 (Table 2) and attack with external Claude reasoning (Section 3.2) provide more realistic reasoning baselines that better proxy actual reasoning models. These results still support RICH—robust models benefit more from CoT and external reasoning. We agree that in a revision, we should more clearly distinguish which experiments use realistic vs. proxy compute scaling, and highlight that the CoT results most directly validate RICH as stated.\\n\\n**On limited model scale:** The reviewer raises a critical point about generalization to frontier scales. We explicitly acknowledge this limitation in Section 5 and agree it is a key direction for future work. We note that our reliance on adversarially-trained variants of LLaVA is actually a strength for testing RICH's mechanism (robust models benefit more), since frontier models like o1-v are closed-source and adversarially-trained models are the most comparable test bed currently available. However, we agree that validation at frontier scales is necessary for practical significance, and we do not claim our results directly translate to o1-scale deployment costs. A revision could add discussion of what frontier-scale validation would require and preliminary arguments (based on scaling laws and robustness theory) about whether RICH would likely hold at larger scales.\\n\\n**On the defer-to-text instruction:** The reviewer identifies a valid confound. Our white-box attack setup explicitly instructs models to defer to text, which may artificially boost textual-repetition defenses. We designed this instruction to test a specific multimodal conflict scenario (where correct text must override adversarial vision), motivated by safety-critical applications like autonomous driving where textual commands should override visual scenes. However, the reviewer is correct that this may not reflect general adversarial robustness. A revision could: (1) add an ablation removing the explicit instruction to isolate the contribution of textual repetition alone, (2) reframe this scenario as testing a specific safety constraint rather than general robustness, and (3) rely more heavily on the CoT and external reasoning results, which do not use this explicit instruction.\\n\\n**On statistical analysis:** The reviewer is correct that our statistical analysis lacks rigor. We provided standard deviations in Table 1 but did not report confidence intervals, significance tests, or the number of random seeds/trials. A revision would: (1) add 95% confidence intervals or error bars to all tables, (2) explicitly report the number of seeds and trials per condition, (3) conduct paired significance tests comparing compute levels within each model, and (4) discuss power analysis given sample sizes (200 Attack-Bard images, unclear number of white-box trial runs).\\n\\n**On the in-distribution assumption:** The reviewer correctly notes that we infer in-distribution status from visual interpretability (e.g., semantic shapes in Figure 4) rather than quantitative OOD metrics. This is a core assumption of RICH that deserves empirical validation. A revision could add an appendix with quantitative OOD analysis: (1) Mahalanobis distance or energy-based OOD detection comparing attacked images from robust vs. non-robust models, (2) log-likelihood estimates of attacked images under the model's training distribution, and (3) distribution shift metrics (MMD, Wasserstein) between clean and adversarial examples. These analyses would directly test whether interpretable perturbations truly occupy more in-distribution regions.\\n\\n**On significance and scope:** We recognize the reviewer's concern that small-scale models and unrealistic experimental setups limit practical significance. We believe our core contribution—the hypothesis that base robustness modulates inference-time compute benefits—is sound and novel. However, the practical importance clearly depends on whether this generalizes to frontier models. We commit to framing our results more carefully as evidence for RICH's mechanism (supported by multiple experimental approaches) while being transparent about scale limitations. The CoT results in Table 2, which avoid the defer-to-text confound and use traditional reasoning prompting, provide the strongest evidence for RICH's applicability.\\n\\nIn summary, we accept the reviewer's core critiques on statistical rigor, experimental design confounds, limited scale, and lack of quantitative validation for the in-distribution assumption. These are fair and important concerns that a revision should address through additional analysis, ablations, and clearer framing of which results most directly validate RICH.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 2,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 2
+            },
+            "strengths": [
+              "The paper introduces an interesting and testable hypothesis (RICH) that offers a novel perspective on why inference-time compute provides limited robustness benefits against vision attacks—namely, that robust models force attacks into in-distribution regimes where reasoning-based defenses can be effective.",
+              "The paper attempts to provide multiple lines of evidence through white-box PGD attacks, black-box transfer attacks, and external reasoning approaches (CoT prompting and Claude reasoning), which shows methodological diversity.",
+              "The systematic evaluation across models with varying robustness levels (LLaVA-v1.5, FARE-LLaVA-v1.5, Delta2LLaVA-v1.5) is a structured approach to testing the hypothesis, addressing a gap in prior work that only studied single models."
+            ],
+            "weaknesses": [
+              "The paper's main results narrative (Sections 4.1-4.3) heavily emphasizes white-box textual repetition experiments without clearly distinguishing them from more realistic reasoning proxies (CoT, external Claude reasoning in Table 2 and Section 3.2), obscuring which evidence most directly validates RICH. The author's second rebuttal acknowledges this is 'a significant presentation issue' but does not fix it in the submitted paper.",
+              "The white-box attack explicitly instructs models to 'defer to the text modality when text and vision inputs conflict,' creating an unrealistic confound that artificially boosts the textual-repetition defense. No ablation separates the contribution of this explicit instruction from textual repetition itself, and the safety-critical framing (self-driving vehicles, lines 123-125) is not maintained in the main results sections.",
+              "The core theoretical claim—that robust models force attacks into in-distribution regimes—is inferred solely from visual interpretability (semantic shapes in Figure 4) rather than validated through quantitative OOD detection metrics, likelihood estimation, or distribution shift analysis. This is the foundation of RICH but lacks empirical grounding.",
+              "Statistical analysis is inadequate: no significance tests, confidence intervals, or explicit trial counts are reported despite modest sample sizes (200 Attack-Bard images, unspecified white-box trials). Claims like 'nearly a 5× improvement' (line 264) lack statistical validation.",
+              "Experiments are limited to small-scale models (LLaVA-v1.5 variants) with no evidence or theoretical argument that RICH generalizes to frontier scales where inference-compute scaling is actually deployed and would matter practically."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The paper's main results narrative (Sections 4.1-4.3) heavily emphasizes white-box textual repetition experiments without clearly distinguishing them from more realistic reasoning proxies (CoT, external Claude reasoning in Table 2 and Section 3.2), obscuring which evidence most directly validates RICH. The author's second rebuttal acknowledges this is 'a significant presentation issue' but does not fix it in the submitted paper.",
+                "severity": "major",
+                "evidence": "Sections 4.1-4.3 (lines 216-267) present white-box textual repetition as the core evidence, with Figure 5, 6, and Table 1 dominating the results narrative. Section 4.4 (lines 269-292) and Section 3.2 (lines 191-202) provide CoT and external Claude reasoning approaches that better proxy actual reasoning models, but these are positioned as secondary: Table 2 appears only in Section 4.4, and external Claude reasoning is mentioned briefly in methodology without prominent results. The rebuttal states: 'In the current paper, lines 290-292 do state that...we still find that the robustness benefits...improve with base model robustness (Table 2). However, Table 2 is presented as Section 4.4, suggesting it is less central.' The rebuttal acknowledges this structural problem but proposes to 'restructure the narrative to highlight CoT and external reasoning results as the primary evidence'—a proposed revision, not evidence in the submitted paper. The submitted paper presents textual repetition (which the rebuttal and paper acknowledge is 'not the same...inference-time compute scaling performed by reasoning models like o1', line 168) as the main evidence.",
+                "affected_claim": "The paper claims to validate RICH ('inference-time compute is most effective as a defense when attacks are forced into in-distribution regimes'), but the primary evidence uses a simplified proxy mechanism (textual repetition) rather than the reasoning-based defenses that RICH is about.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The white-box attack explicitly instructs models to 'defer to the text modality when text and vision inputs conflict,' creating an unrealistic confound that artificially boosts the textual-repetition defense. No ablation separates the contribution of this explicit instruction from textual repetition itself, and the safety-critical framing (self-driving vehicles, lines 123-125) is not maintained in the main results sections.",
+                "severity": "major",
+                "evidence": "Section 3.1, lines 164-165 state: 'we explicitly instruct the model to defer to the text modality when the text and vision inputs conflict.' The rebuttal acknowledges: 'no ablation is provided in the submitted paper. We acknowledge this is a limitation... A revision should: (1) add an ablation removing the explicit instruction, isolating textual-repetition effects, or (2) explicitly reframe the white-box setup as testing a specific safety scenario.' However, neither action is taken in the submitted paper. The safety-critical motivation (lines 123-125) mentions self-driving vehicles and 'following safety specifications regardless of adversarially persuasive user inputs,' but the main results sections (4.1-4.3) do not maintain this framing—they present findings as general evidence for RICH. This creates ambiguity: are these results about general robustness or a specialized safety scenario? The explicit instruction artificially simplifies the task in a way that would not apply to general adversarial robustness.",
+                "affected_claim": "The white-box results (Figures 5-6, Table 1) are presented as evidence that robust models benefit more from inference-compute scaling generally, but the experimental setup (explicit deferral instruction + textual repetition) may not reflect general robustness.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The core theoretical claim—that robust models force attacks into in-distribution regimes—is inferred solely from visual interpretability (semantic shapes in Figure 4) rather than validated through quantitative OOD detection metrics, likelihood estimation, or distribution shift analysis. This is the foundation of RICH but lacks empirical grounding.",
+                "severity": "major",
+                "evidence": "Lines 127-136 argue: 'If this is the case [attacks on robust models are in-distribution], then reasoning may become more relevant as a defense.' The evidence is visual: 'Rather than remaining imperceptible or noise-like, attacks become visually interpretable' (lines 43-45), and Figure 4 shows shape transformations (sphere to cube). The rebuttal states: 'we have not quantitatively measured whether interpretable perturbations actually occupy more in-distribution regions. The reviewer proposes quantitative OOD analysis (Mahalanobis distance, likelihood estimation, distribution shift metrics). We agree this would directly test the hypothesis.' However, no such quantitative analysis appears in the submitted paper. The paper infers in-distribution status from visual similarity without measuring likelihood, OOD detection scores, or distribution shift metrics. This is the theoretical foundation of RICH, yet it rests on inference rather than measurement.",
+                "affected_claim": "RICH posits that 'inference-time compute is most effective as a defense when attacks are forced into in-distribution regimes.' This claim depends on demonstrating that robust models produce in-distribution attacks, but this is assumed rather than empirically validated.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Statistical analysis is inadequate: no significance tests, confidence intervals, or explicit trial counts are reported despite modest sample sizes (200 Attack-Bard images, unspecified white-box trials). Claims like 'nearly a 5× improvement' (line 264) lack statistical validation.",
+                "severity": "major",
+                "evidence": "Table 1 provides means and standard deviations but no p-values or confidence intervals. Table 2 reports accuracy percentages without error bars or statistical tests. Line 264 states: 'Delta2LLaVA-v1.5 demonstrates strong improvements under high ε = 64/255 attacks when more compute is added: mean PGD attack steps increase from 13.7 at k = 0 to 67.0 at k = 3, nearly a 5× improvement.' No significance test validates whether this difference is statistically meaningful or due to random variation. The paper does not specify the number of random seeds or PGD trials for white-box experiments. Attack-Bard contains only 200 images (line 187), a modest size for robust statistical conclusions. The rebuttal acknowledges: 'Tables 1 and 2 report means and standard deviations but no p-values, confidence intervals, or explicit trial counts' and proposes adding these in a revision. However, the submitted paper lacks this rigor.",
+                "affected_claim": "Claims about differential robustness improvements across models and compute levels cannot be validated as statistically significant without p-values or confidence intervals.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Experiments are limited to small-scale models (LLaVA-v1.5 variants) with no evidence or theoretical argument that RICH generalizes to frontier scales where inference-compute scaling is actually deployed and would matter practically.",
+                "severity": "major",
+                "evidence": "Section 5, Limitations (lines 305-310): 'We explored a phenomenon first uncovered in a large-scale reasoning model (o1) using experiments at a comparatively much smaller scale.' The paper does not provide evidence that RICH holds at frontier scales. The rebuttal states: 'While we cannot directly test frontier models (access limitations), a revision could: (1) add theoretical reasoning about whether RICH should hold at larger scales based on scaling laws for robustness and reasoning, (2) analyze how RICH's effect size varies with model scale within available models to provide evidence for or against scale-dependence.' However, the submitted paper does not include scaling law analysis or multi-scale comparisons within available models. The practical significance of RICH depends on its applicability to frontier models, but this is unestablished in the submitted work.",
+                "affected_claim": "The title and abstract claim a practical trade-off for 'profitably trading inference compute for robustness,' but this applicability to deployment-scale models remains unvalidated.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "Multiple soundness issues remain unresolved even after the author's second rebuttal. (1) The white-box evidence, which constitutes the main results narrative (Sections 4.1-4.3), uses textual repetition that the paper and rebuttal acknowledge does not faithfully proxy reasoning-based defenses. While CoT and external reasoning results exist, they are presented as secondary. (2) The explicit 'defer to text' instruction is an unrealistic confound that artificially boosts the defense—the rebuttal acknowledges this but the submitted paper provides no ablation to isolate its contribution. (3) The core theoretical claim that robust models produce in-distribution attacks is inferred from visual interpretability without quantitative OOD validation, which the rebuttal acknowledges should be done but is absent from the submitted work. (4) The paper reports no statistical significance tests or confidence intervals, making it impossible to assess whether observed improvements (e.g., '5× improvement') are meaningful. (5) The rebuttal explicitly concedes that 'evaluated on the submitted paper alone, the core issues stand.' This concession from the authors indicates that the submitted paper's soundness is inadequate."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper presents a genuinely novel hypothesis (RICH) explaining why inference-compute scaling provides limited robustness against vision attacks through the lens of in-distribution vs. out-of-distribution attacks. While building on prior work on adversarial robustness (Zaremba et al. 2025, Wang et al. 2025) and the observation that robust models produce interpretable attacks (Gaziv et al. 2023, Bartoldson et al. 2024), the specific contribution—that base model robustness modulates the benefits of inference-time compute—is novel and represents a clear advance."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "Significance is limited for reasons that the rebuttal does not resolve. (1) Experiments use small-scale models (LLaVA-v1.5 and variants) far below frontier scales where inference-compute scaling is deployed. The rebuttal argues that adversarially-trained LLaVA variants are 'the most comparable test bed available,' but this does not establish whether RICH holds at deployment scales. (2) The white-box defense (textual repetition with explicit defer-to-text instruction) does not reflect general robustness practice and would not be deployed in real systems. (3) The paper does not provide actionable guidance for practitioners—it merely demonstrates a correlation between base robustness and inference-compute benefits, without explaining how to build robust models or showing that reasoning-based defenses are cost-effective at scale. (4) The rebuttal acknowledges: 'The practical significance of our work depends on this generalization [to frontier scales], and we acknowledge the limitation should be articulated more clearly.' The submitted paper does not adequately articulate this, severely limiting significance for a top-tier ML venue."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Evaluation remains inadequate. (1) The explicit 'defer to text' instruction is a confound without an ablation to show its contribution—the rebuttal acknowledges this should be done but it is not in the submitted paper. (2) The in-distribution assumption, which is RICH's theoretical foundation, is not validated with quantitative OOD metrics—the rebuttal proposes adding such analysis but the submitted work lacks it. (3) Statistical analysis is weak: no p-values, confidence intervals, or explicit trial counts despite modest sample sizes. The rebuttal acknowledges this should be 'straightforward to add' but it is not added in the submitted paper. (4) The main results narrative (Sections 4.1-4.3) presents white-box textual repetition as primary evidence without clearly distinguishing it from more realistic reasoning proxies in Table 2 and Section 3.2. (5) The paper does not clearly map which experiments most directly validate RICH—the rebuttal proposes adding 'a results synthesis section' but this is absent. The rebuttal's own assessment: 'Evaluated on the submitted paper alone, the core issues stand' indicates that evaluation is insufficient."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "Clarity is compromised by structural and framing issues that the rebuttal acknowledges but the submitted paper does not address. (1) The main results sections (4.1-4.3) emphasize white-box textual repetition as primary evidence, but the rebuttal acknowledges this 'obscures which evidence most directly validates RICH' and suggests 'restructuring the narrative to highlight CoT and external reasoning results as the primary evidence.' The submitted paper does not make this restructuring. (2) The safety-critical motivation (self-driving vehicles, multimodal command prioritization) appears in the introduction but is not maintained in results sections, creating ambiguity about whether findings apply to general robustness or a specific scenario. (3) The paper does not provide a clear map of which experiments best support RICH. The rebuttal proposes adding 'a results synthesis section or table' but this is not in the submitted work. (4) The distinction between textual repetition (a proxy mechanism) and actual reasoning-based defenses should be prominent given the paper's focus on inference-compute scaling, but the paper acknowledges the gap without emphasizing it sufficiently. These presentation issues prevent readers from clearly assessing which evidence most directly supports the main hypothesis."
+              }
+            },
+            "summary_comment": "The paper proposes an interesting hypothesis (RICH) that offers a novel perspective on adversarial robustness and inference-time compute. However, the submitted work falls significantly short of publication standards for a top-tier venue. The second rebuttal, notably, includes an explicit concession from the authors: 'Evaluated on the submitted paper alone, the core issues stand.' This self-assessment is accurate. The fundamental problems are: (1) **Presentation and evidence hierarchy**: The main results narrative emphasizes white-box textual repetition (acknowledged as not faithfully proxying reasoning-based defenses) without clearly prioritizing more realistic CoT and external reasoning results that appear in Table 2 and Section 3.2. Which evidence most directly validates RICH remains obscured. (2) **Unrealistic experimental setup**: The explicit instruction to 'defer to text' creates a confound that artificially boosts the defense mechanism being tested. Without an ablation, it is impossible to assess how much this instruction contributes to robustness gains vs. textual repetition alone. (3) **Unvalidated core assumption**: The central claim that robust models produce in-distribution attacks is inferred from visual interpretability (semantic shapes) rather than validated through quantitative OOD metrics, likelihood estimation, or distribution shift analysis. This is the theoretical foundation of RICH but lacks empirical grounding. (4) **Statistical rigor**: No significance tests, confidence intervals, or explicit trial counts are reported despite modest sample sizes. Claims like '5× improvement' are unvalidated. (5) **Generalization to frontier scales**: Experiments use small-scale models with no evidence that RICH holds at deployment scales. The practical significance depends on this generalization, which is unestablished. The rebuttal demonstrates that the authors understand these limitations and have thoughtful proposals to address them. However, the standard for evaluation is the submitted paper. The rebuttal's own assessment that 'the core issues stand' when evaluated on the submitted paper is an accurate reflection of the work's state. To meet publication standards, the paper would require substantial revision addressing the experimental confounds, statistical rigor, validation of core assumptions, and restructuring of the results narrative to properly prioritize evidence."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"White-box experiments use textual repetition which does not faithfully proxy reasoning-based defenses like o1, though black-box CoT results (Table 2) provide better evidence that is not adequately highlighted in the paper's main narrative\",\n        \"Explicit defer-to-text instruction in white-box attack creates a confound that artificially boosts textual-repetition defense effectiveness; no ablation is provided in the submitted paper\",\n        \"Core theoretical assumption that interpretable perturbations are in-distribution is inferred from visual similarity rather than validated through quantitative OOD detection or distribution metrics\",\n        \"Experiments limited to small-scale models (LLaVA-v1.5 variants) with no evidence that RICH generalizes to frontier scales where inference-compute scaling is deployed\",\n        \"Statistical analysis lacks rigor: no significance tests, confidence intervals, or explicit trial counts despite modest sample sizes\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"White-box textual repetition vs. actual reasoning\",\n          \"location\": \"Section 3.1, lines 163-177; Section 4.4 (Table 2); Section 3.2 (Claude reasoning)\",\n          \"explanation\": \"The paper acknowledges the gap between textual repetition and reasoning-based compute in lines 163-177. Importantly, the paper does provide black-box CoT results (Table 2, lines 275-292) and external Claude reasoning (Section 3.2, lines 191-202) that use more realistic reasoning proxies. These results also support RICH: 'when shifting to a setting that more closely proxies for the original inference-compute-scaling-for-robustness setup of Zaremba et al. [2025], we still find that the robustness benefits of inference-time compute scaling improve with base model robustness' (lines 290-292). However, the paper's main narrative (Section 4.1-4.3) emphasizes white-box results without clearly distinguishing their proxy nature.\"\n        },\n        {\n          \"concern\": \"Explicit defer-to-text instruction as confound\",\n          \"location\": \"Section 3.1, lines 164-165\",\n          \"explanation\": \"The paper states: 'we explicitly instruct the model to defer to the text modality when the text and vision inputs conflict.' The paper frames this as part of testing 'multimodal conflicts' (lines 159-162) but does not provide an ablation showing how much this instruction contributes to robustness improvements vs. textual repetition alone. The paper does acknowledge this is motivated by 'self-driving of vehicles using multimodal systems that must understand the need to prioritize specific modalities' (lines 123-125), which suggests a safety-critical application context, but this context is not clearly maintained in the main results sections.\"\n        },\n        {\n          \"concern\": \"In-distribution assumption validation\",\n          \"location\": \"Lines 127-136, Figures 3-4\",\n          \"explanation\": \"The paper infers in-distribution status from visual interpretability: 'Rather than remaining imperceptible or noise-like, attacks become visually interpretable and often resemble semantically meaningful concepts (e.g., textures, patterns, or objects aligned with the attacker's objective)' (lines 43-45). Figure 4 demonstrates this with shape transformations (sphere to cube). However, no quantitative OOD analysis is provided. The paper does not estimate likelihoods, apply OOD detection methods, or measure distribution shift.\"\n        },\n        {\n          \"concern\": \"Small-scale models\",\n          \"location\": \"Section 5, Limitations (lines 305-310)\",\n          \"explanation\": \"The paper acknowledges: 'We explored a phenomenon first uncovered in a large-scale reasoning model (o1) using experiments at a comparatively much smaller scale.' The paper notes this was 'necessary to validate our findings at larger scales, which see widespread deployment' but provides no empirical evidence or theoretical argument that RICH would hold at frontier scales.\"\n        },\n        {\n          \"concern\": \"Statistical rigor\",\n          \"location\": \"Tables 1 and 2\",\n          \"explanation\": \"Table 1 provides means and standard deviations but no confidence intervals or p-values. Table 2 shows accuracy percentages without error bars. The paper does not explicitly report the number of random seeds or PGD trials for white-box experiments or mention the 200-image limitation for Attack-Bard in the main results sections.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"White-box textual repetition does not proxy reasoning-based defenses\",\n          \"proposed_change\": \"Restructure the results narrative to prioritize evidence from black-box CoT (Table 2) and external Claude reasoning (Section 3.2) as the main support for RICH, since these more faithfully proxy actual reasoning-based defenses. Reframe white-box experiments as supporting evidence that demonstrates the mechanism works even with simpler compute-scaling approaches (textual repetition), but clarify that the extent of benefits may differ from actual reasoning. Add a results summary table (as suggested in previous rebuttal) showing which experiments use realistic reasoning proxies vs. proxy mechanisms, making clear that CoT and external reasoning results most directly validate RICH as stated.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Explicit defer-to-text instruction creates unrealistic confound\",\n          \"proposed_change\": \"Add ablation experiments removing the explicit instruction to isolate textual-repetition effects. Specifically: (1) Run white-box attacks with the same multimodal conflict setup but without explicit deferral instruction—replace with implicit instruction through repetition only, (2) Report both conditions side-by-side in Table 1 or as separate figure, (3) Clearly quantify how much the explicit instruction contributes to robustness gains. Alternatively, explicitly reframe the current white-box setup as testing a specific safety-critical scenario (multimodal command prioritization) rather than general adversarial robustness, and present CoT/external reasoning results as the main evidence for RICH in general settings.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Core assumption that interpretable perturbations are in-distribution not validated\",\n          \"proposed_change\": \"Add quantitative OOD analysis in appendix or supplementary material: (1) Apply Mahalanobis distance or energy-based OOD detection to compare attacked images from robust vs. non-robust models, (2) Estimate log-likelihoods of attacked images under a density model of the training distribution (e.g., via a pretrained autoencoder or flow model), (3) Compute distribution shift metrics (e.g., Fréchet Inception Distance, Wasserstein distance) between clean and adversarial examples across models, (4) Visualize feature space distributions using t-SNE or UMAP to show whether robust-model attacks cluster closer to clean examples. These analyses would directly test whether 'interpretable' attacks are actually closer to in-distribution regions.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited to small-scale models; generalization to frontier scales unclear\",\n          \"proposed_change\": \"Add discussion in limitations and future work section: (1) Articulate what would be needed to test RICH at frontier scales (access to adversarially-trained frontier models, computational budget for white-box attacks on large models), (2) Provide theoretical reasoning about whether RICH should hold at larger scales based on scaling laws for robustness and reasoning, (3) Test on at least one larger model if possible (e.g., a larger open-source vision-language model), or (4) Conduct empirical analysis of how RICH's effect size varies with model scale on available models (e.g., compare LLaVA-v1.5 to other available VLMs of different sizes). This would provide stronger evidence for or against frontier-scale generalization.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Weak statistical analysis\",\n          \"proposed_change\": \"For all tables: (1) Add 95% confidence intervals or error bars derived from bootstrap resampling or explicit reporting of multiple random seeds, (2) Report the number of random seeds/trials per condition explicitly (e.g., '5 seeds' or 'single run'), (3) Compute p-values for key comparisons (e.g., comparing compute levels within each model using paired t-tests), (4) Report sample sizes explicitly (e.g., '200 Attack-Bard images' should appear in Figure 2 caption or table legend), (5) Discuss statistical power and whether sample sizes are adequate to detect observed effect sizes as significant.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Main narrative unclear about which results most directly support RICH\",\n          \"proposed_change\": \"Add a results synthesis section or table that clearly maps each experiment to RICH: (1) Specify which results use realistic reasoning proxies (CoT, external reasoning) vs. proxy mechanisms (textual repetition), (2) Clearly indicate which results apply to general robustness vs. specific safety scenarios, (3) Summarize: 'Black-box CoT results (Table 2) and external reasoning (Section 3.2) most directly validate RICH. White-box experiments with textual repetition demonstrate the mechanism in a controlled setting but with simplified compute scaling.' This would help readers understand the strength of evidence for different aspects of RICH.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We appreciate the reviewer's detailed critique and the recognition that our rebuttal demonstrates understanding of the core issues. The reviewer correctly identifies that the submitted paper's main narrative does not adequately distinguish between experiments using realistic reasoning proxies (CoT, external Claude reasoning) and those using proxy mechanisms (textual repetition). We address this critical gap and the other concerns below:\\n\\n**On the hierarchy of evidence for RICH:** The reviewer raises an important structural point: our black-box CoT results (Table 2) and external Claude reasoning (Section 3.2) more faithfully proxy actual reasoning-based defenses like o1, yet the paper's main results sections (4.1-4.3) emphasize white-box textual repetition without making this distinction clear. We agree this is a significant presentation issue. In the current paper, lines 290-292 do state that 'when shifting to a setting that more closely proxies for the original inference-compute-scaling-for-robustness setup of Zaremba et al. [2025], we still find that the robustness benefits of inference-time compute scaling improve with base model robustness' (Table 2). However, Table 2 is presented as Section 4.4, suggesting it is less central than white-box results. A revision should restructure the narrative to highlight CoT and external reasoning results as the primary evidence for RICH, presenting white-box textual repetition as supporting mechanism evidence.\\n\\n**On the defer-to-text instruction confound:** The reviewer is correct that no ablation is provided in the submitted paper. We acknowledge this is a limitation. The paper does situate this setup in the context of safety-critical applications (lines 123-125 mention self-driving vehicles), but this context is not maintained throughout the results sections, making it appear as general robustness rather than a specific scenario. A revision should: (1) add an ablation removing the explicit instruction, isolating textual-repetition effects, or (2) explicitly reframe the white-box setup as testing a specific safety scenario (multimodal command prioritization in critical systems) and present CoT/external reasoning results as the main evidence for general RICH. The reviewer's point that we must choose between these paths is well-taken—ambiguity undermines both the safety-specific and general interpretations.\\n\\n**On validation of the in-distribution assumption:** The reviewer correctly notes this is the theoretical foundation of RICH yet is only supported by visual evidence (Figure 4). We can show interpretable vs. noise-like perturbations visually, but we have not quantitatively measured whether interpretable perturbations actually occupy more in-distribution regions. The reviewer proposes quantitative OOD analysis (Mahalanobis distance, likelihood estimation, distribution shift metrics). We agree this would directly test the hypothesis. A revision could add such analysis in an appendix, though we acknowledge this requires implementing or accessing OOD detection baselines that were not part of the original submission.\\n\\n**On limited scale:** The reviewer notes that the rebuttal argues 'adversarially-trained variants of LLaVA are the most comparable test bed available' but this does not establish that RICH holds at frontier scales. We concede this point. While we cannot directly test frontier models (access limitations), a revision could: (1) add theoretical reasoning about whether RICH should hold at larger scales based on scaling laws for robustness and reasoning, (2) analyze how RICH's effect size varies with model scale within available models to provide evidence for or against scale-dependence, or (3) attempt testing on a larger open-source vision-language model if available. The practical significance of our work depends on this generalization, and we acknowledge the limitation should be articulated more clearly.\\n\\n**On statistical rigor:** The reviewer is correct that statistical analysis lacks standard rigor. Tables 1 and 2 report means and standard deviations but no confidence intervals, p-values, or explicit trial counts. A revision should: (1) add 95% confidence intervals derived from bootstrap or explicit multiple seeds, (2) report number of seeds/trials per condition, (3) compute p-values for key comparisons, (4) explicitly report sample sizes in figure/table captions, and (5) discuss whether observed effect sizes (e.g., the '5× improvement' in line 264) are statistically significant given sample sizes. This is straightforward to add and would substantially strengthen the work.\\n\\n**On the presentation structure:** The reviewer identifies that the main results narrative conflates evidence from different experimental paradigms. A revision should add a clear mapping of experiments to RICH (as proposed in our previous rebuttal). Specifically, a results synthesis section or table should indicate: (1) CoT and external reasoning results most directly validate RICH with realistic reasoning proxies, (2) white-box textual repetition demonstrates the mechanism in a controlled setting with simplified compute scaling, and (3) white-box experiments test a specific safety-critical scenario (multimodal conflict) rather than general robustness. This single clarification would resolve much of the reviewer's concern about which evidence most directly supports RICH.\\n\\n**Summary of distinction between this rebuttal and previous one:** The reviewer correctly notes that our first rebuttal consisted largely of 'promises to revise.' This rebuttal is also structured around proposed revisions, but the reviewer asks for evaluation based on the *submitted paper*. We accept this standard. Evaluated on the submitted paper alone, the core issues stand: (1) white-box textual repetition is presented prominently without clearly distinguishing it from the more realistic CoT and external reasoning approaches, (2) the explicit defer-to-text instruction is not ablated, (3) in-distribution status is inferred rather than validated, (4) statistical analysis lacks rigor, (5) scale generalization is unclear. These are fair criticisms of the submitted work. We recognize that the paper would need substantial revision to adequately address them, and the reviewer is correct to apply the acceptance decision to what is submitted rather than what could be revised.\\n\\nWe are grateful for this detailed critique, which clearly identifies where the paper falls short of conference standards and provides concrete guidance for improvement. The core hypothesis (RICH) and the experimental strategy (systematic robustness variation with multiple attack types) have merit, but the execution and presentation in the current submission do not meet the rigor expected for acceptance.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_c663d5b81fe2",
+    "conference": "NEURIPS",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/neurips_reject_2025_033_get_rich_or_die_scaling_profitably_trading_inference_compute_for_robustness.md",
+    "target_paper_summary": {
+      "paper_id": "paper_c663d5b81fe2",
+      "title": "Get Rich Or Die Scaling: Profitably Trading Inference Compute For Robustness",
+      "abstract": "1 Recent work shows that increasing inference-time compute through generation of 2 long reasoning traces improves not just capability scores, but robustness to various 3 text jailbreaks designed to control models or lower their guardrails. However, 4 multimodal reasoning offers comparatively little defense against vision jailbreaks, 5 which typically succeed by creating noise-like perturbations. When attacking a 6 robust model, vision attacks are also capable of and often must resort to producing 7 human-interpretable perturbations. Rather than operating in a model's blind-spot 8 or out of its training distribution, such interpretable attacks construct familiar 9 concepts connected to the attacker's goal. Inspired by the ability of robust models 10 to force attacks into this space that appears more in-distribution for reasoning tasks, 11 we posit the Robustness from Inference Compute Hypothesis (RICH): defending 12 against attacks with inference compute (like reasoning) profits as those attacks 13 become more in-distribution. To test this, we adversarially attack models of varying 14 robustness with black-box-transfer and white-box attacks. RICH predicts a rich15 get-richer dynamic: models that start with higher initial robustness gain more 16 robustness benefits from increases in inference-time compute. Consistent with 17 RICH, we find that robust models benefit more from increased compute, whereas 18 non-robust models show little to no improvement. Our work suggests that inference19 time compute can be an effective defense against adversarial attacks, provided 20 the base model has some degree of robustness. In particular, layering disparate 21 train-time and test-time defenses aids robustness not additively, but synergistically.\n\nFigure 1: **As model robustness increases, the benefits of inference-time compute on robustness** also increase. A red dot indicates the step at which the model first generates the output targeted by the PGD attack. Robustness increases from LLaVA-v1.5 to FARE-LLaVA-v1.5 to Delta2LLaVA-v1.5.",
+      "topic": "",
+      "claims": []
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_002_979f71909",
+        "title": "Artificial Intelligence (AI): Multidisciplinary perspectives on emerging challenges, opportunities, and agenda for research, practice and policy",
+        "authors": [
+          "Yogesh K. Dwivedi",
+          "Laurie Hughes",
+          "Elvira Ismagilova",
+          "Gert Aarts",
+          "Crispin Coombs",
+          "Tom Crick",
+          "Yanqing Duan",
+          "Rohita Dwivedi",
+          "John S. Edwards",
+          "Aled Eirug",
+          "Vassilis Galanos",
+          "P. Vigneswara Ilavarasan",
+          "Marijn Janssen",
+          "Paul Jones",
+          "Arpan Kumar Kar",
+          "Hatice Kizgin",
+          "Bianca Kronemann",
+          "Banita Lal",
+          "Biagio Lucini",
+          "Rony Medaglia",
+          "Kenneth Le Meunier‐FitzHugh",
+          "Leslie Caroline Le Meunier-FitzHugh",
+          "Santosh K. Misra",
+          "Emmanuel Mogaji",
+          "Sujeet Kumar Sharma",
+          "Jang Bahadur Singh",
+          "Vishnupriya Raghavan",
+          "Ramakrishnan Raman",
+          "Nripendra P. Rana",
+          "Spyridon Samothrakis",
+          "Jak Spencer",
+          "Kuttimani Tamilmani",
+          "Annie Tubadji",
+          "Paul Walton",
+          "Michael D. Williams"
+        ],
+        "year": 2019,
+        "publication_date": "2019-08-27",
+        "venue": "International Journal of Information Management",
+        "abstract": "As far back as the industrial revolution, significant development in technical innovation has succeeded in transforming numerous manual tasks and processes that had been in existence for decades where humans had reached the limits of physical capacity. Artificial Intelligence (AI) offers this same transformative potential for the augmentation and potential replacement of human tasks and activities within a wide range of industrial, intellectual and social applications. The pace of change for this new AI technological age is staggering, with new breakthroughs in algorithmic machine learning and autonomous decision-making, engendering new opportunities for continued innovation. The impact of AI could be significant, with industries ranging from: finance, healthcare, manufacturing, retail, supply chain, logistics and utilities, all potentially disrupted by the onset of AI technologies. The study brings together the collective insight from a number of leading expert contributors to highlight the significant opportunities, realistic assessment of impact, challenges and potential research agenda posed by the rapid emergence of AI within a number of domains: business and management, government, public sector, and science and technology. This research offers significant and timely insight to AI technology and its impact on the future of industry and society in general, whilst recognising the societal and industrial influence on pace and direction of AI development.",
+        "url": "https://doi.org/10.1016/j.ijinfomgt.2019.08.002",
+        "doi": "https://doi.org/10.1016/j.ijinfomgt.2019.08.002",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2969625533"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 4148
+      },
+      {
+        "paper_id": "rw_003_d667a36eb",
+        "title": "Statistical Modeling: The Two Cultures (with comments and a rejoinder by the author)",
+        "authors": [
+          "Leo Breiman"
+        ],
+        "year": 2001,
+        "publication_date": "2001-08-01",
+        "venue": "Statistical Science",
+        "abstract": "There are two cultures in the use of statistical modeling to reach conclusions from data. One assumes that the data are generated by a given stochastic data model. The other uses algorithmic models and treats the data mechanism as unknown. The statistical community has been committed to the almost exclusive use of data models. This commitment has led to irrelevant theory, questionable conclusions, and has kept statisticians from working on a large range of interesting current problems. Algorithmic modeling, both in theory and practice, has developed rapidly in fields outside statistics. It can be used both on large complex data sets and as a more accurate and informative alternative to data modeling on smaller data sets. If our goal as a field is to use data to solve problems, then we need to move away from exclusive dependence on data models and adopt a more diverse set of tools.",
+        "url": "https://doi.org/10.1214/ss/1009213726",
+        "doi": "https://doi.org/10.1214/ss/1009213726",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2084341220"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 4306
+      },
+      {
+        "paper_id": "rw_004_3982c5c8f",
+        "title": "Anticompetitive Effects of Common Ownership",
+        "authors": [
+          "José Azar",
+          "Martin C. Schmalz",
+          "Isabel Tecu"
+        ],
+        "year": 2018,
+        "publication_date": "2018-05-25",
+        "venue": "The Journal of Finance",
+        "abstract": "ABSTRACT Many natural competitors are jointly held by a small set of large institutional investors. In the U.S. airline industry, taking common ownership into account implies increases in market concentration that are 10 times larger than what is “presumed likely to enhance market power” by antitrust authorities. Within‐route changes in common ownership concentration robustly correlate with route‐level changes in ticket prices, even when we only use variation in ownership due to the combination of two large asset managers. We conclude that a hidden social cost—reduced product market competition—accompanies the private benefits of diversification and good governance.",
+        "url": "https://doi.org/10.1111/jofi.12698",
+        "doi": "https://doi.org/10.1111/jofi.12698",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2887416572"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 947
+      },
+      {
+        "paper_id": "rw_005_89f810e22",
+        "title": "The Value of Connections in Turbulent Times: Evidence from the United States",
+        "authors": [
+          "Daron Acemoğlu",
+          "Simon Johnson",
+          "Amir Kermani",
+          "James Kwak",
+          "Todd Mitton"
+        ],
+        "year": 2013,
+        "publication_date": "2013-01-01",
+        "venue": "SSRN Electronic Journal",
+        "abstract": "",
+        "url": "https://doi.org/10.2139/ssrn.2363609",
+        "doi": "https://doi.org/10.2139/ssrn.2363609",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W1532977008"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 238
+      },
+      {
+        "paper_id": "rw_006_7f69115f5",
+        "title": "Is ChatGPT a General-Purpose Natural Language Processing Task Solver?",
+        "authors": [
+          "Chengwei Qin",
+          "Aston Zhang",
+          "Zhuosheng Zhang",
+          "Jiaao Chen",
+          "Michihiro Yasunaga",
+          "Diyi Yang"
+        ],
+        "year": 2023,
+        "publication_date": "2023-01-01",
+        "venue": "",
+        "abstract": "Spurred by advancements in scale, large language models (LLMs) have demonstrated the ability to perform a variety of natural language processing (NLP) tasks zero-shot—i.e., without adaptation on downstream data. Recently, the debut of ChatGPT has drawn a great deal of attention from the natural language processing (NLP) community due to the fact that it can generate high-quality responses to human input and self-correct previous mistakes based on subsequent conversations. However, it is not yet known whether ChatGPT can serve as a generalist model that can perform many NLP tasks zero-shot. In this work, we empirically analyze the zero-shot learning ability of ChatGPT by evaluating it on 20 popular NLP datasets covering 7 representative task categories. With extensive empirical studies, we demonstrate both the effectiveness and limitations of the current version of ChatGPT. We find that ChatGPT performs well on many tasks favoring reasoning capabilities (e.g., arithmetic reasoning) while it still faces challenges when solving specific tasks such as sequence tagging. We additionally provide in-depth analysis through qualitative case studies.",
+        "url": "https://doi.org/10.18653/v1/2023.emnlp-main.85",
+        "doi": "https://doi.org/10.18653/v1/2023.emnlp-main.85",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4389523957"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 461
+      },
+      {
+        "paper_id": "rw_007_85223a657",
+        "title": "Productivity Dynamics in Manufacturing Plants",
+        "authors": [
+          "Martin Neil Baily",
+          "Charles R. Hulten",
+          "David I. Campbell",
+          "Timothy F. Bresnahan",
+          "Richard E. Caves"
+        ],
+        "year": 1992,
+        "publication_date": "1992-01-01",
+        "venue": "Brookings Papers on Economic Activity Microeconomics",
+        "abstract": "Martin Neil Baily, Charles Hulten, David Campbell, Timothy Bresnahan, Richard E. Caves, Productivity Dynamics in Manufacturing Plants, Brookings Papers on Economic Activity. Microeconomics, Vol. 1992 (1992), pp. 187-267",
+        "url": "https://doi.org/10.2307/2534764",
+        "doi": "https://doi.org/10.2307/2534764",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W1539267447"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1063
+      },
+      {
+        "paper_id": "rw_008_5a223df28",
+        "title": "Death by Market Power: Reform, Competition, and Patient Outcomes in the National Health Service",
+        "authors": [
+          "Martin Gaynor",
+          "Rodrigo Moreno‐Serra",
+          "Carol Propper"
+        ],
+        "year": 2013,
+        "publication_date": "2013-11-01",
+        "venue": "American Economic Journal Economic Policy",
+        "abstract": "The effect of competition on the quality of health care remains a contested issue. Most empirical estimates rely on inference from nonexperimental data. In contrast, this paper exploits a procompetitive policy reform to provide estimates of the impact of competition on hospital outcomes. The English government introduced a policy in 2006 to promote competition between hospitals. Using this policy to implement a difference-in-differences research design, we estimate the impact of the introduction of competition on not only clinical outcomes but also productivity and expenditure. We find that the effect of competition is to save lives without raising costs. (JEL H51, I11, I18, L32, L33)",
+        "url": "https://doi.org/10.1257/pol.5.4.134",
+        "doi": "https://doi.org/10.1257/pol.5.4.134",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3121196325"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 250
+      },
+      {
+        "paper_id": "rw_009_9cb7e97c8",
+        "title": "Bio-inspired computation: Where we stand and what's next",
+        "authors": [
+          "Javier Del Ser",
+          "Eneko Osaba",
+          "Daniel Molina",
+          "Xin‐She Yang",
+          "Sancho Salcedo‐Sanz",
+          "David Camacho",
+          "Swagatam Das",
+          "Ponnuthurai Nagaratnam Suganthan",
+          "Carlos A. Coello Coello",
+          "Francisco Herrera"
+        ],
+        "year": 2019,
+        "publication_date": "2019-04-29",
+        "venue": "Swarm and Evolutionary Computation",
+        "abstract": "",
+        "url": "https://doi.org/10.1016/j.swevo.2019.04.008",
+        "doi": "https://doi.org/10.1016/j.swevo.2019.04.008",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2943528199"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 583
+      },
+      {
+        "paper_id": "rw_010_97cb80ca0",
+        "title": "Why is Pollution from U.S. Manufacturing Declining? The Roles of Environmental Regulation, Productivity, and Trade",
+        "authors": [
+          "Joseph Shapiro",
+          "Reed Walker"
+        ],
+        "year": 2015,
+        "publication_date": "2015-01-01",
+        "venue": "National Bureau of Economic Research",
+        "abstract": "Between 1990 and 2008, air pollution emissions from U.S. manufacturing fell by 60 percent despite a substantial increase in manufacturing output. We show that these emissions reductions are primarily driven by within-product changes in emissions intensity rather than changes in output or in the composition of products produced. We then develop and estimate a quantitative model linking trade with the environment to better understand the economic forces driving these changes. Our estimates suggest that the implicit pollution tax that manufacturers face doubled between 1990 and 2008. These changes in environmental regulation, rather than changes in productivity and trade, account for most of the emissions reductions.",
+        "url": "https://doi.org/10.3386/w20879",
+        "doi": "https://doi.org/10.3386/w20879",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3124890699"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 29
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_006_7f69115f5",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "novelty_competitor",
+          "benchmark_baseline",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Evaluates a large language model's zero-shot capabilities on NLP tasks, providing evidence about model robustness and reasoning performance across datasets, which relates to the target's investigation of inference compute for robustness. The abstract discusses quantitative results and explicitly identifies limitations (e.g., challenges with sequence tagging).",
+        "evidence_summary": "In 2023, Qin et al. published 'Is ChatGPT a General-Purpose Natural Language Processing Task Solver?', which empirically analyzed the zero-shot learning ability of ChatGPT by evaluating it on 20 popular NLP datasets covering 7 representative task categories. The study demonstrated that ChatGPT performed well on many tasks favoring reasoning capabilities, such as arithmetic reasoning, but still faced challenges when solving specific tasks like sequence tagging."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_002_979f71909",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "background"
+        ],
+        "rationale": "Provides a broad, multidisciplinary perspective on AI challenges and opportunities, including potential impacts across industries. While not directly addressing inference compute or adversarial robustness, it offers high-level background context relevant to AI's transformative potential and societal implications.",
+        "evidence_summary": "In 2019, Dwivedi et al. published 'Artificial Intelligence (AI): Multidisciplinary perspectives on emerging challenges, opportunities, and agenda for research, practice and policy' in the International Journal of Information Management. The study highlighted AI's transformative potential for augmenting or replacing human tasks across industrial, intellectual, and social applications, and discussed significant opportunities, realistic assessment of impact, challenges, and potential research agenda posed by AI's rapid emergence within domains including business, government, public sector, science, and technology."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_003_d667a36eb",
+        "relevance_score": 0.43,
+        "relevance_types": [
+          "background",
+          "method"
+        ],
+        "rationale": "Discusses two cultures in statistical modeling, contrasting data models with algorithmic models. This methodological framing provides relevant background for understanding different modeling approaches in machine learning, though it does not directly address inference compute or adversarial attacks.",
+        "evidence_summary": "In 2001, Breiman published 'Statistical Modeling: The Two Cultures (with comments and a rejoinder by the author)' in Statistical Science. He argued that the statistical community's exclusive commitment to data models had led to irrelevant theory and questionable conclusions, and advocated for adopting algorithmic modeling as a more accurate and informative alternative, particularly for large complex data sets or as a tool for problem-solving with data."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_009_9cb7e97c8",
+        "relevance_score": 0.42,
+        "relevance_types": [
+          "method",
+          "novelty_competitor"
+        ],
+        "rationale": "Reviews bio-inspired computation methods. While not directly related to language models or adversarial robustness, it discusses computational paradigms that could be considered alternative approaches to problem-solving, providing tangential methodological context.",
+        "evidence_summary": "In 2019, Ser et al. published 'Bio-inspired computation: Where we stand and what's next' in Swarm and Evolutionary Computation. The paper provided a review of bio-inspired computation methods, discussing the current state and future directions of this field."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_004_3982c5c8f",
+        "relevance_score": 0.41,
+        "relevance_types": [
+          "background"
+        ],
+        "rationale": "Examines anticompetitive effects of common ownership in the airline industry, finding correlations with ticket prices. This is a weakly related economics paper that does not address inference compute, model robustness, or AI methods.",
+        "evidence_summary": "In 2018, Azar et al. published 'Anticompetitive Effects of Common Ownership' in The Journal of Finance. The study found that within-route changes in common ownership concentration robustly correlated with route-level changes in airline ticket prices, concluding that reduced product market competition represented a hidden social cost accompanying the private benefits of institutional investor diversification."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_008_5a223df28",
+        "relevance_score": 0.4,
+        "relevance_types": [
+          "background"
+        ],
+        "rationale": "Investigates effects of competition on healthcare outcomes using a policy reform. This economics study examines competition's impact on quality and costs in healthcare, providing only thematic background about system dynamics rather than technical AI research.",
+        "evidence_summary": "In 2013, Gaynor et al. published 'Death by Market Power: Reform, Competition, and Patient Outcomes in the National Health Service' in American Economic Journal: Economic Policy. Using a procompetitive policy reform in English hospitals to implement a difference-in-differences research design, the study found that competition saved lives without raising costs, estimating impacts on clinical outcomes, productivity, and expenditure."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_007_85223a657",
+        "relevance_score": 0.39,
+        "relevance_types": [
+          "background"
+        ],
+        "rationale": "Analyzes productivity dynamics in manufacturing plants. This economics paper from 1992 examines productivity changes in industrial settings and has no direct connection to AI, machine learning, inference compute, or adversarial robustness.",
+        "evidence_summary": "In 1992, Baily et al. published 'Productivity Dynamics in Manufacturing Plants' in Brookings Papers on Economic Activity: Microeconomics. The study analyzed productivity changes in manufacturing plants, examining the dynamics and factors influencing industrial productivity."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_010_97cb80ca0",
+        "relevance_score": 0.38,
+        "relevance_types": [
+          "background"
+        ],
+        "rationale": "Investigates reasons for declining U.S. manufacturing pollution, focusing on regulation, productivity, and trade. This environmental economics study examines factors driving emissions reductions but does not address AI, machine learning, or computational methods.",
+        "evidence_summary": "In 2015, Shapiro and Walker published 'Why is Pollution from U.S. Manufacturing Declining? The Roles of Environmental Regulation, Productivity, and Trade' through the National Bureau of Economic Research. Their quantitative model suggested that implicit pollution taxes doubled between 1990 and 2008, and that changes in environmental regulation, rather than productivity and trade, accounted for most of the observed air pollution emissions reductions from manufacturing."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_005_89f810e22",
+        "relevance_score": 0.37,
+        "relevance_types": [
+          "background"
+        ],
+        "rationale": "Examines the value of connections during turbulent economic times in the United States. This economics paper has no abstract in the metadata and shows no direct relevance to AI, machine learning, inference compute, or model robustness.",
+        "evidence_summary": "In 2013, Acemoğlu et al. published 'The Value of Connections in Turbulent Times: Evidence from the United States' in SSRN Electronic Journal. The study examined the value of connections during periods of economic turbulence in the United States."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2023, Chengwei Qin et al. published \"Is ChatGPT a General-Purpose Natural Language Processing Task Solver?\". In this work, the authors empirically analyze the zero-shot learning ability of ChatGPT by evaluating it on 20 popular NLP datasets covering 7 representative task categories. Spurred by advancements in scale, large language models (LLMs) have demonstrated the ability to perform a variety of natural language processing (NLP) tasks zero-shot—i.e., without adaptation on downstream data. However, it is not yet known whether ChatGPT can serve as a generalist model that can perform many NLP tasks zero-shot. In 2019, Yogesh K. Dwivedi et al. published \"Artificial Intelligence (AI): Multidisciplinary perspectives on emerging challenges, opportunities, and agenda for research, practice and policy\" in International Journal of Information Management. The pace of change for this new AI technological age is staggering, with new breakthroughs in algorithmic machine learning and autonomous decision-making, engendering new opportunities for continued innovation. As far back as the industrial revolution, significant development in technical innovation has succeeded in transforming numerous manual tasks and processes that had been in existence for decades where humans had reached the limits of physical capacity. Artificial Intelligence (AI) offers this same transformative potential for the augmentation and potential replacement of human tasks and activities within a wide range of industrial, intellectual and social applications. In 2001, Leo Breiman published \"Statistical Modeling: The Two Cultures (with comments and a rejoinder by the author)\" in Statistical Science. Algorithmic modeling, both in theory and practice, has developed rapidly in fields outside statistics. It can be used both on large complex data sets and as a more accurate and informative alternative to data modeling on smaller data sets. This commitment has led to irrelevant theory, questionable conclusions, and has kept statisticians from working on a large range of interesting current problems. In 2019, Javier Del Ser et al. published \"Bio-inspired computation: Where we stand and what's next\" in Swarm and Evolutionary Computation. The available metadata does not include an abstract with contribution, dataset, or result details. In 2018, José Azar et al. published \"Anticompetitive Effects of Common Ownership\" in The Journal of Finance. In the U.S. airline industry, taking common ownership into account implies increases in market concentration that are 10 times larger than what is “presumed likely to enhance market power” by antitrust authorities. In 2013, Martin Gaynor et al. published \"Death by Market Power: Reform, Competition, and Patient Outcomes in the National Health Service\" in American Economic Journal Economic Policy. The English government introduced a policy in 2006 to promote competition between hospitals. Most empirical estimates rely on inference from nonexperimental data.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

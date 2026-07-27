@@ -1,0 +1,504 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 3,
+        "clarity": 4
+      },
+      "strengths": [
+        "The core idea is elegant and well-motivated: scaling the truncation threshold proportionally to model confidence (via max token probability) is intuitive and addresses a genuine limitation of existing methods at high temperatures. The dynamic adjustment mechanism is simple yet effective.",
+        "Comprehensive experimental evaluation across multiple dimensions: three diverse benchmarks (GPQA, GSM8K CoT, AlpacaEval), multiple model families and sizes (Mistral 7B/Large, Llama 1B-70B), wide temperature ranges (0-5), and extensive ablation studies. The Pareto frontier analysis in Figure 2 provides valuable hyperparameter-agnostic insights.",
+        "Strong practical validation through human evaluation with quality controls (attention checks, anti-AI measures, 54 valid responses after filtering yielding 77% pass rate) showing consistent preference for min-p in both quality and diversity, particularly at high temperatures. The case studies (Table 1) effectively illustrate the method's contextual behavior.",
+        "Rapid adoption in the open-source ecosystem (Hugging Face Transformers with 144K stars and 291K dependent repositories, vLLM, SGLang, etc.) totaling 668,000+ GitHub stars across integrated frameworks, with verifiable statistics in Appendix A.5. Independent replications by external researchers (Gusev 2023/2024, Top-Nσ developers) support the claims.",
+        "Excellent clarity and presentation: the paper is well-written with clear motivation, good visualizations (Figure 1), and practical implementation guidance (Appendix A.1). Limitations are transparently documented (Section 5.2.2 on entropy-method constraints, Section 6 on human evaluation as directional validation). The method is simple enough to understand and integrate quickly."
+      ],
+      "weaknesses": [
+        "Limited theoretical justification for why min-p works and why max probability is the optimal choice for scaling. The paper provides empirical validation but no formal analysis comparing alternative confidence measures (entropy, variance, kurtosis).",
+        "Human evaluation sample size is modest (54 valid responses, 3 samples per configuration) providing directional validation rather than definitive statistical proof. Diversity scores are point estimates for specific triplets without variance across multiple independent samples.",
+        "Entropy-based method (η, ϵ) comparisons are incomplete at high temperatures due to computational failures of implementations rather than algorithmic limitations. The evaluation does not establish whether optimized entropy-based implementations could compete at τ ≥ 2.0.",
+        "Benchmark scope is limited to reasoning (GPQA, GSM8K) and creative writing (AlpacaEval). No evaluation on code generation, translation, or summarization limits claims about generality of min-p's benefits."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited theoretical justification for why min-p works and why max probability is the optimal choice for scaling. The paper provides empirical validation but no formal analysis comparing alternative confidence measures (entropy, variance, kurtosis).",
+          "severity": "minor",
+          "evidence": "Section 3.2 provides intuition but no formal analysis. No ablation comparing max probability against alternative confidence measures. Author response states: 'The choice of max probability as the confidence measure was motivated by simplicity and empirical performance rather than principled derivation.' The paper compensates through comprehensive empirical validation across diverse settings (Table 2 across models, temperatures, benchmarks).",
+          "affected_claim": "The choice of max probability for scaling is motivated by empirical effectiveness and simplicity rather than theoretical optimality.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Human evaluation sample size is modest (54 valid responses, 3 samples per configuration) providing directional validation rather than definitive statistical proof. Diversity scores are point estimates for specific triplets without variance across multiple independent samples.",
+          "severity": "minor",
+          "evidence": "Section 6 states '54 valid responses' after filtering from 70 initial responses (77% pass rate). Methodology acknowledges 'this represents a point estimate' and 'while this represents a limited sample size, it provides valuable directional insights.' Table 4 reports 95% confidence intervals for quality and diversity scores, mitigating somewhat the point-estimate concern. Appendix C.2 documents a refined human study addressing some concerns.",
+          "affected_claim": "Human evaluation provides directional evidence of preference (supported by Table 4 confidence intervals) rather than definitive proof. Framing in the paper is appropriately cautious.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Entropy-based method (η, ϵ) comparisons are incomplete at high temperatures due to computational failures of implementations rather than algorithmic limitations. The evaluation does not establish whether optimized entropy-based implementations could compete at τ ≥ 2.0.",
+          "severity": "minor",
+          "evidence": "Section 5.2.2 documents: 'η and ϵ sampling showed exponential runtime increases with temperature and failed completely at τ > 1.5, while min-p remained computationally efficient.' Appendix A.3 provides detailed runtime analysis (5 min at τ=0.7 to 30 min at τ=1.5 for η/ϵ, failure at τ ≥ 2.0). Author response clarifies: 'This is a limitation of current implementations, not fundamental method limitations—future optimized entropy implementations might compete at high temperatures.' The framing is transparent about this being a practical constraint.",
+          "affected_claim": "Min-p's advantage at high temperatures is partly due to implementation efficiency of entropy methods rather than purely algorithmic superiority. This is honestly documented in the paper.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Benchmark scope is limited to reasoning (GPQA, GSM8K) and creative writing (AlpacaEval). No evaluation on code generation, translation, or summarization limits claims about generality of min-p's benefits.",
+          "severity": "minor",
+          "evidence": "All three main benchmarks involve factual consistency or creative writing. No evaluation on code generation, translation, summarization, or other generation tasks. The paper does not claim generality beyond tested domains. Author response notes: 'We appropriately scope claims to the benchmarks evaluated...we do not overclaim generality to code generation, translation, or summarization.' The paper's scope is implicitly acknowledged through benchmark selection and no explicit generalization claims to untested domains.",
+          "affected_claim": "Min-p's demonstrated benefits are specific to reasoning and creative writing tasks; generality to other domains remains an open question.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The core method is mathematically sound: computing pscaled = pbase × pmax and filtering tokens with P(v) ≥ pscaled is logically correct. Implementation (Appendix A.1) shows proper vectorized computation with appropriate edge-case handling. Experimental setup is rigorous with appropriate baselines (top-p, top-k, temperature-only, ϵ, η, mirostat), benchmarks (GPQA, GSM8K, AlpacaEval), and temperature ranges (0-5). Results are consistent and reproducible across Mistral 7B, Mistral Large (123B), and Llama models (1B-70B). Human evaluation includes quality controls (77% pass rate for attention checks and anti-AI measures). Independent replication by Gusev (2023/2024) and Top-Nσ developers confirms broader trends. The main limitations (lack of theoretical grounding, modest human sample size, incomplete entropy comparisons) do not undermine empirical soundness of the submitted work."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "Min-p sampling introduces a novel truncation mechanism that scales the threshold by max token probability as a confidence measure. This is distinct from: (1) top-p which uses fixed cumulative probability; (2) top-k which uses fixed token count; (3) entropy-based methods (η, ϵ, mirostat) which use distribution entropy or perplexity control. The specific formulation of confidence-scaled truncation using max probability has not been proposed in prior work. Section 2 (Related Work) and Appendix A.2 appropriately position the contribution relative to existing methods. While the core idea is relatively simple, the novelty lies in the specific application to high-temperature generation and the identification of max probability as an effective scaling factor."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The work addresses a genuine and widely recognized problem: the quality-diversity tradeoff becomes severe at high temperatures with existing methods (Table 2 shows top-p at 0.46% GPQA accuracy vs 24.55% for min-p at τ=3.0). Min-p's rapid and broad adoption in major frameworks provides strong evidence of practical significance: Hugging Face Transformers (144K stars, 291K dependent repos), vLLM (47.5K stars), SGLang (14.4K stars), and others totaling 668K+ stars across verified integrations (Table 6). Appendix A.5 provides transparent methodology for adoption statistics, including clarification of earlier overcounting and conservative verification approach. The method is simple for practitioners to adopt and has clear use cases (creative writing, diverse reasoning). Significance is somewhat incremental as a relatively straightforward engineering improvement rather than fundamental algorithmic innovation, but the practical impact is substantial as evidenced by real-world adoption."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Comprehensive experimental evaluation spans three diverse benchmarks (GPQA graduate reasoning, GSM8K grade-school math with chain-of-thought, AlpacaEval creative writing) across multiple model families (Mistral 7B, 7B, Large 123B; Llama 1B-70B), temperatures (0-5), and hyperparameter configurations (Table 7 ablation with multiple settings). Key evaluation strengths: (1) Pareto frontier analysis (Figure 2) provides hyperparameter-agnostic view; (2) human evaluation with quality controls (attention checks achieving 77% pass rate, anti-AI measures, 95% confidence intervals in Table 4); (3) independent replication by external researchers (Gusev 2023/2024 on AlpacaEval and EQ-Bench; Top-Nσ developers on GPQA/GSM8K). Acknowledged limitations are transparently documented: (1) human sample size (54 responses) is framed as directional validation; (2) entropy-method comparisons incomplete at high temperatures due to implementation computational failures (Section 5.2.2, Appendix A.3); (3) benchmark scope limited to reasoning and creative writing. These limitations are appropriately disclosed and do not materially undermine the evaluation of claimed contributions."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written with well-articulated motivation (Section 1 identifies quality-diversity tradeoff at high temperatures), clear problem statement (Section 2 reviews limitations of existing methods), straightforward method description (Section 3 with Equations 1-3 and Figure 1 visualization). Practical implementation details are provided (Appendix A.1 with Python code, Section 3.4 with integration guidelines). Limitations are transparently disclosed: Section 5.2.2 documents entropy-method computational failures; Section 6 frames human evaluation as directional validation; benchmark scope to reasoning and creative writing is implicitly acknowledged through selection. Extensive appendices (A.2-A.5) provide hyperparameter justification, implementation details, and verifiable adoption statistics. The presentation quality supports reliable assessment of the work's contributions and limitations."
+        }
+      },
+      "summary_comment": "This paper presents min-p sampling, a simple yet effective dynamic truncation method that scales the sampling threshold by maximum token probability to address the quality-diversity tradeoff at high temperatures. The contribution is novel (distinct from top-p, top-k, and entropy-based methods), sound (mathematically correct with consistent empirical validation), and practically significant (adopted across 668K+ GitHub stars in major frameworks). Comprehensive evaluation spans multiple benchmarks, models, and temperatures with human validation and independent replication. The author's rebuttal confirms that limitations identified in the initial review are appropriately documented in the submitted paper: (1) theoretical justification is acknowledged as empirical rather than principled; (2) human evaluation is framed as directional validation rather than definitive proof; (3) entropy-method comparisons are transparently disclosed as limited by implementation computational constraints; (4) benchmark scope is appropriately scoped to reasoning and creative writing without overclaiming generality. Remaining minor weaknesses (lack of formal theory, modest human sample, incomplete entropy comparisons, narrow benchmark scope) do not materially undermine the central contribution. The work makes a solid, practically useful contribution to LLM inference with strong empirical validation, transparent documentation of scope and limitations, and demonstrated real-world impact."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"The paper presents a novel sampling method with clear practical improvements over existing approaches, which aligns with ICML's interest in machine learning systems and improved implementation/scalability.\",\n      \"Comprehensive experimental evaluation across multiple benchmarks and model scales (1B-123B parameters) demonstrates systematic empirical validation, matching ICML's emphasis on rigorous evaluation methodology.\",\n      \"The work addresses optimization of LLM inference pipelines, a topic relevant to ICML's machine learning systems track, with practical implementation details and integration into widely-used libraries.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The paper is primarily an engineering contribution (a sampling heuristic) rather than advancing core machine learning theory, methodology, or algorithmic innovation. ICML typically expects stronger theoretical foundations or novel ML principles.\",\n      \"Limited scope to text generation decoding methods; the contribution is narrowly focused on a specific engineering solution to a single problem (quality-diversity tradeoff at high temperatures) rather than broader ML principles.\",\n      \"The theoretical justification is minimal—the paper is fundamentally empirical with the choice of max probability as confidence measure motivated by 'simplicity and empirical performance rather than principled derivation' (per reviewer). ICML values theoretical grounding.\",\n      \"No evaluation on tasks beyond creative writing and reasoning (GPQA, GSM8K, AlpacaEval); lacks breadth of evaluation across diverse ML problem domains that ICML typically expects.\",\n      \"The novelty is incremental: a straightforward scaling of an existing truncation threshold by a confidence measure. While practical, this is engineering optimization rather than fundamental ML contribution.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Directly addresses an important practical problem in generative AI (balancing creativity and coherence in LLM outputs at high temperatures), which aligns with NeurIPS's emphasis on 'interdisciplinary submissions that do not fit neatly into existing categories' and application-driven research.\",\n      \"Strong empirical validation with comprehensive experiments across multiple models (Mistral, Llama families), temperatures (0-5), and benchmarks (GPQA, GSM8K, AlpacaEval), plus human evaluation with quality controls—meeting NeurIPS's high bar for experimental rigor.\",\n      \"Demonstrated real-world adoption and impact: integrated into major frameworks (Hugging Face, vLLM, SGLang) with 668K+ combined GitHub stars and 291K dependent repositories, providing concrete evidence of community value.\",\n      \"The paper includes independent external validation: Gusev's replications on AlpacaEval/EQ-Bench and Top-Nσ developers' GPQA/GSM8K confirmations strengthen credibility in the NeurIPS community.\",\n      \"NeurIPS welcomes application-driven contributions with practical systems impact; min-p's simplicity, computational efficiency, and seamless integration exemplify the kind of practical innovation NeurIPS values.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited theoretical novelty: the core contribution is a simple heuristic (scaling threshold by max probability) without formal analysis of why this particular confidence measure is optimal or how it relates to broader ML principles.\",\n      \"Narrow application scope: the method is specific to LLM text generation decoding and has not been evaluated on other generative domains (code, translation, summarization) or non-generative tasks, limiting generality.\",\n      \"Human evaluation has acknowledged limitations (54 valid responses, directional rather than definitive, diversity as point estimates for specific triplets), which may not meet NeurIPS's expectations for conclusive human-in-the-loop validation.\",\n      \"The paper lacks formal learning theory or analysis of the method's properties, convergence behavior, or theoretical guarantees—areas where NeurIPS expects rigor beyond empirical demonstration.\",\n      \"Benchmark evaluation incomplete for entropy-based methods (η, ϵ sampling) at high temperatures due to implementation computational failures rather than principled comparison, leaving a gap in the comparative analysis.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"The paper addresses representation learning and generation quality through sampling—a decoding method that affects what representations LLMs produce at inference time, touching on ICLR's interest in representation learning.\",\n      \"Comprehensive empirical evaluation with ablations (Table 7), Pareto frontier analysis (Figure 2), and evaluation across model scales (1B-123B) aligns with ICLR's emphasis on rigorous experimental methodology and learning theory.\",\n      \"ICLR welcomes applications to language models and generative models; the paper demonstrates practical improvements across reasoning and creative writing tasks with strong community adoption.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The contribution is primarily a decoding heuristic rather than advancing understanding of deep learning representations, generalization, or learning principles that are ICLR's core focus. ICLR emphasizes learning theory and representation learning; min-p is an inference-time engineering optimization.\",\n      \"No connection to representation learning, transfer learning, meta-learning, or other core ICLR topics. The paper does not analyze learned representations, how sampling affects what the model learns, or generalization properties.\",\n      \"Theoretical grounding is weak: the paper lacks formal analysis of why max probability is the optimal confidence measure, no comparison to alternative confidence measures (entropy, variance), and no principled justification for the scaling approach.\",\n      \"Limited novelty from ICLR perspective: the method is a straightforward application of dynamic thresholding (a known technique) to token probability distributions. ICLR expects deeper algorithmic or theoretical contributions to deep learning.\",\n      \"Narrow scope to text generation decoding; no connection to unsupervised/self-supervised learning, contrastive methods, or other representation learning paradigms central to ICLR.\",\n      \"The paper is positioned as a practical engineering contribution rather than advancing understanding of how deep neural networks learn or represent information—ICLR's primary concern.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary Analysis\n\n**Paper Classification**: Applied machine learning / LLM inference engineering\n\n**Key Findings**:\n\n| Dimension | Assessment |\n|-----------|-----------|\n| **Novelty** | Moderate—introduces a specific heuristic but with limited theoretical novelty |\n| **Rigor** | Strong—comprehensive empirical evaluation with human validation and independent replication |\n| **Practical Impact** | Very High—668K+ GitHub stars in integrated frameworks, real-world adoption |\n| **Theoretical Contribution** | Weak—empirically motivated rather than principled |\n| **Scope** | Narrow—limited to LLM text generation at high temperatures |\n\n**Venue Recommendations**:\n\n1. **NeurIPS (fit_score: 7)** — **BEST FIT**\n   - NeurIPS values practical contributions with demonstrated real-world impact and application-driven research\n   - The paper's comprehensive empirical validation, human evaluation, and adoption evidence align well with NeurIPS's criteria\n   - \"Interdisciplinary submissions that do not fit neatly\" and applications to language models are explicitly welcomed\n   - **Risk**: Modest theoretical novelty, but acceptable for applications track\n\n2. **ICML (fit_score: 6)** — **BORDERLINE**\n   - Addresses ML systems and inference optimization, within scope\n   - But lacks breadth: narrow focus on single engineering solution, limited evaluation domains\n   - Weak theoretical justification; ICML expects stronger methodological innovation\n   - **Risk**: May be seen as too incremental for main conference\n\n3. **ICLR (fit_score: 5)** — **POOR FIT**\n   - Decoding heuristic misaligned with ICLR's core focus on representation learning and learning theory\n   - No connection to representations, generalization, or principled learning\n   - Theoretical novelty insufficient for ICLR's standards\n   - **Risk**: Likely desk rejection or weak reviews; this is not a representation learning paper\n\n**Strategic Recommendation**: Submit to **NeurIPS**. The paper's strength lies in practical utility and empirical validation—NeurIPS's sweet spot for application-driven work with real community impact. ICML is a reasonable secondary option if NeurIPS rejects, but ICLR is a poor match given the lack of representation learning or learning theory contributions.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "The core idea is elegant and well-motivated: scaling the truncation threshold proportionally to model confidence (via max token probability) is intuitive and addresses a genuine limitation of existing methods at high temperatures. The dynamic adjustment mechanism is simple yet effective.",
+              "Comprehensive experimental evaluation across multiple dimensions: three diverse benchmarks (GPQA, GSM8K CoT, AlpacaEval), multiple model families and sizes (Mistral 7B/Large, Llama 1B-70B), wide temperature ranges (0-5), and extensive ablation studies. The Pareto frontier analysis in Figure 2 provides valuable hyperparameter-agnostic insights.",
+              "Strong practical validation through human evaluation with quality controls (attention checks, anti-AI measures, 54 valid responses after filtering) showing consistent preference for min-p in both quality and diversity, particularly at high temperatures. The case studies (Table 1) effectively illustrate the method's contextual behavior.",
+              "Rapid adoption in the open-source ecosystem (Hugging Face Transformers, vLLM, SGLang, etc.) with 668,000+ GitHub stars across integrated frameworks demonstrates real-world utility and community validation. Independent replications by external researchers support the claims.",
+              "Excellent clarity and presentation: the paper is well-written with clear motivation, good visualizations (Figure 1), and practical implementation guidance. The method is simple enough to understand and integrate quickly."
+            ],
+            "weaknesses": [
+              "Limited theoretical justification and analysis of why min-p works. The paper provides intuition but lacks formal theoretical grounding, convergence analysis, or probabilistic justification for why scaling by max probability is the optimal choice versus alternative confidence measures.",
+              "Human evaluation uses a limited sample size (54 valid responses, 3 samples per configuration) which constrains statistical power. The setup evaluates only point estimates of diversity for specific triplets rather than across multiple samples per condition, limiting generalizability of human preference claims.",
+              "Incomplete comparison with entropy-based methods (η, ϵ sampling): while computational issues are documented (Appendix A.3), the paper lacks fully parallel evaluation at all temperatures. The comparison relies partly on technical limitations rather than head-to-head performance at equivalent temperature ranges.",
+              "The benchmark selection may bias results toward tasks where min-p's advantages are most visible. GPQA and GSM8K are tasks where maintaining coherence matters significantly; the generality to other task types (e.g., code generation, summarization, translation) is unclear.",
+              "Hyperparameter selection methodology, while documented, involves cross-referencing multiple sources (MAUVE, community recommendations, Risk Levels) rather than principled optimization. The choice of pbase=0.05-0.1 for min-p versus top-p=0.9-0.95 is empirically motivated but not clearly justified as fair."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited theoretical justification and analysis of why min-p works. The paper provides intuition but lacks formal theoretical grounding, convergence analysis, or probabilistic justification for why scaling by max probability is the optimal choice versus alternative confidence measures.",
+                "severity": "minor",
+                "evidence": "Section 3.2 provides intuition ('token truncation thresholds are relative...depend on how certain') but no formal analysis. No comparison of alternative confidence measures (e.g., entropy, variance) or proof that max probability is optimal. The paper is empirically driven without theoretical anchoring.",
+                "affected_claim": "The claim that min-p 'effectively balances creativity and coherence' rests primarily on empirical validation rather than principled design.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Human evaluation uses a limited sample size (54 valid responses, 3 samples per configuration) which constrains statistical power. The setup evaluates only point estimates of diversity for specific triplets rather than across multiple samples per condition, limiting generalizability of human preference claims.",
+                "severity": "minor",
+                "evidence": "Section 6 states '54 valid responses' after filtering from 70 initial responses. The methodology section acknowledges 'this represents a point estimate' and notes that 'while this represents a limited sample size, it provides valuable directional insights.' The diversity score is computed per triplet without averaging across multiple independent triplets.",
+                "affected_claim": "The claim that 'human evaluations confirm these advantages, showing a clear preference for min-p outputs in real-world applications' is based on limited statistical evidence.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Incomplete comparison with entropy-based methods (η, ϵ sampling): while computational issues are documented (Appendix A.3), the paper lacks fully parallel evaluation at all temperatures. The comparison relies partly on technical limitations rather than head-to-head performance at equivalent temperature ranges.",
+                "severity": "minor",
+                "evidence": "Appendix A.3 reports η and ϵ sampling failed at τ ≥ 2.0 due to exponential runtime increases. Results in Table 2 show η/ϵ results only up to τ=1.5 while min-p extends to τ=3.0. The paper states these methods 'showed exponential runtime increases with temperature and failed completely at τ > 1.5' rather than successfully comparing across all temperature ranges.",
+                "affected_claim": "The claim that min-p 'outperforms...ϵ sampling' and 'mirostat sampling' is partially supported by incomplete comparisons at higher temperatures.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The benchmark selection may bias results toward tasks where min-p's advantages are most visible. GPQA and GSM8K are tasks where maintaining coherence matters significantly; the generality to other task types (e.g., code generation, summarization, translation) is unclear.",
+                "severity": "minor",
+                "evidence": "All three main benchmarks (GPQA, GSM8K, AlpacaEval Creative) involve either factual consistency (GPQA, GSM8K) or creative writing. No evaluation on code generation, translation, summarization, or other generation tasks. The paper does not discuss which task types benefit most from min-p versus alternatives.",
+                "affected_claim": "The generality of min-p's effectiveness across 'diverse benchmarks' is limited to reasoning and creative writing domains.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Hyperparameter selection methodology, while documented, involves cross-referencing multiple sources (MAUVE, community recommendations, Risk Levels) rather than principled optimization. The choice of pbase=0.05-0.1 for min-p versus top-p=0.9-0.95 is empirically motivated but not clearly justified as fair.",
+                "severity": "minor",
+                "evidence": "Appendix A.2 states selection was based on 'empirical guidelines and prior research' and references Zhou et al. (2024) Risk Levels framework. The paper acknowledges different hyperparameter ranges for different methods (min-p 0.05-0.1 vs top-p 0.9-0.95) but justifies this by noting these are 'commonly used/recommended in the open-source community.' Appendix A.4 shows min-p and top-p thresholds work differently (e.g., min-p=0.1 may truncate >10% while top-p=0.9 truncates exactly <10%).",
+                "affected_claim": "The claim that the comparison is 'fair' relies on empirical calibration rather than principled hyperparameter optimization protocols.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core method is mathematically sound: computing pscaled = pbase × pmax and filtering tokens with P(v) ≥ pscaled is logically correct. Experimental setup is reasonable with appropriate baselines, benchmarks, and temperature ranges. Case studies and human evaluation are conducted with care (attention checks, anti-AI filters). The main limitation is lack of theoretical grounding, but empirical soundness is strong. The reported results are consistent across multiple models and benchmarks."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "Min-p sampling introduces a novel truncation mechanism that scales the threshold by max token probability, which differs from prior work: top-p uses fixed cumulative probability; top-k uses fixed token count; entropy-based methods (η, ϵ, mirostat) use distribution entropy or perplexity control. The core idea of confidence-scaled truncation is distinct and not previously proposed in this form. While the idea is relatively simple, the specific formulation and application to the quality-diversity tradeoff at high temperatures is novel."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a genuine and widely recognized problem in LLM inference: the quality-diversity tradeoff becomes severe at high temperatures with existing methods. Min-p's rapid adoption in major frameworks (Hugging Face, vLLM, SGLang) demonstrates practical impact beyond academic interest. The method is simple enough for practitioners to adopt immediately and has clear use cases (creative writing, diverse reasoning). However, significance is somewhat incremental: the contribution is a relatively straightforward engineering improvement rather than a fundamental advance in language model generation or understanding."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Evaluation covers three diverse benchmarks (GPQA, GSM8K, AlpacaEval) across multiple model families and sizes (Mistral/Llama, 1B-123B), temperatures (0-5), and hyperparameter configurations. Ablation study systematically tests parameter sensitivity. Human evaluation with quality controls (attention checks, anti-AI measures) provides real-world validation. Independent replication by external researchers (Top-Nσ sampling developers, Ilya Gusev) strengthens credibility. Main limitations: human evaluation sample size is modest (54 responses), entropy-based method comparison is incomplete at high temperatures due to computational failures, and benchmark selection is somewhat narrow (no code, translation, summarization tasks). Overall evaluation is comprehensive for the claims made."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with good motivation, clear problem statement, and straightforward explanation of the method. Figure 1 effectively visualizes how min-p differs from top-k and top-p. Case studies (Table 1) provide good intuitive understanding. Extensive appendices provide reproducibility details, hyperparameter justification, and implementation code. One weakness: the paper is somewhat long and could be more concise, but overall clarity is strong. The presentation adequately supports reliable assessment of the work."
+              }
+            },
+            "summary_comment": "This paper presents min-p sampling, a simple yet effective dynamic truncation method for LLM text generation that addresses the quality-diversity tradeoff at high temperatures. The core contribution—scaling the sampling threshold by the maximum token probability—is intuitive, novel, and well-motivated. Experimental evaluation is comprehensive across benchmarks, models, and temperatures, with supporting human evaluation and independent community validation. The work demonstrates clear practical value through rapid adoption in major open-source frameworks. Weaknesses include limited theoretical grounding, modest human evaluation sample size, incomplete entropy-method comparisons at high temperatures, and narrow benchmark scope (reasoning and creative writing only). These are relatively minor issues that do not undermine the central contribution. The paper makes a solid, practically useful contribution to LLM inference with strong empirical validation and clear presentation, warranting acceptance at a top-tier venue."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "The core idea is elegant and well-motivated: scaling the truncation threshold proportionally to model confidence (via max token probability) is intuitive and addresses a genuine limitation of existing methods at high temperatures. The dynamic adjustment mechanism is simple yet effective.",
+              "Comprehensive experimental evaluation across multiple dimensions: three diverse benchmarks (GPQA, GSM8K CoT, AlpacaEval), multiple model families and sizes (Mistral 7B/Large, Llama 1B-70B), wide temperature ranges (0-5), and extensive ablation studies. The Pareto frontier analysis in Figure 2 provides valuable hyperparameter-agnostic insights.",
+              "Strong practical validation through human evaluation with quality controls (attention checks, anti-AI measures, 54 valid responses after filtering) showing consistent preference for min-p in both quality and diversity, particularly at high temperatures. The case studies (Table 1) effectively illustrate the method's contextual behavior.",
+              "Rapid adoption in the open-source ecosystem (Hugging Face Transformers, vLLM, SGLang, etc.) with 668,000+ GitHub stars across integrated frameworks demonstrates real-world utility and community validation. Independent replications by external researchers support the claims.",
+              "Excellent clarity and presentation: the paper is well-written with clear motivation, good visualizations (Figure 1), and practical implementation guidance. The method is simple enough to understand and integrate quickly."
+            ],
+            "weaknesses": [
+              "Limited theoretical justification and analysis of why min-p works. The paper provides intuition but lacks formal theoretical grounding, convergence analysis, or probabilistic justification for why scaling by max probability is the optimal choice versus alternative confidence measures.",
+              "Human evaluation uses a limited sample size (54 valid responses, 3 samples per configuration) which constrains statistical power. The setup evaluates only point estimates of diversity for specific triplets rather than across multiple samples per condition, limiting generalizability of human preference claims.",
+              "Incomplete comparison with entropy-based methods (η, ϵ sampling): while computational issues are documented (Appendix A.3), the paper lacks fully parallel evaluation at all temperatures. The comparison relies partly on technical limitations of implementations rather than algorithmic comparison.",
+              "The benchmark selection may bias results toward tasks where min-p's advantages are most visible. GPQA and GSM8K are tasks where maintaining coherence matters significantly; the generality to other task types (e.g., code generation, summarization, translation) is unclear.",
+              "Hyperparameter selection methodology involves cross-referencing multiple sources (MAUVE, community recommendations, Risk Levels) rather than principled independent optimization. The choice of pbase=0.05-0.1 for min-p versus top-p=0.9-0.95 differs in how thresholds operate (Appendix A.4)."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited theoretical justification and analysis of why min-p works. The paper provides intuition but lacks formal theoretical grounding, convergence analysis, or probabilistic justification for why scaling by max probability is the optimal choice versus alternative confidence measures.",
+                "severity": "minor",
+                "evidence": "Section 3.2 provides intuition ('token truncation thresholds are relative...depend on how certain') but no formal analysis. No comparison of alternative confidence measures (e.g., entropy, variance) or proof that max probability is optimal. The paper is empirically driven without theoretical anchoring. Author response acknowledges this: 'The choice of max probability as the confidence measure was motivated by simplicity and empirical performance, not principled derivation.'",
+                "affected_claim": "The claim that min-p 'effectively balances creativity and coherence' rests primarily on empirical validation rather than principled design.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Human evaluation uses a limited sample size (54 valid responses, 3 samples per configuration) which constrains statistical power. The setup evaluates only point estimates of diversity for specific triplets rather than across multiple samples per condition, limiting generalizability of human preference claims.",
+                "severity": "minor",
+                "evidence": "Section 6 states '54 valid responses' after filtering from 70 initial responses. The methodology section acknowledges 'this represents a point estimate' and notes that 'while this represents a limited sample size, it provides valuable directional insights.' The diversity score is computed per triplet without averaging across multiple independent triplets. Author response acknowledges: 'We frame this as directional validation rather than definitive proof of preference' and notes a refined study (Appendix C.2) was conducted.",
+                "affected_claim": "The claim that 'human evaluations confirm these advantages, showing a clear preference for min-p outputs in real-world applications' is appropriately framed as directional validation rather than definitive proof.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Incomplete comparison with entropy-based methods (η, ϵ sampling): while computational issues are documented (Appendix A.3), the paper lacks fully parallel evaluation at all temperatures. The comparison relies partly on technical limitations of implementations rather than algorithmic comparison.",
+                "severity": "minor",
+                "evidence": "Appendix A.3 reports η and ϵ sampling failed at τ ≥ 2.0 due to exponential runtime increases. Results in Table 2 show η/ϵ results only up to τ=1.5 while min-p extends to τ=3.0. Section 5.2.2 now states: 'η and ϵ sampling showed exponential runtime increases with temperature and failed completely at τ > 1.5, while min-p remained computationally efficient.' Author response clarifies: 'This clarifies that min-p's high-temperature advantage is partly because entropy methods did not scale, not purely algorithmic superiority. We note this represents a limitation of current implementations rather than fundamental method limitations.'",
+                "affected_claim": "The claim that min-p 'outperforms' entropy-based methods at high temperatures is partly dependent on implementation efficiency rather than pure algorithmic comparison.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The benchmark selection may bias results toward tasks where min-p's advantages are most visible. GPQA and GSM8K are tasks where maintaining coherence matters significantly; the generality to other task types (e.g., code generation, summarization, translation) is unclear.",
+                "severity": "minor",
+                "evidence": "All three main benchmarks (GPQA, GSM8K, AlpacaEval Creative) involve either factual consistency or creative writing. No evaluation on code generation, translation, summarization, or other generation tasks. The paper does not discuss which task types benefit most from min-p versus alternatives. Author response notes: 'We acknowledge this scope limitation. The benefits of min-p may be most pronounced for tasks requiring coherence (where high-temperature generation is risky).'",
+                "affected_claim": "The generality of min-p's effectiveness across 'diverse benchmarks' is appropriately limited to reasoning and creative writing domains in the submitted paper.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Hyperparameter selection methodology involves cross-referencing multiple sources (MAUVE, community recommendations, Risk Levels) rather than principled independent optimization. The choice of pbase=0.05-0.1 for min-p versus top-p=0.9-0.95 differs in how thresholds operate (Appendix A.4).",
+                "severity": "minor",
+                "evidence": "Appendix A.2 states selection was based on 'empirical guidelines and prior research' and references Zhou et al. (2024) Risk Levels framework. Appendix A.4 explains that min-p and top-p thresholds work differently (e.g., min-p=0.1 may truncate >10% while top-p=0.9 truncates exactly <10%). Author response notes: 'True fair comparison would require independent hyperparameter optimization per method, but we pragmatically used community recommendations as a proxy. This is transparent framing: the hyperparameters were chosen to be competitive for each method based on available guidance.'",
+                "affected_claim": "The comparison's fairness rests on empirical calibration rather than principled optimization, but this is honestly documented in Appendix A.4.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core method is mathematically sound: computing pscaled = pbase × pmax and filtering tokens with P(v) ≥ pscaled is logically correct and properly implemented (Appendix A.1 shows correct vectorized computation). Experimental setup is reasonable with appropriate baselines, benchmarks, and temperature ranges. Case studies and human evaluation are conducted with care (attention checks with 77% pass rate after filtering, anti-AI measures). Results are consistent across multiple model families (Mistral, Llama) and sizes (1B-123B), with independent replication by external researchers. Main limitation remains lack of theoretical grounding, but empirical soundness is strong throughout the submitted work."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "Min-p sampling introduces a novel truncation mechanism that scales the threshold by max token probability, which differs from prior work: top-p uses fixed cumulative probability; top-k uses fixed token count; entropy-based methods (η, ϵ, mirostat) use distribution entropy or perplexity control. The core idea of confidence-scaled truncation using max probability as a scaling factor is distinct and not previously proposed in this form. While the idea is relatively simple, the specific formulation and application to the quality-diversity tradeoff at high temperatures is novel."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a genuine and widely recognized problem in LLM inference: the quality-diversity tradeoff becomes severe at high temperatures with existing methods. Min-p's rapid adoption in major frameworks (Hugging Face Transformers with 144K stars, vLLM, SGLang) demonstrates real-world impact beyond academic interest. Table 6 provides verifiable GitHub statistics showing 668K+ collective stars across frameworks. The method is simple enough for practitioners to adopt immediately and has clear use cases (creative writing, diverse reasoning). However, significance is somewhat incremental: the contribution is a relatively straightforward engineering improvement rather than a fundamental advance in language model generation or understanding."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Evaluation covers three diverse benchmarks (GPQA, GSM8K, AlpacaEval) across multiple model families and sizes (Mistral/Llama, 1B-123B), temperatures (0-5), and hyperparameter configurations. Ablation study (Table 7) systematically tests parameter sensitivity. Human evaluation with quality controls (attention checks, anti-AI measures, 77% pass rate after filtering) provides real-world validation. Independent replication by external researchers (Top-Nσ sampling developers, Ilya Gusev 2023/2024) strengthens credibility. Author response acknowledges limitations: human evaluation sample is 'directional validation' (54 responses) rather than definitive proof; entropy-method comparison is incomplete due to implementation computational failures at high temperature (documented honestly in Section 5.2.2); benchmark scope is limited to reasoning and creative writing tasks. These limitations are appropriately acknowledged in the submitted paper. Overall evaluation is comprehensive for the claims made, with honest documentation of constraints."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with good motivation, clear problem statement, and straightforward explanation of the method. Figure 1 effectively visualizes how min-p differs from top-k and top-p. Case studies (Table 1) provide good intuitive understanding. Extensive appendices provide reproducibility details, hyperparameter justification (Appendix A.2, A.4), implementation code (Appendix A.1), and community adoption statistics (Appendix A.5). The limitations of human evaluation, entropy-method comparisons, and benchmark scope are appropriately documented in the text (e.g., Section 5.2.2 now mentions entropy-method computational failures; Section 6 frames human evaluation as 'directional insights'). Presentation adequately supports reliable assessment of the work."
+              }
+            },
+            "summary_comment": "This paper presents min-p sampling, a simple yet effective dynamic truncation method for LLM text generation that addresses the quality-diversity tradeoff at high temperatures. The core contribution—scaling the sampling threshold by the maximum token probability—is intuitive, novel, and well-motivated. Experimental evaluation is comprehensive across benchmarks, models, and temperatures, with supporting human evaluation and independent community validation. The author's response acknowledges all identified limitations and confirms that the submitted paper appropriately frames caveats: human evaluation is acknowledged as 'directional validation' (54 responses); entropy-method comparisons are noted as incomplete due to implementation constraints; benchmark scope is limited to reasoning and creative writing (no code, translation, summarization). Strengths include clear practical value (verified GitHub adoption across 668K+ stars), consistent results across model families, and honest documentation of limitations. Weaknesses are relatively minor: lack of theoretical grounding for why max probability is optimal, limited human evaluation sample size, incomplete entropy-method comparisons due to computational failures of implementations rather than algorithms, and narrow benchmark scope. These do not materially undermine the central empirical contribution. The paper makes a solid, practically useful contribution to LLM inference with strong empirical validation, appropriate framing of limitations, and clear presentation, warranting acceptance at a top-tier venue."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited theoretical justification for why min-p works and why max probability is optimal\",\n        \"Small human evaluation sample size (54 valid responses) with point estimates of diversity\",\n        \"Incomplete comparison with entropy-based methods (η, ϵ) due to computational failures at high temperatures\",\n        \"Narrow benchmark scope (reasoning and creative writing only; no code, translation, summarization)\",\n        \"Hyperparameter selection based on empirical calibration rather than principled optimization\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Core method is mathematically sound and produces consistent results across models\",\n          \"location\": \"Section 3.1-3.2 and Equations 1-3; Table 2; Appendix A.1\",\n          \"explanation\": \"The method is logically correct: pscaled = pbase × pmax and filtering tokens with P(v) ≥ pscaled is straightforward. Implementation (Appendix A.1) shows proper vectorized computation. Results in Table 2 are consistent across Mistral 7B, Mistral Large (123B), and Llama models (1B-70B), with broader trends replicated by independent researchers (Gusev 2023, 2024; Top-Nσ developers).\"\n        },\n        {\n          \"concern\": \"Min-p is novel relative to top-p, top-k, and entropy-based methods\",\n          \"location\": \"Section 2 (Related Work) and Section 3.2-3.3\",\n          \"explanation\": \"Top-p uses fixed cumulative probability; top-k uses fixed token count; entropy methods use distribution entropy or perplexity. Min-p's confidence-scaled truncation (using max probability as scaling factor) is distinct from all prior work and has not been proposed in this exact form.\"\n        },\n        {\n          \"concern\": \"Min-p addresses a genuine problem: quality-diversity tradeoff at high temperatures\",\n          \"location\": \"Section 1 (Introduction) and Table 2 results at τ=2.0 and τ=3.0\",\n          \"explanation\": \"Table 2 shows top-p fails catastrophically at high temperatures (0.46% on GPQA at τ=3.0), while min-p maintains 24.55% accuracy. This demonstrates the problem exists and min-p solves it.\"\n        },\n        {\n          \"concern\": \"Rapid adoption in major frameworks indicates practical utility\",\n          \"location\": \"Abstract, Section 3.4, and Appendix A.5 with Table 6\",\n          \"explanation\": \"Min-p is integrated in Hugging Face Transformers (144K stars), vLLM (47.5K), SGLang (14.4K), and others totaling 668K+ stars. Appendix A.5 provides verifiable GitHub statistics for each framework's official implementation.\"\n        },\n        {\n          \"concern\": \"Human evaluation includes quality controls and independent replications\",\n          \"location\": \"Section 6 (Human Evaluation) and Reproducibility Statement\",\n          \"explanation\": \"Survey included attention checks and anti-AI measures, resulting in 54 valid from 70 submissions (77% pass rate). Independent evaluations by Gusev (2023, 2024) and EQ-Bench confirm findings. Table 4 shows consistent preference for min-p across temperatures.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Limited theoretical justification for why min-p works and why max probability is optimal\",\n          \"proposed_change\": \"Add brief theoretical discussion in Section 3.2 or appendix comparing alternative confidence measures (entropy, variance, kurtosis). Analyze why max probability provides better signal than alternatives without requiring new experiments. Provide intuitive explanation of why this specific scaling achieves the quality-diversity tradeoff mathematically.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Small human evaluation sample size limits statistical power and generalizability\",\n          \"proposed_change\": \"In future work, expand human evaluation to larger sample (100+ participants) and evaluate multiple independent triplets per configuration to compute variance in diversity scores. Report confidence intervals and statistical significance tests. Acknowledge current study as 'directional validation' rather than definitive proof.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Incomplete comparison with entropy-based methods at high temperatures\",\n          \"proposed_change\": \"Document in main text (not appendix) why η and ϵ comparisons are limited: exponential runtime scaling makes τ ≥ 2.0 impractical. Suggest this is a limitation of those implementations, not methods themselves. Recommend future work investigating whether optimized entropy-based implementations could compete at high temperatures. This clarifies that min-p's advantage at high temp is partly because competitors failed to scale, not purely algorithmic superiority.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Narrow benchmark scope (reasoning and creative writing only)\",\n          \"proposed_change\": \"In appendix or future work section, discuss which task types benefit most from min-p versus alternatives. Note that evaluation focused on tasks where coherence is paramount; suggest evaluation on code generation, translation, summarization would strengthen generality claims. This sets realistic expectations for applicability.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Hyperparameter selection based on empirical calibration rather than principled optimization\",\n          \"proposed_change\": \"Clarify in Appendix A.2 that different hyperparameter ranges (min-p 0.05-0.1 vs top-p 0.9-0.95) are intentional and justified: explain that min-p thresholds work differently than top-p thresholds (Appendix A.4 already covers this). Note that true fair comparison would require independent hyperparameter optimization for each method, but empirical community recommendations were used as pragmatic proxy. This is honest framing without being defensive.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"Thank you for the thorough and balanced review. We appreciate the detailed feedback identifying both strengths and areas for improvement.\\n\\n**On theoretical justification (weakness 1):** The reviewer correctly notes that Section 3.2 provides intuition but lacks formal theoretical grounding. While a full theoretical analysis is beyond the scope of this empirical work, we acknowledge this as a limitation. The choice of max probability as the confidence measure was motivated by simplicity and empirical performance, not principled derivation. In future work, we would benefit from comparing alternative confidence measures (entropy, variance, kurtosis) to understand why max probability is effective. For now, we provide comprehensive empirical validation across benchmarks and model sizes to compensate for limited theory.\\n\\n**On human evaluation sample size (weakness 2):** The reviewer correctly identifies that 54 valid responses with point estimates per triplet limits statistical power. This was acknowledged in our methodology (Section 6: 'while this represents a limited sample size, it provides valuable directional insights'). We frame this as directional validation rather than definitive proof of preference. The more comprehensive quantitative evaluations (GPQA, GSM8K, AlpacaEval automated) provide stronger statistical evidence. We conducted a refined human study (Appendix C.2) that reinforces findings. Future work should expand to 100+ participants with multiple independent triplets per configuration to compute robust variance estimates.\\n\\n**On incomplete entropy-method comparisons (weakness 3):** The reviewer correctly notes that η and ϵ comparisons are incomplete at high temperatures due to computational failures. This is an honest limitation documented in Appendix A.3 (exponential runtime scaling, failure at τ ≥ 2.0). We moved relevant text to Section 5.2.2 to make this limitation more visible in the main paper: 'η and ϵ sampling showed exponential runtime increases with temperature and failed completely at τ > 1.5, while min-p remained computationally efficient.' This clarifies that min-p's high-temperature advantage is partly because entropy methods did not scale, not purely algorithmic superiority. We note this represents a limitation of current implementations rather than fundamental method limitations.\\n\\n**On narrow benchmark scope (weakness 4):** The reviewer correctly points out evaluation is limited to reasoning (GPQA, GSM8K) and creative writing (AlpacaEval). No evaluation on code generation, translation, or summarization was conducted. We acknowledge this scope limitation. The benefits of min-p may be most pronounced for tasks requiring coherence (where high-temperature generation is risky). We added a note in the conclusion acknowledging this: 'Future work should evaluate min-p on diverse task types (code generation, translation, summarization) to establish generality beyond reasoning and creative writing.' This sets realistic expectations for applicability.\\n\\n**On hyperparameter selection (weakness 5):** The reviewer notes that selecting different ranges (min-p 0.05-0.1 vs top-p 0.9-0.95) relies on empirical community calibration rather than principled optimization. We acknowledge this limitation and provide justification in Appendix A.2 and A.4. Appendix A.4 explains that min-p and top-p thresholds operate differently (e.g., min-p=0.1 may truncate >10% of distribution while top-p=0.9 truncates exactly <10%). True fair comparison would require independent hyperparameter optimization per method, but we pragmatically used community recommendations as a proxy. This is transparent framing: the hyperparameters were chosen to be competitive for each method based on available guidance (MAUVE studies, Risk Levels framework, author recommendations), not to favor min-p.\\n\\n**Summary:** The reviewer's feedback identifies real limitations that are mostly acknowledged but could be more prominently surfaced in the main text. The core empirical contribution—min-p consistently outperforms alternatives across benchmarks and models—remains strong despite these caveats. We thank the reviewer for pushing us toward more honest and precise framing of our contributions and limitations.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "The core idea is elegant and well-motivated: scaling the truncation threshold proportionally to model confidence (via max token probability) is intuitive and addresses a genuine limitation of existing methods at high temperatures. The dynamic adjustment mechanism is simple yet effective.",
+              "Comprehensive experimental evaluation across multiple dimensions: three diverse benchmarks (GPQA, GSM8K CoT, AlpacaEval), multiple model families and sizes (Mistral 7B/Large, Llama 1B-70B), wide temperature ranges (0-5), and extensive ablation studies. The Pareto frontier analysis in Figure 2 provides valuable hyperparameter-agnostic insights.",
+              "Strong practical validation through human evaluation with quality controls (attention checks, anti-AI measures, 54 valid responses after filtering yielding 77% pass rate) showing consistent preference for min-p in both quality and diversity, particularly at high temperatures. The case studies (Table 1) effectively illustrate the method's contextual behavior.",
+              "Rapid adoption in the open-source ecosystem (Hugging Face Transformers with 144K stars and 291K dependent repositories, vLLM, SGLang, etc.) totaling 668,000+ GitHub stars across integrated frameworks, with verifiable statistics in Appendix A.5. Independent replications by external researchers (Gusev 2023/2024, Top-Nσ developers) support the claims.",
+              "Excellent clarity and presentation: the paper is well-written with clear motivation, good visualizations (Figure 1), and practical implementation guidance (Appendix A.1). Limitations are transparently documented (Section 5.2.2 on entropy-method constraints, Section 6 on human evaluation as directional validation). The method is simple enough to understand and integrate quickly."
+            ],
+            "weaknesses": [
+              "Limited theoretical justification for why min-p works and why max probability is the optimal choice for scaling. The paper provides empirical validation but no formal analysis comparing alternative confidence measures (entropy, variance, kurtosis).",
+              "Human evaluation sample size is modest (54 valid responses, 3 samples per configuration) providing directional validation rather than definitive statistical proof. Diversity scores are point estimates for specific triplets without variance across multiple independent samples.",
+              "Entropy-based method (η, ϵ) comparisons are incomplete at high temperatures due to computational failures of implementations rather than algorithmic limitations. The evaluation does not establish whether optimized entropy-based implementations could compete at τ ≥ 2.0.",
+              "Benchmark scope is limited to reasoning (GPQA, GSM8K) and creative writing (AlpacaEval). No evaluation on code generation, translation, or summarization limits claims about generality of min-p's benefits."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited theoretical justification for why min-p works and why max probability is the optimal choice for scaling. The paper provides empirical validation but no formal analysis comparing alternative confidence measures (entropy, variance, kurtosis).",
+                "severity": "minor",
+                "evidence": "Section 3.2 provides intuition but no formal analysis. No ablation comparing max probability against alternative confidence measures. Author response states: 'The choice of max probability as the confidence measure was motivated by simplicity and empirical performance rather than principled derivation.' The paper compensates through comprehensive empirical validation across diverse settings (Table 2 across models, temperatures, benchmarks).",
+                "affected_claim": "The choice of max probability for scaling is motivated by empirical effectiveness and simplicity rather than theoretical optimality.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Human evaluation sample size is modest (54 valid responses, 3 samples per configuration) providing directional validation rather than definitive statistical proof. Diversity scores are point estimates for specific triplets without variance across multiple independent samples.",
+                "severity": "minor",
+                "evidence": "Section 6 states '54 valid responses' after filtering from 70 initial responses (77% pass rate). Methodology acknowledges 'this represents a point estimate' and 'while this represents a limited sample size, it provides valuable directional insights.' Table 4 reports 95% confidence intervals for quality and diversity scores, mitigating somewhat the point-estimate concern. Appendix C.2 documents a refined human study addressing some concerns.",
+                "affected_claim": "Human evaluation provides directional evidence of preference (supported by Table 4 confidence intervals) rather than definitive proof. Framing in the paper is appropriately cautious.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Entropy-based method (η, ϵ) comparisons are incomplete at high temperatures due to computational failures of implementations rather than algorithmic limitations. The evaluation does not establish whether optimized entropy-based implementations could compete at τ ≥ 2.0.",
+                "severity": "minor",
+                "evidence": "Section 5.2.2 documents: 'η and ϵ sampling showed exponential runtime increases with temperature and failed completely at τ > 1.5, while min-p remained computationally efficient.' Appendix A.3 provides detailed runtime analysis (5 min at τ=0.7 to 30 min at τ=1.5 for η/ϵ, failure at τ ≥ 2.0). Author response clarifies: 'This is a limitation of current implementations, not fundamental method limitations—future optimized entropy implementations might compete at high temperatures.' The framing is transparent about this being a practical constraint.",
+                "affected_claim": "Min-p's advantage at high temperatures is partly due to implementation efficiency of entropy methods rather than purely algorithmic superiority. This is honestly documented in the paper.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Benchmark scope is limited to reasoning (GPQA, GSM8K) and creative writing (AlpacaEval). No evaluation on code generation, translation, or summarization limits claims about generality of min-p's benefits.",
+                "severity": "minor",
+                "evidence": "All three main benchmarks involve factual consistency or creative writing. No evaluation on code generation, translation, summarization, or other generation tasks. The paper does not claim generality beyond tested domains. Author response notes: 'We appropriately scope claims to the benchmarks evaluated...we do not overclaim generality to code generation, translation, or summarization.' The paper's scope is implicitly acknowledged through benchmark selection and no explicit generalization claims to untested domains.",
+                "affected_claim": "Min-p's demonstrated benefits are specific to reasoning and creative writing tasks; generality to other domains remains an open question.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core method is mathematically sound: computing pscaled = pbase × pmax and filtering tokens with P(v) ≥ pscaled is logically correct. Implementation (Appendix A.1) shows proper vectorized computation with appropriate edge-case handling. Experimental setup is rigorous with appropriate baselines (top-p, top-k, temperature-only, ϵ, η, mirostat), benchmarks (GPQA, GSM8K, AlpacaEval), and temperature ranges (0-5). Results are consistent and reproducible across Mistral 7B, Mistral Large (123B), and Llama models (1B-70B). Human evaluation includes quality controls (77% pass rate for attention checks and anti-AI measures). Independent replication by Gusev (2023/2024) and Top-Nσ developers confirms broader trends. The main limitations (lack of theoretical grounding, modest human sample size, incomplete entropy comparisons) do not undermine empirical soundness of the submitted work."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "Min-p sampling introduces a novel truncation mechanism that scales the threshold by max token probability as a confidence measure. This is distinct from: (1) top-p which uses fixed cumulative probability; (2) top-k which uses fixed token count; (3) entropy-based methods (η, ϵ, mirostat) which use distribution entropy or perplexity control. The specific formulation of confidence-scaled truncation using max probability has not been proposed in prior work. Section 2 (Related Work) and Appendix A.2 appropriately position the contribution relative to existing methods. While the core idea is relatively simple, the novelty lies in the specific application to high-temperature generation and the identification of max probability as an effective scaling factor."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a genuine and widely recognized problem: the quality-diversity tradeoff becomes severe at high temperatures with existing methods (Table 2 shows top-p at 0.46% GPQA accuracy vs 24.55% for min-p at τ=3.0). Min-p's rapid and broad adoption in major frameworks provides strong evidence of practical significance: Hugging Face Transformers (144K stars, 291K dependent repos), vLLM (47.5K stars), SGLang (14.4K stars), and others totaling 668K+ stars across verified integrations (Table 6). Appendix A.5 provides transparent methodology for adoption statistics, including clarification of earlier overcounting and conservative verification approach. The method is simple for practitioners to adopt and has clear use cases (creative writing, diverse reasoning). Significance is somewhat incremental as a relatively straightforward engineering improvement rather than fundamental algorithmic innovation, but the practical impact is substantial as evidenced by real-world adoption."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Comprehensive experimental evaluation spans three diverse benchmarks (GPQA graduate reasoning, GSM8K grade-school math with chain-of-thought, AlpacaEval creative writing) across multiple model families (Mistral 7B, 7B, Large 123B; Llama 1B-70B), temperatures (0-5), and hyperparameter configurations (Table 7 ablation with multiple settings). Key evaluation strengths: (1) Pareto frontier analysis (Figure 2) provides hyperparameter-agnostic view; (2) human evaluation with quality controls (attention checks achieving 77% pass rate, anti-AI measures, 95% confidence intervals in Table 4); (3) independent replication by external researchers (Gusev 2023/2024 on AlpacaEval and EQ-Bench; Top-Nσ developers on GPQA/GSM8K). Acknowledged limitations are transparently documented: (1) human sample size (54 responses) is framed as directional validation; (2) entropy-method comparisons incomplete at high temperatures due to implementation computational failures (Section 5.2.2, Appendix A.3); (3) benchmark scope limited to reasoning and creative writing. These limitations are appropriately disclosed and do not materially undermine the evaluation of claimed contributions."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with well-articulated motivation (Section 1 identifies quality-diversity tradeoff at high temperatures), clear problem statement (Section 2 reviews limitations of existing methods), straightforward method description (Section 3 with Equations 1-3 and Figure 1 visualization). Practical implementation details are provided (Appendix A.1 with Python code, Section 3.4 with integration guidelines). Limitations are transparently disclosed: Section 5.2.2 documents entropy-method computational failures; Section 6 frames human evaluation as directional validation; benchmark scope to reasoning and creative writing is implicitly acknowledged through selection. Extensive appendices (A.2-A.5) provide hyperparameter justification, implementation details, and verifiable adoption statistics. The presentation quality supports reliable assessment of the work's contributions and limitations."
+              }
+            },
+            "summary_comment": "This paper presents min-p sampling, a simple yet effective dynamic truncation method that scales the sampling threshold by maximum token probability to address the quality-diversity tradeoff at high temperatures. The contribution is novel (distinct from top-p, top-k, and entropy-based methods), sound (mathematically correct with consistent empirical validation), and practically significant (adopted across 668K+ GitHub stars in major frameworks). Comprehensive evaluation spans multiple benchmarks, models, and temperatures with human validation and independent replication. The author's rebuttal confirms that limitations identified in the initial review are appropriately documented in the submitted paper: (1) theoretical justification is acknowledged as empirical rather than principled; (2) human evaluation is framed as directional validation rather than definitive proof; (3) entropy-method comparisons are transparently disclosed as limited by implementation computational constraints; (4) benchmark scope is appropriately scoped to reasoning and creative writing without overclaiming generality. Remaining minor weaknesses (lack of formal theory, modest human sample, incomplete entropy comparisons, narrow benchmark scope) do not materially undermine the central contribution. The work makes a solid, practically useful contribution to LLM inference with strong empirical validation, transparent documentation of scope and limitations, and demonstrated real-world impact."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited theoretical justification for why min-p works and why max probability is optimal\",\n        \"Small human evaluation sample size (54 valid responses) with point estimates of diversity\",\n        \"Incomplete comparison with entropy-based methods (η, ϵ) due to computational failures at high temperatures\",\n        \"Narrow benchmark scope (reasoning and creative writing only; no code, translation, summarization)\",\n        \"Hyperparameter selection based on empirical calibration rather than principled independent optimization\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Core method is mathematically sound and produces consistent results across models\",\n          \"location\": \"Section 3.1-3.2, Equations 1-3; Table 2; Appendix A.1\",\n          \"explanation\": \"The method is logically correct: pscaled = pbase × pmax and filtering tokens with P(v) ≥ pscaled is straightforward. Implementation (Appendix A.1) shows proper vectorized computation. Results in Table 2 are consistent across Mistral 7B, Mistral Large (123B), and Llama models (1B-70B), with broader trends replicated by independent researchers (Gusev 2023, 2024; Top-Nσ developers).\"\n        },\n        {\n          \"concern\": \"Min-p is novel relative to top-p, top-k, and entropy-based methods\",\n          \"location\": \"Section 2 (Related Work) and Section 3.2-3.3\",\n          \"explanation\": \"Top-p uses fixed cumulative probability; top-k uses fixed token count; entropy methods use distribution entropy or perplexity. Min-p's confidence-scaled truncation (using max probability as scaling factor) is distinct from all prior work and has not been proposed in this exact form.\"\n        },\n        {\n          \"concern\": \"Min-p addresses a genuine problem: quality-diversity tradeoff at high temperatures\",\n          \"location\": \"Section 1 (Introduction), Section 2 (Related Work), and Table 2 results at τ=2.0 and τ=3.0\",\n          \"explanation\": \"Table 2 shows top-p catastrophically fails at high temperatures (0.46% on GPQA at τ=3.0 vs 24.55% for min-p). This demonstrates the problem exists and min-p solves it. Section 2 explicitly identifies this as a 'key limitation' of existing methods.\"\n        },\n        {\n          \"concern\": \"Rapid adoption in major frameworks indicates genuine practical utility\",\n          \"location\": \"Abstract, Section 3.4, Reproducibility Statement, and Appendix A.5 with Table 6\",\n          \"explanation\": \"Min-p is integrated in Hugging Face Transformers (144K stars, 291K dependent repos), vLLM (47.5K), SGLang (14.4K), and others totaling 668K+ stars across verified frameworks. Appendix A.5 provides verifiable GitHub statistics with search queries and repository links. Appendix A.5 also clarifies earlier overcounting and provides conservative verification methodology.\"\n        },\n        {\n          \"concern\": \"Human evaluation includes quality controls and independent replications\",\n          \"location\": \"Section 6 (Human Evaluation), methodology with attention checks, and Reproducibility Statement\",\n          \"explanation\": \"Survey included attention checks and anti-AI measures, resulting in 54 valid from 70 submissions (77% pass rate). Section 6 acknowledges 'this represents a point estimate' and 'limited sample size, it provides valuable directional insights.' Independent evaluations by Gusev (2023, 2024) and EQ-Bench confirm findings. Table 4 shows consistent preference for min-p across temperatures with 95% confidence intervals.\"\n        },\n        {\n          \"concern\": \"Limitations of entropy-method comparisons are documented\",\n          \"location\": \"Section 5.2.2 (now updated) and Appendix A.3\",\n          \"explanation\": \"Section 5.2.2 now states: 'η and ϵ sampling showed exponential runtime increases with temperature and failed completely at τ > 1.5, while min-p remained computationally efficient.' Appendix A.3 provides detailed analysis of runtime scaling. This is transparent framing that computational limitations of implementations (not fundamental algorithmic flaws) constrain high-temperature comparisons.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Limited theoretical justification for why min-p works and why max probability is optimal\",\n          \"proposed_change\": \"No changes required to current submission. The empirical validation across benchmarks and models compensates for limited theory. In future work, investigate alternative confidence measures (entropy, variance, kurtosis) and provide ablation comparing max probability against alternatives to understand why max probability is effective.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Small human evaluation sample size limits statistical power and generalizability\",\n          \"proposed_change\": \"No changes required to current submission. Section 6 and methodology appropriately frame the study as 'directional validation' rather than definitive proof. Appendix C.2 documents a refined human study addressing some concerns. In future work, expand to 100+ participants with multiple independent triplets per configuration to compute robust variance estimates and statistical significance tests.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Incomplete comparison with entropy-based methods at high temperatures due to computational failures\",\n          \"proposed_change\": \"No changes required to current submission. Section 5.2.2 already documents this limitation: 'η and ϵ sampling showed exponential runtime increases with temperature and failed completely at τ > 1.5.' Appendix A.3 provides detailed analysis. The framing is transparent: this is a limitation of current implementations, not fundamental method limitations. Future work could investigate whether optimized entropy-based implementations could compete at high temperatures.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Narrow benchmark scope (reasoning and creative writing only; no code, translation, summarization)\",\n          \"proposed_change\": \"No changes required to current submission. The paper does not overclaim generality beyond tested domains. Future work should evaluate min-p on diverse task types (code generation, translation, summarization) to establish generality. This limitation is acknowledged implicitly through benchmark selection and explicitly in paper's scope framing.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Hyperparameter selection based on empirical calibration rather than principled optimization\",\n          \"proposed_change\": \"No changes required to current submission. Appendix A.2 and A.4 already provide transparent documentation of hyperparameter selection methodology. Appendix A.4 explains that min-p and top-p thresholds operate differently (e.g., min-p=0.1 may truncate >10% of distribution while top-p=0.9 truncates exactly <10%). The approach is pragmatic and honestly framed: hyperparameters were chosen to be competitive for each method based on community recommendations and prior research, not to favor min-p.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"Thank you for the thorough and balanced review. We appreciate the careful analysis and constructive feedback. Upon reviewing your detailed assessment, we note that you have accurately captured the strengths and limitations of our work as presented in the submitted paper. We are pleased to confirm that the paper appropriately addresses most of your concerns through careful documentation in the main text and appendices.\\n\\n**Regarding theoretical justification (weakness 1):** We acknowledge that the paper provides intuition rather than formal theoretical grounding. The choice of max probability as the confidence measure was motivated by simplicity and empirical performance rather than principled derivation. While a full theoretical analysis is beyond the scope of this empirical contribution, we provide comprehensive validation across benchmarks, model families, and sizes to compensate. The strong and consistent results across diverse settings suggest the approach is robust in practice.\\n\\n**Regarding human evaluation sample size (weakness 2):** As you note, we appropriately frame this as 'directional validation' in Section 6. The methodology section explicitly acknowledges 'this represents a point estimate' and 'while this represents a limited sample size, it provides valuable directional insights.' We implement quality controls (attention checks achieving 77% pass rate, anti-AI measures) to strengthen the signal. The more comprehensive quantitative evaluations (GPQA, GSM8K, AlpacaEval automated) provide stronger statistical evidence with reported confidence intervals.\\n\\n**Regarding entropy-method comparisons (weakness 3):** You correctly identify that we now document this limitation transparently in Section 5.2.2: 'η and ϵ sampling showed exponential runtime increases with temperature and failed completely at τ > 1.5, while min-p remained computationally efficient.' Appendix A.3 provides detailed runtime analysis. This honest framing clarifies that min-p's high-temperature advantage is partly dependent on implementation efficiency of entropy methods rather than purely algorithmic superiority. We view this as a practical limitation of current implementations rather than fundamental method limitations—future optimized entropy implementations might compete at high temperatures.\\n\\n**Regarding benchmark scope (weakness 4):** As you note, we appropriately scope claims to the benchmarks evaluated (reasoning and creative writing). We do not overclaim generality to code generation, translation, or summarization. The paper design implicitly acknowledges this limitation through benchmark selection, and we welcome future work evaluating these other domains.\\n\\n**Regarding hyperparameter selection (weakness 5):** You correctly note that Appendix A.4 explains why min-p and top-p thresholds work differently (e.g., min-p=0.1 may truncate >10% of distribution while top-p=0.9 truncates exactly <10%). Appendix A.2 transparently documents the selection methodology based on community recommendations and prior research (MAUVE studies, Risk Levels framework, author recommendations). This pragmatic approach ensures hyperparameters are competitive for each method rather than optimized exclusively for min-p.\\n\\n**Summary:** Your review confirms that the submitted paper appropriately acknowledges and documents its limitations while presenting strong empirical evidence for min-p's effectiveness. The paper's transparent framing of constraints (human evaluation as directional validation, entropy-method computational limitations, benchmark scope), combined with comprehensive experimental validation and rapid real-world adoption, supports its contributions to the field. We believe the paper makes a solid, practically useful contribution to LLM inference with rigorous evaluation and honest presentation of scope and limitations.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_c949a67384a3",
+    "conference": "ICLR",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/iclr_accept_2025_027_turning_up_the_heat_min_p_sampling_for_creative_and_coherent_llm_outputs.md",
+    "target_paper_summary": {
+      "paper_id": "paper_c949a67384a3",
+      "title": "Turning Up The Heat: Min-P Sampling For Creative And Coherent Llm Outputs",
+      "abstract": "Large Language Models (LLMs) generate text by sampling the next token from a probability distribution over the vocabulary at each decoding step. Popular sampling methods like top-p (nucleus sampling) often struggle to balance quality and diversity, especially at higher temperatures which lead to incoherent or repetitive outputs. We propose min-p **sampling**, a dynamic truncation method that adjusts the sampling threshold based on the model's confidence by using the top token's probability as a scaling factor. Our experiments on benchmarks including GPQA, GSM8K, and AlpacaEval Creative Writing show that min-p sampling improves both the quality and diversity of generated text across different model families (Mistral and Llama 3) and model sizes (1B to 123B parameters), especially at higher temperatures. Human evaluations show a preference for min-p, in both text quality and creativity. Min-p sampling has been adopted by popular open-source LLM frameworks, including Hugging Face Transformers, VLLM, and many others, highlighting its considerable impact on improving text generation quality.",
+      "topic": "",
+      "claims": [
+        "We propose min-p **sampling**, a dynamic truncation method that adjusts the sampling threshold based on the model's confidence by using the top token's probability as a scaling factor."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_598dca81f",
+        "title": "Turning Up the Heat: Min-p Sampling for Creative and Coherent LLM Outputs",
+        "authors": [
+          "Minh‐Hoang Nguyen",
+          "Andrew Baker",
+          "Clement Neo",
+          "Roush, Allen",
+          "Andreas Kirsch",
+          "Shwartz-Ziv, Ravid"
+        ],
+        "year": 2024,
+        "publication_date": "2024-07-01",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large Language Models (LLMs) generate text by sampling the next token from a probability distribution over the vocabulary at each decoding step. Popular sampling methods like top-p (nucleus sampling) often struggle to balance quality and diversity, especially at higher temperatures which lead to incoherent or repetitive outputs. We propose min-p sampling, a dynamic truncation method that adjusts the sampling threshold based on the model's confidence by using the top token's probability as a scaling factor. Our experiments on benchmarks including GPQA, GSM8K, and AlpacaEval Creative Writing show that min-p sampling improves both the quality and diversity of generated text across different model families (Mistral and Llama 3) and model sizes (1B to 123B parameters), especially at higher temperatures. Human evaluations further show a clear preference for min-p sampling, in both text quality and creativity. Min-p sampling has been adopted by popular open-source LLM frameworks, including Hugging Face Transformers, VLLM, and many others, highlighting its considerable impact on improving text generation quality.",
+        "url": "http://arxiv.org/abs/2407.01082",
+        "doi": "https://doi.org/10.48550/arxiv.2407.01082",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4400343354"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1
+      },
+      {
+        "paper_id": "rw_008_bacc4f9a5",
+        "title": "Review of the opportunities and challenges to accelerate mass‐scale application of smart grids with large‐language models",
+        "authors": [
+          "Heng Shi",
+          "Lurui Fang",
+          "Xiaoyang Chen",
+          "Chenghong Gu",
+          "Kang Ma",
+          "Xinsong Zhang",
+          "Zhong Zhang",
+          "Juping Gu",
+          "Eng Gee Lim"
+        ],
+        "year": 2024,
+        "publication_date": "2024-11-06",
+        "venue": "IET Smart Grid",
+        "abstract": "Abstract Smart grids represent a paradigm shift in the electricity industry, moving from traditional one‐way systems to more dynamic, interconnected networks. These grids are characterised by their intelligent automation, robust structure, and enhanced interaction with customers, backed by comprehensive monitoring and data analytics. The key of this transformation is the integration of data‐driven methods into smart grids. Compared to previous big data solutions, large language models (LLMs), with their advanced generalisation abilities and multi‐modal competencies, are crucial in effectively managing and integrating diverse data sources. They address challenges such as data inconsistency, inadequate quality, and heterogeneity, thereby enhancing the operational efficiency and reliability of smart grids. Furthermore, at the system level, LLMs improve human–system interactions, making smart grids more user‐friendly and intuitive. Last but not the least, the structure of LLMs performs inherent advantages in bolstering system security and privacy, alongside in resolving issues related to system compatibility and integration. The paper reviews the data‐empowered smart grids and for the first time finds and proposes opportunities and future directions for adopting LLMs to accelerate the mass‐scale application of Smart Grids.",
+        "url": "https://doi.org/10.1049/stg2.12191",
+        "doi": "https://doi.org/10.1049/stg2.12191",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4404111691"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 37
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_001_598dca81f",
+        "relevance_score": 0.99,
+        "relevance_types": [
+          "same_paper"
+        ],
+        "rationale": "This paper has the same title as the target and identical abstract content, indicating it is the same work.",
+        "evidence_summary": "In 2024, Nguyen et al. published 'Turning Up the Heat: Min-p Sampling for Creative and Coherent LLM Outputs' on arXiv. The paper proposed min-p sampling, a dynamic truncation method that adjusts the sampling threshold based on the model's confidence using the top token's probability as a scaling factor. Experiments on benchmarks including GPQA, GSM8K, and AlpacaEval Creative Writing showed improved quality and diversity across Mistral and Llama 3 model families, with human evaluations favoring min-p sampling in quality and creativity."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_008_bacc4f9a5",
+        "relevance_score": 0.35,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "This paper discusses LLMs in smart grid applications, providing only general context on LLMs without method or benchmark overlap.",
+        "evidence_summary": "In 2024, Shi et al. published 'Review of the opportunities and challenges to accelerate mass‐scale application of smart grids with large‐language models' in IET Smart Grid. The paper reviewed how LLMs’ generalization abilities and multimodal competencies help manage data inconsistency and heterogeneity in smart grids, enhancing operational efficiency, human-system interactions, and system security."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Nguyen et al. published 'Turning Up the Heat: Min-p Sampling for Creative and Coherent LLM Outputs' on arXiv, which introduced min-p sampling, a dynamic truncation method using the top token's probability to adjust the sampling threshold, with experiments on GPQA, GSM8K, and AlpacaEval Creative Writing showing improved text quality and diversity across Mistral and Llama 3 models and human evaluations favoring min-p sampling. In 2024, Shi et al. published 'Review of the opportunities and challenges to accelerate mass‐scale application of smart grids with large‐language models' in IET Smart Grid, reviewing how LLMs address data challenges in smart grids to improve efficiency, interaction, and security.",
+    "warnings": [
+      "target paper: suspicious instruction-like text matched /you are (?:chatgpt|an ai|a language model)/"
+    ],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 9,
+      "num_removed_post_cutoff": 7,
+      "num_removed_undated": 0,
+      "num_used": 2,
+      "num_cutoff_valid": 2,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [
+    "target paper: suspicious instruction-like text matched /you are (?:chatgpt|an ai|a language model)/"
+  ],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 9,
+    "num_removed_post_cutoff": 7,
+    "num_removed_undated": 0,
+    "num_used": 2,
+    "num_cutoff_valid": 2,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

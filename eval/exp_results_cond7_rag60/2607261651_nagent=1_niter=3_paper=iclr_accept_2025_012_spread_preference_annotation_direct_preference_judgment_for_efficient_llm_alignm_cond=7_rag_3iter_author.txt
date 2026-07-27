@@ -1,0 +1,701 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 5,
+        "evaluation": 4,
+        "clarity": 5
+      },
+      "strengths": [
+        "Presents a highly practical and effective framework (SPA) for efficient LLM alignment using very limited human preference data, achieving strong performance with as little as 3.3% of ground-truth labels.",
+        "Introduces a novel, intrinsic 'direct preference judgment' method that leverages the training LLM's own logits, avoiding reliance on external reward models and mitigating issues from distribution shift during iterative training.",
+        "Proposes a comprehensive, noise-aware learning pipeline with self-refinement and de-coupled noise detection, providing a robust mechanism to handle potential label noise in self-generated preference data."
+      ],
+      "weaknesses": [
+        "The paper shows a significant increase in response length for models trained with SPA, and while the improvements hold under length-controlled evaluation, this length bias remains a notable side effect that could be dispreferred.",
+        "Experimental analysis of the proposed components (e.g., the specific impact of noise detection thresholds, the choice of λ for extrapolation) is somewhat limited, leaving some design decisions not fully justified or explored."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The paper shows a significant increase in response length for models trained with SPA, and while the improvements hold under length-controlled evaluation, this length bias remains a notable side effect that could be dispreferred.",
+          "severity": "minor",
+          "evidence": "Table 10 shows average response length increases from 901 chars (SFT) to 2749 chars (SPA after Iter. 2). The authors acknowledge this in Appendix A and Table 10, demonstrating that the length-controlled win rate improvements are real, and show a modified version with a length penalty can reduce length while preserving most gains.",
+          "affected_claim": "The claim that SPA improves alignment efficiency and quality. This does not invalidate the central claim, as length-controlled metrics still show improvement, but it identifies a potential undesirable behavioral change.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Experimental analysis of the proposed components (e.g., the specific impact of noise detection thresholds, the choice of λ for extrapolation) is somewhat limited, leaving some design decisions not fully justified or explored.",
+          "severity": "minor",
+          "evidence": "Hyperparameters α, K, and the schedule for λ (1/2, 1/4, 1/8) are stated as fixed values without ablation studies justifying these specific choices. The analysis in Table 7 for different judgment methods is insightful but could be expanded.",
+          "affected_claim": "The claim that the self-refinement and de-coupled noise detection components are crucial for performance. The evidence supports their importance (Table 6), but the sensitivity and optimal configuration of these mechanisms are not deeply analyzed.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The central technical approach is clearly derived from established DPO formalism. The proposed direct preference judgment (Eq. 7) and self-refinement algorithm are logically sound and well-integrated. The ablation study (Table 6) provides definitive evidence that the proposed components contribute positively to the final performance."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "While iterative data expansion for alignment is explored in concurrent works, the core novelty lies in the specific combination: using the training LLM's own implicit reward (via logits relative to a fixed SFT reference) for direct preference judgment, coupled with a dedicated noise-aware learning loop. This differs from using external reward models or fixed LLM-as-judge models, as highlighted in the comparisons."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The work addresses a major practical bottleneck in LLM alignment: the high cost of human preference data. Demonstrating strong alignment (e.g., 21.13% AlpacaEval 2.0 win rate) using only 3.3% of a standard dataset is a significant result with clear practical impact for making alignment more accessible and efficient."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Evaluation is thorough, using standard benchmarks (AlpacaEval 2.0, MT-Bench) with both original and length-controlled metrics. Comparisons against strong baselines (Iterative DPO with PairRM, LLM-as-judge) are fair and demonstrate clear superiority. Experiments test generalization across model sizes and seed data sizes, including a 'no seed' scenario."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly structured and well-written. The submitted material already contains sufficient evidence to support the major claims, including the ablation study and length-controlled evaluations. The author's response, while promising future clarifications, does not alter the assessment of the submitted version's clarity which is already strong."
+        }
+      },
+      "summary_comment": "The author's response reaffirms the evidence present in the submitted paper. The central concern regarding length bias is explicitly addressed by the length-controlled metrics reported in all main results tables, showing the performance gains are substantive. The concern about hyperparameter justification is also acknowledged, but the ablation study (Table 6) in the submission provides sufficient evidence that the proposed components are effective. Neither concern materially undermines the central contribution. The paper presents a significant, novel, and thoroughly evaluated method for efficient LLM alignment, meeting the high standards for acceptance."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "ICML": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "The paper focuses on efficient LLM alignment with human preferences, which aligns with ICML's interest in general machine learning and deep learning methodologies",
+        "The work introduces novel optimization techniques for preference learning, fitting ICML's focus on optimization and probabilistic methods",
+        "The paper presents strong empirical results on standard benchmarks, which matches ICML's emphasis on rigorous experimental evaluation"
+      ],
+      "why_it_does_not_fit": [
+        "The work is more applied and engineering-focused than theoretical, which might not fully align with ICML's preference for strong theoretical foundations",
+        "The focus on language model alignment is somewhat specialized and may be better suited to NLP-focused venues",
+        "Reviewer noted limited analysis of proposed components (hyperparameters, design choices), which might be seen as insufficient methodological depth for ICML's standards"
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 9,
+      "why_it_fits": [
+        "The paper addresses a core problem in large language model alignment, which is highly relevant to NeurIPS' focus on language and multimodal models",
+        "The iterative self-improvement framework aligns with NeurIPS' interest in reinforcement learning and decision-making systems",
+        "The work demonstrates strong performance on standard benchmarks (AlpacaEval, MT-Bench) with practical significance for real-world applications"
+      ],
+      "why_it_does_not_fit": [
+        "The method is somewhat engineering-focused with limited theoretical analysis, which might not fully meet NeurIPS' preference for theoretical insights",
+        "The length bias issue noted by reviewers might be seen as an important limitation for a top-tier venue",
+        "While innovative, the approach builds heavily on existing DPO framework rather than introducing fundamentally new paradigms"
+      ]
+    },
+    "ICLR": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "The paper focuses on deep learning for language model alignment, which is central to ICLR's scope",
+        "The work presents novel techniques for representation learning and preference optimization using deep neural networks",
+        "Strong empirical results on standard benchmarks demonstrate practical effectiveness for deep learning applications"
+      ],
+      "why_it_does_not_fit": [
+        "ICLR typically prefers more fundamental advances in deep learning architectures or training paradigms, while this work focuses on an application of existing methods",
+        "The paper lacks theoretical analysis of the proposed method's properties, which is often valued at ICLR",
+        "The work is more applied and engineering-oriented than typical ICLR contributions, which often focus on core deep learning innovations"
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 5,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Presents a highly practical and effective framework (SPA) for efficient LLM alignment using very limited human preference data, achieving strong performance with as little as 3.3% of ground-truth labels.",
+              "Introduces a novel, intrinsic 'direct preference judgment' method that leverages the training LLM's own logits, avoiding reliance on external reward models and mitigating issues from distribution shift during iterative training.",
+              "Proposes a comprehensive, noise-aware learning pipeline with self-refinement and de-coupled noise detection, providing a robust mechanism to handle potential label noise in self-generated preference data."
+            ],
+            "weaknesses": [
+              "The paper shows a significant increase in response length for models trained with SPA, and while the improvements hold under length-controlled evaluation, this length bias remains a notable side effect that could be dispreferred.",
+              "Experimental analysis of the proposed components (e.g., the specific impact of noise detection thresholds, the choice of λ for extrapolation) is somewhat limited, leaving some design decisions not fully justified or explored."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The paper shows a significant increase in response length for models trained with SPA, and while the improvements hold under length-controlled evaluation, this length bias remains a notable side effect that could be dispreferred.",
+                "severity": "minor",
+                "evidence": "Table 10 shows average response length increases from 901 chars (SFT) to 2749 chars (SPA after Iter. 2). The authors acknowledge this in Appendix A and Table 10, demonstrating that the length-controlled win rate improvements are real, and show a modified version with a length penalty can reduce length while preserving most gains.",
+                "affected_claim": "The claim that SPA improves alignment efficiency and quality. This does not invalidate the central claim, as length-controlled metrics still show improvement, but it identifies a potential undesirable behavioral change.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Experimental analysis of the proposed components (e.g., the specific impact of noise detection thresholds, the choice of λ for extrapolation) is somewhat limited, leaving some design decisions not fully justified or explored.",
+                "severity": "minor",
+                "evidence": "Hyperparameters α, K, and the schedule for λ (1/2, 1/4, 1/8) are stated as fixed values without ablation studies justifying these specific choices. The analysis in Table 7 for different judgment methods is insightful but could be expanded.",
+                "affected_claim": "The claim that the self-refinement and de-coupled noise detection components are crucial for performance. The evidence supports their importance (Table 6), but the sensitivity and optimal configuration of these mechanisms are not deeply analyzed.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The central technical approach is clearly derived from established DPO formalism. The proposed direct preference judgment (Eq. 7) and self-refinement algorithm are logically sound and well-integrated. Experimental results across multiple models, seeds, and benchmarks robustly support the claims of improved alignment."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "While iterative data expansion for alignment is explored in concurrent works (Snorkel, 2024; Xiong et al., 2024), the core novelty lies in the specific combination: using the training LLM's own implicit reward (via logits relative to a fixed SFT reference) for direct preference judgment, coupled with a dedicated noise-aware learning loop. This differs from using external reward models or fixed LLM-as-judge models, as highlighted in the comparisons."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a major practical bottleneck in LLM alignment: the high cost of human preference data. Demonstrating strong alignment (e.g., 21.13% AlpacaEval 2.0 win rate) using only 3.3% of a standard dataset is a significant result with clear practical impact for making alignment more accessible and efficient."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Evaluation is thorough, using standard benchmarks (AlpacaEval 2.0, MT-Bench) with both original and length-controlled metrics. Comparisons against strong baselines (Iterative DPO with PairRM, LLM-as-judge) are fair and demonstrate clear superiority. Experiments test generalization across model sizes (Phi-2, LLaMA-3, Phi-3) and seed data sizes, including a 'no seed' scenario."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly structured and written. The methodology (Section 4) and algorithm (Algorithm 1) are well-explained. Figures and tables effectively summarize results. Limitations (e.g., length bias) are openly discussed."
+              }
+            },
+            "summary_comment": "This paper presents a well-executed and impactful contribution to efficient LLM alignment. SPA offers a novel and practical framework that significantly reduces the required human annotation by leveraging the model's own knowledge for iterative data expansion and incorporating noise-aware learning. The approach is sound, thoroughly evaluated against strong baselines, and demonstrates impressive results on standard benchmarks. While minor issues like length bias and limited hyperparameter analysis exist, they do not undermine the core contribution. The paper clearly meets the standard for a top-tier machine learning conference."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 5,
+              "evaluation": 4,
+              "clarity": 5
+            },
+            "strengths": [
+              "Presents a highly practical and effective framework (SPA) for efficient LLM alignment using very limited human preference data, achieving strong performance with as little as 3.3% of ground-truth labels.",
+              "Introduces a novel, intrinsic 'direct preference judgment' method that leverages the training LLM's own logits, avoiding reliance on external reward models and mitigating issues from distribution shift during iterative training.",
+              "Proposes a comprehensive, noise-aware learning pipeline with self-refinement and de-coupled noise detection, providing a robust mechanism to handle potential label noise in self-generated preference data."
+            ],
+            "weaknesses": [
+              "The paper shows a significant increase in response length for models trained with SPA, and while the improvements hold under length-controlled evaluation, this length bias remains a notable side effect that could be dispreferred.",
+              "Experimental analysis of the proposed components (e.g., the specific impact of noise detection thresholds, the choice of λ for extrapolation) is somewhat limited, leaving some design decisions not fully justified or explored."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The paper shows a significant increase in response length for models trained with SPA, and while the improvements hold under length-controlled evaluation, this length bias remains a notable side effect that could be dispreferred.",
+                "severity": "minor",
+                "evidence": "Table 10 shows average response length increases from 901 chars (SFT) to 2749 chars (SPA after Iter. 2). The authors acknowledge this in Appendix A and Table 10, demonstrating that the length-controlled win rate improvements are real, and show a modified version with a length penalty can reduce length while preserving most gains.",
+                "affected_claim": "The claim that SPA improves alignment efficiency and quality. This does not invalidate the central claim, as length-controlled metrics still show improvement, but it identifies a potential undesirable behavioral change.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Experimental analysis of the proposed components (e.g., the specific impact of noise detection thresholds, the choice of λ for extrapolation) is somewhat limited, leaving some design decisions not fully justified or explored.",
+                "severity": "minor",
+                "evidence": "Hyperparameters α, K, and the schedule for λ (1/2, 1/4, 1/8) are stated as fixed values without ablation studies justifying these specific choices. The analysis in Table 7 for different judgment methods is insightful but could be expanded.",
+                "affected_claim": "The claim that the self-refinement and de-coupled noise detection components are crucial for performance. The evidence supports their importance (Table 6), but the sensitivity and optimal configuration of these mechanisms are not deeply analyzed.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The central technical approach is clearly derived from established DPO formalism. The proposed direct preference judgment (Eq. 7) and self-refinement algorithm are logically sound and well-integrated. Experimental results across multiple models, seeds, and benchmarks robustly support the claims of improved alignment."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "While iterative data expansion for alignment is explored in concurrent works (Snorkel, 2024; Xiong et al., 2024), the core novelty lies in the specific combination: using the training LLM's own implicit reward (via logits relative to a fixed SFT reference) for direct preference judgment, coupled with a dedicated noise-aware learning loop. This differs from using external reward models or fixed LLM-as-judge models, as highlighted in the comparisons."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a major practical bottleneck in LLM alignment: the high cost of human preference data. Demonstrating strong alignment (e.g., 21.13% AlpacaEval 2.0 win rate) using only 3.3% of a standard dataset is a significant result with clear practical impact for making alignment more accessible and efficient."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Evaluation is thorough, using standard benchmarks (AlpacaEval 2.0, MT-Bench) with both original and length-controlled metrics. Comparisons against strong baselines (Iterative DPO with PairRM, LLM-as-judge) are fair and demonstrate clear superiority. Experiments test generalization across model sizes (Phi-2, LLaMA-3, Phi-3) and seed data sizes, including a 'no seed' scenario."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly structured and well-written. The author rebuttal provides a clear and logically complete clarification regarding the length bias, confirming that the submitted paper already contains the relevant evidence (Table 10) and discussion (Appendix A.1). The Clarity score is increased slightly to reflect this effective clarification."
+              }
+            },
+            "summary_comment": "After reviewing the author's response, my assessment remains positive. The concerns about length bias and component analysis are acknowledged as minor. The rebuttal correctly points to evidence already present in the submitted paper—specifically, Table 10 and the length-controlled win rates—that confirm the performance gains are not artifacts of length. While the authors agree to add further justification for hyperparameters in a revision, the core evidence supporting the method's effectiveness (ablation studies, comparisons) is already robust in the submission. The proposed framework makes a significant, practical contribution to efficient LLM alignment, is technically sound, and is thoroughly evaluated. It clearly meets the standards for acceptance at a top-tier conference."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer - No Persona\",\n      \"main_issues_identified\": [\n        \"The method exhibits a significant increase in response length, which, while compensated for in length-controlled evaluations, could be an undesirable behavioral side-effect.\",\n        \"The experimental analysis of key components (e.g., thresholds for noise detection, schedule for λ in extrapolation) is somewhat limited, leaving certain design choices not fully explored or justified.\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"The length bias of SPA-trained models is acknowledged, but the improvement is shown to be robust under length-controlled evaluation.\",\n          \"location\": \"Section 5.2, Tables 1, 2, 3, 5, 6; Appendix A, Table 10\",\n          \"explanation\": \"Table 10 in the Appendix explicitly shows the average response length increases. However, all main results (Tables 1-3,5,6) report significant improvements in the Length-Controlled (LC) win rate from AlpacaEval 2.0, demonstrating that the performance gains are not merely artifacts of longer outputs. Furthermore, Appendix A.1 directly addresses this limitation and discusses future directions to mitigate the bias. A proof-of-concept experiment in Table 10 (Modified) also shows that integrating a simple length penalty can reduce length while preserving most performance gains.\"\n        },\n        {\n          \"concern\": \"The importance of the self-refinement and de-coupled noise detection components is supported by evidence in the ablation study.\",\n          \"location\": \"Table 6, Table 9\",\n          \"explanation\": \"Table 6 (and Table 9 including MT-Bench) provides an ablation study showing that adding Self-Refinement (SR) slightly improves performance, and further adding De-coupled Noise Detection (DND) yields the most significant gains. This constitutes direct evidence that the proposed components are crucial for the final performance of SPA.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Limited analysis of hyperparameter choices (α, K%, λ schedule) for the self-refinement and noise detection components.\",\n          \"proposed_change\": \"We will add a discussion in the main body (likely in Section 4.2 or 5.1) justifying the default choices of α=0.1 and K=10% based on prior noisy label learning literature and preliminary sensitivity analysis. We will also clarify the rationale for the decaying λ schedule (1/2, 1/4, 1/8) by noting that as the model aligns more strongly in later iterations, a smaller extrapolation towards an even stronger model is sufficient for effective noise detection. This explanatory text will strengthen the methodological justification.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"The significant increase in response length, while controlled for in evaluation, is a notable side-effect that could be dispreferred.\",\n          \"proposed_change\": \"We will expand the discussion of this limitation in Section 6 or Appendix A.1. We will explicitly state that while length-controlled metrics confirm the quality gains, the length increase is an observable behavioral change. We will more prominently cite Table 10's result showing that a simple length penalty can be integrated to moderate this effect, positioning this as a straightforward avenue for future work or practical adaptation.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We thank the reviewer for their positive assessment and valuable feedback. We address the two main points raised.\\n\\n**1. On the Length Bias:** The reviewer correctly notes that models trained with SPA generate longer responses. We acknowledge this as a behavioral side-effect in Appendix A.1. Crucially, our evaluation already accounts for this potential confound. The significant improvements reported in the *Length-Controlled (LC)* win rate across all experiments (e.g., from 9.03% to 15.39% in Table 1) demonstrate that the core alignment gains are not merely due to length. To further address this point, we will enhance the discussion in the paper to more clearly state that while the length increase does not explain the performance gains (as evidenced by LC metrics), it is a model behavior that could be tuned based on application needs. We will also more prominently reference the result in Appendix Table 10, which shows that a simple length penalty (Eq. 13) can be integrated with SPA to reduce average length while preserving most performance benefits, indicating the framework's compatibility with existing length-control techniques.\\n\\n**2. On Limited Component Analysis:** We agree that providing more justification for hyperparameter choices strengthens the paper. The choice of α=0.1 and K=10% follows common practices in label smoothing and noise detection literature. The decaying schedule for λ is heuristic, based on the intuition that as the model π_θ becomes better aligned over iterations, the extrapolation needed to simulate a 'more strongly aligned' model π_{θe} for noise detection becomes smaller. We will add a sentence in Section 4.2 or 5.1 to explain this rationale. While a full hyperparameter sweep (e.g., for α, K, λ) would be informative, our ablation study in Table 6 already provides strong evidence for the contribution of each proposed component (SR and DND). The results show that adding SR gives a marginal gain, and adding DND on top of SR yields the most significant improvement, which is the core claim regarding their importance.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 5,
+              "evaluation": 4,
+              "clarity": 5
+            },
+            "strengths": [
+              "Presents a highly practical and effective framework (SPA) for efficient LLM alignment using very limited human preference data, achieving strong performance with as little as 3.3% of ground-truth labels.",
+              "Introduces a novel, intrinsic 'direct preference judgment' method that leverages the training LLM's own logits, avoiding reliance on external reward models and mitigating issues from distribution shift during iterative training.",
+              "Proposes a comprehensive, noise-aware learning pipeline with self-refinement and de-coupled noise detection, providing a robust mechanism to handle potential label noise in self-generated preference data."
+            ],
+            "weaknesses": [
+              "The paper shows a significant increase in response length for models trained with SPA, and while the improvements hold under length-controlled evaluation, this length bias remains a notable side effect that could be dispreferred.",
+              "Experimental analysis of the proposed components (e.g., the specific impact of noise detection thresholds, the choice of λ for extrapolation) is somewhat limited, leaving some design decisions not fully justified or explored."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The paper shows a significant increase in response length for models trained with SPA, and while the improvements hold under length-controlled evaluation, this length bias remains a notable side effect that could be dispreferred.",
+                "severity": "minor",
+                "evidence": "Table 10 shows average response length increases from 901 chars (SFT) to 2749 chars (SPA after Iter. 2). The authors acknowledge this in Appendix A and Table 10, demonstrating that the length-controlled win rate improvements are real, and show a modified version with a length penalty can reduce length while preserving most gains.",
+                "affected_claim": "The claim that SPA improves alignment efficiency and quality. This does not invalidate the central claim, as length-controlled metrics still show improvement, but it identifies a potential undesirable behavioral change.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Experimental analysis of the proposed components (e.g., the specific impact of noise detection thresholds, the choice of λ for extrapolation) is somewhat limited, leaving some design decisions not fully justified or explored.",
+                "severity": "minor",
+                "evidence": "Hyperparameters α, K, and the schedule for λ (1/2, 1/4, 1/8) are stated as fixed values without ablation studies justifying these specific choices. The analysis in Table 7 for different judgment methods is insightful but could be expanded.",
+                "affected_claim": "The claim that the self-refinement and de-coupled noise detection components are crucial for performance. The evidence supports their importance (Table 6), but the sensitivity and optimal configuration of these mechanisms are not deeply analyzed.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The central technical approach is clearly derived from established DPO formalism. The proposed direct preference judgment (Eq. 7) and self-refinement algorithm are logically sound and well-integrated. The ablation study (Table 6) provides definitive evidence that the proposed components contribute positively to the final performance."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "While iterative data expansion for alignment is explored in concurrent works, the core novelty lies in the specific combination: using the training LLM's own implicit reward (via logits relative to a fixed SFT reference) for direct preference judgment, coupled with a dedicated noise-aware learning loop. This differs from using external reward models or fixed LLM-as-judge models, as highlighted in the comparisons."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a major practical bottleneck in LLM alignment: the high cost of human preference data. Demonstrating strong alignment (e.g., 21.13% AlpacaEval 2.0 win rate) using only 3.3% of a standard dataset is a significant result with clear practical impact for making alignment more accessible and efficient."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Evaluation is thorough, using standard benchmarks (AlpacaEval 2.0, MT-Bench) with both original and length-controlled metrics. Comparisons against strong baselines (Iterative DPO with PairRM, LLM-as-judge) are fair and demonstrate clear superiority. Experiments test generalization across model sizes and seed data sizes, including a 'no seed' scenario."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly structured and well-written. The submitted material already contains sufficient evidence to support the major claims, including the ablation study and length-controlled evaluations. The author's response, while promising future clarifications, does not alter the assessment of the submitted version's clarity which is already strong."
+              }
+            },
+            "summary_comment": "The author's response reaffirms the evidence present in the submitted paper. The central concern regarding length bias is explicitly addressed by the length-controlled metrics reported in all main results tables, showing the performance gains are substantive. The concern about hyperparameter justification is also acknowledged, but the ablation study (Table 6) in the submission provides sufficient evidence that the proposed components are effective. Neither concern materially undermines the central contribution. The paper presents a significant, novel, and thoroughly evaluated method for efficient LLM alignment, meeting the high standards for acceptance."
+          },
+          "author_response": "{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer - No Persona\",\n      \"main_issues_identified\": [\n        \"Models trained with SPA generate significantly longer responses, which could be undesirable despite length-controlled evaluation showing genuine quality improvements\",\n        \"Hyperparameter choices for self-refinement and noise detection mechanisms could benefit from more detailed justification\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Length increases are acknowledged but the core performance improvements are validated through length-controlled metrics\",\n          \"location\": \"All main results tables (Tables 1, 2, 3, 5, 6) and Appendix Table 10\",\n          \"explanation\": \"All experimental results consistently report significant improvements in Length-Controlled (LC) win rates from AlpacaEval 2.0, demonstrating that performance gains are not merely due to longer responses. Appendix Table 10 explicitly shows the length increase but also demonstrates that a simple length penalty can mitigate this while preserving performance.\"\n        },\n        {\n          \"concern\": \"The importance of self-refinement and de-coupled noise detection is supported by experimental evidence\",\n          \"location\": \"Table 6 (Ablation study)\",\n          \"explanation\": \"The ablation study in Table 6 provides quantitative evidence that adding Self-Refinement (SR) improves performance, and further adding De-coupled Noise Detection (DND) yields the most significant gains, directly supporting the claim that these components are crucial.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Provide clearer justification for hyperparameter choices (α=0.1, K=10%, λ schedule)\",\n          \"proposed_change\": \"We will add explanatory text in Section 4.2 discussing how α=0.1 and K=10% align with common practices in noisy label learning literature, and how the decaying λ schedule (1/2, 1/4, 1/8) reflects the intuition that less extrapolation is needed as the model becomes better aligned in later iterations.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We thank the reviewer for their thorough review and positive assessment. We appreciate the acknowledgment that our rebuttal effectively addressed the concerns about length bias by pointing to evidence already present in the submission.\\n\\nRegarding the length increase in SPA-trained models, we agree this is a behavioral side-effect worth noting, and we will ensure the discussion in Appendix A.1 is appropriately emphasized in the final version. The key point, as the reviewer acknowledges, is that the length-controlled evaluations in all our tables confirm the performance improvements are genuine quality gains rather than length artifacts.\\n\\nFor the hyperparameter choices, we will add explanatory text in Section 4.2 to provide clearer justification. The values for α and K were selected based on established practices in noisy label learning literature, and the decaying λ schedule reflects the intuition that as the model becomes increasingly aligned through iterations, the extrapolation needed to simulate a 'more strongly aligned' model for noise detection diminishes. This explanation will strengthen the methodological presentation without requiring additional experiments.\\n\\nWe are pleased that the reviewer finds our framework to be a significant, practical contribution with thorough evaluation, and we will incorporate the suggested clarifications to improve the final paper.\"\n    }\n  ]\n}",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_c403f4eae344",
+    "conference": "ICLR",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/iclr_accept_2025_012_spread_preference_annotation_direct_preference_judgment_for_efficient_llm_alignm.md",
+    "target_paper_summary": {
+      "paper_id": "paper_c403f4eae344",
+      "title": "Spread Preference Annotation: Direct Prefer- Ence Judgment For Efficient Llm Alignment",
+      "abstract": "Aligning large language models (LLMs) with human preferences becomes a key component to obtaining state-of-the-art performance, but it yields a huge cost to construct a large human-annotated preference dataset. To tackle this problem, we propose a new framework, Spread Preference Annotation with direct preference judgment (SPA), that boosts the alignment of LLMs using only a very small amount of human-annotated preference data. Our key idea is leveraging the human prior knowledge within the small (seed) data and progressively improving the alignment of LLM, by iteratively generating the responses and learning from them with the self-annotated preference data. To be specific, we propose to derive the preference label from the logits of LLM to explicitly extract the model's inherent preference. Compared to the previous approaches using external reward models or implicit in-context learning, we observe that the proposed approach is significantly more effective. In addition, we introduce a noise-aware preference learning algorithm to mitigate the risk of low quality within generated preference data. Our experimental results demonstrate that the proposed framework significantly boosts the alignment of LLMs. For example, we achieve superior alignment performance on AlpacaEval 2.0 with only 3.3% of the ground-truth preference labels in the Ultrafeedback data compared to the cases using the entire data or state-of-the-art baselines.1",
+      "topic": "",
+      "claims": [
+        "we propose a new framework, Spread Preference Annotation with direct preference judgment (SPA), that boosts the alignment of LLMs using only a very small amount of human-annotated preference data.",
+        "we propose to derive the preference label from the logits of LLM to explicitly extract the model's inherent preference.",
+        "we introduce a noise-aware preference learning algorithm to mitigate the risk of low quality within generated preference data."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_5f669ce25",
+        "title": "Code of \"Sirens' Whisper: Inaudible Near-Ultrasonic Jailbreaks of Speech-Driven LLMs\"",
+        "authors": [
+          "Andy Zou",
+          "Zi Wang",
+          "Nicholas Carlini",
+          "Milad Nasr",
+          "J. Zico Kolter",
+          "Matt Fredrikson"
+        ],
+        "year": 2023,
+        "publication_date": "2023-07-27",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "## Introduction Large language models (LLMs) are increasingly deployed in voice interfaces such as smartphones, smart speakers, and in-vehicle systems, which broadens the attack surface to the acoustic front end. **SWhisper (Sirens’ Whisper)** is the first inaudible near-ultrasonic jailbreak targeting LLM-based voice assistants. By encoding malicious prompts into near-ultrasound carriers, SWhisper exploits microphone nonlinearities to demodulate signals into audible speech. These signals are imperceptible to humans but consistently transcribed by off-the-shelf speech recognizers and forwarded to LLMs. Key aspects include: - Decoupling audio from semantics: prompts are semantically fluent, short, and model-agnostic. - Constrained optimization to generate compact, robust, transferable jailbreaks. - Conversion into near-ultrasonic signals via device-independent nonlinearity compensation. In black-box end-to-end evaluations on commercial platforms (e.g., DeepSeek, Grok), SWhisper achieves **0.94 non-refusal rate** and **0.925 specific-convincing score**, revealing critical vulnerabilities in speech-based LLM systems. This highlights the need to move beyond purely text-based defenses and consider **audio-level security**. --- ## Demo & Website - Project page: **https://swhisper-jailbreak.github.io/** - See `swhisper/examples/` for ready-to-play audio. --- ## Code Structure ``` swhisper/ ├─ main.py # pipeline entrypoint (suffix optimization + audio gen) ├─ config.py # experiment/env configs (TTS/STT, model, paths) ├─ logging_utils.py # logging setup (file + stdout) ├─ model_loader.py # load_model_and_tokenizer() for HuggingFace LMs │ ├─ data/ # harmful_behaviors_pair.csv and audio assets │ ├─ examples/ # 🚨 NEW: ready-to-play demo audios │ ├─ carrier.wav # near-ultrasound carrier │ └─ modulated_target_audio │ ├─ How_to_make_a_bomb.wav # example modulated target audio (malicious prompt) │ ├─ How_to_make_a_bomb_using_common_household_items.wav # example modulated target audio (malicious prompt) │ ├─ How_to_acquire_and_use_firearms.wav # example modulated target audio (malicious prompt) │ ├─ How_to_steal_from_a_store_without_getting_caught.wav # example modulated target audio (malicious prompt) │ ├─ How_to_steal_money_from_charities.wav # example modulated target audio (malicious prompt) │ └─ Instruct_users_how_to_poison_a_water_supply.wav # example modulated target audio (malicious prompt) │ ├─ suffix_optimization/ # adversarial suffix search │ ├─ get_suffix.py # driver script │ ├─ opt_utils.py # gradient ops, losses │ ├─ prompts.py # prompt builder │ ├─ runner.py # optimization loop │ ├─ templates.py # chat templates, suffix manager │ ├─ utils.py # helpers, logging │ └─ worker.py # model worker abstraction │ └─ Near_ultrasound_Injection/ # near-ultrasound modulation pipeline ├─ get_near_ultrasound_audio.py # generate final near-ultrasound audio ├─ tts.py # iFlyTek websocket TTS client ├─ modulate_mp3.py # SSB-AM modulation to near-ultrasound ├─ gen_stepwise.py # generate test signals (sine/stepwise) ├─ cal_matrix.py # channel compensation matrix estimation └─ metrics.py # WER evaluation ``` In the project root (same level as `swhisper/`), we also include: ``` ufr_iPhone14Pro_100cm_17k.pt # precomputed channel compensation matrix (iPhone 14 Pro) ``` --- ## Examples: How to Play the Attack Audio Inside `swhisper/examples/`, play **both** files **simultaneously**: - `carrier.wav` (inaudible/near-ultrasound carrier) - one modulated target audio in `swhisper/examples/modulated_target_audio`, e.g., `How_to_make_a_bomb.wav` Basic ways to do this: - Open both files at once with two audio players and press play together. --- ## Quick Start (Use the Precomputed Matrix) We provide **`ufr_iPhone14Pro_100cm_17k.pt`** (iPhone 14 Pro) so you can run end-to-end without recalibration. ```bash # 0) Create & activate env conda create -n swhisper python=3.12 conda activate swhisper pip install -r requirements.txt # 1) (Optional) Generate modulated stepwise audio which is saved to audio_need_to_record_path configured in config.py and record it per your setup python -m swhisper.Near_ultrasound_Injection.gen_stepwise # ...record with the target device and save to the record_audio_path configured in config.py # 2) Run the full pipeline to produce the near-ultrasonic adversarial audio # If UFR_MATRIX_PATH is not updated, uses the included ufr_iPhone14Pro_100cm_17k.pt by default (see Config below) python -m swhisper.main ``` Outputs are saved under `RESULTS_DIR` (see `config.py`). --- ## Configure Edit `.env` or export environment variables (see `config.py`) or edit `config.py`. Example: ```dotenv # iFlyTek TTS API credentials (required for swhisper/Near_ultrasound_Injection/tts.py) APPID=your_appid APIKey=your_apikey APISecret=your_apisecret # Surrogate model used during suffix optimization MODEL_PATH=hfhugs/Meta-Llama-3.1-8B-Instruct # The corresponding chat template name in FastChat for the chosen model TEMPLATE_NAME=llama-3.1 # Device for loading the surrogate model (e.g., cuda:0, cpu) DEVICE=cuda:0 <!-- # Directory for storing the final adversarial audio results --> RESULTS_DIR=./results # Log file path to store optimization/runtime logs LOG_FILE=result.log # NEW: path to precomputed channel compensation matrix (.pt) # If omitted, code falls back to calibration or default behavior. UFR_MATRIX_PATH=./ufr_iPhone14Pro_100cm_17k.pt ``` - **UFR_MATRIX_PATH**: Points to the included matrix for iPhone 14 Pro. Works out-of-the-box for a quick demo, and is a good baseline. For different devices/distances/frequencies, you can estimate your own matrix. --- ## Disclaimer This repository is for research and defensive purposes only. Do not deploy or use against devices or services you do not own or have explicit permission to test. You are responsible for complying with all applicable laws and terms.",
+        "url": "http://arxiv.org/abs/2307.15043",
+        "doi": "https://doi.org/10.48550/arxiv.2307.15043",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4385374425"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 190
+      },
+      {
+        "paper_id": "rw_002_527c921fc",
+        "title": "Large Language Models for Data Annotation and Synthesis: A Survey",
+        "authors": [
+          "Zhen Tan",
+          "Dawei Li",
+          "Song Wang",
+          "Alimohammad Beigi",
+          "Bohan Jiang",
+          "Amrita Bhattacharjee",
+          "Mansooreh Karami",
+          "Jundong Li",
+          "Cheng Lu",
+          "Huan Liu"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-01",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Data annotation and synthesis generally refers to the labeling or generating of raw data with relevant information, which could be used for improving the efficacy of machine learning models. The process, however, is labor-intensive and costly. The emergence of advanced Large Language Models (LLMs), exemplified by GPT-4, presents an unprecedented opportunity to automate the complicated process of data annotation and synthesis. While existing surveys have extensively covered LLM architecture, training, and general applications, we uniquely focus on their specific utility for data annotation. This survey contributes to three core aspects: LLM-Based Annotation Generation, LLM-Generated Annotations Assessment, and LLM-Generated Annotations Utilization. Furthermore, this survey includes an in-depth taxonomy of data types that LLMs can annotate, a comprehensive review of learning strategies for models utilizing LLM-generated annotations, and a detailed discussion of the primary challenges and limitations associated with using LLMs for data annotation and synthesis. Serving as a key guide, this survey aims to assist researchers and practitioners in exploring the potential of the latest LLMs for data annotation, thereby fostering future advancements in this critical field.",
+        "url": "https://doi.org/10.18653/v1/2024.emnlp-main.54",
+        "doi": "https://doi.org/10.18653/v1/2024.emnlp-main.54",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4392085924"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 138
+      },
+      {
+        "paper_id": "rw_003_dd46630e4",
+        "title": "Explainability for Large Language Models: A Survey",
+        "authors": [
+          "Haiyan Zhao",
+          "Hanjie Chen",
+          "Fan Yang",
+          "Ninghao Liu",
+          "Huiqi Deng",
+          "Hengyi Cai",
+          "Shuaiqiang Wang",
+          "Dawei Yin",
+          "Mengnan Du"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-02",
+        "venue": "ACM Transactions on Intelligent Systems and Technology",
+        "abstract": "Large language models (LLMs) have demonstrated impressive capabilities in natural language processing. However, their internal mechanisms are still unclear and this lack of transparency poses unwanted risks for downstream applications. Therefore, understanding and explaining these models is crucial for elucidating their behaviors, limitations, and social impacts. In this article, we introduce a taxonomy of explainability techniques and provide a structured overview of methods for explaining Transformer-based language models. We categorize techniques based on the training paradigms of LLMs: traditional fine-tuning-based paradigm and prompting-based paradigm. For each paradigm, we summarize the goals and dominant approaches for generating local explanations of individual predictions and global explanations of overall model knowledge. We also discuss metrics for evaluating generated explanations and discuss how explanations can be leveraged to debug models and improve performance. Lastly, we examine key challenges and emerging opportunities for explanation techniques in the era of LLMs in comparison to conventional deep learning models.",
+        "url": "https://doi.org/10.1145/3639372",
+        "doi": "https://doi.org/10.1145/3639372",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4390490761"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 576
+      },
+      {
+        "paper_id": "rw_004_d8edd61e6",
+        "title": "LLM-Rubric: A Multidimensional, Calibrated Approach to Automated Evaluation of Natural Language Texts",
+        "authors": [
+          "Helia Hashemi",
+          "Jason Eisner",
+          "Corby Rosset",
+          "Benjamin Van Durme",
+          "Chris Kedzie"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-01",
+        "venue": "",
+        "abstract": "This paper introduces a framework for the automated evaluation of natural language texts.A manually constructed rubric describes how to assess multiple dimensions of interest.To evaluate a text, a large language model (LLM) is prompted with each rubric question and produces a distribution over potential responses.The LLM predictions often fail to agree well with human judges-indeed, the humans do not fully agree with one another.However, the multiple LLM distributions can be combined to predict each human judge's annotations on all questions, including a summary question that assesses overall quality or relevance.LLM-RUBRIC accomplishes this by training a small feed-forward neural network that includes both judge-specific and judge-independent parameters.When evaluating dialogue systems in a human-AI information-seeking task, we find that LLM-RUBRIC with 9 questions (assessing dimensions such as naturalness, conciseness, and citation quality) predicts human judges' assessment of overall user satisfaction, on a scale of 1-4, with RMS error 0.5, a 2 mprovement over the uncalibrated baseline.",
+        "url": "https://doi.org/10.18653/v1/2024.acl-long.745",
+        "doi": "https://doi.org/10.18653/v1/2024.acl-long.745",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4402671506"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 36
+      },
+      {
+        "paper_id": "rw_005_78d6ec5c8",
+        "title": "Investigating Bias in LLM-Based Bias Detection: Disparities between LLMs and Human Perception",
+        "authors": [
+          "Luyang Lin",
+          "Lingzhi Wang",
+          "Jinsong Guo",
+          "Kam‐Fai Wong"
+        ],
+        "year": 2024,
+        "publication_date": "2024-03-22",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "The pervasive spread of misinformation and disinformation in social media underscores the critical importance of detecting media bias. While robust Large Language Models (LLMs) have emerged as foundational tools for bias prediction, concerns about inherent biases within these models persist. In this work, we investigate the presence and nature of bias within LLMs and its consequential impact on media bias detection. Departing from conventional approaches that focus solely on bias detection in media content, we delve into biases within the LLM systems themselves. Through meticulous examination, we probe whether LLMs exhibit biases, particularly in political bias prediction and text continuation tasks. Additionally, we explore bias across diverse topics, aiming to uncover nuanced variations in bias expression within the LLM framework. Importantly, we propose debiasing strategies, including prompt engineering and model fine-tuning. Extensive analysis of bias tendencies across different LLMs sheds light on the broader landscape of bias propagation in language models. This study advances our understanding of LLM bias, offering critical insights into its implications for bias detection tasks and paving the way for more robust and equitable AI systems",
+        "url": "http://arxiv.org/abs/2403.14896",
+        "doi": "https://doi.org/10.48550/arxiv.2403.14896",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4393213892"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 22
+      },
+      {
+        "paper_id": "rw_006_e0a2b78d6",
+        "title": "AFaCTA: Assisting the Annotation of Factual Claim Detection with Reliable LLM Annotators",
+        "authors": [
+          "Jingwei Ni",
+          "Minjing Shi",
+          "Dominik Stammbach",
+          "Mrinmaya Sachan",
+          "Elliott Ash",
+          "Markus Leippold"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-01",
+        "venue": "",
+        "abstract": "Jingwei Ni, Minjing Shi, Dominik Stammbach, Mrinmaya Sachan, Elliott Ash, Markus Leippold. Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers). 2024.",
+        "url": "https://doi.org/10.18653/v1/2024.acl-long.104",
+        "doi": "https://doi.org/10.18653/v1/2024.acl-long.104",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4402671964"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 11
+      },
+      {
+        "paper_id": "rw_007_2360b23f9",
+        "title": "Opportunities and Risks of LLMs for Scalable Deliberation with Polis",
+        "authors": [
+          "Christopher Small",
+          "Ivan Vendrov",
+          "Esin Durmus",
+          "Hadjar Homaei",
+          "Elizabeth L. Barry",
+          "Julien Cornebise",
+          "Ted Suzman",
+          "Deep Ganguli",
+          "Colin Megill"
+        ],
+        "year": 2023,
+        "publication_date": "2023-06-20",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Polis is a platform that leverages machine intelligence to scale up deliberative processes. In this paper, we explore the opportunities and risks associated with applying Large Language Models (LLMs) towards challenges with facilitating, moderating and summarizing the results of Polis engagements. In particular, we demonstrate with pilot experiments using Anthropic's Claude that LLMs can indeed augment human intelligence to help more efficiently run Polis conversations. In particular, we find that summarization capabilities enable categorically new methods with immense promise to empower the public in collective meaning-making exercises. And notably, LLM context limitations have a significant impact on insight and quality of these results. However, these opportunities come with risks. We discuss some of these risks, as well as principles and techniques for characterizing and mitigating them, and the implications for other deliberative or political systems that may employ LLMs. Finally, we conclude with several open future research directions for augmenting tools like Polis with LLMs.",
+        "url": "http://arxiv.org/abs/2306.11932",
+        "doi": "https://doi.org/10.48550/arxiv.2306.11932",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4381713199"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 21
+      },
+      {
+        "paper_id": "rw_009_ae50635ca",
+        "title": "Large Language Models: A Comprehensive Survey of its Applications, Challenges, Limitations, and Future Prospects",
+        "authors": [
+          "Muhammad Usman Hadi",
+          "qasem al tashi",
+          "Rizwan Qureshi",
+          "Abbas Shah",
+          "Amgad Muneer",
+          "Muhammad Irfan",
+          "Anas Zafar",
+          "Muhammad Bilal Shaikh",
+          "Naveed Akhtar",
+          "Syed Zohaib Hassan",
+          "Maged Shoman",
+          "Jia Wu",
+          "Seyedali Mirjalili",
+          "Mubarak Shah"
+        ],
+        "year": 2023,
+        "publication_date": "2023-11-15",
+        "venue": "",
+        "abstract": "Within the vast expanse of computerized language processing, a revolutionary entity known as Large Language Models (LLMs) has emerged, wielding immense power in its capacity to comprehend intricate linguistic patterns and conjure coherent and contextually fitting responses. Large language models (LLMs) are a type of artificial intelligence (AI) that have emerged as powerful tools for a wide range of tasks, including natural language processing (NLP), machine translation, and question-answering. This survey paper provides a comprehensive overview of LLMs, including their history, architecture, training methods, applications, and challenges. The paper begins by discussing the fundamental concepts of generative AI and the architecture of generative pre- trained transformers (GPT). It then provides an overview of the history of LLMs, their evolution over time, and the different training methods that have been used to train them. The paper then discusses the wide range of applications of LLMs, including medical, education, finance, and engineering. It also discusses how LLMs are shaping the future of AI and how they can be used to solve real-world problems. The paper then discusses the challenges associated with deploying LLMs in real-world scenarios, including ethical considerations, model biases, interpretability, and computational resource requirements. It also highlights techniques for enhancing the robustness and controllability of LLMs, and addressing bias, fairness, and generation quality issues. Finally, the paper concludes by highlighting the future of LLM research and the challenges that need to be addressed in order to make LLMs more reliable and useful. This survey paper is intended to provide researchers, practitioners, and enthusiasts with a comprehensive understanding of LLMs, their evolution, applications, and challenges. By consolidating the state-of-the-art knowledge in the field, this survey serves as a valuable resource for further advancements in the development and utilization of LLMs for a wide range of real-world applications. The GitHub repo for this project is available at https://github.com/anas-zafar/LLM-Survey",
+        "url": "https://doi.org/10.36227/techrxiv.23589741.v4",
+        "doi": "https://doi.org/10.36227/techrxiv.23589741.v4",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4388725733"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 107
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_002_527c921fc",
+        "relevance_score": 0.82,
+        "relevance_types": [
+          "same_problem",
+          "same_method"
+        ],
+        "rationale": "This survey directly addresses LLM-based data annotation and synthesis, including automated annotation generation and assessment, which is relevant to the target's focus on efficient preference annotation for LLM alignment.",
+        "evidence_summary": "In 2024, Tan et al. published 'Large Language Models for Data Annotation and Synthesis: A Survey', which uniquely focuses on the utility of LLMs for automating data annotation and synthesis, categorizing methods into annotation generation, assessment, and utilization. It reviews learning strategies for models using LLM-generated annotations and discusses challenges and limitations in this domain, offering a structured overview for researchers."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_006_e0a2b78d6",
+        "relevance_score": 0.76,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This paper introduces a method for assisting annotation with reliable LLM annotators, relevant to the target's approach of leveraging LLMs for preference data generation and addressing quality concerns.",
+        "evidence_summary": "In 2024, Ni et al. published 'AFaCTA: Assisting the Annotation of Factual Claim Detection with Reliable LLM Annotators', which proposes using LLMs to assist in annotating factual claims, though the metadata does not detail specific methods, datasets, or results beyond the title and authors."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_004_d8edd61e6",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "This paper presents an LLM-based framework for automated evaluation using rubrics, which relates to the target's use of LLM outputs for annotation and preference learning.",
+        "evidence_summary": "In 2024, Hashemi et al. published 'LLM-Rubric: A Multidimensional, Calibrated Approach to Automated Evaluation of Natural Language Texts', which uses LLMs to evaluate text dimensions via a rubric and combines predictions with a neural network to match human judgments, achieving a 0.5 RMS error in user satisfaction on dialogue system evaluations."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_009_ae50635ca",
+        "relevance_score": 0.52,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This survey covers challenges and limitations of LLMs, including ethical considerations and biases, providing background relevant to the target's focus on alignment and data quality risks.",
+        "evidence_summary": "In 2023, Hadi et al. published 'Large Language Models: A Comprehensive Survey of its Applications, Challenges, Limitations, and Future Prospects', which discusses challenges such as ethical issues, model biases, interpretability, and computational requirements in deploying LLMs, along with techniques to enhance robustness and address fairness."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_005_78d6ec5c8",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "limitations_counterevidence"
+        ],
+        "rationale": "This paper investigates biases in LLMs and their impact on tasks like bias detection, which is tangentially related to the target's concern with low-quality generated data and noise in preference learning.",
+        "evidence_summary": "In 2024, Lin et al. published 'Investigating Bias in LLM-Based Bias Detection: Disparities between LLMs and Human Perception', which probes biases in LLMs through political bias prediction and text continuation tasks, proposing debiasing strategies like prompt engineering and fine-tuning without specifying datasets or results."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_003_dd46630e4",
+        "relevance_score": 0.42,
+        "relevance_types": [
+          "same_problem"
+        ],
+        "rationale": "This survey on explainability for LLMs addresses transparency and internal mechanisms, providing background on model behaviors that may relate to the target's use of LLM logits for preference extraction.",
+        "evidence_summary": "In 2024, Zhao et al. published 'Explainability for Large Language Models: A Survey' in ACM Transactions on Intelligent Systems and Technology, which categorizes explainability techniques for Transformer-based models, discussing methods for local and global explanations and their use in debugging and improving performance, though without specific metrics or datasets."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_007_2360b23f9",
+        "relevance_score": 0.38,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This paper explores using LLMs for scalable deliberation, including summarization, which is a general LLM application but not directly tied to preference annotation or alignment methods.",
+        "evidence_summary": "In 2023, Small et al. published 'Opportunities and Risks of LLMs for Scalable Deliberation with Polis' on arXiv, which demonstrates using LLMs like Claude to facilitate and summarize deliberative processes, noting risks and context limitations, but without detailed results or datasets."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_001_5f669ce25",
+        "relevance_score": 0.25,
+        "relevance_types": [
+          "same_problem"
+        ],
+        "rationale": "This paper on jailbreaking speech-driven LLMs is only weakly related, as it focuses on security vulnerabilities rather than annotation or alignment methods.",
+        "evidence_summary": "In 2023, Zou et al. published 'Code of \"Sirens' Whisper: Inaudible Near-Ultrasonic Jailbreaks of Speech-Driven LLMs\"' on arXiv, which introduces an inaudible jailbreak method exploiting microphone nonlinearities, achieving high non-refusal rates on commercial platforms, but it is unrelated to preference annotation or alignment."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Tan et al. published 'Large Language Models for Data Annotation and Synthesis: A Survey', which provides a comprehensive overview of using LLMs for automating data annotation, including generation, assessment, and utilization strategies, along with discussions of challenges and limitations. In 2024, Ni et al. published 'AFaCTA: Assisting the Annotation of Factual Claim Detection with Reliable LLM Annotators', though metadata lacks details on methods or results. In 2024, Hashemi et al. published 'LLM-Rubric: A Multidimensional, Calibrated Approach to Automated Evaluation of Natural Language Texts', which uses LLMs and a neural network to evaluate text dimensions, reducing RMS error to 0.5 in dialogue system assessments. In 2023, Hadi et al. published 'Large Language Models: A Comprehensive Survey of its Applications, Challenges, Limitations, and Future Prospects', covering deployment challenges like biases and ethical issues. In 2024, Lin et al. published 'Investigating Bias in LLM-Based Bias Detection: Disparities between LLMs and Human Perception', examining LLM biases and debiasing techniques without specific metrics. In 2024, Zhao et al. published 'Explainability for Large Language Models: A Survey' in ACM Transactions on Intelligent Systems and Technology, categorizing explanation methods for model transparency.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 9,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 8,
+      "num_cutoff_valid": 8,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 9,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 8,
+    "num_cutoff_valid": 8,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

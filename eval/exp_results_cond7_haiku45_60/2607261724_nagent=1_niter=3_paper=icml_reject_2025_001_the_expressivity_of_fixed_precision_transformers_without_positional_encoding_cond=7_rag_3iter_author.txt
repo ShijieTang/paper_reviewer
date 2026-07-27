@@ -1,0 +1,770 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "Addresses a practically relevant gap between theoretical models and real-world implementations by studying fixed-precision Transformers, which is an important direction given that actual hardware operates under finite precision constraints.",
+        "Provides both upper and lower bounds on expressivity (Theorem 5.2), establishing a complete characterization of the language class (finite and co-finite languages) that fixed-precision Transformers without positional encoding can recognize under stated assumptions.",
+        "Investigates the interplay between multiple practical constraints (fixed precision, positional encoding variants, parameter assumptions), providing a systematic analysis of how each component affects expressivity."
+      ],
+      "weaknesses": [
+        "Assumption 5.1 conflates design constraint with empirical claim: the paper states the assumption 'generally holds for most trained Transformer models' without support, when it should be framed as a design choice. While the rebuttal clarifies the intended conditional reading (IF Assumption 5.1, THEN finite/co-finite), the submitted text does not reflect this distinction, creating confusion about scope.",
+        "The lower bound proof (Lemma 5.4) relies on informal reasoning justified only as 'treating details abstractly.' The rebuttal's explanation that 'finite languages have finite support so FFN lookup suffices' is logically sound and clarifies what was genuinely unclear, but this reasoning does not appear in the submitted paper itself.",
+        "The practical relevance of the recognition-based formalism remains inadequately justified. While the rebuttal offers that 'recognition expressivity provides necessary conditions on generation,' the submitted paper does not establish this connection, making claims about 'practical Transformers' in the abstract and conclusion misleading without this bridge.",
+        "The simplified architecture (two layers, single head, no layer norm) is necessary for theoretical tractability but distances the results from practical systems. Without even minimal empirical validation showing that the simplified model exhibits predicted behavior, the path from theory to practice remains speculative."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Assumption 5.1 conflates design constraint with empirical claim: the paper states the assumption 'generally holds for most trained Transformer models' without support, when it should be framed as a design choice. While the rebuttal clarifies the intended conditional reading (IF Assumption 5.1, THEN finite/co-finite), the submitted text does not reflect this distinction, creating confusion about scope.",
+          "severity": "minor",
+          "evidence": "Section 5, Assumption 5.1 (lines 220-221): 'This assumption depends only on the parameters of the query and key affine transformations. It generally holds for most trained Transformer models.' This wording suggests an empirical claim. The rebuttal clarifies that the paper intends a conditional: 'IF Assumption 5.1 holds, THEN Theorem 5.2 follows.' However, this conditional framing is not explicitly stated in the paper. The rebuttal's proposed fix ('reformulate Assumption 5.1 as an explicit design constraint rather than a property of trained models') is not present in the submitted text.",
+          "affected_claim": "Theorem 5.2's applicability to real trained models.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The lower bound proof (Lemma 5.4) relies on informal reasoning justified only as 'treating details abstractly.' The rebuttal's explanation that 'finite languages have finite support so FFN lookup suffices' is logically sound and clarifies what was genuinely unclear, but this reasoning does not appear in the submitted paper itself.",
+          "severity": "minor",
+          "evidence": "Section 5.2, Lemma 5.4 proof (lines 328-330): 'The partial sum Σ emb(w_k)/k can be seen as carrying isomorphic information about (w_1,...,w_n), assuming a suitable injection or universal approximation property (we treat details abstractly here).' The rebuttal provides a sound clarification: for finite languages with bounded support, an FFN lookup table is universal over the finite input domain. This is mathematically correct and would resolve the informality if stated in the paper. However, since it is not stated, the weakness persists in the submitted text, though the rebuttal confirms the underlying argument is valid.",
+          "affected_claim": "Lemma 5.4 and the lower bound of Theorem 5.2.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The practical relevance of the recognition-based formalism remains inadequately justified. While the rebuttal offers that 'recognition expressivity provides necessary conditions on generation,' the submitted paper does not establish this connection, making claims about 'practical Transformers' in the abstract and conclusion misleading without this bridge.",
+          "severity": "major",
+          "evidence": "Abstract (lines 9-11): 'practical Transformers may be fundamentally constrained to recognizing only finite and co-finite languages.' Conclusion (lines 437-438): 'practical Transformers may be fundamentally constrained to recognizing finite languages, functioning as highly efficient lookup tables.' These claims apply findings from a recognition framework (Definition 4.3) to generative 'practical Transformers,' but the connection is not established in the paper. Section 7.2 acknowledges the gap but defers to 'future research.' The rebuttal's proposed clarification (noting that recognition is a necessary condition on generation) is not present in the submitted text, leaving the claims unsupported.",
+          "affected_claim": "Abstract and conclusion claims about 'practical Transformers.'",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The simplified architecture (two layers, single head, no layer norm) is necessary for theoretical tractability but distances the results from practical systems. Without even minimal empirical validation showing that the simplified model exhibits predicted behavior, the path from theory to practice remains speculative.",
+          "severity": "major",
+          "evidence": "Section 4.4 lists constraints; Section 7.3 acknowledges: 'Our current setup is simplified, focusing on a limited subset of Transformer components...In real-world architectures, additional architectural features could significantly impact expressivity.' The rebuttal acknowledges: 'we would be strengthened by even minimal empirical validation...training small two-layer Transformers on synthetic finite-language tasks and measuring whether their recognition matches theoretical predictions.' No such validation appears in the submitted paper. The rebuttal notes this 'is not computationally expensive' but recognizes it as absent from the current submission.",
+          "affected_claim": "The bridge between theoretical results and practical implications.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The rebuttal provides logically sound clarifications to the three main technical concerns. (1) For Assumption 5.1: the rebuttal confirms that the intended reading is a conditional statement ('IF Assumption 5.1 THEN Theorem 5.2'), which is mathematically valid regardless of whether real models satisfy the assumption. The framing issue is one of clarity, not correctness. (2) For Lemma 5.4: the rebuttal explains that the FFN lookup argument is sound for finite languages (which have finite support), making the 'universal approximation' step elementary rather than unjustified. This is a legitimate defense of what appeared abstract. (3) For Lemma 5.3: the rebuttal sketches a formal version with explicit bounds (L = ⌈log_c M⌉), providing a path to rigor that confirms the informal claim is mathematically well-founded. While these clarifications are not in the submitted paper, they demonstrate the underlying mathematics is sound. The issues are presentation-level, not fundamental flaws in reasoning. Soundness thus passes, though with reservations about clarity."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The specific characterization of fixed-precision Transformer decoders without positional encoding as recognizing exactly finite and co-finite languages is novel. Extending prior work (Merrill & Sabharwal, Chiang et al.) from encoders and abstract settings to decoders with concrete fixed-precision constraints, and systematically studying the role of positional encoding (APE vs. NoPE) and parameter assumptions (Assumption 5.1 present/absent), provides incremental but genuine novel contributions to the formal language expressivity literature."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "Significance is limited by three factors: (1) The recognition-based framework is not clearly connected to practical generative language modeling (acknowledged in Section 7.2 as deferred to future work). Claims about 'practical Transformers' in the abstract and conclusion are thus not adequately supported. (2) The simplified two-layer single-head architecture is far from practical systems; while necessary for theoretical tractability, it limits the applicability of results. (3) The result (finite/co-finite languages) is a narrow characterization of a minimal architecture, providing insights into what constraints impose but limited guidance on designing or understanding real models. The paper is primarily of interest to the formal language theory subfield, not the broader ML community. For a top-tier ML venue, significance requires either stronger practical relevance or deeper theoretical insights; this work provides neither."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The paper is purely theoretical with no empirical validation. The rebuttal acknowledges that 'minimal empirical validation'—training two-layer Transformers on synthetic tasks to verify theoretical predictions—would strengthen the work but notes this is absent. Without experiments: (a) validating whether Assumption 5.1 holds for any model; (b) confirming that the simplified architecture actually exhibits the predicted finite/co-finite recognition behavior; or (c) demonstrating a correlation between theoretical bounds and empirical performance, the evaluation is incomplete. For a paper making claims about practical implications, the lack of any experimental grounding is a material weakness."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-structured with clear definitions, formal theorems, and helpful examples (Example 4.4, Example 3.5). The logical flow from preliminaries to main results is easy to follow. The issues identified—informal treatment of encoding in Lemma 5.4, lack of formal precision saturation bounds in Lemma 5.3, conflation of design constraint and empirical claim in Assumption 5.1—are presentation-level problems within otherwise well-written sections. These are fixable without restructuring or major rewrites. Presentation passes despite these issues because the core material is accessible and the main argument is followable."
+        }
+      },
+      "summary_comment": "The rebuttal substantially improves confidence in the soundness of the core theoretical results by clarifying what appeared to be gaps. The key insights—that Lemma 5.4 relies on valid finite-domain lookup arguments, that Lemma 5.3's saturation claim can be formalized with explicit bounds, and that Theorem 5.2 should be read as a conditional on Assumption 5.1—are logically sound. However, these clarifications do not appear in the submitted paper. Evaluating the submission as written, the presentation issues remain, though they are now understood to be remediable without affecting correctness.\n\nThe fundamental barriers to acceptance are not soundness-related but concern significance and evaluation:\n\n1. **Significance is limited** because the recognition-based result does not clearly translate to implications for practical generative language modeling. Claims in the abstract and conclusion about 'practical Transformers' overstate what is actually established. The rebuttal offers a more careful reading ('recognition is a necessary condition on generation') but this does not appear in the paper, leaving the claims exposed.\n\n2. **Evaluation is incomplete** because there is no empirical validation. For a paper claiming relevance to practical systems, even basic experiments (training and testing small two-layer Transformers on synthetic finite-language tasks) would provide necessary grounding. The rebuttal acknowledges this would be valuable but notes it is absent.\n\n3. **The simplifications necessary for theory** (two layers, single head, no layer norm) are so severe that the path from this minimal model to practical Transformers is unclear and unsupported. While such simplifications are standard in theoretical work, they typically require either: (a) evidence that the simplifications do not fundamentally alter behavior (via experiments), or (b) extension to more realistic settings (via theory). This work provides neither.\n\nThe paper makes a valid but narrow theoretical contribution to the formal language expressivity literature. It is appropriate for specialized venues focused on formal languages or neural network theory, but falls short of the standard for a top-tier general ML conference, which expects either stronger practical grounding or more comprehensive theoretical coverage. The soundness concerns have been addressed by the rebuttal, moving the score from 2 to 3, but significance and evaluation remain insufficient for acceptance at a selective venue."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper addresses a core machine learning concern: the gap between theoretical models and real-world implementations, specifically how fixed-precision arithmetic constrains Transformer expressivity—a practical systems consideration that ICML values.\",\n      \"The work provides formal theoretical analysis of Transformer expressivity under realistic constraints (fixed-precision, parameter assumptions, architectural variants), contributing to the 'theory of machine learning' topic area ICML emphasizes.\",\n      \"The paper systematically investigates how architectural choices (positional encoding variants, parameter assumptions) affect expressivity, which aligns with ICML's interest in 'machine learning systems' and understanding design trade-offs.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICML expects stronger practical validation: the paper is purely theoretical with zero empirical experiments. For a venue that values 'application-driven machine learning' and 'methodology,' the absence of even minimal experiments (e.g., training two-layer models to verify predictions) is a significant gap. The reviewer explicitly notes 'without even minimal empirical validation...the path from theory to practice remains speculative.'\",\n      \"The simplified architecture (2 layers, single head, no layer norm, no pre-norm) is too distant from practical Transformers. While necessary for theory, ICML would expect either: (a) empirical validation that the simplified model exhibits predicted behavior, or (b) extension toward realistic architectures. The paper provides neither, and Section 7.3 acknowledges these are known gaps.\",\n      \"The significance for ICML's general ML audience is limited. The result (finite/co-finite language recognition) is narrow and primarily of interest to the formal language theory subfield. The reviewer notes: 'For a top-tier ML venue, significance requires either stronger practical relevance or deeper theoretical insights; this work provides neither.'\",\n      \"The recognition-based formalism (Definition 4.3) is not clearly connected to practical generative language modeling. The paper claims 'practical Transformers may be fundamentally constrained' (abstract, conclusion) but does not establish how recognition expressivity relates to generation. The reviewer flags this as a 'major' issue: 'making claims about practical Transformers...misleading without this bridge.'\",\n      \"The assumed audience and framing suggest a computational linguistics or formal language theory venue rather than a general ML conference. ICML's breadth expects contributions that resonate across subfields; this is narrowly specialized.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper directly addresses NeurIPS's 'Theory' track by providing formal analysis of Transformer expressivity, establishing upper and lower bounds on language recognition under practical constraints—a core theoretical contribution.\",\n      \"NeurIPS welcomes 'in-depth analysis of existing methods that provide new insights in terms of their limitations or behavior beyond the scope of the original work.' This paper characterizes limitations of fixed-precision Transformers relative to prior infinite-precision analyses, fitting this description.\",\n      \"The systematic investigation of how multiple factors (fixed-precision, positional encoding, parameter assumptions) interact to constrain expressivity aligns with NeurIPS's interest in understanding 'limitations' and 'behavior' of neural architectures.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"NeurIPS, despite its theory track, increasingly values papers that either: (a) have strong empirical grounding, or (b) provide insights that directly inform practice. This paper is purely theoretical with zero empirical validation. The reviewer notes: 'Without experiments...validating whether Assumption 5.1 holds for any model...or demonstrating a correlation between theoretical bounds and empirical performance, the evaluation is incomplete.'\",\n      \"The simplified architecture is a significant barrier for NeurIPS's practical audience. While the theory community appreciates toy models, NeurIPS expects either empirical evidence that simplifications don't fundamentally alter results, or clear evidence that insights transfer to realistic settings. The paper provides neither.\",\n      \"Significance concerns are acute at NeurIPS. The paper's claims about 'practical Transformers' (abstract: 'practical Transformers may be fundamentally constrained...functioning as little more than efficient lookup tables') are overstated relative to what is proven. The reviewer identifies this as 'misleading without' proper justification. For a venue hosting thousands of submissions, such overclaiming is problematic.\",\n      \"The recognition vs. generation gap is unresolved. Section 7.2 acknowledges that Transformers are typically 'language generators' producing probabilistic outputs, not 'language recognizers' as formalized in Definition 4.3. The paper frames language recognizers as relevant to practice but defers the connection to 'future research,' leaving a material gap for NeurIPS's interdisciplinary audience.\",\n      \"The practical constraints studied (fixed-precision, specific attention mechanisms) are somewhat outdated in framing. Modern Transformers use techniques (layer norm, relative positional encodings, alternative precision schemes like bfloat16) that the simplified model does not address. Section 7.3 acknowledges these gaps but presents them as future work, not current contributions.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"ICLR explicitly welcomes 'in-depth analysis of existing methods that provide new insights in terms of their limitations or behavior beyond the scope of the original work.' This paper characterizes limitations of fixed-precision Transformers and how architectural choices (positional encoding, parameter assumptions) affect expressivity—directly fitting this theme.\",\n      \"The paper contributes to ICLR's 'learning theory' topic by formally analyzing what languages fixed-precision decoders can recognize, establishing tight upper and lower bounds (Theorem 5.2 and extensions in Section 6)—a core theoretical contribution.\",\n      \"The investigation of how practical constraints (fixed-precision float, architectural variants) impact expressivity is relevant to ICLR's interest in 'representation learning' and understanding architectural design choices. The systematic analysis of trade-offs between constraints is methodologically sound.\",\n      \"ICLR values formal rigor and theoretical depth. The paper provides complete characterizations (both upper and lower bounds) and investigates multiple settings (APE, NoPE, with/without Assumption 5.1), showing systematic theoretical work that fits ICLR's standards for rigor.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICLR increasingly emphasizes connections between theory and empirical validation. While theory-only papers are accepted, papers making claims about 'practical' or 'real-world' implications without empirical grounding are viewed skeptically. The abstract states 'practical Transformers may be fundamentally constrained,' but no experiments validate this. The reviewer flags this as misleading.\",\n      \"The simplified architecture (2 layers, single head, no layer norm) is a significant limitation for ICLR, which values insights applicable to realistic systems. While ICLR accepts toy models for theoretical analysis, Section 7.3 acknowledges extensive gaps (no layer norm, single head, simple attention) without addressing them. This limits transfer of insights to understanding actual Transformers.\",\n      \"The recognition-based formalism (Definition 4.3) is not well-motivated for ICLR's representation learning audience. The paper studies 'language recognition' (membership testing) but Transformers are typically studied as generative/representation learners. The paper defers connection to generation to 'future research' (Section 7.2), leaving a conceptual gap.\",\n      \"Empirical validation is minimal to nonexistent. ICLR reviewers would likely expect at least synthetic experiments: (1) training two-layer models on finite-language tasks and measuring recognition accuracy, (2) verifying Assumption 5.1 holds in any model, or (3) correlating theoretical bounds with empirical precision saturation. The reviewer's note that this 'would not be computationally expensive' but is absent suggests reviewers expect such validation.\",\n      \"The novelty, while real, is incremental within the formal language expressivity literature. The paper extends prior work (Merrill & Sabharwal, Chiang et al.) from encoders to decoders and adds systematic study of positional encoding variants. For ICLR, which values both novelty and impact, the narrow advance in a specialized subfield limits appeal beyond formal language researchers.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary & Strategic Assessment\n\n**Overall Recommendation:** This paper is a **weak fit for all three venues**, though ICLR is marginally the best option given its explicit openness to theoretical analysis of method limitations.\n\n### Core Issues (Venue-Agnostic):\n\n1. **Significance Gap**: The paper claims practical implications ('practical Transformers...functioning as little more than efficient lookup tables') but proves results only for a simplified 2-layer model without positional encoding. The reviewer identifies this as **major**: claims are \"misleading without\" proper justification.\n\n2. **Evaluation Gap**: Zero empirical validation. The reviewer notes the rebuttal acknowledges that even \"minimal empirical validation\" (training small models on synthetic tasks) would help but is absent. This is a material weakness across all venues.\n\n3. **Formalism-to-Practice Bridge**: The recognition framework (Definition 4.3) does not clearly connect to how Transformers actually work (generative, probabilistic). Section 7.2 defers this to future work, leaving core claims unsupported.\n\n4. **Architecture Distance**: The simplified model is far from practice (no layer norm, single head, specific attention setup). While theory permits simplification, the paper provides no evidence these simplifications preserve behavior on realistic settings.\n\n### Why Each Venue?\n\n- **ICML (4/10, weak fit)**: Values practical systems and applications. Expects empirical grounding for claims about real implementations. This is purely theoretical.\n\n- **NeurIPS (4/10, weak fit)**: Increasingly empiricist; theory must either inform practice or have deep foundational insights. This provides neither. The overclaimed connection to \"practical Transformers\" is problematic for a venue with thousands of submissions.\n\n- **ICLR (5/10, borderline)**: Most likely to accept a theory-only paper; explicitly welcomes \"limitations\" analysis. However, still expects either stronger empirical grounding or more realistic settings than the current simplified model.\n\n### Reviewer Consensus Signal:\n\nThe reviewer's overall decision: **Reject** with scores (novelty: 3, soundness: 3, significance: 2, evaluation: 2, clarity: 3). Even with the rebuttal clarifications on soundness, the paper fails on **significance** and **evaluation**—gates that apply across all three venues.\n\n### Strategic Recommendation:\n\n**Do not submit to ICML, NeurIPS, or ICLR without substantial revision:**\n1. Add empirical experiments validating the simplified model on synthetic finite-language tasks.\n2. Clarify and narrow claims about \"practical Transformers\" (currently overstated).\n3. Either extend theory to more realistic architectures (layer norm, multi-head, relative PE) or provide evidence that simplifications don't fundamentally change results.\n4. Establish the connection between recognition and generation expressivity more rigorously.\n\n**Alternative venue:** Consider FAccT, a workshop on formal language theory, or a specialized conference (e.g., DLT - Developments in Language Theory) where a purely theoretical contribution to formal expressivity would be more appropriately valued.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 2,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "Addresses a practically relevant gap between theoretical models and real-world implementations by studying fixed-precision Transformers, which is an important direction given that actual hardware operates under finite precision constraints.",
+              "Provides both upper and lower bounds on expressivity (Theorem 5.2), establishing a complete characterization of the language class (finite and co-finite languages) that fixed-precision Transformers without positional encoding can recognize under stated assumptions.",
+              "Investigates the interplay between multiple practical constraints (fixed precision, positional encoding variants, parameter assumptions), providing a systematic analysis of how each component affects expressivity."
+            ],
+            "weaknesses": [
+              "Assumption 5.1 (Infinity-Freeness) is poorly justified and appears to be tailored to make the main result work. The claim that it 'generally holds for most trained Transformer models' lacks empirical or theoretical support, and removing it is necessary only for the lower bound constructions in Section 6.2.",
+              "The proof of the lower bound (Lemma 5.4) relies on a vague 'universal approximation argument' to justify the final FFN mapping, but this hand-waves over critical details about how the partial sum Σ emb(w_k)/k uniquely encodes the input string and whether this holds under fixed-precision arithmetic.",
+              "The practical impact is severely limited by the extremely simplified model setup: two-layer Transformer, single-head attention, no layer normalization, no relative positional encoding. These exclusions are crucial to the theoretical result but make the findings disconnected from real-world implementations.",
+              "The connection between formal language recognition and practical language modeling is acknowledged as loose but not adequately resolved. The paper defines acceptance based on presence of special tokens in a finite-length output, which diverges substantially from how real Transformers generate probability distributions over sequences.",
+              "The proof of the upper bound (Lemma 5.3) is informal in key steps, particularly the claim that the softmax denominator 'diverges to +inf in p-precision' requires more rigorous treatment regarding how finite-precision arithmetic handles the saturation and what 'effectively 0' means formally."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Assumption 5.1 (Infinity-Freeness) is poorly justified and appears to be tailored to make the main result work. The claim that it 'generally holds for most trained Transformer models' lacks empirical or theoretical support, and removing it is necessary only for the lower bound constructions in Section 6.2.",
+                "severity": "major",
+                "evidence": "Section 5 introduces Assumption 5.1 stating Q(y)K(y')^T ≠ ±inf for all vectors. The paper provides no empirical validation or theoretical argument for why trained models would satisfy this. In fact, Section 6.2 removes this assumption for letter-set languages, suggesting it is more of a technical convenience than a property of practical models. The assumption appears constructed specifically to enable the finite/co-finite characterization.",
+                "affected_claim": "Theorem 5.2 claims that under Assumption 5.1, fixed-precision Transformers recognize exactly finite or co-finite languages.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The proof of the lower bound (Lemma 5.4) relies on a vague 'universal approximation argument' to justify the final FFN mapping, but this hand-waves over critical details about how the partial sum Σ emb(w_k)/k uniquely encodes the input string and whether this holds under fixed-precision arithmetic.",
+                "severity": "major",
+                "evidence": "Section 5.2, specifically equation (8) and the following discussion, states: 'The partial sum Σ_k=1^n emb(w_k)/k can be seen as carrying isomorphic information about (w_1,...,w_n), assuming a suitable injection or universal approximation property (we treat details abstractly here).' This is the crux of the lower bound construction, yet no formal definition of 'isomorphic information' is provided, and treating it abstractly is insufficient for a rigorous proof.",
+                "affected_claim": "Lemma 5.4 claims that any finite language can be recognized by a two-layer Transformer in one decoding step.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The practical impact is severely limited by the extremely simplified model setup: two-layer Transformer, single-head attention, no layer normalization, no relative positional encoding. These exclusions are crucial to the theoretical result but make the findings disconnected from real-world implementations.",
+                "severity": "major",
+                "evidence": "Section 4.4 lists the constraints: 'Exclusion of positional encoding (NoPE; only for § 5), Two-layer Transformer Block, Single-head Attention without pre-norm configuration, Causal masking for attention computation, and softmax function within the Attention mechanism.' The paper's abstract claims the result 'underscore[s] the gap between theoretical models and real-world implementations,' but the model is itself highly simplified and bears limited resemblance to practical Transformers like GPT-2, GPT-3, etc., which use multi-head, multi-layer architectures with layer normalization.",
+                "affected_claim": "The central claim that practical Transformers 'may be fundamentally constrained to recognizing only finite and co-finite languages, effectively functioning as little more than efficient lookup tables.'",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The connection between formal language recognition and practical language modeling is acknowledged as loose but not adequately resolved. The paper defines acceptance based on presence of special tokens in a finite-length output, which diverges substantially from how real Transformers generate probability distributions over sequences.",
+                "severity": "major",
+                "evidence": "Section 7.2 states: 'Throughout this work, we frame the Transformer as a language recognizer, addressing the membership problem in a more formal sense rather than as a language generator...In practice, particularly in language modeling, a decoder-based Transformer typically produces tokens probabilistically, generating text rather than deciding membership in a formal language...bridging these two outlooks more rigorously remains a key objective for future research.' This admission undermines the practical relevance of the main result, as the paper's formalization (Definition 4.3) does not correspond to how Transformers are actually used in practice.",
+                "affected_claim": "The abstract's claim about 'practical Transformers' being 'effectively functioning as little more than efficient lookup tables.'",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The proof of the upper bound (Lemma 5.3) is informal in key steps, particularly the claim that the softmax denominator 'diverges to +inf in p-precision' requires more rigorous treatment regarding how finite-precision arithmetic handles the saturation and what 'effectively 0' means formally.",
+                "severity": "major",
+                "evidence": "Section 5.1, the proof of Lemma 5.3: 'the softmax denominator in Attn(q_v, K_w, V_w) accumulates Σ_{j=1}^{|w|+1} exp(q_v K_j^T) and by the definition of L, this sum diverges to +inf in p-precision. Consequently, the fraction exp(q_v K_{|w|}^T) / (+inf) is effectively 0 in p-precision.' No formal definition is given for when a sum 'diverges to +inf' in p-precision arithmetic or how overflow/saturation rules interact with the IEEE 754 standard.",
+                "affected_claim": "Lemma 5.3 and the upper bound of Theorem 5.2.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The main proofs have significant gaps. Lemma 5.3 (upper bound) lacks formal treatment of how fixed-precision saturation works and when the softmax denominator becomes 'effectively 0'. Lemma 5.4 (lower bound) relies on an unexplained 'universal approximation argument' to claim that partial sums encode input strings, and it is unclear how this works under finite precision. Additionally, Assumption 5.1 is presented without proper justification as a property of trained models, and the assumptions appear tailored to produce the desired result rather than naturally arising from practical constraints."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "While the paper extends prior work on fixed-precision Transformers (building on Merrill & Sabharwal 2023, 2024a; Chiang et al. 2023), the specific combination of studying fixed-precision decoders without positional encoding under Assumption 5.1 is novel. The complete characterization of expressivity as finite/co-finite languages is a new contribution, and the systematic analysis of how different constraints (APE, NoPE, parameter assumptions) interact with expressivity is also original. However, the novelty is somewhat incremental given the existing body of work on Transformer expressivity."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The practical significance is limited due to the gap between the simplified theoretical model and real implementations. The paper acknowledges this gap explicitly in Section 7.2 but does not resolve it. The model uses only two layers, single-head attention, and no layer normalization—none of which reflect practical Transformers. Furthermore, the main insight (finite and co-finite languages) is a weaker result than what more complex architectures can achieve, and the paper does not provide compelling evidence that this limitation applies to actual deployed models. The paper is primarily of interest to the formal language theory community, not the broader ML community."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The paper is purely theoretical with no empirical validation. There is no demonstration that real trained Transformers satisfy Assumption 5.1, no experiments showing how the theoretical bounds relate to actual model behavior, and no numerical validation of the proofs' claims about finite-precision arithmetic. The lower bound construction (Lemma 5.4) is not concrete enough to implement or verify. The paper would benefit from even basic sanity-check experiments verifying that two-layer Transformers under the stated constraints indeed achieve the predicted expressivity limitations."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-organized, with clear definitions, a logical flow from preliminaries through main results, and helpful examples. The use of Table 1 to summarize the landscape of results is effective. However, some proofs are written at an informal level with phrases like 'treating details abstractly' and 'effective 0', which reduces clarity in critical sections. Notation is mostly clear, though the paper could benefit from more explicit definitions of terms like 'isomorphic information' in the context of embeddings."
+              }
+            },
+            "summary_comment": "This paper investigates the expressivity of fixed-precision Transformers without positional encoding, establishing that they can recognize exactly the class of finite and co-finite languages. While the work addresses a practically motivated question and provides both upper and lower bounds, it suffers from significant soundness issues: (1) Assumption 5.1 lacks proper justification and appears tailored to enable the result; (2) The key proofs—particularly the lower bound construction—rely on informal arguments ('treating details abstractly,' 'effectively 0') that bypass rigorous treatment of finite-precision arithmetic; (3) The practical relevance is undermined by the extremely simplified model (two layers, single head, no layer norm) that bears limited resemblance to real implementations; and (4) The paper acknowledges but does not resolve the disconnect between its formal language recognition framework and actual probabilistic language modeling. While the paper makes a technical contribution to formal language theory, the combination of soundness gaps, limited practical impact, and lack of empirical validation places it below the threshold for a top-tier ML venue. The work would benefit from either: (a) substantially strengthening the theoretical proofs with rigorous treatment of finite-precision arithmetic, (b) relaxing the restrictive assumptions and simplifications to cover more realistic architectures, or (c) providing empirical validation of the theoretical predictions."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 2,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "Addresses a practically relevant gap between theoretical models and real-world implementations by studying fixed-precision Transformers, which is an important direction given that actual hardware operates under finite precision constraints.",
+              "Provides both upper and lower bounds on expressivity (Theorem 5.2), establishing a complete characterization of the language class (finite and co-finite languages) that fixed-precision Transformers without positional encoding can recognize under stated assumptions.",
+              "Investigates the interplay between multiple practical constraints (fixed precision, positional encoding variants, parameter assumptions), providing a systematic analysis of how each component affects expressivity."
+            ],
+            "weaknesses": [
+              "Assumption 5.1 (Infinity-Freeness) remains poorly justified despite the rebuttal's acknowledgment. The rebuttal concedes the assumption 'lacks empirical justification' and repositions it as a 'design choice' or 'technical requirement,' but the submitted paper still presents it as a property of trained models ('generally holds for most trained Transformer models'). No empirical data or revised framing appears in the submitted text.",
+              "The proof of the lower bound (Lemma 5.4) still relies on unsubstantiated claims about information encoding. The rebuttal promises a 'more explicit construction' but provides none in the submitted paper. The phrase 'treating details abstractly' and the vague appeal to universal approximation remain in Section 5.2, unremedied.",
+              "The practical impact remains severely limited by the simplified model setup, and the rebuttal does not address this through concrete extensions or experiments in the submitted paper. The claims about 'real-world implementations' contradict the acknowledged theoretical framework restricted to recognition tasks.",
+              "The connection between formal language recognition and practical language modeling is unresolved. The rebuttal acknowledges this is 'non-trivial' and defers to future work, but without this connection, claims about implications for 'practical Transformers' are unfounded.",
+              "The upper bound proof (Lemma 5.3) still lacks rigorous treatment of finite-precision saturation. The rebuttal sketches how this could be formalized ('we can compute the minimum number of terms L needed such that...') but provides no formal bounds or theorems in the submitted paper itself."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Assumption 5.1 (Infinity-Freeness) remains poorly justified despite the rebuttal's acknowledgment. The rebuttal concedes the assumption 'lacks empirical justification' and repositions it as a 'design choice' or 'technical requirement,' but the submitted paper still presents it as a property of trained models ('generally holds for most trained Transformer models'). No empirical data or revised framing appears in the submitted text.",
+                "severity": "major",
+                "evidence": "Section 5, Assumption 5.1: 'This assumption depends only on the parameters of the query and key affine transformations. It generally holds for most trained Transformer models.' The rebuttal states: 'We should have been clearer about this framing' and proposes empirical validation as a revision, but the submitted paper text is unchanged. The claim remains unsupported in the material under review.",
+                "affected_claim": "Theorem 5.2 and its claimed applicability to practical Transformers.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The proof of the lower bound (Lemma 5.4) still relies on unsubstantiated claims about information encoding. The rebuttal promises a 'more explicit construction' but provides none in the submitted paper. The phrase 'treating details abstractly' and the vague appeal to universal approximation remain in Section 5.2, unremedied.",
+                "severity": "major",
+                "evidence": "Section 5.2, Lemma 5.4 proof, equation (8): 'The partial sum Σ emb(w_k)/k can be seen as carrying isomorphic information about (w_1,...,w_n), assuming a suitable injection or universal approximation property (we treat details abstractly here).' The rebuttal acknowledges this 'hand-waves over a critical step' and proposes strengthening via 'more rigorous treatment' and 'explicit construction,' but no such improvements appear in the submitted paper. The promise to 'elaborate this construction in revision' indicates no current resolution.",
+                "affected_claim": "Lemma 5.4 and the lower bound of Theorem 5.2.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The practical impact remains severely limited by the simplified model setup, and the rebuttal does not address this through concrete extensions or experiments in the submitted paper. The claims about 'real-world implementations' contradict the acknowledged theoretical framework restricted to recognition tasks.",
+                "severity": "major",
+                "evidence": "Section 4.4 lists the same constraints as in the initial submission. The rebuttal explains why simplifications are necessary ('necessary to obtain clean theoretical results...to avoid confounding effects') but does not provide either: (a) empirical validation with two-layer models, (b) extension to multi-head attention, or (c) formal analysis of which constraints are essential. The paper continues to claim applicability to 'practical Transformers' despite using an unrealistic minimal architecture.",
+                "affected_claim": "Abstract claim that results apply to 'practical Transformers' and the conclusion stating 'practical Transformers may be fundamentally constrained.'",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The connection between formal language recognition and practical language modeling is unresolved. The rebuttal acknowledges this is 'non-trivial' and defers to future work, but without this connection, claims about implications for 'practical Transformers' are unfounded.",
+                "severity": "major",
+                "evidence": "Section 7.2 remains unchanged: 'bridging these two outlooks more rigorously remains a key objective for future research.' The rebuttal states: 'The gap between recognition and generation is real and limits practical impact, but it applies to much of the formal language theory work on Transformers, not just our paper.' This is a valid point about the broader field, but it does not resolve the gap for this paper's claims. The paper presents Transformers as recognizers but makes claims about implications for practical (generative) language models.",
+                "affected_claim": "The abstract and conclusion's claims about 'practical Transformers' and their functioning as 'lookup tables.'",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The upper bound proof (Lemma 5.3) still lacks rigorous treatment of finite-precision saturation. The rebuttal sketches how this could be formalized ('we can compute the minimum number of terms L needed such that...') but provides no formal bounds or theorems in the submitted paper itself.",
+                "severity": "major",
+                "evidence": "Section 5.1, Lemma 5.3 proof, still states: 'this sum diverges to +inf in p-precision. Consequently, the fraction exp(q_v K_{|w|}^T) / (+inf) is effectively 0 in p-precision.' The rebuttal acknowledges 'we do not rigorously specify what this means' and proposes formal treatment via 'bounds on when saturation occurs,' but no such formal statement appears in the submitted paper.",
+                "affected_claim": "Lemma 5.3 and the upper bound of Theorem 5.2.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The soundness concerns identified in the initial review remain substantively unresolved in the submitted paper. While the rebuttal acknowledges the issues with Assumption 5.1, Lemma 5.4, and Lemma 5.3, it does not provide fixes in the submitted text—only promises of future revision. The key technical gaps persist: (1) Assumption 5.1 is still presented without empirical justification; (2) Lemma 5.4 still appeals to vague 'universal approximation' and 'abstract' treatment; (3) Lemma 5.3 still lacks formal treatment of finite-precision saturation semantics. The rebuttal demonstrates author awareness of these limitations but does not resolve them within the submission."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The specific characterization of fixed-precision Transformer decoders without positional encoding as recognizing exactly finite and co-finite languages is novel, even if the broader direction of studying finite-precision expressivity is not. The systematic investigation of how APE, NoPE, and parameter assumptions interact is also original. However, novelty is only one gate; soundness failure is dispositive."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "Significance remains limited due to the gap between the theoretical framework (recognition of formal languages) and practical relevance (generative language modeling). The rebuttal acknowledges this gap is 'non-trivial' and defers resolution to future work, effectively conceding that the paper's implications for 'practical Transformers' are not rigorously established. Additionally, the result (finite/co-finite languages) is weaker than what more complex or less constrained architectures achieve, and practical relevance is undermined by the minimal model setup with no empirical validation."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The paper remains purely theoretical with no empirical validation. The rebuttal does not provide experiments validating that (a) Assumption 5.1 holds for trained models, (b) two-layer single-head Transformers actually achieve the predicted expressivity bounds, or (c) the theoretical predictions correlate with empirical language modeling performance. The rebuttal identifies these as valuable additions ('conduct experiments...provide experiments') but none are included in the submitted paper."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written and well-organized. Definitions are formal and mostly rigorous; the logical structure flows well; examples are helpful. The issue is not presentation but rather the informal treatment of critical technical details within otherwise well-presented sections. Clarity at the sentence level does not compensate for gaps in mathematical rigor at the proof level."
+              }
+            },
+            "summary_comment": "The rebuttal demonstrates that the authors understand the core criticisms and acknowledges substantive limitations of the submitted work. However, the submitted paper itself remains unchanged in all material respects. The rebuttal provides a roadmap for future revision (empirical validation of Assumption 5.1, more explicit construction for Lemma 5.4, formal treatment of saturation in Lemma 5.3) but these improvements are promised as future work, not delivered in the submitted text.\n\nEvaluating the paper as submitted, the three major soundness concerns persist unresolved:\n\n1. **Assumption 5.1 lacks justification**: The paper still claims it 'generally holds for most trained Transformer models' without evidence. The rebuttal repositions this as a design choice but the text is not updated to reflect this framing.\n\n2. **Lemma 5.4 lacks rigor**: The critical step of encoding the input string into the partial sum Σ emb(w_k)/k is still treated 'abstractly.' The rebuttal's proposed fix (explicit construction) does not appear in the submission.\n\n3. **Lemma 5.3 lacks formal finite-precision treatment**: The claim that the softmax denominator 'diverges to +inf' and subsequent terms become 'effectively 0' is still not formally defined. The rebuttal sketches a path to formalization but does not execute it.\n\nBeyond soundness, the significance and practical relevance remain questionable: the framework is recognition-based (not generative), the model is minimal (not representative of practical Transformers), and no empirical validation is provided. The rebuttal acknowledges these are limitations but notes they are common in the formal language theory literature. While this is a fair point about the field, it does not change the assessment for a venue expecting practical relevance or stronger theoretical guarantees.\n\nThe paper makes a technical contribution to formal language expressivity of Transformers, but the submission does not meet the standard for a top-tier ML conference due to unresolved soundness concerns, lack of empirical validation, and the disconnect between the theoretical framework and practical implications claimed in the abstract and conclusion."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Assumption 5.1 (Infinity-Freeness) lacks empirical or theoretical justification and appears tailored to produce the desired result\",\n        \"The proof of the lower bound (Lemma 5.4) relies on vague 'universal approximation argument' that hand-waves critical details about encoding uniqueness under finite precision\",\n        \"The simplified model setup (two layers, single head, no layer norm) severely limits practical relevance despite claims about 'real-world implementations'\",\n        \"Gap between formal language recognition framework and actual probabilistic language modeling is acknowledged but not resolved\",\n        \"Upper bound proof (Lemma 5.3) lacks rigorous treatment of finite-precision saturation and what 'effectively 0' means formally\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Assumption 5.1 presented without justification\",\n          \"location\": \"Section 5, Definition of Assumption 5.1 (Equation 2)\",\n          \"explanation\": \"The paper states that Assumption 5.1 'generally holds for most trained Transformer models' but provides no empirical evidence, theoretical argument, or reference to support this claim. The assumption is removed in Section 6.2 for letter-set languages, suggesting it is more of a technical convenience than a fundamental property.\"\n        },\n        {\n          \"concern\": \"Lower bound proof relies on informal encoding argument\",\n          \"location\": \"Section 5.2, Lemma 5.4, specifically equation (8) and surrounding discussion\",\n          \"explanation\": \"The paper states: 'The partial sum Σ emb(w_k)/k can be seen as carrying isomorphic information about (w_1,...,w_n), assuming a suitable injection or universal approximation property (we treat details abstractly here).' No formal definition of 'isomorphic information' is provided, and treating such a critical step abstractly is insufficient for rigor.\"\n        },\n        {\n          \"concern\": \"Simplified model architecture\",\n          \"location\": \"Section 4.4, 'Confirmation of Constraints'\",\n          \"explanation\": \"The paper explicitly excludes: positional encoding (for §5 only), uses only two-layer Transformer, single-head attention without pre-norm, causal masking, and softmax. These simplifications are acknowledged as necessary for the proof but make the model unrealistic.\"\n        },\n        {\n          \"concern\": \"Recognition vs. generation gap acknowledged\",\n          \"location\": \"Section 7.2, 'Language Modeling'\",\n          \"explanation\": \"The authors explicitly state: 'Throughout this work, we frame the Transformer as a language recognizer...diverges somewhat from typical usage...bridging these two outlooks more rigorously remains a key objective for future research.' This undermines the practical relevance claim.\"\n        },\n        {\n          \"concern\": \"Upper bound proof informal at critical steps\",\n          \"location\": \"Section 5.1, Lemma 5.3 proof, discussion of softmax denominator\",\n          \"explanation\": \"The proof claims the softmax denominator 'diverges to +inf in p-precision' and subsequently exp(...) / (+inf) is 'effectively 0', but no formal treatment of IEEE 754 saturation semantics or overflow rules is provided. What does 'effectively 0' mean in p-precision arithmetic?\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Assumption 5.1 needs proper justification\",\n          \"proposed_change\": \"Either (a) provide empirical validation that standard trained Transformers satisfy Assumption 5.1 (e.g., measure Q·K^T values during inference on multiple models), (b) reformulate Assumption 5.1 as a design choice and analyze its necessity rather than presenting it as a property of trained models, or (c) weaken the assumption to show results hold under more general conditions.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Lower bound proof lacks rigor in encoding argument\",\n          \"proposed_change\": \"Formally define what 'isomorphic information' means in the context of embeddings and partial sums. Either prove that Σ emb(w_k)/k constitutes an injective encoding of w under p-precision arithmetic, or use a different encoding scheme with rigorous justification. Provide concrete construction details (e.g., explicit embedding dimension and FFN architecture) sufficient for verification or implementation.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Upper bound proof relies on informal claims about finite-precision arithmetic\",\n          \"proposed_change\": \"Provide rigorous formal treatment of how fixed-precision operations (addition, exponentiation, division) interact with saturation under IEEE 754 semantics. Formally define when the softmax denominator becomes 'effectively 0' (e.g., quantitatively specify thresholds or use formal precision-loss bounds). Consider citing or leveraging prior work on finite-precision error analysis.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Gap between recognition framework and language modeling\",\n          \"proposed_change\": \"Extend Definition 4.3 and Theorem 5.2 to probabilistic settings, or provide a rigorous justification of why the recognition framework's expressivity bounds imply constraints on language modeling performance. Alternatively, conduct experiments measuring whether the theoretical bounds correlate with actual language modeling capabilities (e.g., test accuracy on synthetic finite/co-finite languages).\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Model simplifications limit practical relevance\",\n          \"proposed_change\": \"Extend analysis to at least cover: (a) multi-head attention, (b) layer normalization, (c) deeper networks. Show that either (i) the key results extend to these settings, or (ii) these components genuinely increase expressivity. Alternatively, provide experiments with actual two-layer single-head Transformers to demonstrate that the theoretical predictions match empirical behavior.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the detailed and constructive review. The reviewer raises important concerns about soundness, practical relevance, and rigor that we address below.\\n\\n**On Assumption 5.1 (Infinity-Freeness):**\\n\\nThe reviewer correctly identifies that Assumption 5.1 lacks empirical justification. We acknowledge this is a significant limitation. In the current submission, we present Assumption 5.1 as a design choice necessary for the theoretical analysis (to avoid pathological cases where Q·K^T = ±inf), rather than as an empirically verified property of trained models. We should have been clearer about this framing. The fact that we remove this assumption in Section 6.2 for letter-set languages does indeed suggest it is more of a technical requirement than a universal property.\\n\\nTo strengthen this aspect, we could: (1) conduct empirical measurements on trained models to assess how often Q·K^T ≈ ±inf in practice, (2) formulate the assumption as an explicit architectural constraint (e.g., parameter initialization or clipping) rather than a claim about existing models, or (3) show that relaxing the assumption incrementally weakens expressivity bounds rather than changing them categorically. We treat this as a high priority for revision.\\n\\n**On the Lower Bound (Lemma 5.4):**\\n\\nThe reviewer is correct that the proof hand-waves over a critical step. The phrase 'treating details abstractly' in the discussion of the partial sum Σ emb(w_k)/k encoding the input is indeed insufficient. In the current submission, we rely on an appeal to universal approximation to justify that an FFN can implement the acceptance criterion given this encoding. \\n\\nHowever, we should more rigorously address: (a) How does the partial sum Σ emb(w_k)/k encode information about w under fixed precision? (b) Is this encoding injective or at least discriminative enough for the FFN to distinguish finite languages? (c) What is the required embedding dimension and precision p to guarantee this?\\n\\nOne way to strengthen this is to provide a more explicit construction. For finite languages, we can bound |L_fin| and use a lookup-table approach: represent each string w ∈ L_fin directly as a separate attention pattern, then aggregate. Alternatively, we could leverage the fact that for finite languages over a finite alphabet, one can construct explicit Transformer parameters that recognize any target finite set. We will elaborate this construction in revision.\\n\\n**On the Upper Bound (Lemma 5.3) and Finite-Precision Arithmetic:**\\n\\nThe reviewer correctly notes that the proof's treatment of saturation is informal. We claim that the softmax denominator Σ exp(q_v K_j^T) 'diverges to +inf' and subsequently exp(...) / (+inf) is 'effectively 0', but we do not rigorously specify what this means in p-precision arithmetic.\\n\\nIn the current submission: By Assumption 5.1, we know Q(y) K(y')^T remains finite. However, summing many such exponentials can exceed the representable range of p-precision floats, leading to saturation at +inf. Under IEEE 754 semantics, dividing a finite number by +inf yields 0 (or subnormal values depending on context). The key insight is that once the sum saturates, all individual terms become negligible. To formalize this: we can compute the minimum number of terms L needed such that Σ_{j=1}^L exp(q_v K_j^T) saturates the p-precision range, then show that for any string of length ≥ L, the attention mechanism becomes insensitive to variations within that string.\\n\\nWe acknowledge this requires more rigorous treatment of IEEE 754 semantics and should include formal bounds on when saturation occurs. This is fixable within the paper's framework.\\n\\n**On the Gap Between Recognition and Language Modeling:**\\n\\nThe reviewer correctly identifies that Definition 4.3 frames Transformers as language recognizers (checking for an accept token in a finite output), whereas practical language modeling is generative and probabilistic. We explicitly acknowledge this in Section 7.2.\\n\\nOur current framing assumes we are studying a Transformer in a *classification* setting, not pure generation. For a recognizer, Definition 4.3 is reasonable. However, we should have been more explicit from the outset that this framework does not directly correspond to language modeling. The practical relevance would be stronger if we could show that recognition limits imply generation limits, but this connection is non-trivial and acknowledged as future work in the paper.\\n\\n**On Model Simplifications:**\\n\\nThe reviewer correctly identifies that the two-layer, single-head, no-norm architecture is a significant restriction. We include these simplifications because:\\n\\n1. They are necessary to obtain clean theoretical results (e.g., to avoid confounding effects of layer normalization).\\n2. They allow us to focus on the effect of fixed-precision arithmetic in isolation.\\n3. They represent a minimal Transformer that still exhibits key properties (attention, causal masking, softmax).\\n\\nHowever, the reviewer is right to question whether results extend to practical architectures. Section 7.3 acknowledges these gaps and suggests extensions. We could strengthen the paper by: (a) showing that adding multi-head attention does not fundamentally change the result, (b) providing experiments with small two-layer models to validate theoretical predictions, or (c) clarifying which architectural choices are truly essential vs. incidental.\\n\\n**Summary of Our Position:**\\n\\nWe agree that the soundness concerns warrant careful revision. The lower bound proof should be made more explicit; the upper bound should formally address finite-precision saturation; and Assumption 5.1 should be better justified or repositioned. The gap between recognition and generation is real and limits practical impact, but it applies to much of the formal language theory work on Transformers, not just our paper. We believe these issues are addressable through careful revision, though some (particularly empirical validation and extension to realistic architectures) would benefit from additional work beyond the current submission.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "Addresses a practically relevant gap between theoretical models and real-world implementations by studying fixed-precision Transformers, which is an important direction given that actual hardware operates under finite precision constraints.",
+              "Provides both upper and lower bounds on expressivity (Theorem 5.2), establishing a complete characterization of the language class (finite and co-finite languages) that fixed-precision Transformers without positional encoding can recognize under stated assumptions.",
+              "Investigates the interplay between multiple practical constraints (fixed precision, positional encoding variants, parameter assumptions), providing a systematic analysis of how each component affects expressivity."
+            ],
+            "weaknesses": [
+              "Assumption 5.1 conflates design constraint with empirical claim: the paper states the assumption 'generally holds for most trained Transformer models' without support, when it should be framed as a design choice. While the rebuttal clarifies the intended conditional reading (IF Assumption 5.1, THEN finite/co-finite), the submitted text does not reflect this distinction, creating confusion about scope.",
+              "The lower bound proof (Lemma 5.4) relies on informal reasoning justified only as 'treating details abstractly.' The rebuttal's explanation that 'finite languages have finite support so FFN lookup suffices' is logically sound and clarifies what was genuinely unclear, but this reasoning does not appear in the submitted paper itself.",
+              "The practical relevance of the recognition-based formalism remains inadequately justified. While the rebuttal offers that 'recognition expressivity provides necessary conditions on generation,' the submitted paper does not establish this connection, making claims about 'practical Transformers' in the abstract and conclusion misleading without this bridge.",
+              "The simplified architecture (two layers, single head, no layer norm) is necessary for theoretical tractability but distances the results from practical systems. Without even minimal empirical validation showing that the simplified model exhibits predicted behavior, the path from theory to practice remains speculative."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Assumption 5.1 conflates design constraint with empirical claim: the paper states the assumption 'generally holds for most trained Transformer models' without support, when it should be framed as a design choice. While the rebuttal clarifies the intended conditional reading (IF Assumption 5.1, THEN finite/co-finite), the submitted text does not reflect this distinction, creating confusion about scope.",
+                "severity": "minor",
+                "evidence": "Section 5, Assumption 5.1 (lines 220-221): 'This assumption depends only on the parameters of the query and key affine transformations. It generally holds for most trained Transformer models.' This wording suggests an empirical claim. The rebuttal clarifies that the paper intends a conditional: 'IF Assumption 5.1 holds, THEN Theorem 5.2 follows.' However, this conditional framing is not explicitly stated in the paper. The rebuttal's proposed fix ('reformulate Assumption 5.1 as an explicit design constraint rather than a property of trained models') is not present in the submitted text.",
+                "affected_claim": "Theorem 5.2's applicability to real trained models.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The lower bound proof (Lemma 5.4) relies on informal reasoning justified only as 'treating details abstractly.' The rebuttal's explanation that 'finite languages have finite support so FFN lookup suffices' is logically sound and clarifies what was genuinely unclear, but this reasoning does not appear in the submitted paper itself.",
+                "severity": "minor",
+                "evidence": "Section 5.2, Lemma 5.4 proof (lines 328-330): 'The partial sum Σ emb(w_k)/k can be seen as carrying isomorphic information about (w_1,...,w_n), assuming a suitable injection or universal approximation property (we treat details abstractly here).' The rebuttal provides a sound clarification: for finite languages with bounded support, an FFN lookup table is universal over the finite input domain. This is mathematically correct and would resolve the informality if stated in the paper. However, since it is not stated, the weakness persists in the submitted text, though the rebuttal confirms the underlying argument is valid.",
+                "affected_claim": "Lemma 5.4 and the lower bound of Theorem 5.2.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The practical relevance of the recognition-based formalism remains inadequately justified. While the rebuttal offers that 'recognition expressivity provides necessary conditions on generation,' the submitted paper does not establish this connection, making claims about 'practical Transformers' in the abstract and conclusion misleading without this bridge.",
+                "severity": "major",
+                "evidence": "Abstract (lines 9-11): 'practical Transformers may be fundamentally constrained to recognizing only finite and co-finite languages.' Conclusion (lines 437-438): 'practical Transformers may be fundamentally constrained to recognizing finite languages, functioning as highly efficient lookup tables.' These claims apply findings from a recognition framework (Definition 4.3) to generative 'practical Transformers,' but the connection is not established in the paper. Section 7.2 acknowledges the gap but defers to 'future research.' The rebuttal's proposed clarification (noting that recognition is a necessary condition on generation) is not present in the submitted text, leaving the claims unsupported.",
+                "affected_claim": "Abstract and conclusion claims about 'practical Transformers.'",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The simplified architecture (two layers, single head, no layer norm) is necessary for theoretical tractability but distances the results from practical systems. Without even minimal empirical validation showing that the simplified model exhibits predicted behavior, the path from theory to practice remains speculative.",
+                "severity": "major",
+                "evidence": "Section 4.4 lists constraints; Section 7.3 acknowledges: 'Our current setup is simplified, focusing on a limited subset of Transformer components...In real-world architectures, additional architectural features could significantly impact expressivity.' The rebuttal acknowledges: 'we would be strengthened by even minimal empirical validation...training small two-layer Transformers on synthetic finite-language tasks and measuring whether their recognition matches theoretical predictions.' No such validation appears in the submitted paper. The rebuttal notes this 'is not computationally expensive' but recognizes it as absent from the current submission.",
+                "affected_claim": "The bridge between theoretical results and practical implications.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The rebuttal provides logically sound clarifications to the three main technical concerns. (1) For Assumption 5.1: the rebuttal confirms that the intended reading is a conditional statement ('IF Assumption 5.1 THEN Theorem 5.2'), which is mathematically valid regardless of whether real models satisfy the assumption. The framing issue is one of clarity, not correctness. (2) For Lemma 5.4: the rebuttal explains that the FFN lookup argument is sound for finite languages (which have finite support), making the 'universal approximation' step elementary rather than unjustified. This is a legitimate defense of what appeared abstract. (3) For Lemma 5.3: the rebuttal sketches a formal version with explicit bounds (L = ⌈log_c M⌉), providing a path to rigor that confirms the informal claim is mathematically well-founded. While these clarifications are not in the submitted paper, they demonstrate the underlying mathematics is sound. The issues are presentation-level, not fundamental flaws in reasoning. Soundness thus passes, though with reservations about clarity."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The specific characterization of fixed-precision Transformer decoders without positional encoding as recognizing exactly finite and co-finite languages is novel. Extending prior work (Merrill & Sabharwal, Chiang et al.) from encoders and abstract settings to decoders with concrete fixed-precision constraints, and systematically studying the role of positional encoding (APE vs. NoPE) and parameter assumptions (Assumption 5.1 present/absent), provides incremental but genuine novel contributions to the formal language expressivity literature."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "Significance is limited by three factors: (1) The recognition-based framework is not clearly connected to practical generative language modeling (acknowledged in Section 7.2 as deferred to future work). Claims about 'practical Transformers' in the abstract and conclusion are thus not adequately supported. (2) The simplified two-layer single-head architecture is far from practical systems; while necessary for theoretical tractability, it limits the applicability of results. (3) The result (finite/co-finite languages) is a narrow characterization of a minimal architecture, providing insights into what constraints impose but limited guidance on designing or understanding real models. The paper is primarily of interest to the formal language theory subfield, not the broader ML community. For a top-tier ML venue, significance requires either stronger practical relevance or deeper theoretical insights; this work provides neither."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The paper is purely theoretical with no empirical validation. The rebuttal acknowledges that 'minimal empirical validation'—training two-layer Transformers on synthetic tasks to verify theoretical predictions—would strengthen the work but notes this is absent. Without experiments: (a) validating whether Assumption 5.1 holds for any model; (b) confirming that the simplified architecture actually exhibits the predicted finite/co-finite recognition behavior; or (c) demonstrating a correlation between theoretical bounds and empirical performance, the evaluation is incomplete. For a paper making claims about practical implications, the lack of any experimental grounding is a material weakness."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-structured with clear definitions, formal theorems, and helpful examples (Example 4.4, Example 3.5). The logical flow from preliminaries to main results is easy to follow. The issues identified—informal treatment of encoding in Lemma 5.4, lack of formal precision saturation bounds in Lemma 5.3, conflation of design constraint and empirical claim in Assumption 5.1—are presentation-level problems within otherwise well-written sections. These are fixable without restructuring or major rewrites. Presentation passes despite these issues because the core material is accessible and the main argument is followable."
+              }
+            },
+            "summary_comment": "The rebuttal substantially improves confidence in the soundness of the core theoretical results by clarifying what appeared to be gaps. The key insights—that Lemma 5.4 relies on valid finite-domain lookup arguments, that Lemma 5.3's saturation claim can be formalized with explicit bounds, and that Theorem 5.2 should be read as a conditional on Assumption 5.1—are logically sound. However, these clarifications do not appear in the submitted paper. Evaluating the submission as written, the presentation issues remain, though they are now understood to be remediable without affecting correctness.\n\nThe fundamental barriers to acceptance are not soundness-related but concern significance and evaluation:\n\n1. **Significance is limited** because the recognition-based result does not clearly translate to implications for practical generative language modeling. Claims in the abstract and conclusion about 'practical Transformers' overstate what is actually established. The rebuttal offers a more careful reading ('recognition is a necessary condition on generation') but this does not appear in the paper, leaving the claims exposed.\n\n2. **Evaluation is incomplete** because there is no empirical validation. For a paper claiming relevance to practical systems, even basic experiments (training and testing small two-layer Transformers on synthetic finite-language tasks) would provide necessary grounding. The rebuttal acknowledges this would be valuable but notes it is absent.\n\n3. **The simplifications necessary for theory** (two layers, single head, no layer norm) are so severe that the path from this minimal model to practical Transformers is unclear and unsupported. While such simplifications are standard in theoretical work, they typically require either: (a) evidence that the simplifications do not fundamentally alter behavior (via experiments), or (b) extension to more realistic settings (via theory). This work provides neither.\n\nThe paper makes a valid but narrow theoretical contribution to the formal language expressivity literature. It is appropriate for specialized venues focused on formal languages or neural network theory, but falls short of the standard for a top-tier general ML conference, which expects either stronger practical grounding or more comprehensive theoretical coverage. The soundness concerns have been addressed by the rebuttal, moving the score from 2 to 3, but significance and evaluation remain insufficient for acceptance at a selective venue."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Assumption 5.1 remains unjustified in the submitted paper despite rebuttal acknowledgment\",\n        \"Lower bound proof (Lemma 5.4) still lacks explicit construction despite promised improvements\",\n        \"Upper bound proof (Lemma 5.3) still lacks formal treatment of finite-precision saturation despite acknowledged need\",\n        \"Practical relevance claims contradict the recognition-based (not generative) theoretical framework\",\n        \"No empirical validation provided for any of the main theoretical claims\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Assumption 5.1 presented without justification in submitted paper\",\n          \"location\": \"Section 5, Assumption 5.1, line ~220-221\",\n          \"explanation\": \"The paper states: 'This assumption depends only on the parameters of the query and key affine transformations. It generally holds for most trained Transformer models.' This claim remains unsupported in the submitted text, despite the rebuttal acknowledging it 'lacks empirical justification.' The rebuttal proposes but does not deliver revisions to this framing.\"\n        },\n        {\n          \"concern\": \"Lower bound proof still hand-waves critical encoding step\",\n          \"location\": \"Section 5.2, Lemma 5.4 proof, equation (8) and surrounding text, lines ~328-330\",\n          \"explanation\": \"The paper still states: 'The partial sum Σ emb(w_k)/k can be seen as carrying isomorphic information about (w_1,...,w_n), assuming a suitable injection or universal approximation property (we treat details abstractly here).' Despite the rebuttal's acknowledgment that this 'hand-waves over a critical step' and promise of 'more rigorous treatment,' no improved construction appears in the submitted paper.\"\n        },\n        {\n          \"concern\": \"Upper bound proof still lacks formal treatment of saturation\",\n          \"location\": \"Section 5.1, Lemma 5.3 proof, lines ~250-260\",\n          \"explanation\": \"The paper states: 'this sum diverges to +inf in p-precision. Consequently, the fraction exp(q_v K_{|w|}^T) / (+inf) is effectively 0 in p-precision.' The rebuttal acknowledges 'we do not rigorously specify what this means in p-precision arithmetic' and sketches formal bounds but provides no formal statement, theorem, or definition in the submitted text.\"\n        },\n        {\n          \"concern\": \"Recognition-based framework applied to generative language modeling\",\n          \"location\": \"Abstract (line 9-11) and Conclusion (line 437-438)\",\n          \"explanation\": \"The abstract claims the results apply to 'practical Transformers,' but Definition 4.3 (line 178-185) frames language recognition as accepting if an accept token appears in finite autoregressive output. This is fundamentally different from probabilistic language generation. Section 7.2 (lines 417-425) acknowledges this gap but defers resolution to 'future research.'\"\n        },\n        {\n          \"concern\": \"No empirical validation in submitted paper\",\n          \"location\": \"Entire paper - no experimental section\",\n          \"explanation\": \"The paper contains only theoretical proofs with no experiments validating: (a) whether Assumption 5.1 holds for trained models, (b) whether the simplified two-layer single-head architecture actually achieves predicted bounds, or (c) whether theoretical predictions correlate with empirical behavior.\"\n        }\n      ],\n      \"proposed_future_revisions\": [],\n      \"response\": \"We appreciate the reviewer's detailed assessment, and we understand their concern that the rebuttal identifies problems without delivering fixes within the submitted paper. The reviewer is technically correct: the submitted paper remains unchanged in critical respects, and promises of future revision do not constitute resolution of the current submission.\\n\\nHowever, we respectfully believe the reviewer's framing as a gate against acceptance may be overly strict, and we wish to clarify what the paper actually establishes versus what remains open.\\n\\n**1. On Assumption 5.1 and Its Role:**\\n\\nWe agree the paper's phrasing—'generally holds for most trained Transformer models'—is imprecise. However, re-reading Section 5 carefully, we observe that Assumption 5.1 is presented within the scope of a specific theoretical result (Theorem 5.2). The paper does not claim to characterize all Transformers universally; rather, it states: *under* Assumption 5.1 *and* fixed precision *and* NoPE, expressivity is finite/co-finite.\\n\\nThis is a valid theoretical contribution even if Assumption 5.1 is primarily a technical device rather than an empirical property. The paper could be clearer in distinguishing between:\\n- *Empirical claim*: Trained models satisfy Assumption 5.1 (currently unsupported).\\n- *Theoretical claim*: IF a Transformer satisfies Assumption 5.1 (plus other constraints), THEN it recognizes finite/co-finite languages (formally established in the paper).\\n\\nThe theoretical claim stands regardless of whether real models satisfy Assumption 5.1. To address the reviewer's concern more directly: **In revision, we would reformulate Assumption 5.1 as an explicit design constraint rather than a property of trained models**, clarifying the conditional nature of Theorem 5.2. This is a matter of presentation and framing, not a change to the mathematical content.\\n\\n**2. On Lemma 5.4 and the 'Universal Approximation' Step:**\\n\\nThe reviewer correctly notes that the encoding argument in Lemma 5.4 relies on an informal appeal. We wish to defend this more strongly than the rebuttal did.\\n\\nThe key step (Equation 8) is: the second attention layer produces a weighted sum $\\\\frac{1}{n}[0, \\\\sum_k \\\\frac{\\\\text{emb}(w_k)}{k}]$. The claim is that this vector, when passed through an FFN, can discriminate finite languages.\\n\\nThis claim is sound for finite languages because:\\n- Finite languages have only finitely many distinct input strings (at most length L).\\n- For each such string, the partial sum uniquely identifies it (assuming distinct embeddings per input).\\n- An FFN with sufficient capacity can implement a lookup table over these finitely many cases.\\n\\nThe \\\"universal approximation\\\" invoked here is not about continuous functions on compact domains—it is simply: an FFN over a finite domain is universal for any Boolean function. This is elementary and requires no additional justification beyond the finite cardinality argument.\\n\\nWe acknowledge the phrase \\\"treating details abstractly\\\" is poor exposition. To strengthen this: **In revision, we would make explicit that finite languages have bounded support, and therefore an FFN lookup table suffices.** This does not require new constructions, only clearer exposition of why the existing argument works under finiteness.\\n\\nThe lower bound is therefore sound as stated; the issue is clarity rather than rigor.\\n\\n**3. On Lemma 5.3 and Finite-Precision Saturation:**\\n\\nThe reviewer's concern here is more substantial. The proof of Lemma 5.3 relies on the claim that the softmax denominator saturates to +inf, causing individual terms to become negligible. Under IEEE 754, division by +inf does yield 0 (or subnormal), so the informal argument is correct in spirit.\\n\\nHowever, the reviewer is right that we should formalize the threshold. The argument can be made fully rigorous as follows:\\n\\n**Lemma 5.3 (Formal Version - not in submitted paper):**\\nLet $M$ be the maximum representable finite value in $\\\\mathbb{D}_p$ (defined by IEEE 754 as roughly $2^{2^p}$). By Assumption 5.1, let $c = \\\\max_{y, y'} |Q(y) K(y')^T|$ be bounded. Then the sum $\\\\sum_{j=1}^{|w|+1} \\\\exp(c)$ exceeds $M$ after at most $L = \\\\lceil \\\\log_c M \\\\rceil$ terms. For any $w$ with $|w| \\\\geq L$, the softmax denominator saturates, and thus $\\\\frac{\\\\exp(c)}{+\\\\inf} = 0$ in $\\\\mathbb{D}_p$.\\n\\nThis argument is mathematically sound and can be added to Section 5.1 without changing the core result.\\n\\n**In revision, we would include this formal statement** quantifying $L$ in terms of $p$, $c$, and machine epsilon. This addresses the reviewer's concern directly.\\n\\n**4. On Recognition vs. Generation and Practical Relevance:**\\n\\nThe reviewer raises a fundamental question: do our results about language recognition imply anything about generative language modeling?\\n\\nThis is a valid concern, but we believe it reflects a structural issue in the formal language theory literature generally, not a flaw specific to our paper. Many recent Transformer expressivity results frame the model as a recognizer (Bhattamishra et al., 2020b; Chiang et al., 2023; Yang et al., 2024). The connection to generation is often implicit or deferred.\\n\\nHowever, we can make the connection more explicit without solving it fully:\\n\\n- **Necessary condition**: If a Transformer cannot recognize a language $L$ (i.e., $L$ is not in its expressivity class), then it cannot learn to generate strings from $L$ reliably. Recognition expressivity is a lower bound on generation capability.\\n\\n- **Practical interpretation**: Our result shows that without positional encoding and under fixed precision, a Transformer can distinguish inputs only by their length and final token. This fundamentally constrains what patterns it can learn, whether in recognition or generation tasks.\\n\\n**In revision, we would clarify in Section 7.2 that**: (a) recognition expressivity provides necessary conditions on generation capability, (b) our results establish fundamental limits on what input distinctions a model can make, and (c) these limits apply to both recognition and generation tasks, even if the specific mechanism differs.\\n\\nThis does not fully bridge the gap but makes the relevance clearer without requiring new theory.\\n\\n**5. On the Simplified Architecture and Empirical Validation:**\\n\\nThe reviewer notes the model uses two layers, single head, and no layer norm—features essential to the theoretical result but absent from practical Transformers.\\n\\nWe defend this choice: theoretical results require simplification to isolate the effect of fixed precision. Adding multi-head attention, layer norm, etc., introduces confounding factors. Our result is valid for the stated architecture; extending to more complex ones requires additional work.\\n\\nThat said, **we acknowledge the paper would be strengthened by even minimal empirical validation**: training small two-layer Transformers on synthetic finite-language tasks and measuring whether their recognition matches theoretical predictions. This is not computationally expensive and would provide a sanity check.\\n\\n**Regarding the reviewer's framing about \\\"promises not kept\\\":**\\n\\nWe acknowledge the rebuttal promised revisions without delivering them in the submitted text. We respect the reviewer's position that this diminishes confidence. However, we note:\\n\\n1. **Soundness issues identified (Assumptions 5.1, Lemmas 5.3-5.4) are addressable** through clarification and formalization, not fundamental flaws. The arguments are mathematically valid; the presentation requires improvement.\\n\\n2. **The core theoretical contribution is solid**: characterizing fixed-precision Transformers without PE as finite/co-finite recognizers is novel and rigorously proved (modulo the presentation issues identified). The gaps are in exposition and framing, not in the mathematical content.\\n\\n3. **The significance concern is about interpretation, not correctness**: whether the result has practical implications is partly a question of how one frames the theoretical framework. A recognition-based result does constrain generation capacity, even if indirectly.\\n\\nWe believe this paper makes a valid theoretical contribution and is suitable for publication at a venue focused on formal language theory or expressivity of neural models, though it may not meet the bar for top-tier general ML venues without additional empirical grounding.\\n\\n**In sum:** Rather than viewing the rebuttal as backtracking, we invite the reviewer to see it as identifying clear paths to strengthening the submission—paths that do not require recomputing results or new theory, only clearer presentation. We stand by the soundness of Theorems 5.2, 6.1, and 6.2 and believe the contributions are meaningful.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_eb6565131459",
+    "conference": "ICML",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/icml_reject_2025_001_the_expressivity_of_fixed_precision_transformers_without_positional_encoding.md",
+    "target_paper_summary": {
+      "paper_id": "paper_eb6565131459",
+      "title": "The Expressivity Of Fixed-Precision Transformers Without Positional Encoding",
+      "abstract": "## Anonymous Authors1 Abstract",
+      "topic": "",
+      "claims": []
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_11890fb9a",
+        "title": "RWKV: Reinventing RNNs for the Transformer Era",
+        "authors": [
+          "Bo Peng",
+          "Eric Alcaide",
+          "Quentin Anthony",
+          "Alon Albalak",
+          "Samuel Arcadinho",
+          "Stella Biderman",
+          "Huanqi Cao",
+          "Xin Cheng",
+          "Michael Chung",
+          "Leon Derczynski",
+          "Xingjian Du",
+          "Matteo Grella",
+          "Kranthi Kiran GV",
+          "Xuzheng He",
+          "Haowen Hou",
+          "Przemysław Kazienko",
+          "Jan Kocoń",
+          "Jiaming Kong",
+          "Bartłomiej Koptyra",
+          "H.C.W. Lau",
+          "Jiaju Lin",
+          "Krishna Sri Ipsit Mantri",
+          "Ferdinand Mom",
+          "Atsushi Saito",
+          "Guangyu Song",
+          "Xiangru Tang",
+          "Johan S. Wind",
+          "Stanisław Woźniak",
+          "Zhenyuan Zhang",
+          "Qinghua Zhou",
+          "Jian Zhu",
+          "Ruijie Zhu"
+        ],
+        "year": 2023,
+        "publication_date": "2023-01-01",
+        "venue": "",
+        "abstract": "Bo Peng, Eric Alcaide, Quentin Anthony, Alon Albalak, Samuel Arcadinho, Stella Biderman, Huanqi Cao, Xin Cheng, Michael Chung, Leon Derczynski, Xingjian Du, Matteo Grella, Kranthi Gv, Xuzheng He, Haowen Hou, Przemyslaw Kazienko, Jan Kocon, Jiaming Kong, Bartłomiej Koptyra, Hayden Lau, Jiaju Lin, Krishna Sri Ipsit Mantri, Ferdinand Mom, Atsushi Saito, Guangyu Song, Xiangru Tang, Johan Wind, Stanisław Woźniak, Zhenyuan Zhang, Qinghua Zhou, Jian Zhu, Rui-Jie Zhu. Findings of the Association for Computational Linguistics: EMNLP 2023. 2023.",
+        "url": "https://doi.org/10.18653/v1/2023.findings-emnlp.936",
+        "doi": "https://doi.org/10.18653/v1/2023.findings-emnlp.936",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4389524555"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 317
+      },
+      {
+        "paper_id": "rw_002_652dcf505",
+        "title": "A survey: object detection methods from CNN to transformer",
+        "authors": [
+          "Ershat Arkin",
+          "Nurbiya Yadikar",
+          "Xuebin Xu",
+          "Alimjan Aysa",
+          "Kurban Ubul"
+        ],
+        "year": 2022,
+        "publication_date": "2022-10-21",
+        "venue": "Multimedia Tools and Applications",
+        "abstract": "Abstract Object detection is the most important problem in computer vision tasks. After AlexNet proposed, based on Convolutional Neural Network (CNN) methods have become mainstream in the computer vision field, many researches on neural networks and different transformations of algorithm structures have appeared. In order to achieve fast and accurate detection effects, it is necessary to jump out of the existing CNN framework and has great challenges. Transformer’s relatively mature theoretical support and technological development in the field of Natural Language Processing have brought it into the researcher’s sight, and it has been proved that Transformer’s method can be used for computer vision tasks, and proved that it exceeds the existing CNN method in some tasks. In order to enable more researchers to better understand the development process of object detection methods, existing methods, different frameworks, challenging problems and development trends, paper introduced historical classic methods of object detection used CNN, discusses the highlights, advantages and disadvantages of these algorithms. By consulting a large amount of paper, the paper compared different CNN detection methods and Transformer detection methods. Vertically under fair conditions, 13 different detection methods that have a broad impact on the field and are the most mainstream and promising are selected for comparison. The comparative data gives us confidence in the development of Transformer and the convergence between different methods. It also presents the recent innovative approaches to using Transformer in computer vision tasks. In the end, the challenges, opportunities and future prospects of this field are summarized.",
+        "url": "https://doi.org/10.1007/s11042-022-13801-3",
+        "doi": "https://doi.org/10.1007/s11042-022-13801-3",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4306967787"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 199
+      },
+      {
+        "paper_id": "rw_003_b35234c5c",
+        "title": "A survey of techniques for optimizing transformer inference",
+        "authors": [
+          "Krishna Teja Chitty-Venkata",
+          "Sparsh Mittal",
+          "Murali Emani",
+          "Venkatram Vishwanath",
+          "Arun K. Somani"
+        ],
+        "year": 2023,
+        "publication_date": "2023-09-18",
+        "venue": "Journal of Systems Architecture",
+        "abstract": "Recent years have seen a phenomenal rise in performance and applications of transformer neural networks. The family of transformer networks, including Bidirectional Encoder Representations from Transformer (BERT), Generative Pretrained Transformer (GPT) and Vision Transformer (ViT), have shown their effectiveness across Natural Language Processing (NLP) and Computer Vision (CV) domains. Transformer-based networks such as ChatGPT have impacted the lives of common men. However, the quest for high predictive performance has led to an exponential increase in transformers' memory and compute footprint. Researchers have proposed techniques to optimize transformer inference at all levels of abstraction. This paper presents a comprehensive survey of techniques for optimizing the inference phase of transformer networks. We survey techniques such as knowledge distillation, pruning, quantization, neural architecture search and lightweight network design at the algorithmic level. We further review hardware-level optimization techniques and the design of novel hardware accelerators for transformers. We summarize the quantitative results on the number of parameters/FLOPs and accuracy of several models/techniques to showcase the tradeoff exercised by them. We also outline future directions in this rapidly evolving field of research. We believe that this survey will educate both novice and seasoned researchers and also spark a plethora of research efforts in this field.",
+        "url": "https://doi.org/10.1016/j.sysarc.2023.102990",
+        "doi": "https://doi.org/10.1016/j.sysarc.2023.102990",
+        "arxiv_id": "2307.07982v1",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4386826409"
+        },
+        "sources": [
+          "OpenAlex",
+          "arXiv"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 134
+      },
+      {
+        "paper_id": "rw_004_c919f2fa8",
+        "title": "End-to-End Transformer-Based Models in Textual-Based NLP",
+        "authors": [
+          "Abir Rahali",
+          "Moulay A. Akhloufi"
+        ],
+        "year": 2023,
+        "publication_date": "2023-01-05",
+        "venue": "AI",
+        "abstract": "Transformer architectures are highly expressive because they use self-attention mechanisms to encode long-range dependencies in the input sequences. In this paper, we present a literature review on Transformer-based (TB) models, providing a detailed overview of each model in comparison to the Transformer’s standard architecture. This survey focuses on TB models used in the field of Natural Language Processing (NLP) for textual-based tasks. We begin with an overview of the fundamental concepts at the heart of the success of these models. Then, we classify them based on their architecture and training mode. We compare the advantages and disadvantages of popular techniques in terms of architectural design and experimental value. Finally, we discuss open research, directions, and potential future work to help solve current TB application challenges in NLP.",
+        "url": "https://doi.org/10.3390/ai4010004",
+        "doi": "https://doi.org/10.3390/ai4010004",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4313558932"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 153
+      },
+      {
+        "paper_id": "rw_005_6013998bd",
+        "title": "Neural Architecture Search for Transformers: A Survey",
+        "authors": [
+          "Krishna Teja Chitty-Venkata",
+          "Murali Emani",
+          "Venkatram Vishwanath",
+          "Arun K. Somani"
+        ],
+        "year": 2022,
+        "publication_date": "2022-01-01",
+        "venue": "IEEE Access",
+        "abstract": "Transformer-based Deep Neural Network architectures have gained tremendous interest due to their effectiveness in various applications across Natural Language Processing (NLP) and Computer Vision (CV) domains. These models are the de facto choice in several language tasks, such as Sentiment Analysis and Text Summarization, replacing Long Short Term Memory (LSTM) model. Vision Transformers (ViTs) have shown better model performance than traditional Convolutional Neural Networks (CNNs) in vision applications while requiring significantly fewer parameters and training time. The design pipeline of a neural architecture for a given task and dataset is extremely challenging as it requires expertise in several interdisciplinary areas such as signal processing, image processing, optimization and allied fields. Neural Architecture Search (NAS) is a promising technique to automate the architectural design process of a Neural Network in a data-driven way using Machine Learning (ML) methods. The search method explores several architectures without requiring significant human effort, and the searched models outperform the manually built networks. In this paper, we review Neural Architecture Search techniques, targeting the Transformer model and its family of architectures such as Bidirectional Encoder Representations from Transformers (BERT) and Vision Transformers. We provide an in-depth literature review of approximately 50 state-of-the-art Neural Architecture Search methods and explore future directions in this fast-evolving class of problems.",
+        "url": "https://doi.org/10.1109/access.2022.3212767",
+        "doi": "https://doi.org/10.1109/access.2022.3212767",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4312257891"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 103
+      },
+      {
+        "paper_id": "rw_006_aac37eb42",
+        "title": "Efficient 3D Semantic Segmentation with Superpoint Transformer",
+        "authors": [
+          "Damien Robert",
+          "Hugo Raguet",
+          "Loïc Landrieu"
+        ],
+        "year": 2023,
+        "publication_date": "2023-10-01",
+        "venue": "",
+        "abstract": "We introduce a novel superpoint-based transformer architecture for efficient semantic segmentation of large-scale 3D scenes. Our method incorporates a fast algorithm to partition point clouds into a hierarchical superpoint structure, which makes our preprocessing 7 times faster than existing superpoint-based approaches. Additionally, we leverage a self-attention mechanism to capture the relationships between superpoints at multiple scales, leading to state-of-the-art performance on three challenging benchmark datasets: S3DIS (76.0% mIoU 6-fold validation), KITTI-360 (63.5% on Val), and DALES (79.6%). With only 212k parameters, our approach is up to 200 times more compact than other state-of-the-art models while maintaining similar performance. Furthermore, our model can be trained on a single GPU in 3 hours for a fold of the S3DIS dataset, which is 7× to 70× fewer GPU-hours than the best-performing methods. Our code and models are accessible at github.com/drprojects/superpoint_transformer.",
+        "url": "https://doi.org/10.1109/iccv51070.2023.01577",
+        "doi": "https://doi.org/10.1109/iccv51070.2023.01577",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4380723689"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 124
+      },
+      {
+        "paper_id": "rw_007_5cad3b835",
+        "title": "A Metaverse: Taxonomy, Components, Applications, and Open Challenges",
+        "authors": [
+          "Sangmin Park",
+          "Young‐Gab Kim"
+        ],
+        "year": 2022,
+        "publication_date": "2022-01-01",
+        "venue": "IEEE Access",
+        "abstract": "Unlike previous studies on the Metaverse based on Second Life, the current Metaverse is based on the social value of Generation Z that online and offline selves are not different. With the technological development of deep learning-based high-precision recognition models and natural generation models, Metaverse is being strengthened with various factors, from mobile-based always-on access to connectivity with reality using virtual currency. The integration of enhanced social activities and neural-net methods requires a new definition of Metaverse suitable for the present, different from the previous Metaverse. This paper divides the concepts and essential techniques necessary for realizing the Metaverse into three components (i.e., hardware, software, and contents) and three approaches (i.e., user interaction, implementation, and application) rather than marketing or hardware approach to conduct a comprehensive analysis. Furthermore, we describe essential methods based on three components and techniques to Metaverse&#x2019;s representative Ready Player One, Roblox, and Facebook research in the domain of films, games, and studies. Finally, we summarize the limitations and directions for implementing the immersive Metaverse as social influences, constraints, and open challenges.",
+        "url": "https://doi.org/10.1109/access.2021.3140175",
+        "doi": "https://doi.org/10.1109/access.2021.3140175",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4206484811"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1789
+      },
+      {
+        "paper_id": "rw_009_680b3e60e",
+        "title": "OctFormer: Octree-based Transformers for 3D Point Clouds",
+        "authors": [
+          "Peng‐Shuai Wang"
+        ],
+        "year": 2023,
+        "publication_date": "2023-07-26",
+        "venue": "ACM Transactions on Graphics",
+        "abstract": "We propose octree-based transformers, named OctFormer, for 3D point cloud learning. OctFormer can not only serve as a general and effective backbone for 3D point cloud segmentation and object detection but also have linear complexity and is scalable for large-scale point clouds. The key challenge in applying transformers to point clouds is reducing the quadratic, thus overwhelming, computation complexity of attentions. To combat this issue, several works divide point clouds into non-overlapping windows and constrain attentions in each local window. However, the point number in each window varies greatly, impeding the efficient execution on GPU. Observing that attentions are robust to the shapes of local windows, we propose a novel octree attention, which leverages sorted shuffled keys of octrees to partition point clouds into local windows containing a fixed number of points while permitting shapes of windows to change freely. And we also introduce dilated octree attention to expand the receptive field further. Our octree attention can be implemented in 10 lines of code with open-sourced libraries and runs 17 times faster than other point cloud attentions when the point number exceeds 200 k. Built upon the octree attention, OctFormer can be easily scaled up and achieves state-of-the-art performances on a series of 3D semantic segmentation and 3D object detection benchmarks, surpassing previous sparse-voxel-based CNNs and point cloud transformers in terms of both efficiency and effectiveness. Notably, on the challenging ScanNet200 dataset, OctFormer outperforms sparse-voxel-based CNNs by 7.3 in mIoU. Our code and trained models are available at https://wang-ps.github.io/octformer.",
+        "url": "https://doi.org/10.1145/3592131",
+        "doi": "https://doi.org/10.1145/3592131",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4372283849"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 98
+      },
+      {
+        "paper_id": "rw_010_708459e32",
+        "title": "Going deeper with Image Transformers",
+        "authors": [
+          "Hugo Touvron",
+          "Matthieu Cord",
+          "Alexandre Sablayrolles",
+          "Gabriel Synnaeve",
+          "Hervé Jeǵou"
+        ],
+        "year": 2021,
+        "publication_date": "2021-10-01",
+        "venue": "2021 IEEE/CVF International Conference on Computer Vision (ICCV)",
+        "abstract": "Transformers have been recently adapted for large scale image classification, achieving high scores shaking up the long supremacy of convolutional neural networks. However the optimization of vision transformers has been little studied so far. In this work, we build and optimize deeper transformer networks for image classification. In particular, we investigate the interplay of architecture and optimization of such dedicated transformers. We make two architecture changes that significantly improve the accuracy of deep transformers. This leads us to produce models whose performance does not saturate early with more depth, for in-stance we obtain 86.5% top-1 accuracy on Imagenet when training with no external data, we thus attain the current sate of the art with less floating-point operations and parameters. Our best model establishes the new state of the art on Imagenet with Reassessed labels and Imagenet-V2 / match frequency, in the setting with no additional training data. We share our code and models <sup xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">1</sup> .",
+        "url": "https://doi.org/10.1109/iccv48922.2021.00010",
+        "doi": "https://doi.org/10.1109/iccv48922.2021.00010",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3146097248"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 77
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_004_c919f2fa8",
+        "relevance_score": 0.82,
+        "relevance_types": [
+          "same_method",
+          "same_constraints"
+        ],
+        "rationale": "This paper discusses Transformer-based models' expressivity through self-attention mechanisms and architectural variations, directly relevant to the target's focus on fixed-precision Transformers without positional encodings.",
+        "evidence_summary": "In 2023, Rahali and Akhloufi published 'End-to-End Transformer-Based Models in Textual-Based NLP,' which analyzed Transformer architectures' expressivity due to self-attention mechanisms encoding long-range dependencies. The survey classified models based on architecture and training mode, comparing advantages and disadvantages in design and experimental value for NLP tasks."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_003_b35234c5c",
+        "relevance_score": 0.78,
+        "relevance_types": [
+          "same_constraints",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This survey covers optimization techniques for Transformer inference, including methods addressing memory and compute constraints, which aligns with the target's fixed-precision context.",
+        "evidence_summary": "In 2023, Chitty-Venkata et al. published 'A survey of techniques for optimizing transformer inference,' which reviewed methods like knowledge distillation, pruning, quantization, and neural architecture search to reduce Transformers' memory and compute footprint. The paper summarized quantitative results on parameters, FLOPs, and accuracy tradeoffs, outlining future directions for efficient inference."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_005_6013998bd",
+        "relevance_score": 0.75,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This survey on Neural Architecture Search for Transformers discusses automated design processes that could relate to fixed-precision or architectural constraints in Transformers.",
+        "evidence_summary": "In 2022, Chitty-Venkata et al. published 'Neural Architecture Search for Transformers: A Survey,' which reviewed approximately 50 NAS methods for Transformer architectures like BERT and Vision Transformers. The paper explored automating neural network design for tasks in NLP and CV domains, highlighting future directions in architecture search."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_001_11890fb9a",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "same_method",
+          "novelty_competitor"
+        ],
+        "rationale": "This paper introduces RWKV, an RNN-based approach reinventing Transformers, providing a contrasting method to standard Transformers which may inform expressivity discussions.",
+        "evidence_summary": "In 2023, Peng et al. published 'RWKV: Reinventing RNNs for the Transformer Era,' which proposed a model combining RNN and Transformer elements. The work was presented at Findings of the Association for Computational Linguistics: EMNLP 2023."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_010_708459e32",
+        "relevance_score": 0.62,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "This paper on deeper Image Transformers includes architectural optimizations and benchmark results, offering context on Transformer design and performance.",
+        "evidence_summary": "In 2021, Touvron et al. published 'Going deeper with Image Transformers,' which investigated architecture and optimization for deep transformers in image classification. The models achieved 86.5% top-1 accuracy on ImageNet without external data, establishing state-of-the-art on ImageNet with Reassessed labels and ImageNet-V2."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_002_652dcf505",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "This survey compares CNN and Transformer methods in object detection, providing background on Transformer applications in vision tasks.",
+        "evidence_summary": "In 2022, Arkin et al. published 'A survey: object detection methods from CNN to transformer,' which reviewed historical and modern detection methods, comparing 13 CNN and Transformer approaches under fair conditions. The paper discussed highlights, advantages, disadvantages, and development trends in object detection."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_006_aac37eb42",
+        "relevance_score": 0.48,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This paper on Superpoint Transformer for 3D segmentation introduces a transformer-based method with efficiency claims, relevant to general Transformer architecture discussions.",
+        "evidence_summary": "In 2023, Robert et al. published 'Efficient 3D Semantic Segmentation with Superpoint Transformer,' which incorporated a self-attention mechanism for multi-scale superpoint relationships. The method achieved state-of-the-art performance on S3DIS (76.0% mIoU), KITTI-360 (63.5%), and DALES (79.6%) datasets, with 212k parameters and reduced training time."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_009_680b3e60e",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This paper on Octree-based Transformers presents a scalable architecture for point clouds, contributing to Transformer variant literature.",
+        "evidence_summary": "In 2023, Wang published 'OctFormer: Octree-based Transformers for 3D Point Clouds,' which proposed an octree attention mechanism with linear complexity for large-scale point clouds. The method achieved state-of-the-art performances on 3D semantic segmentation and object detection benchmarks, surpassing sparse-voxel-based CNNs and other transformers."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_007_5cad3b835",
+        "relevance_score": 0.35,
+        "relevance_types": [],
+        "rationale": "This paper on Metaverse taxonomy and components is weakly related, as it focuses on applications rather than Transformer architecture or expressivity.",
+        "evidence_summary": "In 2022, Park and Kim published 'A Metaverse: Taxonomy, Components, Applications, and Open Challenges,' which analyzed Metaverse concepts divided into hardware, software, and contents components. The paper described methods based on these components and techniques, summarizing limitations and challenges for immersive Metaverse implementation."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2023, Rahali and Akhloufi published 'End-to-End Transformer-Based Models in Textual-Based NLP,' analyzing Transformer architectures' expressivity through self-attention mechanisms and classifying models by architecture and training mode for NLP tasks. In 2023, Chitty-Venkata et al. published 'A survey of techniques for optimizing transformer inference,' reviewing methods like knowledge distillation and quantization to address memory and compute constraints, with summaries of parameter and accuracy tradeoffs. In 2022, Chitty-Venkata et al. published 'Neural Architecture Search for Transformers: A Survey,' covering approximately 50 NAS methods for Transformer architectures in NLP and CV domains. In 2023, Peng et al. published 'RWKV: Reinventing RNNs for the Transformer Era,' introducing a model combining RNN and Transformer elements presented at EMNLP 2023. In 2021, Touvron et al. published 'Going deeper with Image Transformers,' which optimized deep transformers for image classification, achieving 86.5% top-1 accuracy on ImageNet without external data. In 2022, Arkin et al. published 'A survey: object detection methods from CNN to transformer,' comparing 13 CNN and Transformer detection methods under fair conditions and discussing trends.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

@@ -1,0 +1,786 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 3,
+        "clarity": 2
+      },
+      "strengths": [
+        "The paper addresses a genuine and important problem: encoding graph structural information into Transformer-based architectures for graph classification. The motivation for incorporating structural biases is well-articulated and timely.",
+        "GIST is grounded in an interpretable idea: using intersection cardinality of k-hop neighborhoods as a discriminative feature for node pairs. The intuitive examples in Figure 1 effectively illustrate how this representation can capture substructural differences.",
+        "The paper provides comprehensive experimental evaluation across 12 diverse datasets (LRGB, MoleculeNet, ZINC, ZINC-full) with comparisons to numerous baselines.",
+        "The algorithmic contribution of using MinHash and HyperLogLog to reduce GIST computation complexity from O(k²n⁴) to O(k²n²) is practical."
+      ],
+      "weaknesses": [
+        "The theoretical foundation is trivial. Theorem 4.2 merely verifies that graph invariance properties hold by construction—an expected property of any structural encoding. The proof provides no insight into expressiveness, superiority over alternatives, or Weisfeiler-Lehman completeness. This is not a meaningful theoretical contribution.",
+        "Central empirical claims are factually contradicted by reported results. The abstract and contributions claim 'superior performance compared to state-of-the-art baselines,' yet GIST underperforms GRIT on ZINC (0.055±0.002 vs 0.059±0.002) and Peptides-func (0.6783±0.0087 vs 0.6988±0.0082), and underperforms Subgraphormer/FragNet on Peptides-struct. This represents misleading presentation of the work's contributions.",
+        "No statistical significance testing is provided despite reporting marginal improvements. Many reported differences fall within or near standard deviation ranges, making it impossible to distinguish signal from noise. Standard practice in ML conferences requires p-values or significance tests for performance claims.",
+        "The ablation study is inadequate. Table 4 only varies k on a single dataset (ZINC). It does not isolate I vs T component contributions, does not test on other datasets, and does not directly compare GIST attention versus standard Transformer attention. These are essential for validating that GIST, not other factors, drives any performance gains.",
+        "Critical empirical claims lack quantitative support. Observation 2 claims the clustering phenomenon 'consistently occurs across multiple samples in the ZINC dataset' but provides only one anecdotal figure (Figure 2) without metrics such as percentage of graphs affected or clustering purity scores.",
+        "Scalability and computational analysis is incomplete. Memory requirements scale as O(n²k²) for the GIST matrix, which is not analyzed despite claims of 'ensuring scalability.' Wall-clock training times are absent, making practical feasibility claims unverifiable. For ZINC with n≈2,500, the GIST matrix would contain ~190M entries.",
+        "Design choices in Definition 3.1 lack principled justification. The T_{k_u,k_v} formulation is presented without explaining why this recursive form is necessary over simpler alternatives (e.g., using only I features). No ablation validates this design decision."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The theoretical foundation is trivial. Theorem 4.2 merely verifies that graph invariance properties hold by construction—an expected property of any structural encoding. The proof provides no insight into expressiveness, superiority over alternatives, or Weisfeiler-Lehman completeness. This is not a meaningful theoretical contribution.",
+          "severity": "major",
+          "evidence": "Theorem A.1 (Appendix A) verifies that isomorphic transforms preserve structural properties. This is tautological for any encoding based on structural properties. The author's second rebuttal acknowledges: 'Theorem 4.2 is indeed trivial. The proof verifies graph invariance by construction—a property any structural encoding should satisfy.' This concession from the authors confirms the theorem contributes no novel insight.",
+          "affected_claim": "GIST provides a theoretically grounded approach to structural encoding for Graph Transformers",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Central empirical claims are factually contradicted by reported results. The abstract and contributions claim 'superior performance compared to state-of-the-art baselines,' yet GIST underperforms GRIT on ZINC (0.055±0.002 vs 0.059±0.002) and Peptides-func (0.6783±0.0087 vs 0.6988±0.0082), and underperforms Subgraphormer/FragNet on Peptides-struct. This represents misleading presentation of the work's contributions.",
+          "severity": "major",
+          "evidence": "Abstract (line 8): 'achieving superior performance compared to state-of-the-art baselines.' Contributions (contribution 3): 'showing consistent performance improvements.' Tables 2 and 3 directly contradict this: ZINC (GRIT 0.059 > GIST 0.055), Peptides-func (GRIT 0.6988 > GIST 0.6783), Peptides-struct (Subgraphormer 0.2494 > GIST 0.2442, FragNet 0.2462 > GIST 0.2442). The author's second rebuttal acknowledges: 'These are facts contradicted by our abstract's claim of superior performance.' This is a fundamental presentation integrity issue.",
+          "affected_claim": "Graph transformers incorporating GIST into their attention mechanism achieve superior performance compared to state-of-the-art baselines",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "No statistical significance testing is provided despite reporting marginal improvements. Many reported differences fall within or near standard deviation ranges, making it impossible to distinguish signal from noise. Standard practice in ML conferences requires p-values or significance tests for performance claims.",
+          "severity": "major",
+          "evidence": "Tables 2-5 report mean ± std dev but no p-values, confidence intervals, or significance tests. ZINC: improvement margin 0.004 vs combined std dev ~0.0035 (overlap). Peptides-func: GIST underperforms by 0.0205. These small differences without significance testing violate standard ML evaluation practices. No paired t-tests or permutation tests provided despite numerous performance claims.",
+          "affected_claim": "Extensive experiments further reveal that graph transformers incorporating GIST into their attention mechanism achieve superior performance compared to state-of-the-art baselines",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The ablation study is inadequate. Table 4 only varies k on a single dataset (ZINC). It does not isolate I vs T component contributions, does not test on other datasets, and does not directly compare GIST attention versus standard Transformer attention. These are essential for validating that GIST, not other factors, drives any performance gains.",
+          "severity": "major",
+          "evidence": "Table 4 is the only ablation in the paper, showing k ∈ {1,2,3,4,5} on ZINC only. No ablation of I vs T components separately. No ablation on Peptides-func, Peptides-struct, or MoleculeNet tasks. No ablation comparing GIST attention (Definition 4.1) vs standard Transformer attention on identical architecture. Without these, we cannot isolate GIST's specific contribution. Author's second rebuttal acknowledges: 'Ablation study is minimal... No ablation isolates I vs T components, compares GIST vs standard attention...'",
+          "affected_claim": "GIST effectively captures structural information critical for graph classification",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Critical empirical claims lack quantitative support. Observation 2 claims the clustering phenomenon 'consistently occurs across multiple samples in the ZINC dataset' but provides only one anecdotal figure (Figure 2) without metrics such as percentage of graphs affected or clustering purity scores.",
+          "severity": "major",
+          "evidence": "Section 2, Observation 2 (lines 160-163): 'this phenomenon consistently occurs across multiple samples in the ZINC dataset after the Transformer is trained.' Yet only Figure 2 is provided—one molecule. No quantitative metrics: percentage of graphs, clustering purity, Adjusted Rand Index, or multiple examples. Author's second rebuttal states: 'Observation 2 is anecdotal. One figure (Figure 2) does not support the claim that the clustering phenomenon consistently occurs.' This confirms the weakness.",
+          "affected_claim": "GIST enables attention mechanisms to learn distinct substructures within the graph, consistently across multiple samples",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Scalability and computational analysis is incomplete. Memory requirements scale as O(n²k²) for the GIST matrix, which is not analyzed despite claims of 'ensuring scalability.' Wall-clock training times are absent, making practical feasibility claims unverifiable. For ZINC with n≈2,500, the GIST matrix would contain ~190M entries.",
+          "severity": "major",
+          "evidence": "Section 3.3 claims time complexity reduces to O(k²n²) but does not address memory for S(G) ∈ R^{n×n×(k²+2k)}. Abstract (line 15): 'ensuring scalability across large (number of) graphs.' Contributions (bullet 3): 'ensuring scalability.' No wall-clock times, no memory analysis, no discussion of practical limits. For ZINC (n≈2,500, k typically 3-4), matrix size ~190M-300M entries. Author's second rebuttal: 'Memory complexity O(n²k²) not discussed... claims of ensuring scalability unsubstantiated.'",
+          "affected_claim": "ensuring scalability across large (number of) graphs through efficient randomized algorithm",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Design choices in Definition 3.1 lack principled justification. The T_{k_u,k_v} formulation is presented without explaining why this recursive form is necessary over simpler alternatives (e.g., using only I features). No ablation validates this design decision.",
+          "severity": "major",
+          "evidence": "Definition 3.1 (lines 213-215) introduces T_{k_u,k_v}(u,v) = |N_{k_u}(u)| - T_{k_u-1,k}(u) - Σ I_{i,j}(u,v) without explanation. Why is this recursive formulation better than simpler alternatives? No ablation compares: (a) I features alone, (b) T features alone, (c) I+T combined. Author's second rebuttal: 'T_{k_u,k_v} formulation lacks justification in Definition 3.1... Design choice appears ad-hoc.'",
+          "affected_claim": "We encode the k-hop substructure of a node pair (u, v) in a vector using both intersection and non-intersection components",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The theoretical foundation (Theorem 4.2) is trivial—verified as such by the authors' second rebuttal. Design choices (Definition 3.1) lack principled justification. Empirical claims conflict with reported results: claims of 'superior performance' are contradicted by GIST underperforming GRIT and Subgraphormer on key benchmarks. Critical claims (Observation 2) are anecdotal. The paper's central claims are not well-supported by its own evidence."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "GIST combines standard techniques (MinHash, HyperLogLog, intersection cardinality) in a straightforward application. The paper does not convincingly differentiate this from prior structural encoding methods (GRIT, FragNet, Subgraphormer). Applying known algorithms to a new domain is incremental. The authors acknowledge limited novelty but do not provide evidence in the submitted paper distinguishing their approach from prior work."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "Empirical results do not demonstrate clear significance. GIST underperforms on multiple key benchmarks (ZINC: GRIT better; Peptides-func: GRIT better; Peptides-struct: Subgraphormer/FragNet better). Improvements on other tasks fall within error bars with no statistical significance testing. The contribution lacks actionable insights: when does GIST help? When does it hurt? Why? The work does not advance fundamental understanding of graph Transformers or structural encoding."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "Evaluation is insufficient: (1) Ablation study (Table 4) only varies k on one dataset, does not isolate GIST's component contributions; (2) No statistical significance testing despite marginal improvements; (3) Central claim ('superior performance') contradicted by underperformance on ZINC, Peptides-func, Peptides-struct; (4) Computational complexity (memory, wall-clock time) not analyzed despite scalability claims; (5) Critical claims (Observation 2) lack quantitative support. The experimental design does not adequately validate the central claims."
+        },
+        "presentation": {
+          "result": "fail",
+          "justification": "Presentation has a fundamental integrity issue: the abstract and contributions claim 'superior performance' and 'state-of-the-art,' yet the reported results show GIST underperforming key baselines (GRIT, Subgraphormer, FragNet) on multiple benchmarks. This is not a minor wording issue but a contradiction between stated claims and evidence. Design choices lack justification. Critical claims are anecdotal. Key analyses (memory, significance testing) are absent."
+        }
+      },
+      "summary_comment": "The author's second rebuttal is notably different from the first: rather than promising future work, the authors candidly acknowledge the core weaknesses of the submitted paper and effectively concede that rejection is appropriate. They state: 'The reviewer's summary is fair: under the submitted paper as presented, the work is not ready for publication at a top-tier venue,' and 'We believe the reviewer's assessment that rejection is appropriate for the submission as it stands is correct.'\n\nThis honest assessment validates the review's findings. The submitted paper has fundamental issues:\n\n1. **Factually misleading claims**: The abstract and contributions claim 'superior performance compared to state-of-the-art baselines,' yet Tables 2-3 show GIST underperforms GRIT on ZINC and Peptides-func, and underperforms Subgraphormer/FragNet on Peptides-struct. This is not a presentation nuance but a contradiction between stated claims and reported evidence.\n\n2. **Trivial theory**: Theorem 4.2 is acknowledged by the authors as 'trivial'—it verifies invariance properties that hold by construction for any structural encoding. No expressiveness analysis, no comparison to other encodings.\n\n3. **Inadequate ablations**: Table 4 only varies k on ZINC. No component ablations (I vs T), no cross-dataset ablations, no comparison of GIST vs standard attention.\n\n4. **Unsupported empirical claims**: Observation 2 claims phenomena 'consistently occur' but provides one anecdotal figure. No quantitative metrics.\n\n5. **Incomplete analysis**: Memory complexity and wall-clock times not reported despite scalability claims. No statistical significance testing.\n\n6. **Unjustified design choices**: Definition 3.1's T formulation presented without explanation or validation.\n\nThe authors' candid second rebuttal demonstrates intellectual honesty about these limitations. However, as the rebuttal assessment rules require evaluation of the submission as presented, and the authors' own analysis confirms the submission does not meet top-tier standards, rejection is the appropriate decision. The paper requires substantial revision: correcting misleading claims, providing rigorous ablations, conducting significance testing, and supplying missing analyses before resubmission."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"Graph classification is explicitly listed as a core ML topic in ICML's scope, and the paper addresses an established benchmark suite (LRGB, MoleculeNet, ZINC) that aligns with ICML's interest in application-driven machine learning\",\n      \"The paper presents a structured algorithmic contribution: the use of MinHash and HyperLogLog to reduce GIST computation from O(k²n⁴) to O(k²n²), which demonstrates optimization and systems-thinking valued at ICML\",\n      \"The work targets a recognized problem in graph neural networks (structural encoding in transformers) that has received ICML attention in prior work\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICML values rigorous theoretical contributions, yet Reviewer 1 confirms Theorem 4.2 is trivial—it merely verifies invariance properties by construction, providing no expressiveness analysis, Weisfeiler-Lehman completeness, or comparison to alternative encodings. This fails ICML's standard for theoretical depth\",\n      \"The paper's core empirical claims are contradicted by its own results: the abstract claims 'superior performance compared to state-of-the-art baselines,' but GIST underperforms GRIT on ZINC (0.055 vs 0.059) and Peptides-func (0.678 vs 0.699), which violates ICML's expectation for honest, well-supported claims\",\n      \"Evaluation methodology is insufficient for ICML standards: no statistical significance testing despite marginal improvements, ablation study only varies k on a single dataset without isolating component contributions or comparing GIST vs standard attention, and critical scalability claims (memory complexity O(n²k²)) are unanalyzed despite claims of 'ensuring scalability'\",\n      \"Design justification is absent: Definition 3.1's T_{k_u,k_v} formulation is presented without explanation for why this recursive form is necessary over simpler alternatives, and no ablation validates the combined I+T design choice\",\n      \"Missing computational analysis undermines credibility: memory requirements and wall-clock training times are not reported despite scalability claims; for ZINC (n≈2,500), the GIST matrix would contain ~190M entries, raising practical feasibility questions unaddressed in the paper\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"Graph learning and deep learning architectures are central to NeurIPS scope; the paper addresses Graph Transformers, a recognized subfield with active NeurIPS participation\",\n      \"The paper conducts extensive empirical evaluation across 12 diverse datasets spanning molecular, biological, and synthetic domains, which aligns with NeurIPS's appreciation for comprehensive benchmarking and application-driven contributions\",\n      \"The work engages with interpretability (Figure 2's spectral clustering visualization) and mechanism analysis (Observation 2), which NeurIPS values in understanding learned representations\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"NeurIPS explicitly welcomes novel, original research, but the paper combines standard techniques (MinHash, HyperLogLog, k-hop intersection cardinality) in a straightforward application. Reviewer 1 notes this is incremental and does not convincingly differentiate GIST from prior structural encoding methods (GRIT, FragNet, Subgraphormer)\",\n      \"Empirical results lack statistical rigor: no significance testing despite reporting marginal improvements where differences often fall within error bars (e.g., ZINC: 0.004 improvement margin vs combined std dev ~0.0035). NeurIPS expects p-values or confidence intervals for performance claims\",\n      \"Critical empirical claims contradict reported results: the abstract states 'superior performance compared to state-of-the-art baselines,' yet Tables 2–3 show GIST underperforming GRIT on ZINC and Peptides-func, and underperforming Subgraphormer/FragNet on Peptides-struct. This presentation integrity issue conflicts with NeurIPS standards\",\n      \"Ablation study is inadequate for NeurIPS standards: Table 4 only varies k on ZINC, does not isolate I vs T component contributions, does not test on other datasets, and does not directly compare GIST attention vs standard Transformer attention. These essential ablations are absent\",\n      \"Central claims are anecdotal: Observation 2 claims the clustering phenomenon 'consistently occurs across multiple samples in the ZINC dataset' but provides only one figure (Figure 2) without quantitative metrics (percentage of graphs affected, clustering purity, Adjusted Rand Index, etc.)\",\n      \"Scalability and computational feasibility claims are unsubstantiated: memory complexity O(n²k²) is not discussed; wall-clock training times are absent; practical limits for large graphs are not addressed despite explicit scalability claims\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"Representation learning for graph-structured data is a core ICLR topic; the paper addresses structural encoding in Graph Transformers, a recognized challenge in deep learning on graphs\",\n      \"The paper targets multiple ICLR-relevant themes: unsupervised/self-supervised representation learning (through GIST encoding), applications to molecular property prediction (chemistry and biology), and learning on graph geometries\",\n      \"The work engages with interpretability and analysis of learned representations through spectral clustering visualization (Figure 2), which ICLR values in understanding deep learning systems\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICLR expects novel theoretical or empirical contributions to deep learning. Theorem 4.2 is trivial—acknowledged as such by Reviewer 1 and the authors' own rebuttal—providing only verification that invariance holds by construction. This lacks the theoretical depth ICLR expects; no analysis of expressiveness or comparison to other encodings\",\n      \"The paper's core empirical claims are factually contradicted by its own results: the abstract claims 'superior performance compared to state-of-the-art baselines,' yet GIST underperforms GRIT on ZINC (0.055 vs 0.059) and Peptides-func (0.678 vs 0.699), and underperforms Subgraphormer/FragNet on Peptides-struct. This representation integrity issue is particularly problematic for ICLR, which emphasizes rigorous, honest evaluation\",\n      \"Evaluation rigor falls short of ICLR standards: no statistical significance testing for marginal improvements; ablation study (Table 4) only varies k on a single dataset without isolating component contributions or validating design choices; no ablation comparing GIST attention vs standard Transformer attention. These are essential for ICLR acceptance\",\n      \"Design choices lack principled justification: Definition 3.1's T_{k_u,k_v} formulation is presented without explanation. Why is this recursive form superior to simpler alternatives? No ablation compares I-only, T-only, and I+T variants. ICLR values clear reasoning for architectural decisions\",\n      \"Critical empirical claims are unsupported: Observation 2 claims the clustering phenomenon 'consistently occurs across multiple samples' but provides only one anecdotal figure (Figure 2) without quantitative validation. ICLR requires systematic evidence for such claims\",\n      \"Scalability analysis is incomplete: memory complexity O(n²k²) is not discussed; wall-clock training times are absent; practical feasibility for large graphs is unaddressed. For ZINC (n≈2,500), the GIST matrix would contain ~190M entries—raising computational concerns unanalyzed in the paper\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\nThis paper proposes **GIST (Graph Invariant Structural Trait)**, a structural encoding for Graph Transformers based on k-hop intersection cardinality between node pairs. While the paper addresses a real problem (structural encoding in Graph Transformers) and presents comprehensive experiments across 12 datasets, it has **fundamental issues that make it unsuitable for top-tier venues** like ICML, NeurIPS, or ICLR:\n\n### Critical Flaws\n\n1. **Factually Misleading Claims**: The abstract and contributions claim \"superior performance compared to state-of-the-art baselines,\" but the paper's own results (Tables 2–3) show GIST **underperforms** key baselines:\n   - ZINC: GRIT (0.059) > GIST (0.055)\n   - Peptides-func: GRIT (0.6988) > GIST (0.6783)\n   - Peptides-struct: Subgraphormer/FragNet > GIST\n\n2. **Trivial Theory**: Theorem 4.2 merely verifies graph invariance by construction—an expected property of any structural encoding. The theorem provides no expressiveness analysis, Weisfeiler-Lehman completeness, or comparison to alternatives. Reviewer 1 and the authors' own rebuttal confirm this is not a meaningful theoretical contribution.\n\n3. **Inadequate Ablations**: The only ablation (Table 4) varies k on a single dataset (ZINC). Critical ablations are missing:\n   - No isolation of I vs T component contributions\n   - No ablation on other datasets\n   - No comparison of GIST attention vs standard Transformer attention\n\n4. **Unsupported Empirical Claims**: Observation 2 claims the clustering phenomenon \"consistently occurs\" but provides only one anecdotal figure without quantitative metrics (clustering purity, percentage of graphs affected, etc.).\n\n5. **Incomplete Analysis**: \n   - Memory complexity O(n²k²) is not analyzed despite scalability claims\n   - Wall-clock training times are absent\n   - No statistical significance testing despite marginal improvements\n   - For ZINC (n≈2,500), the GIST matrix would contain ~190M entries\n\n6. **Unjustified Design**: Definition 3.1's T_{k_u,k_v} formulation lacks explanation for why this recursive form is necessary. No ablation validates the I+T design choice.\n\n### Fit Assessment\n\nAll three venues (ICML, NeurIPS, ICLR) require:\n- Rigorous theoretical contributions or strong empirical evidence\n- Honest presentation of results with appropriate caveats\n- Thorough ablations and significance testing\n- Justification for design choices\n\nThis paper fails on all counts. The scores of **4/10 for each venue** reflect weak fit due to:\n- **Novelty**: Straightforward application of known techniques (MinHash, HyperLogLog) without clear differentiation from prior work\n- **Rigor**: Trivial theory, missing ablations, and unsupported claims\n- **Presentation**: Contradiction between stated claims and reported results\n- **Evaluation**: Inadequate ablations, no significance testing, incomplete computational analysis\n\nThe paper requires substantial revision before resubmission.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 3,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a genuine and important problem: encoding graph structural information into Transformer-based architectures for graph classification. The motivation for incorporating structural biases is well-articulated and timely.",
+              "GIST is grounded in an interpretable idea: using intersection cardinality of k-hop neighborhoods as a discriminative feature for node pairs. The intuitive examples in Figure 1 and Figure 2 effectively illustrate how this representation can capture substructural differences.",
+              "The paper provides comprehensive experimental evaluation across 12 diverse datasets (LRGB, MoleculeNet, ZINC, ZINC-full) with comparisons to numerous state-of-the-art baselines. The consistent improvements over baselines suggest practical value.",
+              "The algorithmic contribution of using MinHash and HyperLogLog to reduce GIST computation complexity from O(k²n⁴) to O(k²n²) is practical and enables scalability to larger graphs."
+            ],
+            "weaknesses": [
+              "The theoretical foundation for GIST is weak. Theorem 4.2 (graph isomorphism invariance) is trivial given that the feature computation is based on structural properties that are invariant under isomorphism by definition. The proof provides no insight into why this particular intersection cardinality representation is superior to alternatives. No expressiveness analysis (e.g., Weisfeiler-Lehman completeness) is provided.",
+              "The novelty is limited. Encoding graph structure through pairwise node relationships has been explored extensively. The intersection cardinality feature is a straightforward combination of existing ideas (Jaccard similarity, neighborhood cardinality). The paper does not convincingly distinguish GIST from prior positional encoding methods (LapPE, RWPE) or other substructure-aware approaches (Subgraphormer, FragNet, GRIT) beyond empirical results.",
+              "The experimental evaluation, while extensive, has critical limitations. The improvements over GRIT (a direct competitor) are often marginal and within or near standard deviation ranges (e.g., ZINC: 0.055±0.002 vs GRIT 0.059±0.002; Peptides-func: 0.6783±0.0087 vs GRIT 0.6988±0.0082). Statistical significance testing is absent. The ablation study (Table 4) is minimal, testing only k values on one dataset.",
+              "The presentation and justification of design choices lack rigor. Why specifically use the T_{k_u,k_v} formulation in Definition 3.1? Why is the vector concatenation of I and T features optimal? The paper relies heavily on empirical observation rather than principled analysis.",
+              "Critical claims lack support: (1) The claim in Section 2 (Observation 2) that GIST 'consistently occurs across multiple samples in the ZINC dataset' is shown only in one figure. (2) The spectral clustering visualization (Figure 2) is anecdotal and does not quantify how often this phenomenon occurs. (3) No analysis of what structural patterns GIST actually learns or how it differs from what GRIT/GraphGPS learn.",
+              "The paper does not adequately compare against recent substructure-aware methods. FragNet and Subgraphormer (both 2024) use different substructure encoding strategies, but the paper does not provide ablations isolating what structural encoding contributes to GIST's improvements. It is unclear whether improvements come from GIST specifically or from cumulative effects of the full training pipeline.",
+              "Computational complexity and memory analysis is incomplete. While time complexity improves to O(k²n²), memory requirements for storing the n×n×(k²+2k) GIST matrix scale as O(n²k²), which could be prohibitive. For large graphs (MUV: 93k graphs), this becomes problematic. Wall-clock training times are not reported."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The theoretical foundation for GIST is weak. Theorem 4.2 (graph isomorphism invariance) is trivial given that the feature computation is based on structural properties that are invariant under isomorphism by definition. The proof provides no insight into why this particular intersection cardinality representation is superior to alternatives. No expressiveness analysis (e.g., Weisfeiler-Lehman completeness) is provided.",
+                "severity": "major",
+                "evidence": "Theorem A.1 proof (Appendix A) simply verifies that structural properties remain unchanged under permutation, which is expected by construction. The paper makes no theoretical contribution about expressiveness relative to other positional encoding schemes. No comparison to WL-completeness or other established expressiveness measures.",
+                "affected_claim": "GIST provides a theoretically grounded approach to structural encoding for Graph Transformers",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The novelty is limited. Encoding graph structure through pairwise node relationships has been explored extensively. The intersection cardinality feature is a straightforward combination of existing ideas (Jaccard similarity, neighborhood cardinality). The paper does not convincingly distinguish GIST from prior positional encoding methods (LapPE, RWPE) or other substructure-aware approaches (Subgraphormer, FragNet, GRIT) beyond empirical results.",
+                "severity": "major",
+                "evidence": "Definition 3.1 computes cardinality of intersections using standard set operations. The use of MinHash and HyperLogLog (Section 3.3) directly follows Chamberlain et al. (2022) and Le et al. (2024) cited in the paper. The conceptual novelty reduces to applying these known techniques to node-pair neighborhoods. GRIT (Ma et al., 2023) and other recent work already embed structural awareness in attention. The paper does not provide ablations or analysis showing what is new about GIST's encoding.",
+                "affected_claim": "We introduce GIST, a method that encodes graph structure using pairwise k-hop substructure vectors",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental evaluation, while extensive, has critical limitations. The improvements over GRIT (a direct competitor) are often marginal and within or near standard deviation ranges (e.g., ZINC: 0.055±0.002 vs GRIT 0.059±0.002; Peptides-func: 0.6783±0.0087 vs GRIT 0.6988±0.0082). Statistical significance testing is absent. The ablation study (Table 4) is minimal, testing only k values on one dataset.",
+                "severity": "major",
+                "evidence": "Tables 2, 3: On ZINC, GIST achieves 0.055±0.002 while GRIT achieves 0.059±0.002. On Peptides-func, GIST is 0.6783±0.0087 while GRIT is 0.6988±0.0082 (worse for GIST). These differences are within noise. No paired t-tests or statistical significance calculations reported. Ablation study (Table 4) only varies k on ZINC; does not isolate contribution of I vs T features, does not test on other datasets.",
+                "affected_claim": "Extensive experiments further reveal that graph transformers incorporating GIST into their attention mechanism achieve superior performance compared to state-of-the-art baselines.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The presentation and justification of design choices lack rigor. Why specifically use the T_{k_u,k_v} formulation in Definition 3.1? Why is the vector concatenation of I and T features optimal? The paper relies heavily on empirical observation rather than principled analysis.",
+                "severity": "major",
+                "evidence": "Definition 3.1 introduces T_{k_u,k_v} as 'cardinality of nodes exactly k_u hops from u and greater than k hops from v' but provides no motivation. The vector construction in Definition 3.1 concatenates I values first, then T values, but justification is absent. Section 2 relies on 'Observations' 1 and 2 which are empirical statements without formal justification.",
+                "affected_claim": "We encode the k-hop substructure of a node pair using intersection cardinality and other derived features",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Critical claims lack support: (1) The claim in Section 2 (Observation 2) that GIST 'consistently occurs across multiple samples in the ZINC dataset' is shown only in one figure. (2) The spectral clustering visualization (Figure 2) is anecdotal and does not quantify how often this phenomenon occurs. (3) No analysis of what structural patterns GIST actually learns or how it differs from what GRIT/GraphGPS learn.",
+                "severity": "major",
+                "evidence": "Section 2, Observation 2 states 'this phenomenon consistently occurs across multiple samples in the ZINC dataset after the Transformer is trained' but provides only Figure 2 (one molecule). No quantitative metrics (e.g., percentage of graphs, clustering purity scores) provided. The phrase 'consistently occurs' is not substantiated.",
+                "affected_claim": "GIST enables attention mechanisms to learn distinct substructures within the graph",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The paper does not adequately compare against recent substructure-aware methods. FragNet and Subgraphormer (both 2024) use different substructure encoding strategies, but the paper does not provide ablations isolating what structural encoding contributes to GIST's improvements. It is unclear whether improvements come from GIST specifically or from cumulative effects of the full training pipeline.",
+                "severity": "major",
+                "evidence": "Tables 2-5 report numbers but no ablation isolates GIST's contribution. On Peptides-struct (Table 2), GIST achieves 0.2442±0.0011 while Subgraphormer achieves 0.2494±0.0020 and FragNet achieves 0.2462±0.0021 (better than GIST). On ZINC (Table 3), GIST is 0.055±0.002 but Subgraphormer is 0.063±0.001 (better). No ablation study comparing GIST attention vs. standard Transformer attention on the same architecture.",
+                "affected_claim": "Incorporating GIST into attention mechanisms of graph Transformers to enhance structural encoding",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Computational complexity and memory analysis is incomplete. While time complexity improves to O(k²n²), memory requirements for storing the n×n×(k²+2k) GIST matrix scale as O(n²k²), which could be prohibitive. For large graphs (MUV: 93k graphs), this becomes problematic. Wall-clock training times are not reported.",
+                "severity": "major",
+                "evidence": "Section 3.3 reduces time complexity to O(k²n²) but does not discuss memory. Storing S(G) ∈ R^{n×n×(k²+2k)} requires O(n²k²) space. For ZINC-full (n≈23), this is ~23²×6²≈190k entries per graph. For distributed settings, communication costs not analyzed. No wall-clock times provided in experiments.",
+                "affected_claim": "ensuring scalability across large (number of) graphs through efficient randomized algorithm",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The theoretical analysis (Theorem 4.2) is trivial and provides no insight into why GIST is effective. The proof merely verifies that invariant properties remain invariant—a tautology. Definition 3.1 introduces design choices (T_{k_u,k_v} formulation) without principled justification. The experimental claims about 'consistent' phenomena (Observation 2) are unsupported beyond a single anecdotal example. The core mathematical reasoning lacks rigor, and the paper conflates empirical correlation with theoretical soundness."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "GIST combines existing techniques (MinHash for Jaccard similarity, HyperLogLog for cardinality estimation, intersection cardinality of neighborhoods) in a straightforward manner. The conceptual contribution—using pairwise k-hop neighborhood intersections as features—is incremental. Prior work (GRIT, GraphGPS, Subgraphormer, FragNet) already embeds structural awareness in attention. The paper does not identify what is fundamentally new beyond applying known sketching algorithms to a new domain. Positional encodings (LapPE, RWPE) capture structural information differently but the paper does not provide comparative analysis of why GIST's approach is superior beyond empirical results."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "While the paper shows improvements across multiple datasets, the significance is limited by: (1) Improvements over GRIT are often marginal and within error bars (ZINC: 0.055±0.002 vs 0.059±0.002, Peptides-func: 0.6783 vs 0.6988); (2) On some benchmarks, GIST underperforms (Peptides-struct worse than Subgraphormer and FragNet); (3) No statistical significance testing; (4) Limited insights into why GIST works or what graph properties it captures; (5) The contribution is primarily engineering-focused (applying sketching algorithms to graph features) rather than advancing fundamental understanding of graph representation or Transformer inductive biases."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The experimental evaluation has serious limitations: (1) Marginal improvements often within standard deviation ranges with no statistical significance testing; (2) Ablation study (Table 4) is minimal—only varies k on ZINC, does not isolate I vs T components, does not test on other datasets; (3) No ablation comparing GIST attention vs standard Transformer attention to isolate GIST's specific contribution; (4) No analysis of what patterns GIST learns or how it differs from competitors; (5) The clustering visualization (Figure 2) is anecdotal; (6) No wall-clock timing comparisons; (7) On several tasks (Peptides-struct), GIST is outperformed by baselines contradicting claims of superiority."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "While generally readable, the paper has significant presentation issues: (1) Key claims are unsupported (Observation 2 about 'consistent' behavior shown only in one figure); (2) Design choices in Definition 3.1 lack justification; (3) The distinction from prior work is unclear; (4) Critical details missing (memory complexity, wall-clock times, statistical significance); (5) Empirical observations are presented as facts without quantification; (6) The paper conflates 'novel application of existing techniques' with 'novel technique.' The spectral clustering example (Figure 2) is presented as representative but provides no quantitative evidence."
+              }
+            },
+            "summary_comment": "This paper proposes GIST, a method for encoding graph structure in Graph Transformers through pairwise k-hop neighborhood intersection cardinality. While the motivation is sound and experiments are extensive, the work suffers from fundamental weaknesses that prevent acceptance at a top-tier venue. First, the theoretical contribution is negligible—Theorem 4.2 is trivial (structural properties are invariant under isomorphism by definition) and provides no expressiveness analysis. Second, novelty is limited: GIST combines well-known techniques (MinHash, HyperLogLog) with straightforward graph features. Prior work (GRIT, FragNet, Subgraphormer) already embeds structural awareness in attention, and the paper does not convincingly differentiate its approach. Third, experimental results are marginal: improvements over GRIT are often within error bars (e.g., ZINC: 0.055±0.002 vs 0.059±0.002), and on some tasks GIST underperforms baselines. No statistical significance testing is provided. Fourth, the ablation study is insufficient—it only varies k on one dataset and does not isolate GIST's specific contribution. Finally, key claims lack support: the assertion that the clustering phenomenon 'consistently occurs' is shown only through a single anecdotal example without quantification. The paper reads as a straightforward engineering contribution—applying existing sketching algorithms to graph features—rather than a fundamental advance in graph representation learning or Transformer design for graphs. For a top-tier ML conference, the work would need stronger theoretical analysis, clearer differentiation from prior art, statistically rigorous evaluation, and deeper insights into why and when GIST is beneficial."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 3,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a genuine and important problem: encoding graph structural information into Transformer-based architectures for graph classification. The motivation for incorporating structural biases is well-articulated and timely.",
+              "GIST is grounded in an interpretable idea: using intersection cardinality of k-hop neighborhoods as a discriminative feature for node pairs. The intuitive examples in Figure 1 and Figure 2 effectively illustrate how this representation can capture substructural differences.",
+              "The paper provides comprehensive experimental evaluation across 12 diverse datasets (LRGB, MoleculeNet, ZINC, ZINC-full) with comparisons to numerous state-of-the-art baselines.",
+              "The algorithmic contribution of using MinHash and HyperLogLog to reduce GIST computation complexity from O(k²n⁴) to O(k²n²) is practical and enables scalability to larger graphs."
+            ],
+            "weaknesses": [
+              "The theoretical foundation for GIST is weak. Theorem 4.2 (graph isomorphism invariance) is trivial given that the feature computation is based on structural properties that are invariant under isomorphism by definition. The proof provides no insight into why this particular intersection cardinality representation is superior to alternatives. No expressiveness analysis (e.g., Weisfeiler-Lehman completeness) is provided, and the author's response acknowledges this but only promises future work.",
+              "The novelty is limited. The core contribution reduces to applying existing sketching algorithms (MinHash, HyperLogLog) to k-hop neighborhood intersections. While the application is new, the conceptual advance over prior work (GRIT, Subgraphormer, FragNet) using different structural encodings is not clearly articulated in the paper itself. The author's rebuttal acknowledges this concern but does not provide evidence in the submitted paper differentiating GIST from these methods.",
+              "Experimental results show inconsistent performance with marginal or no improvement over GRIT, the most relevant baseline. On ZINC, GIST (0.055±0.002) is outperformed by GRIT (0.059±0.002). On Peptides-func, GIST (0.6783±0.0087) underperforms GRIT (0.6988±0.0082). On Peptides-struct, GIST (0.2442±0.0011) underperforms both Subgraphormer (0.2494±0.0020) and FragNet (0.2462±0.0021). No statistical significance testing is provided, and the paper's framing of 'state-of-the-art' performance is misleading given these results.",
+              "The ablation study is minimal and insufficient. Table 4 only varies k on ZINC; it does not isolate the I vs T components, does not test on other datasets, and does not compare GIST attention directly against standard Transformer attention. The author acknowledges this gap but does not provide the necessary ablations in the submitted paper.",
+              "Critical claims lack evidentiary support. Observation 2 claims the clustering phenomenon 'consistently occurs across multiple samples in the ZINC dataset' but provides only a single anecdotal figure (Figure 2) without quantification. The author acknowledges this but does not provide the promised quantitative analysis in the submission.",
+              "Memory complexity and scalability analysis is incomplete. While time complexity is reduced to O(k²n²), memory requirements for the n×n×(k²+2k) GIST matrix scale as O(n²k²), which is not discussed. Wall-clock training times are absent, making practical scalability claims unverifiable.",
+              "Design choices in Definition 3.1 lack rigorous justification. The T_{k_u,k_v} formulation is presented without explanation for why this specific form is necessary, and no ablation compares it against simpler alternatives (e.g., using only I_{k_u,k_v} features)."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The theoretical foundation for GIST is weak. Theorem 4.2 (graph isomorphism invariance) is trivial given that the feature computation is based on structural properties that are invariant under isomorphism by definition. The proof provides no insight into why this particular intersection cardinality representation is superior to alternatives. No expressiveness analysis (e.g., Weisfeiler-Lehman completeness) is provided, and the author's response acknowledges this but only promises future work.",
+                "severity": "major",
+                "evidence": "Theorem A.1 proof (Appendix A) verifies structural properties under permutation remain invariant—expected by construction of any graph-invariant method. No comparison to expressiveness of other encodings. The author's rebuttal states 'we would conduct expressiveness analysis' but does not provide it in the submitted paper. Without theoretical justification for why GIST is better than alternatives, the contribution rests entirely on empirical results, which are mixed (see weakness 3).",
+                "affected_claim": "GIST provides a theoretically grounded approach to structural encoding for Graph Transformers that is superior to alternatives",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The novelty is limited. The core contribution reduces to applying existing sketching algorithms (MinHash, HyperLogLog) to k-hop neighborhood intersections. While the application is new, the conceptual advance over prior work (GRIT, Subgraphormer, FragNet) using different structural encodings is not clearly articulated in the paper itself. The author's rebuttal acknowledges this concern but does not provide evidence in the submitted paper differentiating GIST from these methods.",
+                "severity": "major",
+                "evidence": "Submitted paper does not contain detailed comparison of how GIST's intersection cardinality encoding fundamentally differs from GRIT's structure-aware attention or FragNet's fragment-based approach. The author's rebuttal promises to provide 'explicit ablations and comparisons showing which aspects of GIST drive improvements' but these are not in the submission. The novelty gate fails because the submitted paper does not adequately justify why combining MinHash/HyperLogLog with k-hop intersections is a novel conceptual contribution.",
+                "affected_claim": "We introduce GIST, a method that encodes graph structure using pairwise k-hop substructure vectors",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental results show inconsistent performance with marginal or no improvement over GRIT, the most relevant baseline. On ZINC, GIST (0.055±0.002) is outperformed by GRIT (0.059±0.002). On Peptides-func, GIST (0.6783±0.0087) underperforms GRIT (0.6988±0.0082). On Peptides-struct, GIST (0.2442±0.0011) underperforms both Subgraphormer (0.2494±0.0020) and FragNet (0.2462±0.0021). No statistical significance testing is provided, and the paper's framing of 'state-of-the-art' performance is misleading given these results.",
+                "severity": "major",
+                "evidence": "Tables 2 and 3 directly show GIST underperforming on key benchmarks. The paper frames results as 'superior performance compared to state-of-the-art baselines' (abstract) but this is factually incorrect for multiple datasets. Author's rebuttal acknowledges 'GRIT outperforms GIST here' on ZINC and commits to 'honest reporting' in revision, but the submitted paper does not reflect this honesty. Lack of statistical significance testing means we cannot determine if observed differences are meaningful.",
+                "affected_claim": "Graph transformers incorporating GIST into their attention mechanism achieve superior performance compared to state-of-the-art baselines",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The ablation study is minimal and insufficient. Table 4 only varies k on ZINC; it does not isolate the I vs T components, does not test on other datasets, and does not compare GIST attention directly against standard Transformer attention. The author acknowledges this gap but does not provide the necessary ablations in the submitted paper.",
+                "severity": "major",
+                "evidence": "Table 4 is the only ablation provided. It shows GIST performance for k ∈ {1,2,3,4,5} on ZINC only. No ablation of I vs T components, no testing on other datasets, no comparison of GIST vs non-GIST attention. Author's rebuttal acknowledges 'Table 4 only tests k values on ZINC' and promises expanded ablations, but these promised experiments are not in the submission. Without these ablations, we cannot determine which components of GIST contribute to performance.",
+                "affected_claim": "GIST effectively captures structural information critical for graph classification",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical claims lack evidentiary support. Observation 2 claims the clustering phenomenon 'consistently occurs across multiple samples in the ZINC dataset' but provides only a single anecdotal figure (Figure 2) without quantification. The author acknowledges this but does not provide the promised quantitative analysis in the submission.",
+                "severity": "major",
+                "evidence": "Section 2, Observation 2 states 'this phenomenon consistently occurs across multiple samples in the ZINC dataset after the Transformer is trained' but provides only Figure 2 (one molecule). Author's rebuttal acknowledges 'the claim that this consistently occurs is not substantiated by a single figure' and promises quantification in revision. However, no quantitative evidence is provided in the submitted paper. The word 'consistently' remains unsupported.",
+                "affected_claim": "GIST enables attention mechanisms to learn distinct substructures within the graph, facilitating representation aggregation across different substructures",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Memory complexity and scalability analysis is incomplete. While time complexity is reduced to O(k²n²), memory requirements for the n×n×(k²+2k) GIST matrix scale as O(n²k²), which is not discussed. Wall-clock training times are absent, making practical scalability claims unverifiable.",
+                "severity": "major",
+                "evidence": "Section 3.3 reduces time complexity to O(k²n²) but does not analyze memory for storing S(G) ∈ R^{n×n×(k²+2k)}. For ZINC-full with n≈23, this is manageable; but for larger graphs, prohibitive. No wall-clock times reported. Author's rebuttal promises 'analyze memory requirements explicitly' and 'report wall-clock training times' in revision, but these are absent from the submission. Claims about 'ensuring scalability' (abstract, contribution list) are unsubstantiated.",
+                "affected_claim": "ensuring scalability across large (number of) graphs through efficient randomized algorithm",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Design choices in Definition 3.1 lack rigorous justification. The T_{k_u,k_v} formulation is presented without explanation for why this specific form is necessary, and no ablation compares it against simpler alternatives (e.g., using only I_{k_u,k_v} features).",
+                "severity": "major",
+                "evidence": "Definition 3.1 introduces T_{k_u,k_v}(u,v) = |N_{k_u}(u)| - T_{k_u-1,k}(u) - Σ I_{i,j}(u,v) without explanation. The paper does not justify why this recursive formulation is better than simpler alternatives. Author's rebuttal acknowledges 'T features are introduced without clear justification' and promises ablation comparisons, but no such ablations are provided in the submitted paper. Without justification or ablation, the design choice appears arbitrary.",
+                "affected_claim": "We encode the k-hop substructure of a node pair using intersection cardinality and other derived features",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The theoretical analysis (Theorem 4.2) is trivial—it verifies invariance by construction without providing insights into expressiveness or superiority. Design choices (Definition 3.1, T_{k_u,k_v} formulation) lack principled justification. Empirical claims (Observation 2, 'consistent' phenomena) are unsupported by the single anecdotal example provided. The paper conflates design choices with theoretical soundness. The author's rebuttal acknowledges these gaps but only promises future work—no substantive corrections are provided in the submitted paper."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "GIST combines existing techniques (MinHash for Jaccard, HyperLogLog for cardinality, intersection cardinality of neighborhoods) in a straightforward application. The paper does not adequately differentiate this from prior work (GRIT, FragNet, Subgraphormer) that also embed structural awareness in attention. The author's rebuttal acknowledges limited novelty and promises differentiation in revision, but the submitted paper does not provide this analysis. Applying known sketching algorithms to a new domain is incremental, not sufficiently novel for a top-tier venue."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "Empirical improvements are inconsistent and often marginal: GIST underperforms GRIT on ZINC and Peptides-func, underperforms Subgraphormer and FragNet on Peptides-struct. No statistical significance testing, so it is unclear if observed differences are meaningful. The contribution is primarily engineering-focused (applying sketching algorithms) without advancing fundamental understanding. The paper lacks insights into when and why GIST helps or hurts performance. The author's rebuttal acknowledges these issues but does not provide corrected evidence in the submission."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Ablation study is insufficient: only varies k on one dataset, does not isolate I vs T components, does not compare GIST vs non-GIST attention. No statistical significance testing despite marginal improvements over baselines. Computational complexity (memory, wall-clock time) not analyzed despite scalability claims. The author's rebuttal acknowledges these gaps comprehensively but does not provide the necessary experiments in the submission. On some tasks (Peptides-struct, Peptides-func), GIST underperforms baselines, contradicting claims of superiority."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "While generally readable, the paper has significant presentation issues unresolved by the rebuttal: (1) Claims of 'state-of-the-art' and 'superior performance' are contradicted by results showing underperformance on multiple benchmarks; (2) Observation 2's claim of 'consistent' phenomena lacks quantitative support; (3) Design choices lack justification; (4) Critical analysis missing (memory complexity, wall-clock times, statistical significance). The author's rebuttal agrees with these critiques but promises future fixes—the submitted paper does not reflect corrected presentation."
+              }
+            },
+            "summary_comment": "The author's rebuttal demonstrates good faith engagement with the review by acknowledging virtually all major weaknesses. However, crucially, the rebuttal does not resolve any of these concerns through evidence in the submitted paper. Instead, it repeatedly promises future revisions: 'we would conduct expressiveness analysis,' 'in a revision, we would...,' 'we commit to providing this in a revision.' These promises do not constitute resolution per the rebuttal assessment criteria.\n\nUnder review as submitted, the paper remains fundamentally limited. The theoretical contribution (Theorem 4.2) is trivial and provides no expressiveness analysis. Novelty is limited to straightforward application of existing sketching algorithms. Most critically, the empirical results undermine the central claims: GIST underperforms GRIT (the most relevant baseline) on ZINC and Peptides-func, underperforms Subgraphormer and FragNet on Peptides-struct, with no statistical significance testing to validate claimed improvements on other tasks. The ablation study (Table 4) is minimal and does not isolate GIST's contribution. Key claims (Observation 2 about 'consistent' clustering) are anecdotal. Scalability claims lack supporting analysis of memory complexity and wall-clock times.\n\nThe author's rebuttal is honest about limitations and proposes concrete improvements, which would be valuable for a revision. However, the current submission does not meet the standards of a top-tier ML conference. The work reads as an engineering contribution that combines existing techniques with mixed empirical results, lacking both theoretical grounding and decisive empirical validation. Rejection is appropriate for the submission as it stands."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Theoretical foundation is weak: Theorem 4.2 on graph isomorphism invariance is trivial and provides no insight into expressiveness or superiority over alternatives. No Weisfeiler-Lehman or expressiveness analysis provided.\",\n        \"Limited novelty: GIST combines existing techniques (MinHash, HyperLogLog, intersection cardinality) in a straightforward manner. Insufficient differentiation from prior work (GRIT, FragNet, Subgraphormer, GraphGPS).\",\n        \"Marginal empirical improvements with no statistical significance testing: Improvements over GRIT often within error bars (e.g., ZINC: 0.055±0.002 vs 0.059±0.002). On some tasks, GIST underperforms baselines.\",\n        \"Insufficient ablation study: Only varies k on one dataset; does not isolate I vs T components; no ablation comparing GIST attention vs standard Transformer attention.\",\n        \"Unsupported critical claims: Observation 2 claims phenomena 'consistently occur' but provides only one anecdotal figure (Figure 2) without quantification.\",\n        \"Incomplete complexity analysis: Memory requirements O(n²k²) not discussed; wall-clock times not reported; scalability concerns for large graphs not addressed.\",\n        \"Weak presentation of design choices: Definition 3.1 introduces T_{k_u,k_v} formulation without principled justification; reliance on empirical 'observations' rather than formal analysis.\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Theorem 4.2 is trivial and provides no expressiveness analysis\",\n          \"location\": \"Section 4 and Appendix A (Theorem A.1 proof)\",\n          \"explanation\": \"The proof verifies that structural properties under isomorphism remain invariant by definition. The theorem makes no claim about expressiveness relative to other encodings (LapPE, RWPE, random walks). No comparison to WL-completeness or expressiveness bounds is provided. This is a basic property verification, not a theoretical contribution.\"\n        },\n        {\n          \"concern\": \"Improvements over GRIT are marginal and within error bars\",\n          \"location\": \"Tables 2, 3, and 5\",\n          \"explanation\": \"ZINC (Table 3): GIST 0.055±0.002 vs GRIT 0.059±0.002 (GRIT better). Peptides-func (Table 2): GIST 0.6783±0.0087 vs GRIT 0.6988±0.0082 (GRIT better). These differences fall within or very near one standard deviation, indicating no clear advantage. No paired t-tests or significance levels reported.\"\n        },\n        {\n          \"concern\": \"GIST underperforms on some benchmarks compared to claimed baselines\",\n          \"location\": \"Table 2 (Peptides-struct)\",\n          \"explanation\": \"GIST achieves 0.2442±0.0011 while Subgraphormer achieves 0.2494±0.0020 and FragNet achieves 0.2462±0.0021. GIST is outperformed, contradicting the claim of consistent state-of-the-art performance. Paper claims 'superior performance' but selectively highlights wins.\"\n        },\n        {\n          \"concern\": \"Observation 2 claims 'consistently occurs' but provides only one example\",\n          \"location\": \"Section 2, Observation 2, and Figure 2\",\n          \"explanation\": \"Paper states 'this phenomenon consistently occurs across multiple samples in the ZINC dataset' but provides only Figure 2 (one molecule). No quantitative metrics (e.g., percentage of graphs where clustering shows this pattern, clustering purity scores) are provided. The word 'consistently' is not substantiated.\"\n        },\n        {\n          \"concern\": \"Definition 3.1 introduces T_{k_u,k_v} without justification\",\n          \"location\": \"Section 3.1, Definition 3.1\",\n          \"explanation\": \"The formulation T_{k_u,k_v}(u,v) = |N_{k_u}(u)| - T_{k_u-1,k}(u) - Σ I_{i,j}(u,v) is presented without explaining why this specific form is chosen or why it captures the desired structural information. No ablation compares this against simpler alternatives (e.g., using only I_{k_u,k_v}).\"\n        },\n        {\n          \"concern\": \"Memory complexity O(n²k²) not discussed; wall-clock times absent\",\n          \"location\": \"Section 3.3 (complexity analysis)\",\n          \"explanation\": \"Section 3.3 reduces time complexity to O(k²n²) but does not discuss memory requirements for storing S(G) ∈ R^{n×n×(k²+2k)}. For ZINC-full (n≈23), this is ~190k entries per graph; for ZINC (n≈2,500), this becomes prohibitive. No wall-clock training times provided in experiments.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Theorem 4.2 lacks expressiveness analysis\",\n          \"proposed_change\": \"Provide theoretical analysis comparing GIST's expressive power to other structural encodings (e.g., Weisfeiler-Lehman completeness, comparison to random walk features, Laplacian eigenvectors). Prove or empirically demonstrate under what graph classes GIST is strictly more powerful than alternatives.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Improvements over GRIT are marginal with no statistical significance testing\",\n          \"proposed_change\": \"Conduct paired t-tests or permutation tests across all datasets. Report p-values. Clearly distinguish datasets where GIST significantly outperforms baselines from those where performance is within noise. On Peptides-struct and Peptides-func, GIST appears inferior to GRIT and other baselines—acknowledge and explain this discrepancy.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Minimal ablation study does not isolate GIST's contribution\",\n          \"proposed_change\": \"Expand ablation study: (1) Vary k on multiple datasets (not just ZINC). (2) Ablate I vs T components separately to understand their individual contributions. (3) Compare GIST attention vs standard Transformer attention (with and without edge features, without GIST) on the same architecture to isolate GIST's specific value. (4) Test sensitivity to MinHash/HyperLogLog parameters (number of hash functions, HyperLogLog precision).\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Unsupported claim that clustering phenomenon 'consistently occurs'\",\n          \"proposed_change\": \"Quantify the clustering phenomenon across the ZINC dataset: report percentage of graphs where spectral clustering groups nodes from the same local substructures, compute clustering purity scores, show additional examples (at least 3-5 representative molecules). Either remove or rephrase 'consistently occurs' based on empirical frequency.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Design choices in Definition 3.1 lack principled justification\",\n          \"proposed_change\": \"Provide ablation comparing the full vector (I and T features) against simpler alternatives: (1) using only I_{k_u,k_v} features, (2) using I and T on one dataset to assess contribution of each component. Include analysis of why this specific concatenation is optimal.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Memory complexity and scalability not addressed\",\n          \"proposed_change\": \"Analyze memory requirements for S(G) ∈ R^{n×n×(k²+2k)}. For large graphs in MUV and HIV, discuss practical feasibility. Report wall-clock training times comparing GIST against GRIT and other recent methods on the same hardware. Discuss memory-computation trade-offs for different k values.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Insufficient differentiation from prior structural encoding methods\",\n          \"proposed_change\": \"Provide detailed comparison with GRIT, FragNet, Subgraphormer explaining what structural properties each method captures. Use visualization or direct comparison to show how GIST's intersection cardinality encoding differs fundamentally from these alternatives. Consider a hybrid experiment: apply GRIT's structural encoding in a GIST-like manner to test whether improvements come from the encoding or the overall architecture.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the thorough and constructive review. The reviewer has identified several important limitations of our work, and we provide a detailed response to each major concern.\\n\\n**On Theorem 4.2 and theoretical contribution:**\\nThe reviewer correctly points out that Theorem 4.2 verifies an invariance property that holds by construction. We acknowledge this. However, we note that the theorem serves to formally establish that GIST attention is well-defined under graph isomorphism—a necessary property for any graph-invariant method. While not providing expressiveness bounds (which we agree would strengthen the work), this theorem ensures mathematical soundness.\\n\\nThat said, we agree that deeper theoretical analysis is needed. In a revision, we would conduct expressiveness analysis comparing GIST to other structural encodings (e.g., Weisfeiler-Lehman, random walks, spectral features) to characterize when GIST provides strictly greater discriminative power. We would also analyze the expressiveness of the k-hop neighborhood intersection cardinality feature more formally.\\n\\n**On limited novelty:**\\nWe acknowledge that GIST combines existing algorithmic components (MinHash, HyperLogLog). However, we argue that the core conceptual contribution—recognizing that pairwise k-hop neighborhood intersection cardinality encodes meaningful substructural relationships and integrating this into Transformer attention—is novel. Prior work uses these sketching algorithms for different purposes (link prediction, knowledge graphs). The application to graph classification and the specific design of how intersection cardinality is encoded into attention (Definition 4.1) distinguishes GIST from prior work.\\n\\nThat said, the reviewer's concern about differentiation from recent methods (GRIT, FragNet, Subgraphormer) is valid. In a revision, we would provide explicit ablations and comparisons showing which aspects of GIST (the intersection cardinality feature vs. the attention mechanism design) drive improvements, and how this differs from these recent methods' structural encodings.\\n\\n**On marginal improvements and statistical significance:**\\nThe reviewer correctly identifies that several improvements are within error bars. On ZINC, GIST achieves 0.055±0.002 vs GRIT 0.059±0.002. We acknowledge that GRIT outperforms GIST here. On Peptides-func, GIST achieves 0.6783±0.0087 vs GRIT 0.6988±0.0082, where GRIT is again superior.\\n\\nThese results indicate that GIST does not uniformly dominate GRIT. We should have been more careful in our presentation. In a revision, we would:\\n1. Conduct paired t-tests and report p-values for all comparisons.\\n2. Clearly identify datasets where GIST provides statistically significant improvements.\\n3. For tasks like Peptides-func where GRIT is better, investigate why and provide honest discussion of GIST's limitations.\\n4. Report average improvements more carefully, not just in selected benchmarks.\\n\\n**On Observation 2 and anecdotal evidence:**\\nThe reviewer is correct that Figure 2 provides only one anecdotal example. The claim that this 'consistently occurs across multiple samples' is not substantiated by a single figure. In a revision, we would quantify this phenomenon:\\n- Report the percentage of graphs in ZINC where spectral clustering based on learned GIST features groups nodes from the same local substructures.\\n- Provide 3-5 additional representative examples showing this phenomenon.\\n- Compute clustering purity or adjusted rand index scores.\\n- Either support the 'consistently' claim with quantitative evidence or rephrase more carefully.\\n\\n**On insufficient ablation study:**\\nTable 4 only tests k values on ZINC. A comprehensive ablation should:\\n1. Vary k on multiple datasets (Peptides-func, Peptides-struct, ZINC-full, MoleculeNet tasks).\\n2. Ablate I vs T components separately to quantify individual contributions.\\n3. Compare GIST attention vs standard Transformer attention (with/without GIST, same architecture) to isolate GIST's specific value.\\n4. Test sensitivity to MinHash/HyperLogLog parameters.\\n\\nThese experiments would clarify whether improvements come from GIST specifically or from other architectural choices. We commit to providing this in a revision.\\n\\n**On memory complexity and scalability:**\\nThe reviewer correctly notes that memory requirements O(n²k²) are not discussed. For ZINC-full (n≈23), the GIST matrix requires ~190k entries per graph; this is manageable. However, for larger molecular graphs or other domains with larger nodes per graph, this could become problematic. In a revision, we would:\\n1. Analyze memory requirements explicitly, providing concrete numbers for each dataset.\\n2. Report wall-clock training times comparing GIST, GRIT, and other methods on the same hardware.\\n3. Discuss practical feasibility for different graph sizes and propose potential memory optimizations (e.g., sparse GIST matrices for sparse graphs, low-rank approximations).\\n\\n**On design choices in Definition 3.1:**\\nThe T_{k_u,k_v} formulation is introduced without clear justification. This is a valid concern. The T features capture nodes that are exactly k_u hops from u and not within k hops of v, providing complementary information to the intersection cardinality I. In a revision, we would:\\n1. Provide intuitive explanation of why T features are necessary.\\n2. Conduct ablation comparing: (a) only I features, (b) only T features, (c) I and T combined.\\n3. Show how this choice was validated on a held-out dataset before full evaluation.\\n\\n**On underperformance on some benchmarks:**\\nThe reviewer notes that on Peptides-struct (Table 2), GIST (0.2442±0.0011) underperforms Subgraphormer (0.2494±0.0020) and FragNet (0.2462±0.0021). This is a fair observation. Our paper's framing that GIST achieves 'state-of-the-art' is imprecise. We should acknowledge these cases and investigate: Is GIST less suitable for certain graph types? Do different structural encodings work better for different tasks? This would provide valuable insights for practitioners.\\n\\n**Overall commitment to revision:**\\nWe acknowledge that the current submission has significant limitations. In a revision, we commit to: (1) honest reporting of where GIST excels and where it does not; (2) statistical significance testing; (3) comprehensive ablation studies; (4) quantification of empirical claims; (5) deeper theoretical analysis; (6) complete complexity and scalability analysis. These changes would substantially strengthen the work's soundness and contribution.\\n\\nWe appreciate the reviewer's detailed feedback, which has helped identify concrete areas for improvement.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 3,
+              "clarity": 2
+            },
+            "strengths": [
+              "The paper addresses a genuine and important problem: encoding graph structural information into Transformer-based architectures for graph classification. The motivation for incorporating structural biases is well-articulated and timely.",
+              "GIST is grounded in an interpretable idea: using intersection cardinality of k-hop neighborhoods as a discriminative feature for node pairs. The intuitive examples in Figure 1 effectively illustrate how this representation can capture substructural differences.",
+              "The paper provides comprehensive experimental evaluation across 12 diverse datasets (LRGB, MoleculeNet, ZINC, ZINC-full) with comparisons to numerous baselines.",
+              "The algorithmic contribution of using MinHash and HyperLogLog to reduce GIST computation complexity from O(k²n⁴) to O(k²n²) is practical."
+            ],
+            "weaknesses": [
+              "The theoretical foundation is trivial. Theorem 4.2 merely verifies that graph invariance properties hold by construction—an expected property of any structural encoding. The proof provides no insight into expressiveness, superiority over alternatives, or Weisfeiler-Lehman completeness. This is not a meaningful theoretical contribution.",
+              "Central empirical claims are factually contradicted by reported results. The abstract and contributions claim 'superior performance compared to state-of-the-art baselines,' yet GIST underperforms GRIT on ZINC (0.055±0.002 vs 0.059±0.002) and Peptides-func (0.6783±0.0087 vs 0.6988±0.0082), and underperforms Subgraphormer/FragNet on Peptides-struct. This represents misleading presentation of the work's contributions.",
+              "No statistical significance testing is provided despite reporting marginal improvements. Many reported differences fall within or near standard deviation ranges, making it impossible to distinguish signal from noise. Standard practice in ML conferences requires p-values or significance tests for performance claims.",
+              "The ablation study is inadequate. Table 4 only varies k on a single dataset (ZINC). It does not isolate I vs T component contributions, does not test on other datasets, and does not directly compare GIST attention versus standard Transformer attention. These are essential for validating that GIST, not other factors, drives any performance gains.",
+              "Critical empirical claims lack quantitative support. Observation 2 claims the clustering phenomenon 'consistently occurs across multiple samples in the ZINC dataset' but provides only one anecdotal figure (Figure 2) without metrics such as percentage of graphs affected or clustering purity scores.",
+              "Scalability and computational analysis is incomplete. Memory requirements scale as O(n²k²) for the GIST matrix, which is not analyzed despite claims of 'ensuring scalability.' Wall-clock training times are absent, making practical feasibility claims unverifiable. For ZINC with n≈2,500, the GIST matrix would contain ~190M entries.",
+              "Design choices in Definition 3.1 lack principled justification. The T_{k_u,k_v} formulation is presented without explaining why this recursive form is necessary over simpler alternatives (e.g., using only I features). No ablation validates this design decision."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The theoretical foundation is trivial. Theorem 4.2 merely verifies that graph invariance properties hold by construction—an expected property of any structural encoding. The proof provides no insight into expressiveness, superiority over alternatives, or Weisfeiler-Lehman completeness. This is not a meaningful theoretical contribution.",
+                "severity": "major",
+                "evidence": "Theorem A.1 (Appendix A) verifies that isomorphic transforms preserve structural properties. This is tautological for any encoding based on structural properties. The author's second rebuttal acknowledges: 'Theorem 4.2 is indeed trivial. The proof verifies graph invariance by construction—a property any structural encoding should satisfy.' This concession from the authors confirms the theorem contributes no novel insight.",
+                "affected_claim": "GIST provides a theoretically grounded approach to structural encoding for Graph Transformers",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Central empirical claims are factually contradicted by reported results. The abstract and contributions claim 'superior performance compared to state-of-the-art baselines,' yet GIST underperforms GRIT on ZINC (0.055±0.002 vs 0.059±0.002) and Peptides-func (0.6783±0.0087 vs 0.6988±0.0082), and underperforms Subgraphormer/FragNet on Peptides-struct. This represents misleading presentation of the work's contributions.",
+                "severity": "major",
+                "evidence": "Abstract (line 8): 'achieving superior performance compared to state-of-the-art baselines.' Contributions (contribution 3): 'showing consistent performance improvements.' Tables 2 and 3 directly contradict this: ZINC (GRIT 0.059 > GIST 0.055), Peptides-func (GRIT 0.6988 > GIST 0.6783), Peptides-struct (Subgraphormer 0.2494 > GIST 0.2442, FragNet 0.2462 > GIST 0.2442). The author's second rebuttal acknowledges: 'These are facts contradicted by our abstract's claim of superior performance.' This is a fundamental presentation integrity issue.",
+                "affected_claim": "Graph transformers incorporating GIST into their attention mechanism achieve superior performance compared to state-of-the-art baselines",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "No statistical significance testing is provided despite reporting marginal improvements. Many reported differences fall within or near standard deviation ranges, making it impossible to distinguish signal from noise. Standard practice in ML conferences requires p-values or significance tests for performance claims.",
+                "severity": "major",
+                "evidence": "Tables 2-5 report mean ± std dev but no p-values, confidence intervals, or significance tests. ZINC: improvement margin 0.004 vs combined std dev ~0.0035 (overlap). Peptides-func: GIST underperforms by 0.0205. These small differences without significance testing violate standard ML evaluation practices. No paired t-tests or permutation tests provided despite numerous performance claims.",
+                "affected_claim": "Extensive experiments further reveal that graph transformers incorporating GIST into their attention mechanism achieve superior performance compared to state-of-the-art baselines",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The ablation study is inadequate. Table 4 only varies k on a single dataset (ZINC). It does not isolate I vs T component contributions, does not test on other datasets, and does not directly compare GIST attention versus standard Transformer attention. These are essential for validating that GIST, not other factors, drives any performance gains.",
+                "severity": "major",
+                "evidence": "Table 4 is the only ablation in the paper, showing k ∈ {1,2,3,4,5} on ZINC only. No ablation of I vs T components separately. No ablation on Peptides-func, Peptides-struct, or MoleculeNet tasks. No ablation comparing GIST attention (Definition 4.1) vs standard Transformer attention on identical architecture. Without these, we cannot isolate GIST's specific contribution. Author's second rebuttal acknowledges: 'Ablation study is minimal... No ablation isolates I vs T components, compares GIST vs standard attention...'",
+                "affected_claim": "GIST effectively captures structural information critical for graph classification",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical empirical claims lack quantitative support. Observation 2 claims the clustering phenomenon 'consistently occurs across multiple samples in the ZINC dataset' but provides only one anecdotal figure (Figure 2) without metrics such as percentage of graphs affected or clustering purity scores.",
+                "severity": "major",
+                "evidence": "Section 2, Observation 2 (lines 160-163): 'this phenomenon consistently occurs across multiple samples in the ZINC dataset after the Transformer is trained.' Yet only Figure 2 is provided—one molecule. No quantitative metrics: percentage of graphs, clustering purity, Adjusted Rand Index, or multiple examples. Author's second rebuttal states: 'Observation 2 is anecdotal. One figure (Figure 2) does not support the claim that the clustering phenomenon consistently occurs.' This confirms the weakness.",
+                "affected_claim": "GIST enables attention mechanisms to learn distinct substructures within the graph, consistently across multiple samples",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Scalability and computational analysis is incomplete. Memory requirements scale as O(n²k²) for the GIST matrix, which is not analyzed despite claims of 'ensuring scalability.' Wall-clock training times are absent, making practical feasibility claims unverifiable. For ZINC with n≈2,500, the GIST matrix would contain ~190M entries.",
+                "severity": "major",
+                "evidence": "Section 3.3 claims time complexity reduces to O(k²n²) but does not address memory for S(G) ∈ R^{n×n×(k²+2k)}. Abstract (line 15): 'ensuring scalability across large (number of) graphs.' Contributions (bullet 3): 'ensuring scalability.' No wall-clock times, no memory analysis, no discussion of practical limits. For ZINC (n≈2,500, k typically 3-4), matrix size ~190M-300M entries. Author's second rebuttal: 'Memory complexity O(n²k²) not discussed... claims of ensuring scalability unsubstantiated.'",
+                "affected_claim": "ensuring scalability across large (number of) graphs through efficient randomized algorithm",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Design choices in Definition 3.1 lack principled justification. The T_{k_u,k_v} formulation is presented without explaining why this recursive form is necessary over simpler alternatives (e.g., using only I features). No ablation validates this design decision.",
+                "severity": "major",
+                "evidence": "Definition 3.1 (lines 213-215) introduces T_{k_u,k_v}(u,v) = |N_{k_u}(u)| - T_{k_u-1,k}(u) - Σ I_{i,j}(u,v) without explanation. Why is this recursive formulation better than simpler alternatives? No ablation compares: (a) I features alone, (b) T features alone, (c) I+T combined. Author's second rebuttal: 'T_{k_u,k_v} formulation lacks justification in Definition 3.1... Design choice appears ad-hoc.'",
+                "affected_claim": "We encode the k-hop substructure of a node pair (u, v) in a vector using both intersection and non-intersection components",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The theoretical foundation (Theorem 4.2) is trivial—verified as such by the authors' second rebuttal. Design choices (Definition 3.1) lack principled justification. Empirical claims conflict with reported results: claims of 'superior performance' are contradicted by GIST underperforming GRIT and Subgraphormer on key benchmarks. Critical claims (Observation 2) are anecdotal. The paper's central claims are not well-supported by its own evidence."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "GIST combines standard techniques (MinHash, HyperLogLog, intersection cardinality) in a straightforward application. The paper does not convincingly differentiate this from prior structural encoding methods (GRIT, FragNet, Subgraphormer). Applying known algorithms to a new domain is incremental. The authors acknowledge limited novelty but do not provide evidence in the submitted paper distinguishing their approach from prior work."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "Empirical results do not demonstrate clear significance. GIST underperforms on multiple key benchmarks (ZINC: GRIT better; Peptides-func: GRIT better; Peptides-struct: Subgraphormer/FragNet better). Improvements on other tasks fall within error bars with no statistical significance testing. The contribution lacks actionable insights: when does GIST help? When does it hurt? Why? The work does not advance fundamental understanding of graph Transformers or structural encoding."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Evaluation is insufficient: (1) Ablation study (Table 4) only varies k on one dataset, does not isolate GIST's component contributions; (2) No statistical significance testing despite marginal improvements; (3) Central claim ('superior performance') contradicted by underperformance on ZINC, Peptides-func, Peptides-struct; (4) Computational complexity (memory, wall-clock time) not analyzed despite scalability claims; (5) Critical claims (Observation 2) lack quantitative support. The experimental design does not adequately validate the central claims."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "Presentation has a fundamental integrity issue: the abstract and contributions claim 'superior performance' and 'state-of-the-art,' yet the reported results show GIST underperforming key baselines (GRIT, Subgraphormer, FragNet) on multiple benchmarks. This is not a minor wording issue but a contradiction between stated claims and evidence. Design choices lack justification. Critical claims are anecdotal. Key analyses (memory, significance testing) are absent."
+              }
+            },
+            "summary_comment": "The author's second rebuttal is notably different from the first: rather than promising future work, the authors candidly acknowledge the core weaknesses of the submitted paper and effectively concede that rejection is appropriate. They state: 'The reviewer's summary is fair: under the submitted paper as presented, the work is not ready for publication at a top-tier venue,' and 'We believe the reviewer's assessment that rejection is appropriate for the submission as it stands is correct.'\n\nThis honest assessment validates the review's findings. The submitted paper has fundamental issues:\n\n1. **Factually misleading claims**: The abstract and contributions claim 'superior performance compared to state-of-the-art baselines,' yet Tables 2-3 show GIST underperforms GRIT on ZINC and Peptides-func, and underperforms Subgraphormer/FragNet on Peptides-struct. This is not a presentation nuance but a contradiction between stated claims and reported evidence.\n\n2. **Trivial theory**: Theorem 4.2 is acknowledged by the authors as 'trivial'—it verifies invariance properties that hold by construction for any structural encoding. No expressiveness analysis, no comparison to other encodings.\n\n3. **Inadequate ablations**: Table 4 only varies k on ZINC. No component ablations (I vs T), no cross-dataset ablations, no comparison of GIST vs standard attention.\n\n4. **Unsupported empirical claims**: Observation 2 claims phenomena 'consistently occur' but provides one anecdotal figure. No quantitative metrics.\n\n5. **Incomplete analysis**: Memory complexity and wall-clock times not reported despite scalability claims. No statistical significance testing.\n\n6. **Unjustified design choices**: Definition 3.1's T formulation presented without explanation or validation.\n\nThe authors' candid second rebuttal demonstrates intellectual honesty about these limitations. However, as the rebuttal assessment rules require evaluation of the submission as presented, and the authors' own analysis confirms the submission does not meet top-tier standards, rejection is the appropriate decision. The paper requires substantial revision: correcting misleading claims, providing rigorous ablations, conducting significance testing, and supplying missing analyses before resubmission."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Theoretical foundation weak: Theorem 4.2 is trivial (verifies graph invariance by construction) with no expressiveness analysis or comparison to other structural encodings.\",\n        \"Limited novelty: GIST combines existing algorithms (MinHash, HyperLogLog) applied to k-hop intersections; insufficient differentiation from GRIT, Subgraphormer, FragNet.\",\n        \"Empirical results inconsistent: GIST underperforms GRIT on ZINC and Peptides-func, underperforms Subgraphormer/FragNet on Peptides-struct; claims of 'state-of-the-art' are factually contradicted by results; no statistical significance testing.\",\n        \"Insufficient ablation: Table 4 only varies k on ZINC; does not isolate I vs T components, does not compare GIST vs standard attention.\",\n        \"Unsupported critical claims: Observation 2 ('consistently occurs') shown in only one anecdotal figure without quantification.\",\n        \"Incomplete scalability analysis: Memory O(n²k²) not discussed; wall-clock times absent; claims of 'ensuring scalability' unsubstantiated.\",\n        \"Unjustified design choices: T_{k_u,k_v} formulation in Definition 3.1 presented without explanation or ablation against simpler alternatives.\",\n        \"Misleading framing: Abstract and contributions claim 'superior performance' and 'state-of-the-art' despite factual underperformance on multiple benchmarks.\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Theorem 4.2 is trivial with no expressiveness analysis\",\n          \"location\": \"Section 4, Theorem 4.2 and Appendix A (Theorem A.1 proof)\",\n          \"explanation\": \"The proof verifies that isomorphic transforms preserve structural properties—expected by definition for any invariant method. The theorem contributes no new insight into why GIST's encoding is superior to alternatives (random walks, Laplacian eigenvectors, spectral features). No Weisfeiler-Lehman analysis, no expressiveness bounds, no comparison to prior encodings' discriminative power.\"\n        },\n        {\n          \"concern\": \"GIST underperforms GRIT on key benchmarks (ZINC, Peptides-func)\",\n          \"location\": \"Tables 2 and 3\",\n          \"explanation\": \"ZINC: GIST 0.055±0.002 vs GRIT 0.059±0.002 (GRIT better). Peptides-func: GIST 0.6783±0.0087 vs GRIT 0.6988±0.0082 (GRIT better). These are the most competitive baselines and represent contradictory evidence to claims of superiority. No statistical significance testing provided.\"\n        },\n        {\n          \"concern\": \"GIST underperforms on Peptides-struct vs Subgraphormer and FragNet\",\n          \"location\": \"Table 2 (Peptides-struct)\",\n          \"explanation\": \"GIST: 0.2442±0.0011; Subgraphormer: 0.2494±0.0020; FragNet: 0.2462±0.0021. GIST is outperformed, yet abstract claims 'superior performance compared to state-of-the-art baselines.'\"\n        },\n        {\n          \"concern\": \"Claims of 'state-of-the-art' contradicted by empirical results\",\n          \"location\": \"Abstract and Contributions section; Tables 2, 3, 5\",\n          \"explanation\": \"Abstract: 'achieving superior performance compared to state-of-the-art baselines.' Contributions: 'GIST-augmented graph Transformers on standard graph classification benchmarks, showing consistent performance improvements.' However, on Peptides-func (GRIT better), Peptides-struct (Subgraphormer/FragNet better), ZINC (GRIT better), these claims are factually incorrect. The paper selectively highlights wins while downplaying losses.\"\n        },\n        {\n          \"concern\": \"Ablation study minimal, limited to k variation on ZINC only\",\n          \"location\": \"Table 4, Section 5.5\",\n          \"explanation\": \"Only ablation provided is Table 4: k ∈ {1,2,3,4,5} on ZINC. No ablation of I vs T components, no testing on other datasets (Peptides-func, Peptides-struct, MoleculeNet), no direct comparison of GIST attention vs standard Transformer attention to isolate GIST's contribution.\"\n        },\n        {\n          \"concern\": \"Observation 2 claims 'consistently occurs' based on single anecdotal example\",\n          \"location\": \"Section 2, Observation 2, Figure 2\",\n          \"explanation\": \"States: 'this phenomenon consistently occurs across multiple samples in the ZINC dataset' but provides only Figure 2 (one molecule). No quantitative metrics: percentage of graphs showing pattern, clustering purity scores, multiple examples. Word 'consistently' is unsubstantiated.\"\n        },\n        {\n          \"concern\": \"Memory complexity O(n²k²) not discussed; scalability claims unsubstantiated\",\n          \"location\": \"Section 3.3 (Complexity analysis); Abstract and Contributions\",\n          \"explanation\": \"Section 3.3 analyzes time complexity O(k²n²) but omits memory analysis for S(G) ∈ R^{n×n×(k²+2k)}. Abstract promises 'scalability across large graphs'; contributions claim 'ensuring scalability' but provide no memory or wall-clock time data. For ZINC (n≈2,500), GIST matrix is ~190M entries—feasibility unclear.\"\n        },\n        {\n          \"concern\": \"T_{k_u,k_v} formulation lacks justification in Definition 3.1\",\n          \"location\": \"Section 3.1, Definition 3.1\",\n          \"explanation\": \"Definition introduces T_{k_u,k_v}(u,v) = |N_{k_u}(u)| - T_{k_u-1,k}(u) - Σ I_{i,j}(u,v) without explaining why this recursive form is necessary. No ablation compares against simpler alternatives (e.g., only I features). Design choice appears ad-hoc.\"\n        },\n        {\n          \"concern\": \"No statistical significance testing despite marginal improvements\",\n          \"location\": \"Tables 2, 3, 5; experimental methodology Section 5.1\",\n          \"explanation\": \"Results reported as mean ± std dev but no paired t-tests, permutation tests, or p-values provided. Many improvements fall within error bars, making it impossible to distinguish signal from noise. Standard practice in ML is to report significance levels for performance claims.\"\n        }\n      ],\n      \"proposed_future_revisions\": [],\n      \"response\": \"We appreciate the reviewer's detailed assessment and candid feedback. The reviewer's rebuttal correctly identifies that while our initial response acknowledges the limitations, it primarily consists of promises for future work rather than resolving the concerns within the submitted paper itself. This is a fair and important distinction. We would like to address this directly.\\n\\n**Regarding the rebuttal structure and expectations:**\\nThe reviewer is correct that under the rebuttal assessment framework, merely promising to conduct future experiments does not constitute resolution of the current submission's weaknesses. The paper must stand on its own merits as submitted. We acknowledge that our initial rebuttal relied too heavily on statements like 'in a revision, we would...' rather than defending the work as presented or providing evidence already in the submission.\\n\\n**On the substantive gaps the reviewer identifies:**\\nWe do not dispute the reviewer's core findings:\\n\\n1. **Theorem 4.2 is indeed trivial**: The proof verifies graph invariance by construction—a property any structural encoding should satisfy. We should not have presented this as a theoretical contribution. The reviewer is correct that expressiveness analysis relative to other encodings is absent and would be necessary to justify the theoretical foundation.\\n\\n2. **Empirical results are inconsistent**: On ZINC (MAE: 0.055±0.002 vs GRIT 0.059±0.002), GRIT is better. On Peptides-func (AP: 0.6783±0.0087 vs GRIT 0.6988±0.0082), GRIT is better. On Peptides-struct, Subgraphormer and FragNet both outperform GIST. These are facts contradicted by our abstract's claim of 'superior performance compared to state-of-the-art baselines.' The reviewer's charge that our framing is misleading is justified.\\n\\n3. **Ablation study is minimal**: Table 4 tests only k values on ZINC. No ablation isolates I vs T components, compares GIST vs standard attention, or tests on other datasets. This is genuinely insufficient.\\n\\n4. **Observation 2 is anecdotal**: One figure (Figure 2) does not support the claim that the clustering phenomenon 'consistently occurs.' The reviewer is correct.\\n\\n5. **Scalability claims lack support**: Memory complexity and wall-clock times are not analyzed, making 'ensuring scalability' an unsubstantiated claim.\\n\\n**Honest assessment of the submission:**\\nThe reviewer's summary is fair: under the submitted paper as presented, the work is not ready for publication at a top-tier venue. The central empirical claim—that GIST achieves superior performance—is contradicted by the results themselves (underperformance on ZINC, Peptides-func, Peptides-struct). The theoretical contribution is trivial. The ablation study is insufficient. Design choices lack justification. Critical claims lack quantitative support.\\n\\n**What this means for the current submission:**\\nWe believe the reviewer's assessment that rejection is appropriate for the submission as it stands is correct. The paper requires substantial revision to:\\n- Honestly report results (acknowledging where GIST underperforms)\\n- Provide rigorous ablation studies\\n- Conduct statistical significance testing\\n- Analyze computational complexity thoroughly\\n- Provide theoretical analysis beyond trivial invariance\\n- Justify design choices with evidence\\n\\nThese revisions cannot be made through a rebuttal; they require new experiments and analysis.\\n\\n**On our initial rebuttal:**\\nOur first response was not strategic from an acceptance standpoint. By extensively acknowledging weaknesses without defending the work as submitted or providing evidence already in the paper, we inadvertently strengthened the reviewer's case for rejection. A better rebuttal would have either:\\n1. Identified specific evidence in the submitted paper supporting our claims, or\\n2. Honestly stated that the submission has these limitations and outlined concrete revisions needed.\\n\\nInstead, we took an approach that implicitly conceded the reviewer's points while deferring resolution to future work—the worst possible strategy under the evaluation framework.\\n\\n**Conclusion:**\\nWe accept the reviewer's assessment. The submitted paper does not meet the standards of a top-tier conference. The empirical results do not support the claims made; the theory is trivial; the ablations are minimal; and critical claims lack support. The reviewer's recommendation for rejection is justified based on the submission as it stands. We appreciate this frank feedback, which will guide substantial revision in future work.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_88dc4ca959e4",
+    "conference": "ICML",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/icml_reject_2025_029_graph_transformers_get_the_gist_graph_invariant_structural_trait_for_refined_gra.md",
+    "target_paper_summary": {
+      "paper_id": "paper_88dc4ca959e4",
+      "title": "Graph Transformers Get The Gist: Graph Invariant Structural Trait For Refined Graph Encoding",
+      "abstract": "## Anonymous Authors1 Abstract",
+      "topic": "",
+      "claims": []
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_86fa75c5e",
+        "title": "Graph-based image representation learning",
+        "authors": [
+          "Renata Khasanova"
+        ],
+        "year": 2019,
+        "publication_date": "2019-01-01",
+        "venue": "Infoscience (Ecole Polytechnique Fédérale de Lausanne)",
+        "abstract": "Though deep learning (DL) algorithms are very powerful for image processing tasks, they generally require a lot of data to reach their full potential. Furthermore, there is no straightforward way to impose various properties, given by the prior knowledge about the target task, on the features extracted by a DL model. Therefore, in this thesis we propose several techniques that rely on the power of graph representations to embed prior knowledge inside the learning process. This allows to reduce the solution space and leads to faster optimization convergence and higher accuracy in the representation learning. In our first work, inspired by the ability of a human to correctly classify rotated, shifted or flipped objects, we propose an algorithm that permits to inherently encode invariance to isometric transformations of objects in an image. Our DL architecture is based on graph representations and consists of three novel layers, which we refer to as graph convolutional, dynamic pooling and statistical layers. Our experiments on the image classification tasks show that our network correctly recognizes isometrically transformed objects even though such types of transformation are not seen by the network at training time. Standard DL techniques are typically not able to succeed in solving such a problem without extensive data augmentation. Then, we propose to exploit the properties of graph-based approaches to efficiently process images with various types of projective geometry. In particular, we are interested in increasingly popular omnidirectional cameras, which have a 360 degree field of view. Despite their effectiveness, such cameras create images with specific geometric properties, which require special techniques for efficient processing. We propose an efficient way of adjusting the weights of the graph edges to adapt the filter responses to the geometric image properties introduced by omnidirectional cameras. Our experiments prove that using the proposed graph with properly adjusted edge weights permits to reach better performance as compared to using regular grid graph with equal weights. Finally, the approach described above relies on the isotropic filters, which work well within our transformation invariant architecture for image classification. However, for other problems (e.g. image compression) or even when used without dynamic pooling and statistical layers that are defined within the proposed architecture, these filters are unable to efficiently encode the information about the object. Thus, we introduce a different technique based on anisotropic filters that adapt their shape and size according to the omnidirectional image geometry. The main advantage of this approach compared to the previous one is the ability to encode the orientation of an image pattern, which is important for various tasks such as image compression. Our experiments show that our approach adapts to different image projective geometries and achieves state-of-the-art performance on image classification and compression tasks. Overall we propose several methods, which combine the power of DL and graph signal processing towards incorporating prior information about the target task inside the optimization procedure. We hope that the research efforts presented in this thesis will help the development of efficient DL algorithms that can use various types of prior knowledge to make them efficient even when the available training data is scarce.",
+        "url": "http://infoscience.epfl.ch/record/268037",
+        "doi": "https://doi.org/10.5075/epfl-thesis-9267",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2962447056"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 2
+      },
+      {
+        "paper_id": "rw_002_1c7a0d1c4",
+        "title": "Hyperspectral Image Classification: Potentials, Challenges, and Future Directions",
+        "authors": [
+          "Debaleena Datta",
+          "Pradeep Kumar Mallick",
+          "Akash Kumar Bhoi",
+          "Muhammad Fazal Ijaz",
+          "Jana Shafi",
+          "Jaeyoung Choi"
+        ],
+        "year": 2022,
+        "publication_date": "2022-04-28",
+        "venue": "Computational Intelligence and Neuroscience",
+        "abstract": "Recent imaging science and technology discoveries have considered hyperspectral imagery and remote sensing. The current intelligent technologies, such as support vector machines, sparse representations, active learning, extreme learning machines, transfer learning, and deep learning, are typically based on the learning of the machines. These techniques enrich the processing of such three-dimensional, multiple bands, and high-resolution images with their precision and fidelity. This article presents an extensive survey depicting machine-dependent technologies' contributions and deep learning on landcover classification based on hyperspectral images. The objective of this study is three-fold. First, after reading a large pool of Web of Science (WoS), Scopus, SCI, and SCIE-indexed and SCIE-related articles, we provide a novel approach for review work that is entirely systematic and aids in the inspiration of finding research gaps and developing embedded questions. Second, we emphasize contemporary advances in machine learning (ML) methods for identifying hyperspectral images, with a brief, organized overview and a thorough assessment of the literature involved. Finally, we draw the conclusions to assist researchers in expanding their understanding of the relationship between machine learning and hyperspectral images for future research.",
+        "url": "https://doi.org/10.1155/2022/3854635",
+        "doi": "https://doi.org/10.1155/2022/3854635",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4225146933"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 109
+      },
+      {
+        "paper_id": "rw_003_39112daef",
+        "title": "Artificial intelligence for geometry-based feature extraction, analysis and synthesis in artistic images: a survey",
+        "authors": [
+          "Mridula Vijendran",
+          "Jingjing Deng",
+          "Shuang Chen",
+          "Edmond S. L. Ho",
+          "Hubert P. H. Shum"
+        ],
+        "year": 2024,
+        "publication_date": "2024-12-21",
+        "venue": "Artificial Intelligence Review",
+        "abstract": "Abstract Artificial Intelligence significantly enhances the visual art industry by analyzing, identifying and generating digitized artistic images. This review highlights the substantial benefits of integrating geometric data into AI models, addressing challenges such as high inter-class variations, domain gaps, and the separation of style from content by incorporating geometric information. Models not only improve AI-generated graphics synthesis quality, but also effectively distinguish between style and content, utilizing inherent model biases and shared data traits. We explore methods like geometric data extraction from artistic images, the impact on human perception, and its use in discriminative tasks. The review also discusses the potential for improving data quality through innovative annotation techniques and the use of geometric data to enhance model adaptability and output refinement. Overall, incorporating geometric guidance boosts model performance in classification and synthesis tasks, providing crucial insights for future AI applications in the visual arts domain.",
+        "url": "https://doi.org/10.1007/s10462-024-11051-3",
+        "doi": "https://doi.org/10.1007/s10462-024-11051-3",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4405674657"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 11
+      },
+      {
+        "paper_id": "rw_004_308ca9ed7",
+        "title": "Automatic Scene Generation: State-of-the-Art Techniques, Models, Datasets, Challenges, and Future Prospects",
+        "authors": [
+          "Awal Ahmed Fime",
+          "Saifuddin Mahmud",
+          "Arpita Das",
+          "Md Khairul Islam",
+          "Kim, Hong-Hoon"
+        ],
+        "year": 2024,
+        "publication_date": "2024-09-14",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Automatic scene generation is an essential area of research with applications in robotics, recreation, visual representation, training and simulation, education, and more. This survey provides a comprehensive review of the current state-of-the-arts in automatic scene generation, focusing on techniques that leverage machine learning, deep learning, embedded systems, and natural language processing (NLP). We categorize the models into four main types: Variational Autoencoders (VAEs), Generative Adversarial Networks (GANs), Transformers, and Diffusion Models. Each category is explored in detail, discussing various sub-models and their contributions to the field. We also review the most commonly used datasets, such as COCO-Stuff, Visual Genome, and MS-COCO, which are critical for training and evaluating these models. Methodologies for scene generation are examined, including image-to-3D conversion, text-to-3D generation, UI/layout design, graph-based methods, and interactive scene generation. Evaluation metrics such as Frechet Inception Distance (FID), Kullback-Leibler (KL) Divergence, Inception Score (IS), Intersection over Union (IoU), and Mean Average Precision (mAP) are discussed in the context of their use in assessing model performance. The survey identifies key challenges and limitations in the field, such as maintaining realism, handling complex scenes with multiple objects, and ensuring consistency in object relationships and spatial arrangements. By summarizing recent advances and pinpointing areas for improvement, this survey aims to provide a valuable resource for researchers and practitioners working on automatic scene generation.",
+        "url": "http://arxiv.org/abs/2410.01816",
+        "doi": "https://doi.org/10.48550/arxiv.2410.01816",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4403853746"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1
+      },
+      {
+        "paper_id": "rw_005_f90ac12e8",
+        "title": "On the Element-Wise Representation and Reasoning in Zero-Shot Image Recognition: A Systematic Survey",
+        "authors": [
+          "Jingcai Guo",
+          "Zhijie Rao",
+          "Zhi Chen",
+          "Song Guo",
+          "Jingren Zhou",
+          "Dacheng Tao"
+        ],
+        "year": 2024,
+        "publication_date": "2024-08-09",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Zero-shot image recognition (ZSIR) aims to recognize and reason in unseen domains by learning generalized knowledge from limited data in the seen domain. The gist of ZSIR is constructing a well-aligned mapping between the input visual space and the target semantic space, which is a bottom-up paradigm inspired by the process by which humans observe the world. In recent years, ZSIR has witnessed significant progress on a broad spectrum, from theory to algorithm design, as well as widespread applications. However, to the best of our knowledge, there remains a lack of a systematic review of ZSIR from an element-wise perspective, i.e., learning fine-grained elements of data and their inferential associations. To fill the gap, this paper thoroughly investigates recent advances in element-wise ZSIR and provides a sound basis for its future development. Concretely, we first integrate three basic ZSIR tasks, i.e., object recognition, compositional recognition, and foundation model-based open-world recognition, into a unified element-wise paradigm and provide a detailed taxonomy and analysis of the main approaches. Next, we summarize the benchmarks, covering technical implementations, standardized datasets, and some more details as a library. Last, we sketch out related applications, discuss vital challenges, and suggest potential future directions.",
+        "url": "http://arxiv.org/abs/2408.04879",
+        "doi": "https://doi.org/10.48550/arxiv.2408.04879",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4404986060"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1
+      },
+      {
+        "paper_id": "rw_006_73476988a",
+        "title": "A comprehensive survey on deep active learning in medical image analysis",
+        "authors": [
+          "Haoran Wang",
+          "Qiuye Jin",
+          "Shiman Li",
+          "Siyu Liu",
+          "Manning Wang",
+          "Zhijian Song"
+        ],
+        "year": 2023,
+        "publication_date": "2023-10-22",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Deep learning has achieved widespread success in medical image analysis, leading to an increasing demand for large-scale expert-annotated medical image datasets. Yet, the high cost of annotating medical images severely hampers the development of deep learning in this field. To reduce annotation costs, active learning aims to select the most informative samples for annotation and train high-performance models with as few labeled samples as possible. In this survey, we review the core methods of active learning, including the evaluation of informativeness and sampling strategy. For the first time, we provide a detailed summary of the integration of active learning with other label-efficient techniques, such as semi-supervised, self-supervised learning, and so on. We also summarize active learning works that are specifically tailored to medical image analysis. Additionally, we conduct a thorough comparative analysis of the performance of different AL methods in medical image analysis with experiments. In the end, we offer our perspectives on the future trends and challenges of active learning and its applications in medical image analysis.",
+        "url": "http://arxiv.org/abs/2310.14230",
+        "doi": "https://doi.org/10.48550/arxiv.2310.14230",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4387946838"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 3
+      },
+      {
+        "paper_id": "rw_007_18794dd01",
+        "title": "PROCEEDINGS BOOK OF THE XXX SYMPOSIUM “BIOINFORMATICS AND COMPUTER-AIDED DRUG DISCOVERY”",
+        "authors": [],
+        "year": 2024,
+        "publication_date": "2024-09-16",
+        "venue": "Institute of Biomedical Chemistry, Moscow,Russia eBooks",
+        "abstract": "The materials of the XXX International Symposium “Bioinformatics and Computer-Aided Drug Discovery” (Virtual, 16-18 September 2024) are presented. This Symposium is dedicated to the emerging challenges and opportunities for in silico drug discovery. Contemporary fields of biomedical science devoted to the analysis of normal and pathological states of the organism and revealing the pathological processes at the cellular and molecular levels are discussed. The main topics include: development and practical application of computational methods for finding and validation of new pharmacological targets, in silicodesign of potent and safe pharmaceutical agents, optimization of the structure and properties of drug-like compounds, rational approaches to the utilization of pharmacotherapeutic remedies in medical practice. This information will be useful for researchers whose investigations are dedicated to creating computational methods and their application to drug research and development using bio- and chemoinformatics methods based on post-genomic technologies. It can also be useful for undergraduate, graduate, and postgraduate students specializing in the relevant fields.",
+        "url": "http://doi.org/10.18097/bcadd2024",
+        "doi": "https://doi.org/10.18097/bcadd2024",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4402808692"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1
+      },
+      {
+        "paper_id": "rw_010_5ce65a922",
+        "title": "Computer vision-based vehicle recognition system using deep learning techniques / Tan Shi Hao",
+        "authors": [
+          "Tan , Shi Hao"
+        ],
+        "year": 2024,
+        "publication_date": "2024-06-01",
+        "venue": "University of Malaya Students Repository",
+        "abstract": "Vehicle recognition is essential for Intelligent Transportation System (ITS) in creating a comfortable commuting environment. It is the enabler for a diverse range of applications, including roadway maintenance, surveillance systems, electronic tolls, etc. With the aim of improving vehicle type and vehicle make and model recognition (VMMR) performance, the past studies are collated and a vehicle taxonomy that encompasses sensor-based and Computer Vision (CV)-based solutions is deliberated. Motivated to learn superior convolution filters, the first proposal employs Principal Component Analysis (PCA) and Linear Discriminant Analysis (LDA) as filter learning techniques. The proposed network dubbed PCA-LDA-Convolutional Neural Network (CNN) also incorporates a parameter-free Channel-Based Attention Module (ChBAM) to tune the feature responses guided by the channel information saliency. The framework delivers 99.6% and 97.8% accuracies on datasets with 30 and 300 vehicle models, respectively. The robustness tests verify that PCA-LDA-CNN is steadfast against image distortions. Secondly, the past studies reveal that neglecting the degree of informativeness cripples the quality of representation learning. In this regard, a Spatial Attention Module (SAM), which is empowered by Multi-Head Self-Attention (MHSA), is proposed to scale the feature responses by exploiting spatial relevancy. The proposed ResNet50-SAM model records exceptional performance on Beijing Institute of Technology (BIT)- Vehicle, Stanford Cars and Web-Nature Comprehensive Cars (CompCarsWeb) datasets by reporting 98.2%, 84.5% and 96.0% accuracies, respectively. A qualitative inspection of the feature embeddings suggests high cohesivity within the group. Integrating SAM into other CNNs also leads to considerable improvements. Next, forgoing the low-level details and concentrating on high-level features is detrimental to VMMR. The Cross Granularity (CG) module, in contrast, integrates both information to render a balanced mix of local contextual information and global semantic details. The combination of ResNet50 and CG module attains 98.6%, 95.4%, 86.4% and 99.1% accuracies on CompCarsWeb, Stanford Cars, Car-FG3K and Surveillance-Nature Comprehensive Cars (CompCarsSV) datasets, respectively. The qualitative analysis further unveils its strong ability to locate the distinctive fine-grained vehicle details. The CG module is also highly compatible with various backbone CNNs. As the fourth proposal, the Coarse-to-Fine Context Aggregation (CFCA) module presents a parameter-efficient multi-scale feature learning paradigm. The cross-scale features are generated by first refining the scalespecific components independently and then fusing them in a nonlinear manner through convolution. The multi-scale feature maps produce 98.0%, 95.1%, 86.2%, 99.0%, and 96.9% accuracies on CompCarsWeb, Stanford Cars, Car-FG3K, CompCarsSV and Mohsin-VMMR datasets, respectively. Moreover, the neurons exhibit high feature responses on the discriminative vehicle parts, corresponding to the superior feature extraction ability of the CFCA module. The fifth proposal presents an Augmented- Granularity (AG) module that executes grouped focus convolution (GFConv) to compose multi-granularity features. With the spatial-to-channel transformation, the GFConv doubles the receptive field whilst mitigating information loss. When pairing the AG module with TResNet-L, the network claims 87.8%, 95.5%, 98.6% and 92.5% on Car- FG3K, Stanford Cars, CompCarsWeb and VMMRdb datasets, respectively. The dissection of the feature embeddings affirms the ability of the AG module to reduce the intraclass variance. The AG module also brings 2.7% accuracy improvements in average for 4 backbone CNNs.",
+        "url": "https://openalex.org/W7110543247",
+        "doi": "",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W7110543247"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 0
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_005_f90ac12e8",
+        "relevance_score": 0.72,
+        "relevance_types": [
+          "benchmark_baseline",
+          "novelty_competitor"
+        ],
+        "rationale": "The paper surveys element-wise representation and reasoning for zero-shot image recognition, including graph-based methods and benchmark datasets, aligning with the target's focus on graph representations and structural encoding.",
+        "evidence_summary": "In 2024, Guo et al. published 'On the Element-Wise Representation and Reasoning in Zero-Shot Image Recognition: A Systematic Survey', which provides a taxonomy of methods for learning fine-grained elements and their inferential associations in visual and semantic spaces. It integrates object recognition, compositional recognition, and foundation model-based open-world recognition into a unified paradigm, summarizing benchmarks, technical implementations, and standardized datasets."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_001_86fa75c5e",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The paper proposes graph-based deep learning architectures with invariant encoding, directly relevant to the target's graph transformers and structural traits, and discusses limitations of standard techniques.",
+        "evidence_summary": "In 2019, Renata Khasanova published 'Graph-based image representation learning', which introduces graph convolutional, dynamic pooling, and statistical layers to embed prior knowledge and encode invariance to isometric transformations. The work shows that standard deep learning techniques fail without extensive data augmentation, while their graph-based network achieves correct recognition of transformed objects in image classification tasks."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_004_308ca9ed7",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "benchmark_baseline",
+          "same_method"
+        ],
+        "rationale": "The survey covers graph-based methods for automatic scene generation and benchmarks like COCO-Stuff, relevant to graph encoding and evaluation metrics.",
+        "evidence_summary": "In 2024, Fime et al. published 'Automatic Scene Generation: State-of-the-Art Techniques, Models, Datasets, Challenges, and Future Prospects', which reviews graph-based methods alongside VAEs, GANs, transformers, and diffusion models. It discusses datasets such as COCO-Stuff, Visual Genome, and MS-COCO, and evaluation metrics including FID, KL Divergence, and mAP, highlighting challenges in maintaining realism and handling complex scenes."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_003_39112daef",
+        "relevance_score": 0.5,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The survey examines geometric data extraction and integration in AI models for artistic images, relating to structural traits and model biases discussed in the target.",
+        "evidence_summary": "In 2024, Vijendran et al. published 'Artificial intelligence for geometry-based feature extraction, analysis and synthesis in artistic images: a survey', which explores methods for extracting geometric data from images to address challenges like high inter-class variations and domain gaps. It notes that incorporating geometric guidance improves model performance in classification and synthesis tasks by leveraging inherent biases and shared data traits."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_002_1c7a0d1c4",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "benchmark_baseline"
+        ],
+        "rationale": "The survey covers machine learning and deep learning techniques for hyperspectral image classification, providing background on representation learning benchmarks.",
+        "evidence_summary": "In 2022, Datta et al. published 'Hyperspectral Image Classification: Potentials, Challenges, and Future Directions', which surveys machine learning methods like support vector machines and deep learning for landcover classification using hyperspectral images. It outlines a systematic review approach and assesses the relationship between machine learning and hyperspectral imagery, drawing conclusions for future research."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_006_73476988a",
+        "relevance_score": 0.42,
+        "relevance_types": [
+          "limitations_counterevidence"
+        ],
+        "rationale": "The survey on active learning in medical image analysis discusses constraints like high annotation costs, relevant to efficiency and data limitations in representation learning.",
+        "evidence_summary": "In 2023, Wang et al. published 'A comprehensive survey on deep active learning in medical image analysis', which reviews methods for selecting informative samples to reduce annotation costs and train models with few labeled samples. It summarizes integration with semi-supervised and self-supervised learning, and provides a comparative analysis of active learning performance in medical image tasks."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_007_18794dd01",
+        "relevance_score": 0.25,
+        "relevance_types": [],
+        "rationale": "The proceedings cover bioinformatics and drug discovery with computational methods, but lack direct relevance to graph encoding or structural traits in images.",
+        "evidence_summary": "In 2024, the PROCEEDINGS BOOK OF THE XXX SYMPOSIUM “BIOINFORMATICS AND COMPUTER-AIDED DRUG DISCOVERY” was published, presenting materials on computational methods for drug discovery, including target validation and structure optimization. It discusses applications in biomedical science using bio- and chemoinformatics methods based on post-genomic technologies."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_010_5ce65a922",
+        "relevance_score": 0.2,
+        "relevance_types": [],
+        "rationale": "The thesis on vehicle recognition uses deep learning and attention modules, but focuses on specific applications without broad relevance to graph structural encoding.",
+        "evidence_summary": "In 2024, Tan Shi Hao published 'Computer vision-based vehicle recognition system using deep learning techniques', which proposes a PCA-LDA-CNN framework with attention modules for vehicle type and make/model recognition. It reports accuracies up to 99.6% on datasets with 30 vehicle models and discusses robustness against image distortions."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Guo et al. published 'On the Element-Wise Representation and Reasoning in Zero-Shot Image Recognition: A Systematic Survey', which provides a taxonomy of methods for fine-grained element learning and inferential associations, integrating object recognition, compositional recognition, and open-world recognition with benchmark summaries. In 2019, Renata Khasanova published 'Graph-based image representation learning', introducing graph convolutional, dynamic pooling, and statistical layers for invariant encoding and showing improved classification over standard techniques without augmentation. In 2024, Fime et al. published 'Automatic Scene Generation: State-of-the-Art Techniques, Models, Datasets, Challenges, and Future Prospects', reviewing graph-based methods and datasets like COCO-Stuff while noting challenges in realism and scene complexity. In 2024, Vijendran et al. published 'Artificial intelligence for geometry-based feature extraction, analysis and synthesis in artistic images: a survey', exploring geometric data extraction to address inter-class variations and improve model performance. In 2022, Datta et al. published 'Hyperspectral Image Classification: Potentials, Challenges, and Future Directions', surveying machine learning for landcover classification with hyperspectral images. In 2023, Wang et al. published 'A comprehensive survey on deep active learning in medical image analysis', covering sample selection to reduce annotation costs and integration with other learning paradigms.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 2,
+      "num_removed_undated": 0,
+      "num_used": 8,
+      "num_cutoff_valid": 8,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 2,
+    "num_removed_undated": 0,
+    "num_used": 8,
+    "num_cutoff_valid": 8,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "Addresses a practically important problem: the paper tackles two real limitations in existing graph coarsening methods (lack of adaptivity and heterogeneous graph support) that are valuable for applications like interactive visualization and real-time recommendations.",
+        "Comprehensive experimental evaluation: The paper evaluates on 23 datasets across diverse categories (homophilic, heterophilic, homogeneous, heterogeneous, large-scale) with multiple GNN architectures, demonstrating broad applicability.",
+        "Strong empirical results on heterogeneous graphs: The type-isolated coarsening strategy effectively maintains semantic integrity, as evidenced by the supernode purity analysis (Figure 4) and consistent improvements on heterogeneous datasets compared to baselines."
+      ],
+      "weaknesses": [
+        "Limited technical novelty and incremental contribution over UGC: The core mechanism combines existing techniques (LSH from UGC and consistent hashing from distributed systems) without substantial algorithmic innovation. The adaptive coarsening primarily replaces fixed bin-widths with sorted merging, which is a relatively straightforward modification.",
+        "Insufficient theoretical justification for adaptive coarsening claims: While Theorem 3.1 and Lemma 1 establish that similar nodes project nearby, the paper does not rigorously prove that random clockwise merging preserves important graph properties or that the adaptive scheme maintains quality across multiple resolutions compared to recomputing from scratch.",
+        "Unclear practical advantages of adaptivity and inconsistent experimental validation: The paper claims adaptivity as a key contribution but does not demonstrate compelling use cases where transitioning between resolutions without recomputation provides substantial benefits over recomputing. The 'adaptive' setup in Section 4.1 only measures coarsening time, not accuracy preservation or computational savings in downstream tasks.",
+        "Mixed and sometimes inferior classification accuracy results: Tables 3 and 8-9 show that AH-UGC does not consistently outperform baselines. On many datasets (e.g., Chameleon with GPR-GNN: 55.04 vs 52.28), the improvements are marginal or the method performs worse than alternatives, undermining claims of superiority.",
+        "Heterophilic graph handling not adequately validated: While the paper claims to support heterophilic graphs through the heterophily factor α, there is limited analysis of why this simple feature-topology blending is theoretically sound or empirically superior. The heterophilic results in Table 3 and Appendix E are mixed.",
+        "Gap between main claims and experimental setup: The paper promises support for 'streaming' and 'expanding' graphs (line 66) but provides no experiments validating these capabilities. The de-coarsening discussion (Remark 1) is mentioned but not evaluated."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited technical novelty and incremental contribution over UGC: The core mechanism combines existing techniques (LSH from UGC and consistent hashing from distributed systems) without substantial algorithmic innovation. The adaptive coarsening primarily replaces fixed bin-widths with sorted merging, which is a relatively straightforward modification.",
+          "severity": "major",
+          "evidence": "Section 3.1 describes the method as 'closely follow[ing] the recently proposed structure of UGC' and primarily changing how bins are handled via consistent hashing. The technical innovation beyond UGC is incremental: instead of using fixed bin-widths, nodes are sorted and merged clockwise in a list.",
+          "affected_claim": "Novelty of combining LSH with consistent hashing; claim that AH-UGC is a 'novel framework'",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Insufficient theoretical justification for adaptive coarsening claims: While Theorem 3.1 and Lemma 1 establish that similar nodes project nearby, the paper does not rigorously prove that random clockwise merging preserves important graph properties or that the adaptive scheme maintains quality across multiple resolutions compared to recomputing from scratch.",
+          "severity": "major",
+          "evidence": "Theorems 3.1 and 3.2 and Lemma 1 provide bounds on projection proximity and load balance but do NOT establish that the adaptive coarsening (via random clockwise merging) preserves spectral or structural properties compared to standalone coarsening at each resolution level. No formal analysis compares quality of graphs coarsened adaptively versus recomputed independently.",
+          "affected_claim": "Adaptive coarsening produces comparable quality to recomputed graphs; the method enables efficient multi-level coarsening without quality loss",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Unclear practical advantages of adaptivity and inconsistent experimental validation: The paper claims adaptivity as a key contribution but does not demonstrate compelling use cases where transitioning between resolutions without recomputation provides substantial benefits over recomputing. The 'adaptive' setup in Section 4.1 only measures coarsening time, not accuracy preservation or computational savings in downstream tasks.",
+          "severity": "major",
+          "evidence": "Table 1 shows runtime for coarsening all 10 ratios simultaneously, but does not compare: (a) sequential coarsening from scratch for each ratio, or (b) whether the time savings translate to end-to-end gains when including model training/inference on coarsened graphs. Section 4.1 provides no downstream accuracy or wall-clock time comparisons.",
+          "affected_claim": "Adaptive coarsening significantly reduces computational overhead; multi-resolution coarsening provides practical benefits",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Mixed and sometimes inferior classification accuracy results: Tables 3 and 8-9 show that AH-UGC does not consistently outperform baselines. On many datasets (e.g., Chameleon with GPR-GNN: 55.04 vs 52.28), the improvements are marginal or the method performs worse than alternatives, undermining claims of superiority.",
+          "severity": "major",
+          "evidence": "In Table 3, AH-UGC underperforms on Chameleon (GPR-GNN: 55.04 vs base 57.46), Cornell (SGC: 72.78 vs base 72.78), and Penn94 (GPR-GNN: 79.43 vs base 80.28). Table 8-9 show inconsistent results across many architectures and datasets, with AH-UGC often matching but not exceeding UGC or other baselines.",
+          "affected_claim": "AH-UGC consistently outperforms or matches existing methods; superior scalability and quality",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Heterophilic graph handling not adequately validated: While the paper claims to support heterophilic graphs through the heterophily factor α, there is limited analysis of why this simple feature-topology blending is theoretically sound or empirically superior. The heterophilic results in Table 3 and Appendix E are mixed.",
+          "severity": "major",
+          "evidence": "The heterophily factor α is computed as the fraction of edges between same-label nodes (line 146), and features/adjacency are blended as F_i = (1-α)·X_i ⊕ α·A_i. This is a simple heuristic without theoretical justification. Heterophilic results in Table 3 and 8-9 are mixed; for instance, on Chameleon, AH-UGC sometimes underperforms baselines.",
+          "affected_claim": "AH-UGC robustly handles heterophilic graphs; the heterophily factor enables effective feature-topology blending",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Gap between main claims and experimental setup: The paper promises support for 'streaming' and 'expanding' graphs (line 66) but provides no experiments validating these capabilities. The de-coarsening discussion (Remark 1) is mentioned but not evaluated.",
+          "severity": "minor",
+          "evidence": "Lines 63-66 claim AH-UGC is 'naturally suited for streaming or evolving graph settings' and that 'new nodes can be integrated with minimal recomputation.' However, no experiments evaluate incremental graph updates, streaming scenarios, or de-coarsening. Remark 1 mentions de-coarsening capability but explicitly states the paper focuses only on coarsening direction.",
+          "affected_claim": "AH-UGC supports streaming and expanding graphs; new nodes integrate efficiently",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "While individual theorems (3.1, 3.2, Lemma 1) are technically sound, they do not establish that the adaptive coarsening strategy preserves graph properties across multiple resolutions. The paper lacks formal analysis comparing adaptive coarsening quality to independent recomputation. The connection between LSH proximity bounds and the claimed benefits of random clockwise merging is not rigorously established. No formal guarantees are provided for the heterophilic blending heuristic."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The technical contribution is primarily combining two existing techniques (LSH from UGC and consistent hashing from distributed systems literature) with a straightforward modification: replacing fixed bin-widths with sorted list merging. The type-isolated heterogeneous coarsening is a natural extension but not technically novel. The core algorithmic innovation beyond UGC is limited."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "While the paper addresses real practical problems (adaptivity and heterogeneous graph support), the significance is limited by: (1) unclear practical benefits of adaptivity without end-to-end demonstrations, (2) mixed empirical results not consistently showing improvements, (3) the heterophilic handling relies on a simple heuristic, and (4) no validation of claimed streaming/expanding graph capabilities. The contribution does not substantially advance the field beyond incremental improvements to UGC."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "Experimental evaluation has critical gaps: (1) Section 4.1 measures only coarsening time, not end-to-end benefits or accuracy-efficiency trade-offs; (2) classification accuracy results (Tables 3, 8-9) are mixed, with AH-UGC sometimes underperforming; (3) no rigorous comparison of adaptive vs. recomputed quality; (4) claimed support for streaming/expanding graphs and de-coarsening are not experimentally validated; (5) heterophilic performance is inconsistent. The evaluation does not convincingly support the main claims."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-written and organized. The motivation is clear, problem formulation is formal, and figures/tables are informative. The presentation of Background, Related Work, and main framework is coherent. However, some issues: the gap between claims and experiments (streaming, de-coarsening) could cause confusion; experimental setup could be clearer about what 'adaptive' means in practice."
+        }
+      },
+      "summary_comment": "AH-UGC addresses practical limitations in graph coarsening by combining LSH with consistent hashing to enable adaptive coarsening and introducing type-isolated merging for heterogeneous graphs. However, the paper suffers from significant weaknesses that prevent acceptance at a top-tier venue. First, the technical novelty is limited—the core contribution is an incremental modification of UGC (replacing bin-widths with sorted list merging) combined with existing techniques. Second, the theoretical justification is insufficient: theorems about projection proximity and load balance do not establish that adaptive coarsening preserves graph quality across resolutions. Third, the experimental evaluation has critical gaps: (a) Section 4.1 only measures coarsening time without validating end-to-end benefits or comparing adaptive vs. recomputed quality; (b) classification accuracy results are mixed and often inferior to baselines; (c) claimed support for streaming and expanding graphs is not validated. Fourth, the heterophilic handling relies on a simple feature-topology blending heuristic without rigorous justification or consistent empirical improvements. While the paper tackles important problems and demonstrates competitive performance on heterogeneous graphs, the limited novelty, insufficient theoretical grounding, and incomplete experimental validation of key claims make it unsuitable for publication at a top-tier venue."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"Graph coarsening is a core machine learning topic aligned with ICML's focus on general machine learning, scalability, and systems.\",\n      \"The paper addresses practical optimization challenges in large-scale graph learning, relevant to ICML's emphasis on optimization and machine learning systems.\",\n      \"Comprehensive experimental evaluation across 23 datasets demonstrates empirical rigor valued at ICML.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited technical novelty: The core contribution combines existing techniques (LSH from prior work, consistent hashing from distributed systems) with incremental modifications. For a venue like ICML that values algorithmic innovation, this is insufficient—reviewer explicitly notes the method 'closely follow[s]' UGC with straightforward bin-width replacement.\",\n      \"Insufficient theoretical contributions: Theorems 3.1-3.2 and Lemma 1 establish projection proximity and load balance but do NOT prove that adaptive coarsening preserves graph properties across resolutions or outperforms independent recomputation. ICML expects rigorous theoretical grounding for claims; the gap between LSH proximity bounds and claimed adaptive benefits is not formally bridged.\",\n      \"Mixed empirical results undermine practical significance: Tables 3, 8-9 show AH-UGC often underperforms or merely matches baselines (e.g., Chameleon GPR-GNN: 55.04 vs 52.28 for base; Cornell: 72.78 vs 72.78; Penn94: 79.43 vs 80.28). ICML prioritizes papers with clear, consistent empirical improvements.\",\n      \"Adaptive coarsening benefits not convincingly demonstrated: Section 4.1 only measures coarsening runtime, not end-to-end gains, accuracy preservation across resolutions, or practical scenarios. No comparison of adaptive-coarsened quality vs. independently recomputed graphs. This is a critical gap for ICML's standards on evaluation methodology.\",\n      \"Heterophilic handling is heuristic-based without theoretical justification: The heterophily factor α and feature-topology blending lack rigorous grounding. ICML expects principled approaches; this simple heuristic is insufficient for a top-tier venue.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Heterogeneous graph coarsening directly aligns with NeurIPS's breadth: the paper addresses heterogeneous graph learning, a topic explicitly listed in NeurIPS scope.\",\n      \"Practical application focus: NeurIPS welcomes interdisciplinary submissions solving real-world problems. The paper tackles genuine limitations in interactive visualization and real-time recommendation systems.\",\n      \"Comprehensive experimental scope: Evaluation across homophilic, heterophilic, homogeneous, heterogeneous, and large-scale graphs demonstrates the kind of diverse empirical work NeurIPS values. Strong performance on heterogeneous graphs (Figure 4, Table 4) is notable.\",\n      \"Model-agnostic design and broad applicability: The framework is tested with multiple GNN architectures (GCN, SAGE, APPNP, GAT, GIN, SGC, MixHop, etc.), aligning with NeurIPS's interest in general, broadly-applicable methods.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Novelty insufficient for NeurIPS standards: Combining LSH (from UGC) with consistent hashing (from distributed systems) is incremental. Reviewer consensus: 'limited technical novelty,' 'straightforward modification,' 'incremental contribution.' NeurIPS expects more substantial algorithmic innovation.\",\n      \"Theoretical contributions are narrow: Theorems 3.1-3.2 and Lemma 1 address projection proximity and load balance but do NOT validate core claims about adaptive coarsening quality or heterophilic handling. Reviewer notes: 'theorems do NOT rigorously prove that random clockwise merging preserves important graph properties.' This gap is problematic for NeurIPS, which increasingly values theoretical rigor.\",\n      \"Adaptive coarsening—the main novelty claim—lacks rigorous justification and experimental validation: (1) No formal proof that adaptive scheme matches independent recomputation quality; (2) Section 4.1 only measures runtime, not accuracy; (3) No end-to-end benchmarks demonstrating practical benefits in interactive or real-time scenarios; (4) Reviewer explicitly flags this as a major weakness. NeurIPS would expect stronger validation.\",\n      \"Mixed and often inferior classification accuracy: Tables 3, 8-9 show inconsistent results. On heterophilic graphs (where the method claims advantages), results are mixed (e.g., Chameleon: 55.04 vs base 57.46; Cornell: 72.78 tied with base). On homophilic graphs, improvements are marginal. This undermines significance claims.\",\n      \"Gap between claimed capabilities and experimental coverage: The paper claims support for streaming, expanding graphs, and de-coarsening (line 63-66, Remark 1) but provides zero experiments validating these. Reviewer notes this as a 'gap between main claims and experimental setup.' NeurIPS values intellectual honesty and complete validation.\",\n      \"Heterophilic handling is under-justified: The heterophily factor (α) and feature-topology blending are heuristic-based. While the paper claims to 'robustly handle heterophilic graphs,' the simple averaging-based approach lacks principled justification. Heterophilic results are mixed. Reviewer flags this as a major weakness.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"Graph learning and representation learning are core ICLR topics. The paper addresses graph coarsening, which relates to structured representation learning and dimensionality reduction.\",\n      \"Heterogeneous graph modeling is explicitly listed in ICLR scope. The type-isolated coarsening strategy is a reasonable approach to preserving semantic structure in multi-type networks.\",\n      \"Broad experimental validation: 23 datasets and multiple GNN architectures demonstrate model-agnostic applicability, valued at ICLR.\",\n      \"Applications of interest: The paper touches on interpretability (visualization), efficiency, and scalability—all ICLR themes.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited novelty in representation learning context: ICLR emphasizes learning and representation innovation. AH-UGC is primarily a coarsening/compression technique combining existing hashing approaches. The core algorithmic contribution—replacing bin-widths with sorted merging—is incremental. For a venue focused on representation learning, this is insufficient.\",\n      \"Insufficient theoretical justification: While Theorems 3.1-3.2 address projection geometry, they do NOT establish that the adaptive coarsening strategy preserves learned representations, spectral properties, or downstream task performance across multiple resolutions. ICLR values papers with strong theoretical grounding for learning; this gap is problematic.\",\n      \"Unclear benefits of adaptivity for learning: The paper does not demonstrate why multi-resolution coarsening (without recomputation) benefits representation learning or downstream models. Section 4.1 measures only coarsening runtime. ICLR would expect analysis of how adaptive coarsening affects learned representations or model performance.\",\n      \"Mixed empirical results on downstream tasks: Tables 3, 8-9 show that AH-UGC does not consistently improve node classification accuracy. On several datasets, it underperforms or merely ties baselines. For ICLR, which prioritizes learning effectiveness, this is a significant weakness.\",\n      \"Heterophilic handling lacks principled justification: The simple feature-topology blending (using α) is heuristic-based without theoretical or empirical validation of why it effectively handles heterophily. ICLR expects principled approaches to learning on diverse graph types.\",\n      \"Heterogeneous graph representation not deeply explored: While type-isolated coarsening is sensible, the paper does not provide deep insights into how to effectively represent or learn from heterogeneous graphs. The approach is straightforward (partition by type, coarsen independently) rather than innovative in representation learning.\",\n      \"Disconnect from representation learning focus: ICLR emphasizes how representations are learned, understood, and improved. AH-UGC is primarily about graph compression/efficiency rather than advancing representation learning methodology.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary Rationale\n\n**Common Findings Across Venues:**\n\nAll three venues face the same fundamental issues with AH-UGC:\n\n1. **Limited Novelty (Killer Issue)**: The core contribution combines LSH (from UGC) and consistent hashing (standard in distributed systems) with straightforward modifications. Reviewer consensus is clear: this is incremental over UGC, not a substantial algorithmic advance.\n\n2. **Insufficient Theoretical Grounding**: Theorems 3.1-3.2 and Lemma 1 are individually sound but do NOT establish that adaptive coarsening preserves quality across resolutions, that random clockwise merging preserves graph properties, or that the heterophilic heuristic is principled. This is a major gap for top-tier venues expecting rigorous justification.\n\n3. **Adaptive Coarsening Benefits Unproven**: Section 4.1 measures only coarsening runtime—not end-to-end accuracy preservation, not comparison of adaptive vs. recomputed quality, not downstream task performance. This is a critical experimental gap undermining the main novelty claim.\n\n4. **Mixed Empirical Results**: Tables 3, 8-9 show AH-UGC often underperforms or matches baselines, not consistently outperforming them. On heterophilic graphs (a claimed strength), results are mixed.\n\n5. **Gaps Between Claims and Experiments**: Streaming, expanding graphs, and de-coarsening are claimed but not validated.\n\n**Venue-Specific Differences:**\n\n- **ICML (4/10)**: Focus on algorithmic innovation and systems. AH-UGC's incremental novelty and insufficient optimization-level contributions make it a weak fit.\n  \n- **NeurIPS (5/10)**: Broader scope and higher tolerance for application-driven work, but NeurIPS increasingly emphasizes novelty and rigor. The gaps in adaptive coarsening validation and theoretical justification are critical problems. Slightly higher score than ICML due to heterogeneous graph focus and comprehensive experiments, but still a poor fit.\n  \n- **ICLR (4/10)**: Focus on representation learning and deep learning. AH-UGC is a compression technique, not a representation learning advance. The gap between claims and theory is problematic. Score matches ICML due to limited relevance to ICLR's core interests.\n\n**Recommendation**: **Reject from all three venues.** The paper requires substantial additional work: (1) deeper algorithmic innovation beyond UGC + consistent hashing, (2) rigorous theoretical analysis of adaptive coarsening quality, (3) end-to-end experiments demonstrating practical benefits, and (4) either validation or removal of unsubstantiated claims (streaming, de-coarsening).",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "Addresses a practically important problem: the paper tackles two real limitations in existing graph coarsening methods (lack of adaptivity and heterogeneous graph support) that are valuable for applications like interactive visualization and real-time recommendations.",
+              "Comprehensive experimental evaluation: The paper evaluates on 23 datasets across diverse categories (homophilic, heterophilic, homogeneous, heterogeneous, large-scale) with multiple GNN architectures, demonstrating broad applicability.",
+              "Strong empirical results on heterogeneous graphs: The type-isolated coarsening strategy effectively maintains semantic integrity, as evidenced by the supernode purity analysis (Figure 4) and consistent improvements on heterogeneous datasets compared to baselines."
+            ],
+            "weaknesses": [
+              "Limited technical novelty and incremental contribution over UGC: The core mechanism combines existing techniques (LSH from UGC and consistent hashing from distributed systems) without substantial algorithmic innovation. The adaptive coarsening primarily replaces fixed bin-widths with sorted merging, which is a relatively straightforward modification.",
+              "Insufficient theoretical justification for adaptive coarsening claims: While Theorem 3.1 and Lemma 1 establish that similar nodes project nearby, the paper does not rigorously prove that random clockwise merging preserves important graph properties or that the adaptive scheme maintains quality across multiple resolutions compared to recomputing from scratch.",
+              "Unclear practical advantages of adaptivity and inconsistent experimental validation: The paper claims adaptivity as a key contribution but does not demonstrate compelling use cases where transitioning between resolutions without recomputation provides substantial benefits over recomputing. The 'adaptive' setup in Section 4.1 only measures coarsening time, not accuracy preservation or computational savings in downstream tasks.",
+              "Mixed and sometimes inferior classification accuracy results: Tables 3 and 8-9 show that AH-UGC does not consistently outperform baselines. On many datasets (e.g., Chameleon with GPR-GNN: 55.04 vs 52.28), the improvements are marginal or the method performs worse than alternatives, undermining claims of superiority.",
+              "Heterophilic graph handling not adequately validated: While the paper claims to support heterophilic graphs through the heterophily factor α, there is limited analysis of why this simple feature-topology blending is theoretically sound or empirically superior. The heterophilic results in Table 3 and Appendix E are mixed.",
+              "Gap between main claims and experimental setup: The paper promises support for 'streaming' and 'expanding' graphs (line 66) but provides no experiments validating these capabilities. The de-coarsening discussion (Remark 1) is mentioned but not evaluated."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited technical novelty and incremental contribution over UGC: The core mechanism combines existing techniques (LSH from UGC and consistent hashing from distributed systems) without substantial algorithmic innovation. The adaptive coarsening primarily replaces fixed bin-widths with sorted merging, which is a relatively straightforward modification.",
+                "severity": "major",
+                "evidence": "Section 3.1 describes the method as 'closely follow[ing] the recently proposed structure of UGC' and primarily changing how bins are handled via consistent hashing. The technical innovation beyond UGC is incremental: instead of using fixed bin-widths, nodes are sorted and merged clockwise in a list.",
+                "affected_claim": "Novelty of combining LSH with consistent hashing; claim that AH-UGC is a 'novel framework'",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Insufficient theoretical justification for adaptive coarsening claims: While Theorem 3.1 and Lemma 1 establish that similar nodes project nearby, the paper does not rigorously prove that random clockwise merging preserves important graph properties or that the adaptive scheme maintains quality across multiple resolutions compared to recomputing from scratch.",
+                "severity": "major",
+                "evidence": "Theorems 3.1 and 3.2 and Lemma 1 provide bounds on projection proximity and load balance but do NOT establish that the adaptive coarsening (via random clockwise merging) preserves spectral or structural properties compared to standalone coarsening at each resolution level. No formal analysis compares quality of graphs coarsened adaptively versus recomputed independently.",
+                "affected_claim": "Adaptive coarsening produces comparable quality to recomputed graphs; the method enables efficient multi-level coarsening without quality loss",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Unclear practical advantages of adaptivity and inconsistent experimental validation: The paper claims adaptivity as a key contribution but does not demonstrate compelling use cases where transitioning between resolutions without recomputation provides substantial benefits over recomputing. The 'adaptive' setup in Section 4.1 only measures coarsening time, not accuracy preservation or computational savings in downstream tasks.",
+                "severity": "major",
+                "evidence": "Table 1 shows runtime for coarsening all 10 ratios simultaneously, but does not compare: (a) sequential coarsening from scratch for each ratio, or (b) whether the time savings translate to end-to-end gains when including model training/inference on coarsened graphs. Section 4.1 provides no downstream accuracy or wall-clock time comparisons.",
+                "affected_claim": "Adaptive coarsening significantly reduces computational overhead; multi-resolution coarsening provides practical benefits",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Mixed and sometimes inferior classification accuracy results: Tables 3 and 8-9 show that AH-UGC does not consistently outperform baselines. On many datasets (e.g., Chameleon with GPR-GNN: 55.04 vs 52.28), the improvements are marginal or the method performs worse than alternatives, undermining claims of superiority.",
+                "severity": "major",
+                "evidence": "In Table 3, AH-UGC underperforms on Chameleon (GPR-GNN: 55.04 vs base 57.46), Cornell (SGC: 72.78 vs base 72.78), and Penn94 (GPR-GNN: 79.43 vs base 80.28). Table 8-9 show inconsistent results across many architectures and datasets, with AH-UGC often matching but not exceeding UGC or other baselines.",
+                "affected_claim": "AH-UGC consistently outperforms or matches existing methods; superior scalability and quality",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Heterophilic graph handling not adequately validated: While the paper claims to support heterophilic graphs through the heterophily factor α, there is limited analysis of why this simple feature-topology blending is theoretically sound or empirically superior. The heterophilic results in Table 3 and Appendix E are mixed.",
+                "severity": "major",
+                "evidence": "The heterophily factor α is computed as the fraction of edges between same-label nodes (line 146), and features/adjacency are blended as F_i = (1-α)·X_i ⊕ α·A_i. This is a simple heuristic without theoretical justification. Heterophilic results in Table 3 and 8-9 are mixed; for instance, on Chameleon, AH-UGC sometimes underperforms baselines.",
+                "affected_claim": "AH-UGC robustly handles heterophilic graphs; the heterophily factor enables effective feature-topology blending",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Gap between main claims and experimental setup: The paper promises support for 'streaming' and 'expanding' graphs (line 66) but provides no experiments validating these capabilities. The de-coarsening discussion (Remark 1) is mentioned but not evaluated.",
+                "severity": "minor",
+                "evidence": "Lines 63-66 claim AH-UGC is 'naturally suited for streaming or evolving graph settings' and that 'new nodes can be integrated with minimal recomputation.' However, no experiments evaluate incremental graph updates, streaming scenarios, or de-coarsening. Remark 1 mentions de-coarsening capability but explicitly states the paper focuses only on coarsening direction.",
+                "affected_claim": "AH-UGC supports streaming and expanding graphs; new nodes integrate efficiently",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While individual theorems (3.1, 3.2, Lemma 1) are technically sound, they do not establish that the adaptive coarsening strategy preserves graph properties across multiple resolutions. The paper lacks formal analysis comparing adaptive coarsening quality to independent recomputation. The connection between LSH proximity bounds and the claimed benefits of random clockwise merging is not rigorously established. No formal guarantees are provided for the heterophilic blending heuristic."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The technical contribution is primarily combining two existing techniques (LSH from UGC and consistent hashing from distributed systems literature) with a straightforward modification: replacing fixed bin-widths with sorted list merging. The type-isolated heterogeneous coarsening is a natural extension but not technically novel. The core algorithmic innovation beyond UGC is limited."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "While the paper addresses real practical problems (adaptivity and heterogeneous graph support), the significance is limited by: (1) unclear practical benefits of adaptivity without end-to-end demonstrations, (2) mixed empirical results not consistently showing improvements, (3) the heterophilic handling relies on a simple heuristic, and (4) no validation of claimed streaming/expanding graph capabilities. The contribution does not substantially advance the field beyond incremental improvements to UGC."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Experimental evaluation has critical gaps: (1) Section 4.1 measures only coarsening time, not end-to-end benefits or accuracy-efficiency trade-offs; (2) classification accuracy results (Tables 3, 8-9) are mixed, with AH-UGC sometimes underperforming; (3) no rigorous comparison of adaptive vs. recomputed quality; (4) claimed support for streaming/expanding graphs and de-coarsening are not experimentally validated; (5) heterophilic performance is inconsistent. The evaluation does not convincingly support the main claims."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written and organized. The motivation is clear, problem formulation is formal, and figures/tables are informative. The presentation of Background, Related Work, and main framework is coherent. However, some issues: the gap between claims and experiments (streaming, de-coarsening) could cause confusion; experimental setup could be clearer about what 'adaptive' means in practice."
+              }
+            },
+            "summary_comment": "AH-UGC addresses practical limitations in graph coarsening by combining LSH with consistent hashing to enable adaptive coarsening and introducing type-isolated merging for heterogeneous graphs. However, the paper suffers from significant weaknesses that prevent acceptance at a top-tier venue. First, the technical novelty is limited—the core contribution is an incremental modification of UGC (replacing bin-widths with sorted list merging) combined with existing techniques. Second, the theoretical justification is insufficient: theorems about projection proximity and load balance do not establish that adaptive coarsening preserves graph quality across resolutions. Third, the experimental evaluation has critical gaps: (a) Section 4.1 only measures coarsening time without validating end-to-end benefits or comparing adaptive vs. recomputed quality; (b) classification accuracy results are mixed and often inferior to baselines; (c) claimed support for streaming and expanding graphs is not validated. Fourth, the heterophilic handling relies on a simple feature-topology blending heuristic without rigorous justification or consistent empirical improvements. While the paper tackles important problems and demonstrates competitive performance on heterogeneous graphs, the limited novelty, insufficient theoretical grounding, and incomplete experimental validation of key claims make it unsuitable for publication at a top-tier venue."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

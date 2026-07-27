@@ -1,0 +1,200 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Comprehensive benchmark design with multiple action levels: The paper introduces a well-motivated hierarchical framework distinguishing between high-level and low-level embodied tasks, filling a genuine gap in MLLM evaluation. The distinction between task types (EB-ALFRED, EB-Habitat for high-level; EB-Navigation, EB-Manipulation for low-level) is systematic and well-justified.",
+        "Extensive empirical evaluation with 24 models: The evaluation is thorough, covering both proprietary (GPT-4o, Claude, Gemini) and open-source models (InternVL, Qwen, LLaMA). The scale of experiments provides valuable insights into model capabilities across different task categories and reveals important patterns (e.g., vision criticality varies by task level).",
+        "Capability-oriented fine-grained evaluation framework: The six-capability taxonomy (base, commonsense, complex instruction, spatial awareness, visual perception, long-horizon planning) enables nuanced analysis beyond overall accuracy. The discovery that long-horizon planning is a consistent bottleneck across models and the 40-70% performance degradation when vision is removed for low-level tasks are valuable insights.",
+        "Rigorous ablation studies and error analysis: Section 5.3-5.5 provides thorough ablations examining image resolution, detection boxes, multi-step images, and visual in-context learning. The error analysis identifying planning errors (55%), reasoning errors (41%), and perception errors (4%) in EB-ALFRED provides actionable insights for future research.",
+        "Practical agent framework design: The unified MLLM agent pipeline (Figure 2-3) with multi-step planning, visual state description, reflection, reasoning, and executable plan generation represents a thoughtful design that is general enough to work across different environments while being grounded in practical implementation."
+      ],
+      "weaknesses": [
+        "Evaluation limited to simulation without real-world validation: The benchmark is entirely simulation-based, raising questions about sim-to-real transfer and the validity of findings for practical robotics deployment. While the authors acknowledge this in the limitations section, the complete absence of any real-world experiments or sim-to-real analysis limits the practical significance.",
+        "Imbalanced dataset sizes and inconsistent subset distributions across environments: EB-ALFRED and EB-Habitat contain 300 instances each with 50 per subset, while EB-Navigation has 300 instances across 5 subsets (60 per subset), and EB-Manipulation has only 228 instances with uneven distribution (48 per subset except visual appearance with 36). This inconsistency makes cross-environment comparisons less principled and raises concerns about statistical reliability.",
+        "Limited novelty in agent framework and baseline methods: The proposed MLLM agent framework is relatively standard, combining few-shot prompting with chain-of-thought reasoning. The paper does not compare against alternative agent designs or provide ablations showing why this particular decomposition (visual state description → reflection → reasoning → planning → executable action) is optimal.",
+        "Incomplete capability evaluation in some environments: EB-Navigation lacks spatial awareness subset evaluation, and EB-Manipulation lacks long-horizon subset evaluation due to 'design challenges' that are not fully explained. This reduces the comprehensiveness of the capability-oriented evaluation framework.",
+        "Manual corrections and potential evaluation bias: The paper mentions manually correcting simulator errors and refining instruction quality for EB-ALFRED but provides limited details on the extent of corrections, evaluation methodology, and potential for introducing evaluator bias. The use of GPT-4o for instruction augmentation could introduce systematic biases favoring GPT-4o in evaluation."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Evaluation limited to simulation without real-world validation: The benchmark is entirely simulation-based, raising questions about sim-to-real transfer and the validity of findings for practical robotics deployment.",
+          "severity": "major",
+          "evidence": "Section 'Limitations' explicitly states 'our evaluation is conducted solely in simulated environments, without real-world experiments.' The entire benchmark relies on AI2-THOR, Habitat 2.0, and CoppeliaSim simulators.",
+          "affected_claim": "The findings revealing that MLLMs excel at high-level tasks but struggle with low-level manipulation represent generalizable insights for embodied AI development",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Imbalanced dataset sizes and inconsistent subset distributions across environments",
+          "severity": "major",
+          "evidence": "Section 4.2 describes EB-ALFRED and EB-Habitat with 300 instances (50 each subset), EB-Navigation with 300 instances (60 each across 5 subsets), and EB-Manipulation with 228 instances with uneven distribution. This inconsistency is not justified.",
+          "affected_claim": "EMBODIEDBENCH provides a standardized and comprehensive evaluation platform for MLLM-based embodied agents",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Limited novelty in agent framework and baseline methods",
+          "severity": "minor",
+          "evidence": "Section 4.3 describes the agent pipeline as combining standard components: visual description, reflection, reasoning, planning, executable plan generation. No comparison with alternative agent designs or justification for this specific decomposition is provided.",
+          "affected_claim": "The paper contributes a novel and efficient MLLM agent framework as one of its three main contributions",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Incomplete capability evaluation in some environments due to design challenges",
+          "severity": "minor",
+          "evidence": "Section 4.2 states 'Due to design challenges, EB-Navigation omits the spatial awareness subset and EB-Manipulation excludes the long-horizon subset.' These challenges are not explained.",
+          "affected_claim": "EMBODIEDBENCH features six meticulously curated subsets evaluating essential agent capabilities across all environments",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Manual corrections and potential evaluation bias in dataset construction",
+          "severity": "minor",
+          "evidence": "Section C.1 mentions 'manually corrected simulator errors' and 'refined instruction quality' but provides limited details on scope, methodology, or potential bias. Section 4.2 notes using GPT-4o for instruction augmentation across multiple subsets.",
+          "affected_claim": "EMBODIEDBENCH provides a high-quality, unbiased benchmark for fair model comparison",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The benchmark design is technically sound with clear problem formulation, well-defined task hierarchies, and systematic evaluation methodology. The POMDP formulation for vision-driven agents is appropriate. Experimental setup (24 models, controlled temperature/resolution) is rigorous. Error analysis methodology is reasonable. However, manual dataset corrections and simulator modifications introduce some uncertainty about result reproducibility."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "While individual components (high/low-level task distinction, capability evaluation, MLLM agents) exist in prior work, the combination is novel. EMBODIEDBENCH meaningfully extends VisualAgentBench by adding low-level manipulation tasks, fine-grained capability assessment, and more comprehensive model evaluation. The paper's contribution over concurrent work (EmbodiedEval with 328 instances) is substantial in scale (1,128 instances) and scope."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The benchmark addresses a genuine gap in MLLM evaluation for embodied agents. Key findings (vision importance varies by task level, long-horizon planning is hardest, best model achieves only 28.9% on manipulation) are meaningful for the community. The resource (1,128 test instances, code/dataset release, 24 model evaluations) will be valuable for future research. However, limitations to simulation and lack of real-world applicability assessment reduce significance."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Experiments are comprehensive with 24 models, ablation studies on key factors (resolution, detection boxes, multi-step images, visual ICL), error analysis on 110 failure cases, and capability-oriented evaluation across 6 subsets. Results are well-presented in tables and figures. However, imbalanced dataset sizes (228-300 instances), incomplete subset coverage, and reliance on manual corrections introduce some concerns about statistical power and reproducibility."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-written and clearly organized. The problem formulation is precise with formal POMDP definition. Figures effectively convey concepts (Figure 1 on action hierarchy, Figure 2-3 on agent pipeline, Figure 5 on ablations). Tables 2-3 present results clearly. However, some details are deferred to appendices, and explanations of 'design challenges' preventing complete subset coverage could be clearer in main text."
+        }
+      },
+      "summary_comment": "EMBODIEDBENCH is a well-executed benchmark paper that makes solid contributions to MLLM-based embodied agent evaluation. The hierarchical task design (high-level vs. low-level), comprehensive model coverage (24 models), and capability-oriented evaluation framework represent meaningful advances over existing work like VisualAgentBench. The extensive experiments reveal important insights: vision is critical for low-level tasks but not high-level ones, long-horizon planning is a consistent bottleneck, and current best models achieve only ~29% on manipulation tasks. The thorough ablations and error analysis provide actionable insights for future research. However, the benchmark's limitation to simulation without real-world validation, inconsistent dataset sizes across environments, and reliance on manual corrections reduce its impact. The agent framework design, while practical, lacks novelty. Despite these limitations, EMBODIEDBENCH represents a valuable resource for the community that will enable more rigorous evaluation and comparison of MLLM-based embodied agents. The scale, scope, and empirical insights justify acceptance at a top venue, though real-world validation would significantly strengthen the work."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Benchmarking and evaluation methodology: ICML values papers that propose systematic evaluation frameworks. The paper's capability-oriented evaluation framework with six fine-grained subsets and hierarchical task design aligns with ICML's interest in evaluation methodology and meta-studies.\",\n      \"Comprehensive empirical study: The extensive experiments with 24 models (proprietary and open-source) across multiple environments provide valuable empirical insights into model behavior, which ICML considers important for understanding machine learning systems.\",\n      \"Machine learning systems contribution: The unified MLLM agent framework design and analysis of different architectural choices (image resolution, detection boxes, visual in-context learning) relates to ICML's interest in machine learning systems and implementation.\",\n      \"Application-driven research: The paper addresses a real-world problem of evaluating embodied agents, which falls under ICML's application-driven category, particularly for robotics applications.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Primarily a benchmarking/data contribution with limited algorithmic novelty: The agent framework is standard (few-shot prompting + chain-of-thought reasoning). ICML typically expects stronger methodological or algorithmic contributions beyond benchmark creation. The paper scores 4/10 for novelty according to reviewers.\",\n      \"Simulation-only evaluation limits ML systems insights: ICML's machine learning systems focus typically involves production systems or significant scalability/efficiency insights. Pure simulation-based evaluation without real-world validation or systems-level efficiency analysis is tangential to core ICML interests.\",\n      \"Limited theoretical contribution: The paper is purely empirical with no learning theory, optimization insights, or theoretical analysis. ICML explicitly values theory alongside applications.\",\n      \"Evaluation methodology concerns reduce rigor: Manual dataset corrections, inconsistent subset distributions (228-300 instances across environments), and incomplete capability coverage (EB-Navigation missing spatial awareness, EB-Manipulation missing long-horizon) raise reproducibility concerns. ICML emphasizes methodological rigor.\",\n      \"No novel machine learning technique: The work does not propose new training methods, optimization algorithms, or architectural innovations. It evaluates existing models using existing agents, which is more suitable for benchmark-focused venues.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Robotics and embodied systems are core NeurIPS topics: NeurIPS explicitly lists 'Robotics, embodied systems, and engineering' as a primary topic area. The paper directly addresses embodied agent evaluation, which is central to this theme.\",\n      \"Multimodal understanding and vision-language models: NeurIPS values work on 'Language and multimodal language models.' The paper's focus on MLLMs for vision-driven embodied agents aligns well with this topic.\",\n      \"Comprehensive benchmarking resource: NeurIPS recognizes the value of well-designed benchmarks as significant contributions. The 1,128 test instances across four environments with fine-grained capability evaluation represent a substantial resource for the community.\",\n      \"AI/ML for physical sciences and robotics: The paper falls squarely under NeurIPS's 'AI/ML for physical sciences' category through its robotics applications, even in simulation.\",\n      \"Extensive empirical insights on model capabilities: The findings that vision importance varies by task level, long-horizon planning is consistently challenging, and best models achieve only ~29% on manipulation tasks provide valuable insights for the embodied AI community, which NeurIPS values.\",\n      \"Clear application to important problems: Vision-driven embodied agents represent a key direction in AI, and understanding MLLM capabilities in this domain is timely and relevant to NeurIPS's interdisciplinary audience.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited algorithmic or methodological novelty: The agent framework is relatively standard, combining established techniques (in-context learning, chain-of-thought reasoning). While benchmark papers can be accepted, NeurIPS typically expects stronger technical contributions alongside benchmarking.\",\n      \"Simulation-only without real-world grounding: NeurIPS has recently emphasized real-world applicability. The complete reliance on simulation (AI2-THOR, Habitat 2.0, CoppeliaSim) without any real-world validation or sim-to-real analysis limits impact, especially given acknowledged limitations in transferring findings.\",\n      \"Evaluation quality concerns reduce significance: Inconsistent dataset distributions (EB-Manipulation with only 228 instances vs. others with 300), missing capability subsets due to unexplained 'design challenges,' and manual dataset corrections without full transparency raise reproducibility concerns that NeurIPS emphasizes.\",\n      \"Incremental over concurrent work: EmbodiedEval (concurrent work mentioned in paper) addresses similar problems with 328 instances. While EMBODIEDBENCH is larger (1,128 instances), the core contribution is primarily scaling rather than fundamental innovation.\",\n      \"Dataset construction methodology lacks rigor: Manual corrections to simulators, GPT-4o-based instruction augmentation (which could bias toward GPT-4o performance), and unexplained 'design challenges' preventing complete subset coverage raise concerns about objectivity and reproducibility that conflict with NeurIPS standards.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Deep learning and representation learning in embodied AI: ICLR explicitly welcomes work on 'applications to robotics, autonomy, planning' and 'representation learning for vision, language, and other modalities.' This paper evaluates multimodal representation learning via embodied task performance.\",\n      \"Multimodal large language models evaluation: ICLR values research on MLLMs and their capabilities. The paper's systematic evaluation of 24 MLLMs across diverse tasks contributes to understanding these models in complex settings.\",\n      \"Benchmarking and datasets for embodied AI: ICLR recognizes 'datasets and benchmarks' as a valid contribution area. The 1,128 test instances across four environments represent a resource that enables future research in embodied agents.\",\n      \"Vision-language understanding: The paper directly addresses how visual information impacts language-grounded decision-making, which aligns with ICLR's interest in representation learning across modalities.\",\n      \"Learning theory insights through empirical analysis: The error analysis (55% planning errors, 41% reasoning errors in EB-ALFRED) and ablation studies provide insights into model behavior and limitations that can inform future representation learning approaches.\",\n      \"Hierarchical task structure: The high-level vs. low-level action hierarchy and capability-oriented evaluation provides structured analysis relevant to ICLR's interest in compositional and hierarchical learning.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Primarily an evaluation benchmark rather than a learning contribution: ICLR emphasizes novel learning methods, architectures, or theoretical insights. This paper is primarily a comprehensive evaluation suite using existing models without proposing new learning approaches.\",\n      \"Agent framework lacks novelty or innovation: The proposed MLLM agent pipeline (visual description → reflection → reasoning → planning → action) combines standard techniques. ICLR expects novel architectural designs or learning mechanisms, not standard in-context learning applications.\",\n      \"No representation learning innovations: The paper does not propose new representations, feature learning methods, or ways to improve multimodal understanding. It only evaluates existing models' performance.\",\n      \"Simulation-only without theoretical or learning insights: ICLR values papers that advance understanding of learning principles or improve learning algorithms. Pure simulation-based benchmarking without insights about training or learning fails to meet this bar.\",\n      \"Data quality and reproducibility concerns: Manual dataset corrections, inconsistent subset distributions, missing capability subsets, and GPT-4o-based augmentation raise concerns about evaluation objectivity. ICLR emphasizes rigorous methodology.\",\n      \"Incremental over existing benchmarks: While larger than VisualAgentBench (746 vs. 1,128 instances), the core approach to benchmarking is not fundamentally different. The paper acknowledges it addresses gaps (high-level vs. low-level, capability-oriented evaluation) but these are primarily engineering contributions rather than learning insights.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\n**EMBODIEDBENCH** is a well-executed benchmarking paper that makes solid empirical contributions to embodied AI evaluation. However, it faces different fit challenges at each venue:\n\n### **ICML (Score: 5/10 – Borderline/Risky)**\nICML accepts benchmarking papers but expects significant algorithmic or methodological novelty alongside the empirical work. This paper's limited technical innovation in the agent framework, simulation-only evaluation without systems-level insights, and reproducibility concerns (manual corrections, inconsistent dataset distributions) make it a weak fit. The work would be more suitable for a benchmark-focused venue.\n\n### **NeurIPS (Score: 7/10 – Good Fit)**\nNeurIPS is the best match because it explicitly values robotics and embodied systems as core topics, accepts multimodal AI contributions, and recognizes benchmarking as a valid contribution. The 1,128 test instances, extensive evaluation of 24 models, and actionable insights about MLLMs in embodied tasks align well with NeurIPS's interdisciplinary mission. However, the lack of real-world validation and methodological concerns (dataset construction, manual corrections) prevent this from being an excellent fit.\n\n### **ICLR (Score: 6/10 – Borderline)**\nICLR accepts benchmarking and embodied AI work but emphasizes novel learning methods and representation learning insights. This paper's primary contribution is systematic evaluation rather than advancing learning theory or proposing new architectures. While the multimodal representation analysis is relevant, the lack of learning innovations and reliance on existing models without representation improvements make it a borderline fit.\n\n**Recommendation:** Submit to **NeurIPS** as the primary venue. The robotics focus, multimodal AI emphasis, and acceptance of benchmark contributions make it the most suitable. Consider ICLR as a secondary option if NeurIPS rejects. Avoid ICML unless the paper is substantially revised to include novel algorithmic contributions or learning theory insights.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Comprehensive benchmark design with multiple action levels: The paper introduces a well-motivated hierarchical framework distinguishing between high-level and low-level embodied tasks, filling a genuine gap in MLLM evaluation. The distinction between task types (EB-ALFRED, EB-Habitat for high-level; EB-Navigation, EB-Manipulation for low-level) is systematic and well-justified.",
+              "Extensive empirical evaluation with 24 models: The evaluation is thorough, covering both proprietary (GPT-4o, Claude, Gemini) and open-source models (InternVL, Qwen, LLaMA). The scale of experiments provides valuable insights into model capabilities across different task categories and reveals important patterns (e.g., vision criticality varies by task level).",
+              "Capability-oriented fine-grained evaluation framework: The six-capability taxonomy (base, commonsense, complex instruction, spatial awareness, visual perception, long-horizon planning) enables nuanced analysis beyond overall accuracy. The discovery that long-horizon planning is a consistent bottleneck across models and the 40-70% performance degradation when vision is removed for low-level tasks are valuable insights.",
+              "Rigorous ablation studies and error analysis: Section 5.3-5.5 provides thorough ablations examining image resolution, detection boxes, multi-step images, and visual in-context learning. The error analysis identifying planning errors (55%), reasoning errors (41%), and perception errors (4%) in EB-ALFRED provides actionable insights for future research.",
+              "Practical agent framework design: The unified MLLM agent pipeline (Figure 2-3) with multi-step planning, visual state description, reflection, reasoning, and executable plan generation represents a thoughtful design that is general enough to work across different environments while being grounded in practical implementation."
+            ],
+            "weaknesses": [
+              "Evaluation limited to simulation without real-world validation: The benchmark is entirely simulation-based, raising questions about sim-to-real transfer and the validity of findings for practical robotics deployment. While the authors acknowledge this in the limitations section, the complete absence of any real-world experiments or sim-to-real analysis limits the practical significance.",
+              "Imbalanced dataset sizes and inconsistent subset distributions across environments: EB-ALFRED and EB-Habitat contain 300 instances each with 50 per subset, while EB-Navigation has 300 instances across 5 subsets (60 per subset), and EB-Manipulation has only 228 instances with uneven distribution (48 per subset except visual appearance with 36). This inconsistency makes cross-environment comparisons less principled and raises concerns about statistical reliability.",
+              "Limited novelty in agent framework and baseline methods: The proposed MLLM agent framework is relatively standard, combining few-shot prompting with chain-of-thought reasoning. The paper does not compare against alternative agent designs or provide ablations showing why this particular decomposition (visual state description → reflection → reasoning → planning → executable action) is optimal.",
+              "Incomplete capability evaluation in some environments: EB-Navigation lacks spatial awareness subset evaluation, and EB-Manipulation lacks long-horizon subset evaluation due to 'design challenges' that are not fully explained. This reduces the comprehensiveness of the capability-oriented evaluation framework.",
+              "Manual corrections and potential evaluation bias: The paper mentions manually correcting simulator errors and refining instruction quality for EB-ALFRED but provides limited details on the extent of corrections, evaluation methodology, and potential for introducing evaluator bias. The use of GPT-4o for instruction augmentation could introduce systematic biases favoring GPT-4o in evaluation."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Evaluation limited to simulation without real-world validation: The benchmark is entirely simulation-based, raising questions about sim-to-real transfer and the validity of findings for practical robotics deployment.",
+                "severity": "major",
+                "evidence": "Section 'Limitations' explicitly states 'our evaluation is conducted solely in simulated environments, without real-world experiments.' The entire benchmark relies on AI2-THOR, Habitat 2.0, and CoppeliaSim simulators.",
+                "affected_claim": "The findings revealing that MLLMs excel at high-level tasks but struggle with low-level manipulation represent generalizable insights for embodied AI development",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Imbalanced dataset sizes and inconsistent subset distributions across environments",
+                "severity": "major",
+                "evidence": "Section 4.2 describes EB-ALFRED and EB-Habitat with 300 instances (50 each subset), EB-Navigation with 300 instances (60 each across 5 subsets), and EB-Manipulation with 228 instances with uneven distribution. This inconsistency is not justified.",
+                "affected_claim": "EMBODIEDBENCH provides a standardized and comprehensive evaluation platform for MLLM-based embodied agents",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited novelty in agent framework and baseline methods",
+                "severity": "minor",
+                "evidence": "Section 4.3 describes the agent pipeline as combining standard components: visual description, reflection, reasoning, planning, executable plan generation. No comparison with alternative agent designs or justification for this specific decomposition is provided.",
+                "affected_claim": "The paper contributes a novel and efficient MLLM agent framework as one of its three main contributions",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Incomplete capability evaluation in some environments due to design challenges",
+                "severity": "minor",
+                "evidence": "Section 4.2 states 'Due to design challenges, EB-Navigation omits the spatial awareness subset and EB-Manipulation excludes the long-horizon subset.' These challenges are not explained.",
+                "affected_claim": "EMBODIEDBENCH features six meticulously curated subsets evaluating essential agent capabilities across all environments",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Manual corrections and potential evaluation bias in dataset construction",
+                "severity": "minor",
+                "evidence": "Section C.1 mentions 'manually corrected simulator errors' and 'refined instruction quality' but provides limited details on scope, methodology, or potential bias. Section 4.2 notes using GPT-4o for instruction augmentation across multiple subsets.",
+                "affected_claim": "EMBODIEDBENCH provides a high-quality, unbiased benchmark for fair model comparison",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The benchmark design is technically sound with clear problem formulation, well-defined task hierarchies, and systematic evaluation methodology. The POMDP formulation for vision-driven agents is appropriate. Experimental setup (24 models, controlled temperature/resolution) is rigorous. Error analysis methodology is reasonable. However, manual dataset corrections and simulator modifications introduce some uncertainty about result reproducibility."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "While individual components (high/low-level task distinction, capability evaluation, MLLM agents) exist in prior work, the combination is novel. EMBODIEDBENCH meaningfully extends VisualAgentBench by adding low-level manipulation tasks, fine-grained capability assessment, and more comprehensive model evaluation. The paper's contribution over concurrent work (EmbodiedEval with 328 instances) is substantial in scale (1,128 instances) and scope."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The benchmark addresses a genuine gap in MLLM evaluation for embodied agents. Key findings (vision importance varies by task level, long-horizon planning is hardest, best model achieves only 28.9% on manipulation) are meaningful for the community. The resource (1,128 test instances, code/dataset release, 24 model evaluations) will be valuable for future research. However, limitations to simulation and lack of real-world applicability assessment reduce significance."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive with 24 models, ablation studies on key factors (resolution, detection boxes, multi-step images, visual ICL), error analysis on 110 failure cases, and capability-oriented evaluation across 6 subsets. Results are well-presented in tables and figures. However, imbalanced dataset sizes (228-300 instances), incomplete subset coverage, and reliance on manual corrections introduce some concerns about statistical power and reproducibility."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written and clearly organized. The problem formulation is precise with formal POMDP definition. Figures effectively convey concepts (Figure 1 on action hierarchy, Figure 2-3 on agent pipeline, Figure 5 on ablations). Tables 2-3 present results clearly. However, some details are deferred to appendices, and explanations of 'design challenges' preventing complete subset coverage could be clearer in main text."
+              }
+            },
+            "summary_comment": "EMBODIEDBENCH is a well-executed benchmark paper that makes solid contributions to MLLM-based embodied agent evaluation. The hierarchical task design (high-level vs. low-level), comprehensive model coverage (24 models), and capability-oriented evaluation framework represent meaningful advances over existing work like VisualAgentBench. The extensive experiments reveal important insights: vision is critical for low-level tasks but not high-level ones, long-horizon planning is a consistent bottleneck, and current best models achieve only ~29% on manipulation tasks. The thorough ablations and error analysis provide actionable insights for future research. However, the benchmark's limitation to simulation without real-world validation, inconsistent dataset sizes across environments, and reliance on manual corrections reduce its impact. The agent framework design, while practical, lacks novelty. Despite these limitations, EMBODIEDBENCH represents a valuable resource for the community that will enable more rigorous evaluation and comparison of MLLM-based embodied agents. The scale, scope, and empirical insights justify acceptance at a top venue, though real-world validation would significantly strengthen the work."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}
