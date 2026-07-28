@@ -1,0 +1,190 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 4
+      },
+      "strengths": [
+        "Clear articulation of a practical problem: the memory overhead of storing diagonal Hessian in Hessian-informed zeroth-order optimizers like HiZOO.",
+        "Proposes a straightforward and intuitive solution: combining block coordinate descent (BCD) with zeroth-order Newton updates to reduce Hessian memory to O(d/D).",
+        "Well-written paper with a logical flow from problem statement to solution and experiments. The clarity of presentation is a strength."
+      ],
+      "weaknesses": [
+        "The experimental evaluation is insufficient to convincingly validate the central claim of improved convergence-speed-memory trade-off.",
+        "The significance of the contribution is questionable; the approach is a straightforward combination of existing techniques (BCD + HiZOO) without a compelling advance in theory or practice.",
+        "Lack of comprehensive comparison with relevant baselines, especially other memory-efficient fine-tuning methods, and unclear evaluation of convergence speed vs. memory."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The experimental evaluation is insufficient to convincingly validate the central claim of improved convergence-speed-memory trade-off.",
+          "severity": "major",
+          "evidence": "Tables 2, 3, and 4 show accuracy numbers but lack rigorous wall-clock time or step-to-convergence comparisons. Figure 3 shows one convergence curve but does not clearly demonstrate B-PDF's advantage over HiZOO in terms of speed (it claims 'matches the performance of HiZOO while maintaining the time efficiency of MeZO' but provides limited evidence). Memory reduction is demonstrated, but the trade-off with final performance and training time is not thoroughly analyzed.",
+          "affected_claim": "The claim that B-PDF offers 'faster wall-clock convergence' and a superior 'memory-convergence trade-off' compared to HiZOO and MeZO.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The significance of the contribution is questionable; the approach is a straightforward combination of existing techniques (BCD + HiZOO) without a compelling advance in theory or practice.",
+          "severity": "major",
+          "evidence": "The core idea is to apply BCD—a standard technique recently applied to LLM training (e.g., BAdam, LiSA)—to the Hessian storage problem in HiZOO. The adaptation is direct (treat layers as blocks). The paper does not introduce new algorithmic insights, theoretical improvements over HiZOO's convergence, or a novel block selection strategy (defaults to simple cyclic order). The practical speedup seems to come mainly from doing less work per iteration (updating fewer layers), which is an inherent property of BCD, not a novel optimization.",
+          "affected_claim": "The claim of a 'novel approach' and a meaningful advance for top-tier ML conferences.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The central claim of memory reduction via BCD is logically sound and supported by basic memory accounting (O(d) -> O(d/D)). The method builds directly on HiZOO, whose soundness is assumed. The convergence analysis is borrowed from HiZOO, which is acceptable for this applied contribution. No major technical flaws are apparent in the described algorithm."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The combination of BCD with zeroth-order Newton methods is an incremental step. BCD for memory reduction in LLM training has been explored (BAdam, LiSA). Applying it to store a block-wise Hessian is a natural and straightforward extension of these ideas to the HiZOO framework. The paper acknowledges this closely related work but does not establish a sufficiently distinct conceptual or technical leap."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "For a top-tier conference, the demonstrated improvement lacks significance. The memory savings are achieved by reducing the scope of updates (fewer layers per step), which inherently trades off per-iteration cost for total iteration cost. The experiments do not convincingly show that this trade-off is favorable—i.e., that B-PDF reaches a given accuracy faster than HiZOO in wall-clock time while using less memory. Accuracy is similar to MeZO, but the claimed convergence speedup over MeZO is not strongly evidenced. The practical impact for memory-constrained devices is unclear given the small batch sizes required."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The evaluation is incomplete and lacks rigor. Comparisons are limited to a small set of baselines (SGD, BCD-SGD, LoRA, MeZO, HiZOO). Important contemporary memory-efficient methods (e.g., GaLore, other PEFT methods, LOMO) are not compared. The key claim of faster convergence is supported only by a single learning curve (Figure 3) without clear metrics (time/step to target accuracy). Memory measurements are provided, but the overall efficiency (accuracy/(memory*time)) is not quantified. Hyperparameter search details are in an appendix but the rationale for choices (e.g., BCD update interval, selected layers) is not ablated."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written and well-structured. The problem, method, and results are explained logically. Figures and tables are generally helpful. The writing is accessible and permits reliable assessment of the work's scope and claims."
+        }
+      },
+      "summary_comment": "This paper proposes B-PDF, which integrates block coordinate descent (BCD) with a Hessian-informed zeroth-order optimizer (HiZOO) to reduce the memory cost of storing diagonal Hessian estimates. While the idea is sensible and the paper is clearly written, the contribution is incremental, combining two well-established techniques without a novel algorithmic or theoretical core. More critically, the experimental evaluation is insufficient to substantiate the claimed advantages in convergence-speed-memory trade-off. The comparisons are limited, the evidence for faster wall-clock convergence is weak, and the significance of the results for a top-tier conference is not demonstrated. Therefore, the paper does not meet the acceptance bar."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "ICML": {
+      "fit_score": 5,
+      "why_it_fits": [
+        "The paper addresses a core problem in machine learning systems: memory-efficient optimization for large models, which aligns with ICML's interest in 'machine learning systems (improved implementation and scalability, hardware, libraries, distributed methods, etc.)'.",
+        "The work focuses on optimization methods (block coordinate descent, zeroth-order, second-order approximations), fitting ICML's 'optimization' and 'general machine learning' tracks.",
+        "The application to fine-tuning LLMs connects to 'application-driven machine learning', particularly for deployment on resource-constrained devices, which is a relevant practical concern."
+      ],
+      "why_it_does_not_fit": [
+        "Reviewer 1 highlights that the novelty is insufficient: 'The combination of BCD with zeroth-order Newton methods is an incremental step.' ICML typically expects stronger algorithmic or theoretical novelty for acceptance.",
+        "The evaluation is critiqued as incomplete: 'The experimental evaluation is insufficient to convincingly validate the central claim...lack[ing] rigorous wall-clock time or step-to-convergence comparisons.' ICML emphasizes rigorous empirical validation.",
+        "The practical significance is questioned: 'The demonstrated improvement lacks significance...The practical impact for memory-constrained devices is unclear.' ICML values clear, impactful advancements.",
+        "The paper's focus is more on an engineering/system integration of existing ideas rather than a fundamental advance in optimization theory or a novel algorithmic paradigm, which may limit its appeal to ICML's broad but theory-leaning audience."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 4,
+      "why_it_fits": [
+        "NeurIPS has a strong track in efficient ML and systems, with areas like 'SysML Infrastructure' and 'Optimization' directly relevant to this work.",
+        "The application to LLM fine-tuning fits NeurIPS's focus on 'Language and multimodal language models' and scalable AI methods.",
+        "The paper addresses a practical bottleneck (memory) in deploying large models, which aligns with NeurIPS's interest in real-world ML challenges."
+      ],
+      "why_it_does_not_fit": [
+        "Reviewer 1's critique on novelty is severe: 'The approach is a straightforward combination of existing techniques (BCD + HiZOO) without a compelling advance.' NeurIPS has a very high bar for novelty, and incremental combinations often struggle.",
+        "The evaluation weaknesses are critical: 'The key claim of faster convergence is supported only by a single learning curve...without clear metrics.' NeurIPS requires thorough and convincing empirical evidence.",
+        "Reviewer 1 questions the significance for a top-tier venue: 'For a top-tier conference, the demonstrated improvement lacks significance.' NeurIPS is highly competitive, and contributions need clear, substantial impact.",
+        "While NeurIPS welcomes interdisciplinary work, the paper's core contribution is an engineering optimization for a specific scenario (forward-only fine-tuning), which may be seen as too narrow compared to broader algorithmic or theoretical advances typically featured."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "ICLR's focus is strongly on deep learning, including 'optimization' for deep networks and 'infrastructure, software libraries, hardware, etc.' This paper's focus on memory-efficient fine-tuning of LLMs fits directly.",
+        "The method involves zeroth-order optimization and second-order approximations for deep models, which aligns with ICLR's scope in advanced training techniques.",
+        "ICLR often publishes work on practical training efficiencies for large models (e.g., work on FlashAttention, efficient optimizers), making this a plausible fit."
+      ],
+      "why_it_does_not_fit": [
+        "Reviewer 1's concerns about novelty remain: 'The core idea is to apply BCD—a standard technique recently applied to LLM training...to the Hessian storage problem in HiZOO. The adaptation is direct.' ICLR also values novel algorithmic insights.",
+        "The evaluation is again a concern: 'The experiments do not convincingly show that this trade-off is favorable.' ICLR expects comprehensive ablation studies and comparisons with state-of-the-art efficiency methods (e.g., GaLore, other PEFT), which are missing.",
+        "The paper's theoretical contribution is minimal (convergence analysis adapted from HiZOO), which may limit its appeal at ICLR where empirical breakthroughs are often accompanied by solid theoretical grounding or novel architectural insights.",
+        "The work is more of an optimizer improvement than a fundamental advance in representation learning or deep learning architecture, which is ICLR's core focus."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 4
+            },
+            "strengths": [
+              "Clear articulation of a practical problem: the memory overhead of storing diagonal Hessian in Hessian-informed zeroth-order optimizers like HiZOO.",
+              "Proposes a straightforward and intuitive solution: combining block coordinate descent (BCD) with zeroth-order Newton updates to reduce Hessian memory to O(d/D).",
+              "Well-written paper with a logical flow from problem statement to solution and experiments. The clarity of presentation is a strength."
+            ],
+            "weaknesses": [
+              "The experimental evaluation is insufficient to convincingly validate the central claim of improved convergence-speed-memory trade-off.",
+              "The significance of the contribution is questionable; the approach is a straightforward combination of existing techniques (BCD + HiZOO) without a compelling advance in theory or practice.",
+              "Lack of comprehensive comparison with relevant baselines, especially other memory-efficient fine-tuning methods, and unclear evaluation of convergence speed vs. memory."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The experimental evaluation is insufficient to convincingly validate the central claim of improved convergence-speed-memory trade-off.",
+                "severity": "major",
+                "evidence": "Tables 2, 3, and 4 show accuracy numbers but lack rigorous wall-clock time or step-to-convergence comparisons. Figure 3 shows one convergence curve but does not clearly demonstrate B-PDF's advantage over HiZOO in terms of speed (it claims 'matches the performance of HiZOO while maintaining the time efficiency of MeZO' but provides limited evidence). Memory reduction is demonstrated, but the trade-off with final performance and training time is not thoroughly analyzed.",
+                "affected_claim": "The claim that B-PDF offers 'faster wall-clock convergence' and a superior 'memory-convergence trade-off' compared to HiZOO and MeZO.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The significance of the contribution is questionable; the approach is a straightforward combination of existing techniques (BCD + HiZOO) without a compelling advance in theory or practice.",
+                "severity": "major",
+                "evidence": "The core idea is to apply BCD—a standard technique recently applied to LLM training (e.g., BAdam, LiSA)—to the Hessian storage problem in HiZOO. The adaptation is direct (treat layers as blocks). The paper does not introduce new algorithmic insights, theoretical improvements over HiZOO's convergence, or a novel block selection strategy (defaults to simple cyclic order). The practical speedup seems to come mainly from doing less work per iteration (updating fewer layers), which is an inherent property of BCD, not a novel optimization.",
+                "affected_claim": "The claim of a 'novel approach' and a meaningful advance for top-tier ML conferences.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The central claim of memory reduction via BCD is logically sound and supported by basic memory accounting (O(d) -> O(d/D)). The method builds directly on HiZOO, whose soundness is assumed. The convergence analysis is borrowed from HiZOO, which is acceptable for this applied contribution. No major technical flaws are apparent in the described algorithm."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The combination of BCD with zeroth-order Newton methods is an incremental step. BCD for memory reduction in LLM training has been explored (BAdam, LiSA). Applying it to store a block-wise Hessian is a natural and straightforward extension of these ideas to the HiZOO framework. The paper acknowledges this closely related work but does not establish a sufficiently distinct conceptual or technical leap."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "For a top-tier conference, the demonstrated improvement lacks significance. The memory savings are achieved by reducing the scope of updates (fewer layers per step), which inherently trades off per-iteration cost for total iteration cost. The experiments do not convincingly show that this trade-off is favorable—i.e., that B-PDF reaches a given accuracy faster than HiZOO in wall-clock time while using less memory. Accuracy is similar to MeZO, but the claimed convergence speedup over MeZO is not strongly evidenced. The practical impact for memory-constrained devices is unclear given the small batch sizes required."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The evaluation is incomplete and lacks rigor. Comparisons are limited to a small set of baselines (SGD, BCD-SGD, LoRA, MeZO, HiZOO). Important contemporary memory-efficient methods (e.g., GaLore, other PEFT methods, LOMO) are not compared. The key claim of faster convergence is supported only by a single learning curve (Figure 3) without clear metrics (time/step to target accuracy). Memory measurements are provided, but the overall efficiency (accuracy/(memory*time)) is not quantified. Hyperparameter search details are in an appendix but the rationale for choices (e.g., BCD update interval, selected layers) is not ablated."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written and well-structured. The problem, method, and results are explained logically. Figures and tables are generally helpful. The writing is accessible and permits reliable assessment of the work's scope and claims."
+              }
+            },
+            "summary_comment": "This paper proposes B-PDF, which integrates block coordinate descent (BCD) with a Hessian-informed zeroth-order optimizer (HiZOO) to reduce the memory cost of storing diagonal Hessian estimates. While the idea is sensible and the paper is clearly written, the contribution is incremental, combining two well-established techniques without a novel algorithmic or theoretical core. More critically, the experimental evaluation is insufficient to substantiate the claimed advantages in convergence-speed-memory trade-off. The comparisons are limited, the evidence for faster wall-clock convergence is weak, and the significance of the results for a top-tier conference is not demonstrated. Therefore, the paper does not meet the acceptance bar."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}
