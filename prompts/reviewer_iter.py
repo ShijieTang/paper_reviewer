@@ -38,4 +38,8 @@ severity, acceptance gates, or the final decision. Do not add fake uncertainty,
 personal anecdotes, errors, or unsupported paper details to appear human.
 
 Maintain exactly the same JSON output format as your initial review.
+You MUST always return the complete JSON object again, in exactly the same format as your
+initial review — even if your decision, scores, strengths, and weaknesses are all unchanged.
+Never reply with plain-text confirmations such as "my review remains unchanged"; always
+re-emit the full JSON.
 """

@@ -1,0 +1,212 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "Addresses a practically relevant problem: studying adversarial robustness of LLM-based time series forecasting under realistic constraints where only sparse time steps can be modified.",
+        "Comprehensive experimental evaluation covering multiple LLM-based models (TimeGPT, LLMTime with GPT-3.5/GPT-4/LLaMA/Mistral, TimeLLM) and datasets, providing broad empirical validation.",
+        "Novel application of Cardinality-Constrained Optimization and Subspace Pursuit to adversarial attack generation in time series, with computational complexity advantage over greedy methods (O(T×τ) vs O(T^τ))."
+      ],
+      "weaknesses": [
+        "The paper lacks theoretical justification for why Subspace Pursuit is appropriate for the CCOP formulation; the connection between compressive sensing reconstruction and adversarial attack optimization is not clearly established.",
+        "Using predicted values Ŷ_t as a proxy for ground truth Y_t is problematic and circular: the attacker uses model predictions to fool the model, which raises fundamental questions about the validity and practical relevance of the attack.",
+        "The defense mechanism (Section 7) is underdeveloped and relegated to brief discussion; the proposed autocorrelation-based detection method lacks any experimental validation.",
+        "Experimental evaluation has critical gaps: (1) no comparison with other sparse attack baselines; (2) no statistical significance testing or confidence intervals; (3) limited analysis of why TSA is more effective than full-series attacks beyond qualitative observations.",
+        "The threat model assumptions are not well justified; the claim that attackers have query access but cannot perturb the entire series lacks grounding in realistic threat scenarios.",
+        "Missing ablation studies on key design choices (e.g., why multiplicative vs. additive perturbations, why sign-based FGSM rather than other gradient estimation methods)."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The paper lacks theoretical justification for why Subspace Pursuit is appropriate for the CCOP formulation; the connection between compressive sensing reconstruction and adversarial attack optimization is not clearly established.",
+          "severity": "major",
+          "evidence": "Section 5.2 adapts SP from Dai & Milenkovic (2009) for compressive sensing but provides no theoretical analysis of convergence, optimality guarantees, or why SP's assumptions (which assume signal sparsity) map to adversarial perturbations. The paper states 'In our adaption, the ℓ1-norm constraint is incorporated as a subroutine' but offers no proof that this maintains the properties needed for effective attack generation.",
+          "affected_claim": "The claim that SP-based method efficiently solves the CCOP for adversarial attacks",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Using predicted values Ŷ_t as a proxy for ground truth Y_t is problematic and circular: the attacker uses model predictions to fool the model, which raises fundamental questions about the validity and practical relevance of the attack.",
+          "severity": "major",
+          "evidence": "Section 4 states 'to avoid future information leakage, the ground truth Y_t is substituted with the predicted values Ŷ_t produced by the forecasting model.' This creates a circular optimization where the attack objective is to maximize L(f(X_t+ρ), Ŷ_t), meaning the attacker perturbs inputs to deviate from the model's own predictions. This is conceptually different from traditional adversarial attacks and lacks justification for why this formulation is meaningful.",
+          "affected_claim": "TSA generates meaningful adversarial attacks without access to ground truth",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The defense mechanism (Section 7) is underdeveloped and relegated to brief discussion; the proposed autocorrelation-based detection method lacks any experimental validation.",
+          "severity": "major",
+          "evidence": "Section 7 proposes an 'autocorrelation-based detection method' but provides only one paragraph describing it with no experimental results, no evaluation on any dataset, no metrics reported, and no comparison to baselines. The paper states 'We plan to further explore and expand on defense mechanisms in future work,' indicating this is incomplete work.",
+          "affected_claim": "The paper provides insights into defending against TSA",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Experimental evaluation has critical gaps: (1) no comparison with other sparse attack baselines; (2) no statistical significance testing or confidence intervals; (3) limited analysis of why TSA is more effective than full-series attacks beyond qualitative observations.",
+          "severity": "major",
+          "evidence": "Table 1 shows results for TSA vs. GWN and clean baseline, but: (a) no other sparse attack methods are compared (e.g., greedy sparse attacks, random sparse perturbations, other optimization-based sparse methods); (b) no error bars, confidence intervals, or statistical tests are provided; (c) Figure 4 shows TSA vs. full-series attacks and defenses, but lacks quantitative analysis of the structural differences causing TSA's resilience to filtering.",
+          "affected_claim": "TSA is an effective and novel sparse attack strategy compared to alternatives",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The threat model assumptions are not well justified; the claim that attackers have query access but cannot perturb the entire series lacks grounding in realistic threat scenarios.",
+          "severity": "minor",
+          "evidence": "Section 4 lists attacker capabilities including 'ability to query the target model' and 'limited to temporally sparse manipulations,' but provides no real-world scenario justifying why an attacker with black-box query access would be restricted to sparse perturbations. In realistic scenarios, if an attacker can modify input data, they typically can modify all of it.",
+          "affected_claim": "The sparse attack constraint reflects practical threat scenarios",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Missing ablation studies on key design choices (e.g., why multiplicative vs. additive perturbations, why sign-based FGSM rather than other gradient estimation methods).",
+          "severity": "minor",
+          "evidence": "Section 5.1 introduces multiplicative perturbations with w but justifies this only by stating 'the global average is unsuitable as a reference' (line 214). No ablation compares multiplicative vs. additive formulations. Similarly, Eq. (7) uses sign(ĝ) without exploring alternatives like scaled gradient descent or other gradient estimation methods.",
+          "affected_claim": "The specific design choices (multiplicative perturbations, sign-based updates) are justified and optimal",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The core approach has a fundamental soundness issue: using the model's own predictions Ŷ_t as the attack target creates circular logic that conflates 'deviating from predictions' with 'fooling the model.' This is conceptually distinct from adversarial attacks where the goal is to deviate from ground truth. Additionally, the adaptation of Subspace Pursuit to the CCOP lacks theoretical justification—no convergence analysis or optimality guarantees are provided for the adversarial setting. The paper treats SP as a black-box tool without establishing that its assumptions hold for adversarial perturbations."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "While sparse attacks on time series are not entirely new, the specific application of CCOP and Subspace Pursuit to LLM-based time series forecasting under black-box constraints is novel. The temporal sparsity constraint and the adaptation of SP to this domain represent incremental but genuine novelty. However, this novelty is somewhat limited given that the core techniques (CCOP, SP) are standard from prior work."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "The significance is limited for several reasons: (1) The practical relevance is unclear because the threat model (query access but unable to modify full series) is not well motivated; (2) The findings, while interesting, do not provide actionable insights beyond 'LLMs are vulnerable to sparse perturbations'—the paper offers minimal guidance for improving robustness; (3) The defense section is essentially absent, limiting the contribution to improving trustworthy AI; (4) The use of predicted values as targets rather than ground truth reduces the practical importance, as this is a weaker adversarial objective than traditional fooling attacks."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The experimental evaluation has multiple critical limitations: (1) No comparison with other sparse attack methods, making it impossible to assess whether SP-based TSA is superior; (2) No statistical significance testing or confidence intervals, meaning the reported improvements over GWN could be noise; (3) The defense evaluation (Section 6.6) uses only three filter-based methods and compares to one full-series baseline without exploring domain-specific defenses; (4) Hyperparameter selection (Section 6.7) is limited to visualization without principled analysis; (5) The interpretation section (6.5) relies on post-hoc visualization without quantitative metrics or statistical tests; (6) No analysis of whether discovered vulnerabilities are artifacts of the surrogate loss design or genuine model weaknesses."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-organized with clear motivation, methodology, and experimental structure. Figures effectively illustrate key concepts, and the writing is mostly clear. However, there are minor issues: the threat model section could better justify assumptions, the defense section should not be so brief, and some technical choices lack sufficient explanation. Overall clarity is acceptable for a top-tier venue, though not exceptional."
+        }
+      },
+      "summary_comment": "This paper proposes Temporally Sparse Attack (TSA) for adversarial attacks on LLM-based time series forecasting models, using Cardinality-Constrained Optimization solved via Subspace Pursuit. While the application is novel and experiments are comprehensive, the work suffers from fundamental soundness issues and incomplete evaluation. Most critically, using the model's own predictions as the attack target creates circular logic that conflates 'deviating from predictions' with 'fooling the model'—this is a weaker and conceptually different objective than traditional adversarial attacks against ground truth. Second, the paper lacks theoretical justification for why Subspace Pursuit is appropriate for adversarial attacks, providing only adaptation without convergence or optimality analysis. Third, experimental evaluation is incomplete: no comparison with other sparse attack baselines, no statistical significance testing, and no exploration of alternative sparse attack methods. Fourth, the defense section is essentially missing despite being critical for 'trustworthy AI' claims. Finally, the threat model (query access but unable to perturb all steps) lacks realistic grounding. The paper makes an interesting empirical observation but does not meet the rigor expected for a top-tier venue. The work would benefit from: (1) reformulating the attack with proper ground truth targets or providing theoretical justification for the surrogate loss; (2) adding theoretical analysis of SP convergence; (3) comprehensive baseline comparisons; (4) proper defense development and evaluation; (5) realistic threat model justification."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper addresses trustworthy machine learning, which is an ICML priority area. Adversarial robustness and security of ML models are core topics.\",\n      \"The work applies optimization techniques (cardinality-constrained optimization, subspace pursuit) to a machine learning problem, aligning with ICML's focus on optimization methods.\",\n      \"Comprehensive empirical evaluation across multiple datasets and models demonstrates systematic experimental methodology valued at ICML.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The paper's fundamental soundness issues directly contradict ICML's rigor standards. Using model predictions Ŷ_t as attack targets instead of ground truth Y_t creates circular logic that undermines the validity of the entire adversarial attack formulation. This is a core methodological flaw, not a minor issue.\",\n      \"Critical lack of theoretical justification: The paper adapts Subspace Pursuit from compressive sensing to adversarial attacks without providing convergence analysis, optimality guarantees, or proof that SP's assumptions hold in the adversarial setting. ICML expects theoretical rigor for algorithm proposals.\",\n      \"Incomplete experimental evaluation fails ICML standards: no comparison with other sparse attack baselines, no statistical significance testing, no ablation studies on key design choices (multiplicative vs. additive perturbations, gradient estimation methods). The evaluation does not establish that TSA is superior to alternatives.\",\n      \"The threat model lacks rigorous justification. ICML expects well-grounded threat assumptions; claiming attackers can query models but cannot perturb entire series is not adequately motivated for real-world scenarios.\",\n      \"Missing ablation studies on critical design choices: why multiplicative perturbations over additive? Why sign-based FGSM over other gradient methods? These are fundamental to establishing methodological soundness.\",\n      \"The defense section is entirely absent despite claiming to contribute to 'trustworthy AI'—only one paragraph with no experimental validation. This is incomplete work not suitable for publication.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"NeurIPS explicitly welcomes application-driven ML research and interdisciplinary submissions. The paper explores adversarial robustness of LLM-based time series forecasting, a timely and interdisciplinary topic combining ML security and time series analysis.\",\n      \"The comprehensive empirical evaluation spanning multiple LLM variants (GPT-3.5, GPT-4, LLaMA, Mistral, TimeGPT, TimeLLM) and real-world datasets demonstrates breadth valued at NeurIPS.\",\n      \"The work addresses trustworthy AI, safety, and robustness—explicit NeurIPS priorities. Discovering vulnerabilities in LLM-based forecasters is relevant to NeurIPS's broader societal considerations.\",\n      \"The novel application of Cardinality-Constrained Optimization and Subspace Pursuit to sparse adversarial attacks, while not groundbreaking theoretically, represents an interesting methodological contribution for a venue open to applications and new problem formulations.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The fundamental soundness issue directly undermines acceptance: using model predictions Ŷ_t instead of ground truth Y_t as the attack target creates circular logic. The attacker optimizes L(f(X_t+ρ), Ŷ_t) to deviate from the model's own predictions—this is conceptually distinct from and weaker than traditional adversarial attacks. Reviewer explicitly flags this as a 'major' soundness failure.\",\n      \"Lack of theoretical justification for the core technical contribution: Subspace Pursuit adaptation is presented without convergence analysis or proof that compressive sensing assumptions transfer to adversarial perturbations. NeurIPS expects rigor in methodological claims, even for application-focused papers.\",\n      \"Experimental evaluation lacks critical components: (1) no comparison with other sparse attack methods, making it impossible to assess whether SP is superior to simpler alternatives; (2) no statistical significance testing or confidence intervals—reported improvements over GWN could be noise; (3) no ablation studies on multiplicative vs. additive perturbations or gradient estimation choices.\",\n      \"The threat model (query access but cannot modify entire series) is poorly motivated. Why would an attacker with full input access be restricted to sparse modifications? NeurIPS expects realistic threat scenarios for security research.\",\n      \"Defense mechanisms are essentially absent: Section 7 proposes one method with zero experimental validation. The paper explicitly states 'We plan to further explore defense mechanisms in future work,' indicating incomplete work.\",\n      \"The circular nature of the attack objective—deviating from model predictions rather than ground truth—weakens the practical significance. Real-world adversarial attacks target incorrect predictions relative to truth, not deviation from predictions themselves.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"ICLR's broad scope explicitly includes 'deep learning' and 'general machine learning,' and welcomes interdisciplinary submissions and applications. Time series forecasting with LLMs fits this profile.\",\n      \"The paper addresses robustness and safety of deep learning models, core ICLR concerns explicitly listed in the call for papers.\",\n      \"Comprehensive empirical evaluation of multiple LLM-based and transformer-based models demonstrates the type of empirical rigor ICLR values.\",\n      \"The work contributes insights into LLM vulnerabilities and trustworthy AI, topics gaining prominence in ICLR submissions.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Fundamental soundness issue disqualifies the paper: Using predicted values Ŷ_t as attack targets instead of ground truth creates circular logic that undermines the entire contribution. ICLR prioritizes methodological soundness, especially for papers claiming to study 'fooling' models. This is not a minor limitation but a core invalidation of the threat model.\",\n      \"Inadequate theoretical justification for the technical approach: The paper adapts Subspace Pursuit without providing convergence guarantees, optimality analysis, or proof that compressive sensing theory applies to adversarial perturbations. ICLR expects deeper engagement with methodology, not just tool application.\",\n      \"Incomplete experimental validation: No comparison with sparse attack baselines, no statistical significance testing, no ablation studies on key design choices (multiplicative vs. additive, gradient estimation methods). ICLR standards require rigorous experimental methodology.\",\n      \"The threat model lacks realistic grounding. ICLR expects well-justified threat assumptions; the claim that attackers can query models but cannot modify entire series is implausible and inadequately motivated.\",\n      \"Critical gaps in defense evaluation: Section 7 contains only one proposed defense with zero experimental validation. ICLR would expect either substantive defense mechanisms or removal of the 'trustworthy AI' framing.\",\n      \"The contribution is primarily empirical observation ('LLMs are vulnerable to sparse perturbations') with limited actionable insights for improving model robustness. ICLR values either strong theoretical contributions or deep empirical understanding; this paper provides neither.\"\n    ]\n  }\n}\n```\n\n---\n\n## DETAILED RATIONALE\n\n### Key Reviewer Concerns\n\nThe reviewer identifies **six major weaknesses**, with two marked as critical failures:\n\n1. **Soundness Crisis (MAJOR)**: The attack objective L(f(X_t+ρ), Ŷ_t) uses the model's own predictions instead of ground truth. This is fundamentally circular—the attacker perturbs inputs to deviate from predictions, not from truth. The reviewer notes this \"raises fundamental questions about the validity and practical relevance of the attack\" and marks this as a **soundness gate failure**.\n\n2. **Lack of Theoretical Justification (MAJOR)**: The paper borrows Subspace Pursuit from compressive sensing without establishing convergence, optimality, or why CS theory applies to adversarial attacks. The reviewer states \"no theoretical analysis of convergence, optimality guarantees, or why SP's assumptions map to adversarial perturbations\" exists.\n\n3. **Incomplete Evaluation (MAJOR)**: No comparison with sparse attack baselines, no statistical testing, no ablation studies. The reviewer marks this as an **evaluation gate failure**.\n\n4. **Missing Defense Mechanisms (MAJOR)**: The entire Section 7 is one paragraph with zero experiments. The paper explicitly states \"We plan to further explore in future work,\" flagging incompleteness.\n\n5. **Poorly Justified Threat Model (MINOR)**: Why can an attacker query models but not modify entire series? This lacks realistic grounding.\n\n6. **Missing Ablations (MINOR)**: Why multiplicative over additive? Why sign-based FGSM over alternatives?\n\n### Venue-Specific Fit Assessment\n\n**ICML (Score: 4/10 – Weak Fit)**\n\nICML expects strong methodological rigor, theoretical grounding, and complete experimental validation. This paper fails on all three fronts:\n- The circular attack formulation and lack of theoretical justification for SP contradict ICML's rigor standards.\n- Incomplete experimental evaluation with no baselines or statistical testing fails ICML's empirical standards.\n- The threat model lacks justification.\n- While the problem domain (trustworthy ML) aligns, execution falls short of ICML quality.\n\n**NeurIPS (Score: 5/10 – Borderline/Risky)**\n\nNeurIPS is more inclusive of application-focused and interdisciplinary work, making this paper marginally more suitable than for ICML. However:\n- The circular attack formulation remains a core soundness issue that even NeurIPS's broader acceptance criteria cannot overcome.\n- The lack of theoretical depth and incomplete experiments create significant risk.\n- NeurIPS values timely applications (LLMs + security), which this paper addresses, but execution quality is insufficient.\n- The paper is on the borderline of desk-reject vs. detailed review, with high risk of rejection.\n\n**ICLR (Score: 4/10 – Weak Fit)**\n\nICLR emphasizes deep learning and representation learning, including robustness and safety. However:\n- The fundamental soundness issue (circular attack objective) directly contradicts ICLR's core requirement for methodological rigor in deep learning research.\n- The paper's lack of theoretical depth and incomplete empirical validation place it in ICLR's weak/reject category.\n- While time series + LLMs is relevant, the execution quality does not meet ICLR standards.\n\n### Why All Scores Are Low (4-5)\n\nAll three venues receive low scores because:\n\n1. **Soundness is non-negotiable**: Using Ŷ_t instead of Y_t is not a minor choice—it fundamentally alters what the paper claims to study. This would likely trigger desk reject at ICML/ICLR.\n\n2. **Incomplete work**: Missing defense mechanisms, no baseline comparisons, no statistical testing—these are table-stakes for publication.\n\n3. **Reviewer marks gate failures**: Both \"soundness\" and \"evaluation\" gates fail in the reviewer's assessment.\n\nThe paper is not a good fit for any top-tier venue in its current form. Substantial revisions addressing the circular attack formulation, theoretical justification, and complete experimental evaluation would be necessary for resubmission.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "Addresses a practically relevant problem: studying adversarial robustness of LLM-based time series forecasting under realistic constraints where only sparse time steps can be modified.",
+              "Comprehensive experimental evaluation covering multiple LLM-based models (TimeGPT, LLMTime with GPT-3.5/GPT-4/LLaMA/Mistral, TimeLLM) and datasets, providing broad empirical validation.",
+              "Novel application of Cardinality-Constrained Optimization and Subspace Pursuit to adversarial attack generation in time series, with computational complexity advantage over greedy methods (O(T×τ) vs O(T^τ))."
+            ],
+            "weaknesses": [
+              "The paper lacks theoretical justification for why Subspace Pursuit is appropriate for the CCOP formulation; the connection between compressive sensing reconstruction and adversarial attack optimization is not clearly established.",
+              "Using predicted values Ŷ_t as a proxy for ground truth Y_t is problematic and circular: the attacker uses model predictions to fool the model, which raises fundamental questions about the validity and practical relevance of the attack.",
+              "The defense mechanism (Section 7) is underdeveloped and relegated to brief discussion; the proposed autocorrelation-based detection method lacks any experimental validation.",
+              "Experimental evaluation has critical gaps: (1) no comparison with other sparse attack baselines; (2) no statistical significance testing or confidence intervals; (3) limited analysis of why TSA is more effective than full-series attacks beyond qualitative observations.",
+              "The threat model assumptions are not well justified; the claim that attackers have query access but cannot perturb the entire series lacks grounding in realistic threat scenarios.",
+              "Missing ablation studies on key design choices (e.g., why multiplicative vs. additive perturbations, why sign-based FGSM rather than other gradient estimation methods)."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The paper lacks theoretical justification for why Subspace Pursuit is appropriate for the CCOP formulation; the connection between compressive sensing reconstruction and adversarial attack optimization is not clearly established.",
+                "severity": "major",
+                "evidence": "Section 5.2 adapts SP from Dai & Milenkovic (2009) for compressive sensing but provides no theoretical analysis of convergence, optimality guarantees, or why SP's assumptions (which assume signal sparsity) map to adversarial perturbations. The paper states 'In our adaption, the ℓ1-norm constraint is incorporated as a subroutine' but offers no proof that this maintains the properties needed for effective attack generation.",
+                "affected_claim": "The claim that SP-based method efficiently solves the CCOP for adversarial attacks",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Using predicted values Ŷ_t as a proxy for ground truth Y_t is problematic and circular: the attacker uses model predictions to fool the model, which raises fundamental questions about the validity and practical relevance of the attack.",
+                "severity": "major",
+                "evidence": "Section 4 states 'to avoid future information leakage, the ground truth Y_t is substituted with the predicted values Ŷ_t produced by the forecasting model.' This creates a circular optimization where the attack objective is to maximize L(f(X_t+ρ), Ŷ_t), meaning the attacker perturbs inputs to deviate from the model's own predictions. This is conceptually different from traditional adversarial attacks and lacks justification for why this formulation is meaningful.",
+                "affected_claim": "TSA generates meaningful adversarial attacks without access to ground truth",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The defense mechanism (Section 7) is underdeveloped and relegated to brief discussion; the proposed autocorrelation-based detection method lacks any experimental validation.",
+                "severity": "major",
+                "evidence": "Section 7 proposes an 'autocorrelation-based detection method' but provides only one paragraph describing it with no experimental results, no evaluation on any dataset, no metrics reported, and no comparison to baselines. The paper states 'We plan to further explore and expand on defense mechanisms in future work,' indicating this is incomplete work.",
+                "affected_claim": "The paper provides insights into defending against TSA",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental evaluation has critical gaps: (1) no comparison with other sparse attack baselines; (2) no statistical significance testing or confidence intervals; (3) limited analysis of why TSA is more effective than full-series attacks beyond qualitative observations.",
+                "severity": "major",
+                "evidence": "Table 1 shows results for TSA vs. GWN and clean baseline, but: (a) no other sparse attack methods are compared (e.g., greedy sparse attacks, random sparse perturbations, other optimization-based sparse methods); (b) no error bars, confidence intervals, or statistical tests are provided; (c) Figure 4 shows TSA vs. full-series attacks and defenses, but lacks quantitative analysis of the structural differences causing TSA's resilience to filtering.",
+                "affected_claim": "TSA is an effective and novel sparse attack strategy compared to alternatives",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The threat model assumptions are not well justified; the claim that attackers have query access but cannot perturb the entire series lacks grounding in realistic threat scenarios.",
+                "severity": "minor",
+                "evidence": "Section 4 lists attacker capabilities including 'ability to query the target model' and 'limited to temporally sparse manipulations,' but provides no real-world scenario justifying why an attacker with black-box query access would be restricted to sparse perturbations. In realistic scenarios, if an attacker can modify input data, they typically can modify all of it.",
+                "affected_claim": "The sparse attack constraint reflects practical threat scenarios",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Missing ablation studies on key design choices (e.g., why multiplicative vs. additive perturbations, why sign-based FGSM rather than other gradient estimation methods).",
+                "severity": "minor",
+                "evidence": "Section 5.1 introduces multiplicative perturbations with w but justifies this only by stating 'the global average is unsuitable as a reference' (line 214). No ablation compares multiplicative vs. additive formulations. Similarly, Eq. (7) uses sign(ĝ) without exploring alternatives like scaled gradient descent or other gradient estimation methods.",
+                "affected_claim": "The specific design choices (multiplicative perturbations, sign-based updates) are justified and optimal",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The core approach has a fundamental soundness issue: using the model's own predictions Ŷ_t as the attack target creates circular logic that conflates 'deviating from predictions' with 'fooling the model.' This is conceptually distinct from adversarial attacks where the goal is to deviate from ground truth. Additionally, the adaptation of Subspace Pursuit to the CCOP lacks theoretical justification—no convergence analysis or optimality guarantees are provided for the adversarial setting. The paper treats SP as a black-box tool without establishing that its assumptions hold for adversarial perturbations."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "While sparse attacks on time series are not entirely new, the specific application of CCOP and Subspace Pursuit to LLM-based time series forecasting under black-box constraints is novel. The temporal sparsity constraint and the adaptation of SP to this domain represent incremental but genuine novelty. However, this novelty is somewhat limited given that the core techniques (CCOP, SP) are standard from prior work."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The significance is limited for several reasons: (1) The practical relevance is unclear because the threat model (query access but unable to modify full series) is not well motivated; (2) The findings, while interesting, do not provide actionable insights beyond 'LLMs are vulnerable to sparse perturbations'—the paper offers minimal guidance for improving robustness; (3) The defense section is essentially absent, limiting the contribution to improving trustworthy AI; (4) The use of predicted values as targets rather than ground truth reduces the practical importance, as this is a weaker adversarial objective than traditional fooling attacks."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The experimental evaluation has multiple critical limitations: (1) No comparison with other sparse attack methods, making it impossible to assess whether SP-based TSA is superior; (2) No statistical significance testing or confidence intervals, meaning the reported improvements over GWN could be noise; (3) The defense evaluation (Section 6.6) uses only three filter-based methods and compares to one full-series baseline without exploring domain-specific defenses; (4) Hyperparameter selection (Section 6.7) is limited to visualization without principled analysis; (5) The interpretation section (6.5) relies on post-hoc visualization without quantitative metrics or statistical tests; (6) No analysis of whether discovered vulnerabilities are artifacts of the surrogate loss design or genuine model weaknesses."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-organized with clear motivation, methodology, and experimental structure. Figures effectively illustrate key concepts, and the writing is mostly clear. However, there are minor issues: the threat model section could better justify assumptions, the defense section should not be so brief, and some technical choices lack sufficient explanation. Overall clarity is acceptable for a top-tier venue, though not exceptional."
+              }
+            },
+            "summary_comment": "This paper proposes Temporally Sparse Attack (TSA) for adversarial attacks on LLM-based time series forecasting models, using Cardinality-Constrained Optimization solved via Subspace Pursuit. While the application is novel and experiments are comprehensive, the work suffers from fundamental soundness issues and incomplete evaluation. Most critically, using the model's own predictions as the attack target creates circular logic that conflates 'deviating from predictions' with 'fooling the model'—this is a weaker and conceptually different objective than traditional adversarial attacks against ground truth. Second, the paper lacks theoretical justification for why Subspace Pursuit is appropriate for adversarial attacks, providing only adaptation without convergence or optimality analysis. Third, experimental evaluation is incomplete: no comparison with other sparse attack baselines, no statistical significance testing, and no exploration of alternative sparse attack methods. Fourth, the defense section is essentially missing despite being critical for 'trustworthy AI' claims. Finally, the threat model (query access but unable to perturb all steps) lacks realistic grounding. The paper makes an interesting empirical observation but does not meet the rigor expected for a top-tier venue. The work would benefit from: (1) reformulating the attack with proper ground truth targets or providing theoretical justification for the surrogate loss; (2) adding theoretical analysis of SP convergence; (3) comprehensive baseline comparisons; (4) proper defense development and evaluation; (5) realistic threat model justification."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

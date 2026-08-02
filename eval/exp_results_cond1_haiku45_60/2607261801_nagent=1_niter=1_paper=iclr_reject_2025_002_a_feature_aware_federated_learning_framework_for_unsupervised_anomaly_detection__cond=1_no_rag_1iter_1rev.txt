@@ -1,0 +1,244 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 2,
+        "soundness": 2,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 2
+      },
+      "strengths": [
+        "The paper addresses a relevant problem: unsupervised anomaly detection in 5G networks using federated learning with privacy preservation.",
+        "The combination of integrated gradients for feature importance, differential privacy, and dynamic feature adaptation represents an attempt to address multiple challenges in federated learning.",
+        "The experimental evaluation includes reasonable baselines (FedAvg, FedProx) and multiple metrics (precision, recall, F1-score, ROC-AUC)."
+      ],
+      "weaknesses": [
+        "Critical mathematical and technical errors undermine the soundness of the proposed method, including inconsistent formula numbering, unclear notation, and problematic aggregation equations.",
+        "The experimental evaluation is severely limited: only 22,932 samples on a single custom dataset with only 5 clients, no statistical significance testing, no error bars, and no ablation studies to validate individual components.",
+        "The novelty is limited as the paper primarily combines existing techniques (autoencoders, integrated gradients, differential privacy, FedAvg) without substantial innovation or clear justification for how they are integrated.",
+        "The feature importance aggregation method lacks theoretical justification and the connection between feature importance computation and model parameter weighting (Equation 10) is unclear and potentially incorrect.",
+        "Experimental results show only marginal improvements (ROC-AUC: 0.981 vs 0.975 for FedProx) that lack statistical validation, and no analysis of computational overhead or communication costs.",
+        "Missing critical details: no discussion of non-IID data handling, limited exploration of privacy-utility tradeoffs, no sensitivity analysis for hyperparameters, and insufficient explanation of how DFIA works in practice.",
+        "The paper conflates federated learning with privacy preservation, assuming all FL methods preserve privacy equally, when in reality differential privacy is the mechanism providing privacy guarantees.",
+        "Presentation issues: inconsistent equation numbering, grammatical errors, missing details on feature importance normalization, and incomplete algorithm description without clear stopping criteria."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Critical mathematical and technical errors undermine the soundness of the proposed method, including inconsistent formula numbering, unclear notation, and problematic aggregation equations.",
+          "severity": "major",
+          "evidence": "Multiple equation numbering errors (e.g., equations labeled (I), (S), (℔), (1)-(3) appearing out of order). Equation 10 for wk appears to compute a dot product between attention weights and gradients without clear justification. The sensitivity assumption (Δ=1 for normalized feature importance) lacks rigorous justification. The notation switches between FI, FI-bar, and FI-tilde inconsistently.",
+          "affected_claim": "The soundness of the feature-aware aggregation mechanism and differential privacy application",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The experimental evaluation is severely limited with only 22,932 samples on a single custom dataset with only 5 clients, no statistical significance testing, no error bars, and no ablation studies to validate individual components.",
+          "severity": "major",
+          "evidence": "Section 4.1 describes a single 5G testbed dataset. Table 2 shows ROC-AUC improvements of only 0.006-0.007 points without confidence intervals or p-values. No ablation studies isolating the contribution of each component (IG, DP, DFIA). No evaluation on public benchmarks (e.g., NSL-KDD, UNSW-NB15, CIC-IDS2018). Section 5.4 claims robustness across privacy budgets but all three settings yield identical scores (0.9805), which seems unrealistic and suggests inadequate experimental precision.",
+          "affected_claim": "The practical effectiveness and generalizability of the FAFL framework",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The novelty is limited as the paper primarily combines existing techniques (autoencoders, integrated gradients, differential privacy, FedAvg) without substantial innovation or clear justification for how they are integrated.",
+          "severity": "major",
+          "evidence": "Integrated gradients are from Sundararajan et al. (2017). Differential privacy is standard Gaussian mechanism from Dwork et al. (2014). Autoencoders for anomaly detection are well-established (Said Elsayed et al., 2020). The main novelty claim is using IG-computed feature importance to weight aggregation, but this is presented without theoretical justification or prior art comparison. The paper does not clearly distinguish this from existing feature-aware FL approaches or explain why this specific combination is novel.",
+          "affected_claim": "The novelty of the proposed FAFL framework",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The feature importance aggregation method lacks theoretical justification and the connection between feature importance computation and model parameter weighting (Equation 10) is unclear and potentially incorrect.",
+          "severity": "major",
+          "evidence": "The paper computes global feature importance via simple averaging (Equation 5) and then uses it as attention weights (Equation 8). However, Equation 10 multiplies attention weights by the gradient of loss w.r.t. parameters: wk = (nk/n) * (sum over i of ai * ∂Lk/∂θk). This equation is dimensionally problematic: ai is a scalar, ∂Lk/∂θk is a vector, and their product is multiplied by all d attention weights again, creating confusion about what is actually being computed.",
+          "affected_claim": "The correctness of the feature-aware model aggregation process",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Experimental results show only marginal improvements (ROC-AUC: 0.981 vs 0.975 for FedProx) that lack statistical validation, and no analysis of computational overhead or communication costs.",
+          "severity": "major",
+          "evidence": "Table 2 shows improvements of 0.006-0.007 in ROC-AUC. No error bars, confidence intervals, or significance tests are provided. No computational complexity analysis comparing FAFL to baselines. No discussion of communication costs despite claiming FL is for distributed settings. The training setup (5 rounds, 5 epochs/round, only 5 clients) is unrealistic for practical federated settings. No scalability studies with varying numbers of clients or dataset sizes.",
+          "affected_claim": "The practical significance and efficiency of the FAFL framework",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Missing critical details: no discussion of non-IID data handling, limited exploration of privacy-utility tradeoffs, no sensitivity analysis for hyperparameters, and insufficient explanation of how DFIA works in practice.",
+          "severity": "major",
+          "evidence": "The problem formulation (Section 3.1) mentions heterogeneous data distributions but the paper provides no mechanism for handling non-IID data. DFIA is mentioned as updating feature importance every T rounds, but how this interacts with differential privacy, what happens to previously trained models, and whether it causes model divergence are unexplained. Table 4 shows privacy budget experiments but only 3 values of ϵ with suspicious identical results. No sensitivity analysis for other hyperparameters (update interval T=3 chosen without justification, architecture depth unexplained).",
+          "affected_claim": "The completeness and practical applicability of the proposed framework",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The paper conflates federated learning with privacy preservation, assuming all FL methods preserve privacy equally, when in reality differential privacy is the mechanism providing privacy guarantees.",
+          "severity": "minor",
+          "evidence": "Throughout the paper, FL is presented as inherently privacy-preserving (e.g., Section 1: 'FL offers a decentralized solution'). However, FL without DP does not guarantee privacy. The baselines FedAvg and FedProx do not apply DP, yet the paper does not clearly acknowledge this difference when comparing methods. The title claims the framework 'ensures differential privacy' but this is only applied to feature importance aggregation, not to model parameters themselves.",
+          "affected_claim": "The fair comparison between methods and clarity about privacy guarantees",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Presentation issues: inconsistent equation numbering, grammatical errors, missing details on feature importance normalization, and incomplete algorithm description without clear stopping criteria.",
+          "severity": "minor",
+          "evidence": "Multiple equations have incorrect numbering: (I), (S), (℔), mixed roman/arabic numerals. Line 161 has 'FIe' instead of 'FI-tilde' inconsistently. Algorithm 1 has duplicate lines (e.g., '0:' appears repeatedly). Feature importance normalization in Section 3.2.3 is mentioned but not formally defined. The algorithm lacks stopping criteria or convergence conditions. Several grammatical errors throughout (e.g., 'fifth-generation (5G) networks marks' should be 'mark').",
+          "affected_claim": "The clarity and reproducibility of the proposed method",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The paper contains multiple critical technical errors: (1) Equation 10 is dimensionally problematic and unclear - it attempts to combine attention weights (scalars) with parameter gradients (vectors) without coherent mathematical formulation; (2) the sensitivity assumption Δ=1 for normalized feature importance lacks rigorous justification in the differential privacy framework; (3) the connection between computing feature importance via integrated gradients and using it as aggregation weights is not theoretically justified; (4) the feature importance averaging (Equation 5) followed by noise addition (Equation 6) and then attention weight computation (Equation 8) creates a chain of transformations whose formal properties (e.g., privacy guarantees) are not analyzed."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The paper combines existing techniques (autoencoders for anomaly detection, integrated gradients for attribution, standard Gaussian differential privacy, federated averaging) without substantial innovation. The main proposed contribution is using IG-computed feature importance to weight parameter aggregation, but: (1) no clear distinction from prior work on feature-aware federated learning; (2) no theoretical analysis of why this specific combination should be effective; (3) the dynamic adaptation mechanism is a simple periodic recomputation without novelty; (4) the paper does not adequately position itself relative to related work on personalized FL or heterogeneous FL."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "The demonstrated improvements are marginal and lack statistical significance: ROC-AUC improvements of 0.006-0.007 points over baselines without confidence intervals or p-values are not practically meaningful. The evaluation is limited to a single custom 5G dataset with only 5 clients and 22,932 samples - not representative of practical federated scenarios. No real-world deployment or large-scale evaluation. The paper does not demonstrate computational efficiency gains or communication cost improvements despite claiming efficiency as a motivation. The contribution of each component (IG, DP, DFIA) is not isolated, making it unclear which elements drive improvements."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The experimental evaluation has severe limitations: (1) Single custom dataset - no evaluation on public benchmarks (NSL-KDD, UNSW-NB15, CIC-IDS2018, etc.); (2) No statistical significance testing, confidence intervals, or multiple runs with standard deviations; (3) Suspicious identical results in Table 4 (0.9805 for all privacy budgets) suggesting inadequate experimental precision; (4) No ablation studies isolating contributions of IG, DP, and DFIA components; (5) No sensitivity analysis for hyperparameters (T=3 chosen without justification); (6) Unrealistic federated setting (only 5 clients, 5 rounds, 5 epochs per round); (7) No analysis of computational or communication overhead; (8) No scalability studies; (9) Baseline comparison is unfair - baselines do not use differential privacy while the proposed method does."
+        },
+        "presentation": {
+          "result": "fail",
+          "justification": "Presentation quality is below conference standards: (1) Inconsistent and incorrect equation numbering (equations labeled with symbols like (I), (S), (℔) instead of numbers); (2) Equation 10 for wk is unclear and potentially incorrect dimensionally; (3) Algorithm 1 has formatting issues with repeated '0:' prefixes and unclear control flow; (4) Feature importance normalization procedure in Section 3.2.3 is mentioned but not formally defined; (5) Multiple grammatical errors and typos (e.g., line breaks cutting off text like 'X_right' becoming separate); (6) Missing key details: how feature importance values are normalized (min-max? L2?), how DFIA updates interact with privacy guarantees, what happens to client models after DFIA updates; (7) Inconsistent notation between FI, FI-bar, and FI-tilde; (8) The contribution of different components is not clearly delineated."
+        }
+      },
+      "summary_comment": "This paper proposes FAFL, a feature-aware federated learning framework for unsupervised anomaly detection in 5G networks that integrates integrated gradients for feature importance, differential privacy, and dynamic feature adaptation. While the motivation is reasonable and the problem is relevant, the paper suffers from critical weaknesses that prevent acceptance at a top-tier venue: (1) **Soundness**: Mathematical formulations contain errors and lack rigor, particularly Equation 10 which is dimensionally problematic, and the sensitivity assumption for differential privacy is not justified. (2) **Novelty**: The work primarily combines existing techniques (autoencoders, IG, standard DP, FedAvg) without clear innovation or theoretical justification for the specific integration. (3) **Significance**: Improvements are marginal (0.981 vs 0.975 ROC-AUC) and lack statistical validation. No evidence of practical significance or efficiency gains. (4) **Evaluation**: Severely limited to a single custom dataset with only 5 clients and 22,932 samples; no public benchmarks, no ablation studies, no statistical significance testing, suspicious identical results across privacy budgets. (5) **Presentation**: Inconsistent equation numbering, unclear formulations, missing technical details, and grammatical errors significantly detract from clarity. The paper requires substantial revisions addressing fundamental technical issues, comprehensive experimental evaluation on public datasets with proper statistical analysis, and clearer presentation before it could be considered for publication."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 3,\n    \"why_it_fits\": [\n      \"The paper addresses federated learning, which is a core ICML topic (machine learning systems, distributed methods)\",\n      \"The work attempts to tackle optimization in federated settings by incorporating feature importance into aggregation\",\n      \"The application domain (5G network anomaly detection) represents a practical ML application that ICML values\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"CRITICAL: Fundamental soundness issues make this unsuitable for ICML. Equation 10 is dimensionally problematic and mathematically incoherent—multiplying attention weights (scalars) by parameter gradients (vectors) lacks clear formulation and theoretical justification\",\n      \"Severe experimental limitations undermine the contribution: single custom dataset with only 5 clients and 22,932 samples, no public benchmarks, no statistical significance testing, and suspicious identical results in privacy experiments (Table 4: 0.9805 across all ϵ values)\",\n      \"Limited novelty for ICML: the paper merely combines existing techniques (autoencoders, integrated gradients from Sundararajan et al. 2017, standard Gaussian DP from Dwork et al. 2014, FedAvg) without substantial algorithmic or theoretical innovation. The main contribution—using IG-weighted aggregation—lacks theoretical justification or comparison to related feature-aware FL work\",\n      \"No ablation studies isolating the contribution of individual components (IG, DP, DFIA), making it unclear which elements drive the marginal improvements (0.981 vs 0.975 ROC-AUC)\",\n      \"Marginal empirical improvements without proper statistical validation are insufficient for ICML. No confidence intervals, p-values, or multiple runs reported\",\n      \"Missing critical analysis: no discussion of non-IID data handling despite mentioning heterogeneous distributions, no sensitivity analysis for hyperparameters, no computational complexity or communication cost analysis despite claiming efficiency\",\n      \"Presentation quality below ICML standards: inconsistent equation numbering (symbols like (I), (S), (℔)), grammatical errors, and unclear mathematical notation (FI vs FI-bar vs FI-tilde used inconsistently)\",\n      \"The paper conflates FL with privacy, when DP is the actual privacy mechanism—baselines don't use DP, making comparison potentially unfair and claims about 'privacy preservation' in FL misleading\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 3,\n    \"why_it_fits\": [\n      \"NeurIPS explicitly welcomes AI/ML for physical sciences and infrastructure applications; 5G network security is relevant to this scope\",\n      \"The paper addresses distributed learning and privacy concerns (differential privacy, federated learning), topics within NeurIPS scope\",\n      \"The work attempts to combine multiple ML concepts (representation learning via autoencoders, interpretability via integrated gradients, privacy via DP) which aligns with NeurIPS's interdisciplinary nature\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"CRITICAL: Mathematical soundness issues fatal to acceptance. Equation 10 for aggregation weight wk is dimensionally incoherent—the formulation multiplies attention weights by loss gradients without proper mathematical justification or clarity on what dimensions/operations are involved\",\n      \"Severely limited experimental validation: single proprietary 5G dataset with 22,932 samples, only 5 clients, no evaluation on standard benchmarks (NSL-KDD, UNSW-NB15, CIC-IDS2018). NeurIPS values robust empirical evidence across diverse datasets\",\n      \"Lack of statistical rigor: marginal ROC-AUC improvements (0.981 vs 0.975) with no confidence intervals, error bars, or significance tests. Table 4 shows suspicious identical results (0.9805 across all three privacy budgets ϵ∈{0.1, 0.5, 1.0}), suggesting inadequate experimental precision or potential data fabrication concerns\",\n      \"No ablation studies to validate individual contributions (IG, DP, DFIA components). The paper does not isolate which elements drive improvements, making it impossible to assess each component's value\",\n      \"Limited novelty insufficient for NeurIPS: integrating existing techniques (autoencoders, standard IG attribution, Gaussian DP mechanism) without theoretical analysis of why this specific combination is beneficial. No comparison to related personalized or feature-aware federated learning approaches\",\n      \"Missing key technical details: non-IID data handling strategy not discussed despite acknowledged importance, DFIA mechanism underspecified (how updates interact with privacy guarantees, model divergence implications), hyperparameter selection (T=3) unjustified\",\n      \"Presentation issues compound technical concerns: inconsistent equation numbering with non-standard symbols, Algorithm 1 has formatting problems, unclear notation switches, grammatical errors. This reflects insufficient care in manuscript preparation\",\n      \"Unfair baseline comparison: the paper applies DP to feature importance but baselines (FedAvg, FedProx) don't, creating an uneven comparison. The privacy advantage is not properly isolated\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"ICLR values representation learning; the paper uses autoencoders for unsupervised anomaly detection, which touches on representation learning (though minimally)\",\n      \"The work engages with interpretability/visualization of learned representations through integrated gradients feature importance analysis\",\n      \"ICLR welcomes infrastructure and systems contributions; federated learning on distributed 5G systems could be positioned as such\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"CRITICAL: Fundamental mathematical errors undermine publication. Equation 10's aggregation weight formula is dimensionally problematic and lacks rigorous derivation—combining scalars (attention weights ai) with gradient vectors (∂Lk/∂θk) without clear mathematical formulation is a showstopper for ICLR's standards\",\n      \"Severe experimental limitations inappropriate for ICLR: single custom dataset with only 5 clients and 22,932 samples represents a toy setting, not generalizable evaluation. ICLR requires evaluation on diverse, well-established benchmarks. No evaluation on public datasets like NSL-KDD or UNSW-NB15\",\n      \"No statistical validation of results: marginal improvements (0.981 vs 0.975 ROC-AUC for baseline with 0.975 vs FedProx with 0.975) lack confidence intervals, p-values, or multiple runs. Suspicious identical results in Table 4 (0.9805 for ϵ∈{0.1, 0.5, 1.0}) are unrealistic and raise credibility concerns\",\n      \"Insufficient novelty for ICLR: the work primarily combines existing components (autoencoders, integrated gradients from prior work, standard DP mechanisms, FedAvg) without novel algorithmic or theoretical insights. The feature importance weighting approach lacks theoretical justification\",\n      \"Complete absence of ablation studies: no isolation of contributions from IG computation, DP application, or DFIA. Impossible to determine which components matter or if the combination is synergistic\",\n      \"Missing depth on core representation learning aspects: the paper doesn't deeply analyze how the autoencoder representations change with feature weighting, whether DFIA affects representation quality, or how features are learned differently vs. FedAvg\",\n      \"Limited technical depth: non-IID data handling mentioned but not addressed, DFIA mechanism underspecified, no analysis of privacy-utility tradeoffs beyond showing Table 4 with suspicious identical values\",\n      \"Presentation below ICLR standards: equation numbering errors (symbols like (I), (S), (℔)), inconsistent notation, formatting issues in Algorithm 1, missing technical definitions (feature importance normalization procedure), grammatical errors throughout\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\nAll three venues receive **low fit scores (3-4)** due to **critical, insurmountable issues**:\n\n### Primary Disqualifiers:\n\n1. **Mathematical Soundness (Fatal)**: Equation 10 is dimensionally problematic and incoherent. The aggregation weight formulation multiplies scalar attention weights by vector gradients without proper mathematical justification.\n\n2. **Experimental Rigor (Fatal)**: \n   - Single dataset (22,932 samples, 5 clients)\n   - No statistical significance testing\n   - Suspicious identical results in privacy experiments (Table 4)\n   - No public benchmarks\n   - No ablation studies\n\n3. **Limited Novelty**: Combines existing techniques (autoencoders, integrated gradients, standard DP, FedAvg) without substantial innovation or theoretical justification for the specific integration.\n\n4. **Marginal Improvements**: ROC-AUC improvements of 0.006-0.007 over baselines lack statistical validation and practical significance.\n\n### Venue-Specific Considerations:\n\n- **ICML** values rigorous methodology and systems contributions—this fails on both counts\n- **NeurIPS** requires robust empirical evidence across diverse datasets—only a single proprietary dataset is provided\n- **ICLR** emphasizes representation learning and deep learning insights—the paper offers minimal novel insights into how representations evolve\n\n**Recommendation**: This paper requires fundamental revisions addressing mathematical rigor, comprehensive evaluation on public benchmarks with proper statistics, and clearer positioning before any venue should consider it.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 2,
+              "soundness": 2,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 2
+            },
+            "strengths": [
+              "The paper addresses a relevant problem: unsupervised anomaly detection in 5G networks using federated learning with privacy preservation.",
+              "The combination of integrated gradients for feature importance, differential privacy, and dynamic feature adaptation represents an attempt to address multiple challenges in federated learning.",
+              "The experimental evaluation includes reasonable baselines (FedAvg, FedProx) and multiple metrics (precision, recall, F1-score, ROC-AUC)."
+            ],
+            "weaknesses": [
+              "Critical mathematical and technical errors undermine the soundness of the proposed method, including inconsistent formula numbering, unclear notation, and problematic aggregation equations.",
+              "The experimental evaluation is severely limited: only 22,932 samples on a single custom dataset with only 5 clients, no statistical significance testing, no error bars, and no ablation studies to validate individual components.",
+              "The novelty is limited as the paper primarily combines existing techniques (autoencoders, integrated gradients, differential privacy, FedAvg) without substantial innovation or clear justification for how they are integrated.",
+              "The feature importance aggregation method lacks theoretical justification and the connection between feature importance computation and model parameter weighting (Equation 10) is unclear and potentially incorrect.",
+              "Experimental results show only marginal improvements (ROC-AUC: 0.981 vs 0.975 for FedProx) that lack statistical validation, and no analysis of computational overhead or communication costs.",
+              "Missing critical details: no discussion of non-IID data handling, limited exploration of privacy-utility tradeoffs, no sensitivity analysis for hyperparameters, and insufficient explanation of how DFIA works in practice.",
+              "The paper conflates federated learning with privacy preservation, assuming all FL methods preserve privacy equally, when in reality differential privacy is the mechanism providing privacy guarantees.",
+              "Presentation issues: inconsistent equation numbering, grammatical errors, missing details on feature importance normalization, and incomplete algorithm description without clear stopping criteria."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Critical mathematical and technical errors undermine the soundness of the proposed method, including inconsistent formula numbering, unclear notation, and problematic aggregation equations.",
+                "severity": "major",
+                "evidence": "Multiple equation numbering errors (e.g., equations labeled (I), (S), (℔), (1)-(3) appearing out of order). Equation 10 for wk appears to compute a dot product between attention weights and gradients without clear justification. The sensitivity assumption (Δ=1 for normalized feature importance) lacks rigorous justification. The notation switches between FI, FI-bar, and FI-tilde inconsistently.",
+                "affected_claim": "The soundness of the feature-aware aggregation mechanism and differential privacy application",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental evaluation is severely limited with only 22,932 samples on a single custom dataset with only 5 clients, no statistical significance testing, no error bars, and no ablation studies to validate individual components.",
+                "severity": "major",
+                "evidence": "Section 4.1 describes a single 5G testbed dataset. Table 2 shows ROC-AUC improvements of only 0.006-0.007 points without confidence intervals or p-values. No ablation studies isolating the contribution of each component (IG, DP, DFIA). No evaluation on public benchmarks (e.g., NSL-KDD, UNSW-NB15, CIC-IDS2018). Section 5.4 claims robustness across privacy budgets but all three settings yield identical scores (0.9805), which seems unrealistic and suggests inadequate experimental precision.",
+                "affected_claim": "The practical effectiveness and generalizability of the FAFL framework",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The novelty is limited as the paper primarily combines existing techniques (autoencoders, integrated gradients, differential privacy, FedAvg) without substantial innovation or clear justification for how they are integrated.",
+                "severity": "major",
+                "evidence": "Integrated gradients are from Sundararajan et al. (2017). Differential privacy is standard Gaussian mechanism from Dwork et al. (2014). Autoencoders for anomaly detection are well-established (Said Elsayed et al., 2020). The main novelty claim is using IG-computed feature importance to weight aggregation, but this is presented without theoretical justification or prior art comparison. The paper does not clearly distinguish this from existing feature-aware FL approaches or explain why this specific combination is novel.",
+                "affected_claim": "The novelty of the proposed FAFL framework",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The feature importance aggregation method lacks theoretical justification and the connection between feature importance computation and model parameter weighting (Equation 10) is unclear and potentially incorrect.",
+                "severity": "major",
+                "evidence": "The paper computes global feature importance via simple averaging (Equation 5) and then uses it as attention weights (Equation 8). However, Equation 10 multiplies attention weights by the gradient of loss w.r.t. parameters: wk = (nk/n) * (sum over i of ai * ∂Lk/∂θk). This equation is dimensionally problematic: ai is a scalar, ∂Lk/∂θk is a vector, and their product is multiplied by all d attention weights again, creating confusion about what is actually being computed.",
+                "affected_claim": "The correctness of the feature-aware model aggregation process",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental results show only marginal improvements (ROC-AUC: 0.981 vs 0.975 for FedProx) that lack statistical validation, and no analysis of computational overhead or communication costs.",
+                "severity": "major",
+                "evidence": "Table 2 shows improvements of 0.006-0.007 in ROC-AUC. No error bars, confidence intervals, or significance tests are provided. No computational complexity analysis comparing FAFL to baselines. No discussion of communication costs despite claiming FL is for distributed settings. The training setup (5 rounds, 5 epochs/round, only 5 clients) is unrealistic for practical federated settings. No scalability studies with varying numbers of clients or dataset sizes.",
+                "affected_claim": "The practical significance and efficiency of the FAFL framework",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Missing critical details: no discussion of non-IID data handling, limited exploration of privacy-utility tradeoffs, no sensitivity analysis for hyperparameters, and insufficient explanation of how DFIA works in practice.",
+                "severity": "major",
+                "evidence": "The problem formulation (Section 3.1) mentions heterogeneous data distributions but the paper provides no mechanism for handling non-IID data. DFIA is mentioned as updating feature importance every T rounds, but how this interacts with differential privacy, what happens to previously trained models, and whether it causes model divergence are unexplained. Table 4 shows privacy budget experiments but only 3 values of ϵ with suspicious identical results. No sensitivity analysis for other hyperparameters (update interval T=3 chosen without justification, architecture depth unexplained).",
+                "affected_claim": "The completeness and practical applicability of the proposed framework",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The paper conflates federated learning with privacy preservation, assuming all FL methods preserve privacy equally, when in reality differential privacy is the mechanism providing privacy guarantees.",
+                "severity": "minor",
+                "evidence": "Throughout the paper, FL is presented as inherently privacy-preserving (e.g., Section 1: 'FL offers a decentralized solution'). However, FL without DP does not guarantee privacy. The baselines FedAvg and FedProx do not apply DP, yet the paper does not clearly acknowledge this difference when comparing methods. The title claims the framework 'ensures differential privacy' but this is only applied to feature importance aggregation, not to model parameters themselves.",
+                "affected_claim": "The fair comparison between methods and clarity about privacy guarantees",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Presentation issues: inconsistent equation numbering, grammatical errors, missing details on feature importance normalization, and incomplete algorithm description without clear stopping criteria.",
+                "severity": "minor",
+                "evidence": "Multiple equations have incorrect numbering: (I), (S), (℔), mixed roman/arabic numerals. Line 161 has 'FIe' instead of 'FI-tilde' inconsistently. Algorithm 1 has duplicate lines (e.g., '0:' appears repeatedly). Feature importance normalization in Section 3.2.3 is mentioned but not formally defined. The algorithm lacks stopping criteria or convergence conditions. Several grammatical errors throughout (e.g., 'fifth-generation (5G) networks marks' should be 'mark').",
+                "affected_claim": "The clarity and reproducibility of the proposed method",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The paper contains multiple critical technical errors: (1) Equation 10 is dimensionally problematic and unclear - it attempts to combine attention weights (scalars) with parameter gradients (vectors) without coherent mathematical formulation; (2) the sensitivity assumption Δ=1 for normalized feature importance lacks rigorous justification in the differential privacy framework; (3) the connection between computing feature importance via integrated gradients and using it as aggregation weights is not theoretically justified; (4) the feature importance averaging (Equation 5) followed by noise addition (Equation 6) and then attention weight computation (Equation 8) creates a chain of transformations whose formal properties (e.g., privacy guarantees) are not analyzed."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The paper combines existing techniques (autoencoders for anomaly detection, integrated gradients for attribution, standard Gaussian differential privacy, federated averaging) without substantial innovation. The main proposed contribution is using IG-computed feature importance to weight parameter aggregation, but: (1) no clear distinction from prior work on feature-aware federated learning; (2) no theoretical analysis of why this specific combination should be effective; (3) the dynamic adaptation mechanism is a simple periodic recomputation without novelty; (4) the paper does not adequately position itself relative to related work on personalized FL or heterogeneous FL."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The demonstrated improvements are marginal and lack statistical significance: ROC-AUC improvements of 0.006-0.007 points over baselines without confidence intervals or p-values are not practically meaningful. The evaluation is limited to a single custom 5G dataset with only 5 clients and 22,932 samples - not representative of practical federated scenarios. No real-world deployment or large-scale evaluation. The paper does not demonstrate computational efficiency gains or communication cost improvements despite claiming efficiency as a motivation. The contribution of each component (IG, DP, DFIA) is not isolated, making it unclear which elements drive improvements."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The experimental evaluation has severe limitations: (1) Single custom dataset - no evaluation on public benchmarks (NSL-KDD, UNSW-NB15, CIC-IDS2018, etc.); (2) No statistical significance testing, confidence intervals, or multiple runs with standard deviations; (3) Suspicious identical results in Table 4 (0.9805 for all privacy budgets) suggesting inadequate experimental precision; (4) No ablation studies isolating contributions of IG, DP, and DFIA components; (5) No sensitivity analysis for hyperparameters (T=3 chosen without justification); (6) Unrealistic federated setting (only 5 clients, 5 rounds, 5 epochs per round); (7) No analysis of computational or communication overhead; (8) No scalability studies; (9) Baseline comparison is unfair - baselines do not use differential privacy while the proposed method does."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "Presentation quality is below conference standards: (1) Inconsistent and incorrect equation numbering (equations labeled with symbols like (I), (S), (℔) instead of numbers); (2) Equation 10 for wk is unclear and potentially incorrect dimensionally; (3) Algorithm 1 has formatting issues with repeated '0:' prefixes and unclear control flow; (4) Feature importance normalization procedure in Section 3.2.3 is mentioned but not formally defined; (5) Multiple grammatical errors and typos (e.g., line breaks cutting off text like 'X_right' becoming separate); (6) Missing key details: how feature importance values are normalized (min-max? L2?), how DFIA updates interact with privacy guarantees, what happens to client models after DFIA updates; (7) Inconsistent notation between FI, FI-bar, and FI-tilde; (8) The contribution of different components is not clearly delineated."
+              }
+            },
+            "summary_comment": "This paper proposes FAFL, a feature-aware federated learning framework for unsupervised anomaly detection in 5G networks that integrates integrated gradients for feature importance, differential privacy, and dynamic feature adaptation. While the motivation is reasonable and the problem is relevant, the paper suffers from critical weaknesses that prevent acceptance at a top-tier venue: (1) **Soundness**: Mathematical formulations contain errors and lack rigor, particularly Equation 10 which is dimensionally problematic, and the sensitivity assumption for differential privacy is not justified. (2) **Novelty**: The work primarily combines existing techniques (autoencoders, IG, standard DP, FedAvg) without clear innovation or theoretical justification for the specific integration. (3) **Significance**: Improvements are marginal (0.981 vs 0.975 ROC-AUC) and lack statistical validation. No evidence of practical significance or efficiency gains. (4) **Evaluation**: Severely limited to a single custom dataset with only 5 clients and 22,932 samples; no public benchmarks, no ablation studies, no statistical significance testing, suspicious identical results across privacy budgets. (5) **Presentation**: Inconsistent equation numbering, unclear formulations, missing technical details, and grammatical errors significantly detract from clarity. The paper requires substantial revisions addressing fundamental technical issues, comprehensive experimental evaluation on public datasets with proper statistical analysis, and clearer presentation before it could be considered for publication."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

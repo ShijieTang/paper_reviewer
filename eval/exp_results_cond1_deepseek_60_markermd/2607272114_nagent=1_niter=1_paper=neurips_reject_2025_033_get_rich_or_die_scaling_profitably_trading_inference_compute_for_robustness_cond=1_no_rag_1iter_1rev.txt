@@ -1,0 +1,187 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 4,
+        "soundness": 3,
+        "significance": 4,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "Presents a clear, testable hypothesis (RICH) that links model robustness and the effectiveness of inference-time compute as a defense, offering a novel perspective on why reasoning defenses might fail for vision attacks.",
+        "Provides a comprehensive experimental setup that validates the core hypothesis across multiple attack types (white-box PGD, black-box transfer), models, and compute scaling methods.",
+        "Addresses an important problem of adversarial safety for frontier VLMs and identifies a potential synergistic defense strategy, raising a valuable discussion point for the community."
+      ],
+      "weaknesses": [
+        "The method for scaling inference-time compute is not well-motivated or standard; repeating text K times conflates compute scaling with context scaling.",
+        "The evaluation and claims lack sufficient statistical rigor and depth; the experimental evidence is anecdotal and the sample sizes for key results appear very small.",
+        "The paper's central claim about 'in-distribution' attacks is asserted but the distribution of data is not measured or quantified; it relies on visual plausibility arguments from Figure 4."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The method for scaling inference-time compute is not well-motivated or standard; repeating text K times conflates compute scaling with context scaling.",
+          "severity": "major",
+          "evidence": "Section 3.1 states: 'Specifically, we repeat the correct text description K times in the instruction prompt... Higher K represents increased levels of inference-time compute. ... this is not the same inference-time compute scaling performed by reasoning models like o1'. Section 4.4 attempts to address this with Chain-of-Thought, but the core scaling mechanism in white-box experiments is text repetition, not increased reasoning steps or parameters.",
+          "affected_claim": "The fundamental claim that 'inference-time compute' scales defense, which underpins RICH.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The evaluation and claims lack sufficient statistical rigor and depth; the experimental evidence is anecdotal and the sample sizes for key results appear very small.",
+          "evidence": "Table 1 lacks clarity but appears to show mean PGD steps based on only 'three attack variations of an image' (as noted in the caption). The central results in Figure 5 are loss curves from a single image? The paper states 'Results for each attack can be found in Appendix C' but these are just more single image examples (Figures 7-10). The evidence is more a proof of concept than a systematic statistical evaluation.",
+          "affected_claim": "The general claim that 'RICH is supported across general attack targets and images' (Section 4.3) and the overall quantitative validation of the hypothesis.",
+          "severity": "major",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The central claim that inference-time compute scaling provides defense benefits is tested with a non-standard operationalization (text repetition), which confounds compute scaling with input context scaling and priming. The statistical basis for the claim is weak, drawing broad conclusions from a handful of examples and small-scale runs (e.g., 3 variations per condition in Table 1). This undermines confidence in the technical support for the main findings."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper introduces a new conceptual hypothesis (RICH) that explains prior failures of reasoning-based defenses against vision attacks and predicts a synergistic effect between train-time robustness and test-time compute. The specific focus on the 'in-distribution' nature of attacks on robust models as a key factor is a distinct contribution."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The topic of adversarial robustness for large VLMs is highly relevant to top-tier ML conferences. The idea that train-time robustness and inference-time compute could have a super-additive, rather than additive, interaction offers a potentially impactful direction for creating more cost-effective safety defenses."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "Experimental support is not convincing due to the non-standard and potentially confounding method of compute scaling, and the reliance on limited, anecdotal evidence rather than systematic, statistically sound experiments across datasets and models. While multiple attack settings are explored, the depth of analysis and robustness of the reported results are insufficient to fully support the central claims."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally clearly written and structured. The hypothesis is stated upfront, the methodology is described, and results are presented with figures. The core argument is understandable, despite some weaknesses in the experimental rigor explanation."
+        }
+      },
+      "summary_comment": "This paper proposes an interesting and potentially significant hypothesis (RICH) about the synergistic interaction between model robustness and inference-time compute for defending against adversarial attacks. However, it fails the critical gates of Soundness and Evaluation. The experimental methodology for scaling compute is not well-justified (text repetition vs. reasoning scaling), and the empirical evidence is too limited, anecdotal, and lacks proper statistical grounding to convincingly validate the central claims. While the idea is promising, the current execution does not meet the technical standards required for a top-tier conference acceptance. A revision addressing the methodological and experimental weaknesses would be necessary."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "ICML": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "Topic aligns with ICML's interest in trustworthy machine learning, specifically robustness, and the intersection of deep learning, reinforcement learning (reasoning as RL), and evaluation of adversarial defenses.",
+        "Presents a testable hypothesis about a fundamental interaction between train-time and test-time defenses, which fits ICML's methodological and theoretical focus.",
+        "Experimental evaluation includes optimization-based attacks (PGD) and considers robustness from a systems perspective (inference-time compute), touching on machine learning systems and optimization areas."
+      ],
+      "why_it_does_not_fit": [
+        "Significant methodological concerns from reviewers: the core scaling mechanism (text repetition) is non-standard and conflates compute scaling with context scaling, raising serious soundness issues that are critical for ICML's rigorous standards.",
+        "The paper lacks statistical depth and quantitative rigor; key results are based on small-scale, anecdotal evidence, which is unlikely to satisfy ICML's expectation for statistically robust empirical validation.",
+        "The work is more empirically exploratory than theoretically grounded or methodologically novel. While it proposes a hypothesis, the execution is a proof-of-concept rather than a comprehensive study or a novel algorithm, making it borderline for ICML's emphasis on solid technical contributions."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "The topic of adversarial robustness and safety in vision-language models is highly relevant to NeurIPS's interests in trustworthy AI, computer vision, and socio-technical aspects of AI.",
+        "The paper's emphasis on a synergistic defense strategy for real-world safety-critical applications (e.g., self-driving) aligns with NeurIPS's application-driven tracks like AI/ML for robotics and engineering.",
+        "The hypothesis-driven nature and exploration of multiple attack settings (black-box, white-box) fit NeurIPS's broad scope of empirical and conceptual contributions in machine learning."
+      ],
+      "why_it_does_not_fit": [
+        "Similar to ICML, the reviewer's major concerns about the methodology's soundness and the lack of rigorous statistical evaluation are significant risks for NeurIPS, which values technically sound and well-evaluated work.",
+        "The paper's framing is more about explaining a phenomenon (why reasoning fails for vision attacks) rather than introducing a novel algorithm or providing deep theoretical insights, which might make it less competitive in NeurIPS's highly selective environment.",
+        "The operationalization of 'inference-time compute' is unconventional (text repetition) and not directly comparable to state-of-the-art reasoning methods (e.g., chain-of-thought), limiting its impact and connection to mainstream research on scaling laws and reasoning."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 5,
+      "why_it_fits": [
+        "The paper directly studies multimodal (vision-language) models and their adversarial robustness, a core topic for ICLR given its focus on deep learning, representation learning, and applications in vision and language.",
+        "Investigates the interaction between adversarial training (a form of representation learning) and test-time reasoning, which aligns with ICLR's interests in generative models, causal reasoning, and societal considerations like safety.",
+        "Uses contemporary VLMs (LLaVA variants) and discusses their failure modes, fitting ICLR's emphasis on empirical studies of deep learning models and their behaviors."
+      ],
+      "why_it_does_not_fit": [
+        "ICLR places a premium on novelty in deep learning architectures, training methods, or theoretical understanding. This paper's contribution is primarily an empirical hypothesis about an interaction, not a new model, training algorithm, or theoretical insight into deep learning.",
+        "The methodological weakness highlighted by the reviewer is particularly damning for ICLR, where technical soundness and clear experimental protocols are paramount. The non-standard compute scaling method would likely be heavily criticized.",
+        "The paper's empirical scope is limited (small-scale experiments, few model variants) compared to the large-scale, dataset-driven studies often favored at ICLR. It lacks the depth of ablation or systematic analysis expected for a strong ICLR submission."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 4,
+              "soundness": 3,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 3
+            },
+            "strengths": [
+              "Presents a clear, testable hypothesis (RICH) that links model robustness and the effectiveness of inference-time compute as a defense, offering a novel perspective on why reasoning defenses might fail for vision attacks.",
+              "Provides a comprehensive experimental setup that validates the core hypothesis across multiple attack types (white-box PGD, black-box transfer), models, and compute scaling methods.",
+              "Addresses an important problem of adversarial safety for frontier VLMs and identifies a potential synergistic defense strategy, raising a valuable discussion point for the community."
+            ],
+            "weaknesses": [
+              "The method for scaling inference-time compute is not well-motivated or standard; repeating text K times conflates compute scaling with context scaling.",
+              "The evaluation and claims lack sufficient statistical rigor and depth; the experimental evidence is anecdotal and the sample sizes for key results appear very small.",
+              "The paper's central claim about 'in-distribution' attacks is asserted but the distribution of data is not measured or quantified; it relies on visual plausibility arguments from Figure 4."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The method for scaling inference-time compute is not well-motivated or standard; repeating text K times conflates compute scaling with context scaling.",
+                "severity": "major",
+                "evidence": "Section 3.1 states: 'Specifically, we repeat the correct text description K times in the instruction prompt... Higher K represents increased levels of inference-time compute. ... this is not the same inference-time compute scaling performed by reasoning models like o1'. Section 4.4 attempts to address this with Chain-of-Thought, but the core scaling mechanism in white-box experiments is text repetition, not increased reasoning steps or parameters.",
+                "affected_claim": "The fundamental claim that 'inference-time compute' scales defense, which underpins RICH.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The evaluation and claims lack sufficient statistical rigor and depth; the experimental evidence is anecdotal and the sample sizes for key results appear very small.",
+                "evidence": "Table 1 lacks clarity but appears to show mean PGD steps based on only 'three attack variations of an image' (as noted in the caption). The central results in Figure 5 are loss curves from a single image? The paper states 'Results for each attack can be found in Appendix C' but these are just more single image examples (Figures 7-10). The evidence is more a proof of concept than a systematic statistical evaluation.",
+                "affected_claim": "The general claim that 'RICH is supported across general attack targets and images' (Section 4.3) and the overall quantitative validation of the hypothesis.",
+                "severity": "major",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The central claim that inference-time compute scaling provides defense benefits is tested with a non-standard operationalization (text repetition), which confounds compute scaling with input context scaling and priming. The statistical basis for the claim is weak, drawing broad conclusions from a handful of examples and small-scale runs (e.g., 3 variations per condition in Table 1). This undermines confidence in the technical support for the main findings."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper introduces a new conceptual hypothesis (RICH) that explains prior failures of reasoning-based defenses against vision attacks and predicts a synergistic effect between train-time robustness and test-time compute. The specific focus on the 'in-distribution' nature of attacks on robust models as a key factor is a distinct contribution."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The topic of adversarial robustness for large VLMs is highly relevant to top-tier ML conferences. The idea that train-time robustness and inference-time compute could have a super-additive, rather than additive, interaction offers a potentially impactful direction for creating more cost-effective safety defenses."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Experimental support is not convincing due to the non-standard and potentially confounding method of compute scaling, and the reliance on limited, anecdotal evidence rather than systematic, statistically sound experiments across datasets and models. While multiple attack settings are explored, the depth of analysis and robustness of the reported results are insufficient to fully support the central claims."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally clearly written and structured. The hypothesis is stated upfront, the methodology is described, and results are presented with figures. The core argument is understandable, despite some weaknesses in the experimental rigor explanation."
+              }
+            },
+            "summary_comment": "This paper proposes an interesting and potentially significant hypothesis (RICH) about the synergistic interaction between model robustness and inference-time compute for defending against adversarial attacks. However, it fails the critical gates of Soundness and Evaluation. The experimental methodology for scaling compute is not well-justified (text repetition vs. reasoning scaling), and the empirical evidence is too limited, anecdotal, and lacks proper statistical grounding to convincingly validate the central claims. While the idea is promising, the current execution does not meet the technical standards required for a top-tier conference acceptance. A revision addressing the methodological and experimental weaknesses would be necessary."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

@@ -1,0 +1,201 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 4,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 3,
+        "clarity": 4
+      },
+      "strengths": [
+        "The paper tackles an important and underexplored problem: data attribution for online reinforcement learning (RL), specifically addressing the circular dependency between data and policy.",
+        "Proposes a practical, local data attribution framework with concrete target functions and shows its utility for diagnosis, temporal analysis, and intervention.",
+        "The extension of the framework to RLHF and demonstration of performance gains (IIF algorithm) across diverse tasks is a notable strength, suggesting broader applicability."
+      ],
+      "weaknesses": [
+        "The technical soundness of the core attribution method is questionable. The framework uses TracIn (designed for SGD) but applies it to PPO training with adaptive optimizers without a strong theoretical justification or empirical validation of the approximation.",
+        "The evaluation, while extensive in scope, is not fully convincing in supporting the central claims. The comparisons to simple baselines are limited, and the analysis of 'influence' often correlates with known issues (e.g., inaccurate advantage estimates), raising questions about the unique value of the attribution.",
+        "The framework's local scope restricts its understanding of long-term data influence, which is a critical aspect of online RL. The paper acknowledges this limitation but does not mitigate its impact on the claimed insights."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The technical soundness of the core attribution method is questionable. The framework uses TracIn (designed for SGD) but applies it to PPO training with adaptive optimizers without a strong theoretical justification or empirical validation of the approximation.",
+          "severity": "major",
+          "evidence": "The paper states in Section 7: 'we follow Wang et al. [2025b] and employ SGD as a proxy for Adam. While empirically effective, investigating attribution methods ... is a valuable direction for future work.' The main experiments in traditional RL use SGD, but RLHF uses Adam. The validity of the TracIn gradient-dot-product score for the PPO objective (which involves clipping and ratio computations) under these optimizers is not rigorously established.",
+          "affected_claim": "The claim that the computed influence scores accurately measure a record's contribution to policy updates and target behaviors.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The evaluation, while extensive in scope, is not fully convincing in supporting the central claims. The comparisons to simple baselines are limited, and the analysis of 'influence' often correlates with known issues (e.g., inaccurate advantage estimates), raising questions about the unique value of the attribution.",
+          "severity": "major",
+          "evidence": "The advantage-based heuristics (Sec. B.4) perform similarly to IIF in simple environments, suggesting the identified 'harmful' records are largely those with advantage sign errors—a known problem. The paper lacks a compelling ablation showing that the gradient-based influence score captures something fundamentally beyond simple advantage error. The comparison to random filtering is insufficient; stronger baselines from prior work on experience filtering or prioritization are not adequately discussed or compared.",
+          "affected_claim": "Claims that the proposed attribution framework provides novel, fine-grained insights beyond known RL challenges and that the IIF algorithm's effectiveness stems from a uniquely powerful attribution signal.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The framework's local scope restricts its understanding of long-term data influence, which is a critical aspect of online RL. The paper acknowledges this limitation but does not mitigate its impact on the claimed insights.",
+          "severity": "minor",
+          "evidence": "Section 3 states the framework 'circumvents the challenges in tracing influence through the complex, cascading, and non-differentiable dependencies across the training history' by focusing on a single round. However, this also means the analysis cannot attribute long-term behavioral changes or credit assignment across rounds, which is central to RL.",
+          "affected_claim": "Claims about understanding 'behavior formation' and the general power of the framework for interpretability in online RL.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The central technical claim—that the adapted TracIn-based influence score accurately attributes influence in online PPO—lacks rigorous validation. The method's application to a complex, clipped objective with adaptive optimizers is justified only by empirical correlation and precedent, not by theoretical or thorough empirical analysis of its approximations. This undermines confidence in the scores driving all applications and the IIF algorithm."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper successfully identifies a clear gap: applying data attribution to the non-stationary, online RL setting. The formulation of a local framework with tailored target functions (f_action, f_return) for PPO is a novel contribution to the literature."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "While the problem is important, the demonstrated significance of the contribution is limited. The insights gained (e.g., harmful records have bad advantage estimates) mostly confirm known RL issues. The performance improvements from IIF are appealing but not decisively superior to simpler heuristics in the provided evaluation, and the core interpretability promises are constrained by the local, non-counterfactual nature of the scores."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The experimental evaluation, though broad, has critical weaknesses. It lacks comparisons to state-of-the-art or conceptually relevant baselines for data selection in RL. The analysis correlating influence with advantage error suggests the method may not be capturing novel phenomena. The RLHF results are promising but not sufficiently analyzed to isolate the contribution of the attribution vs. simple data filtering."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-written, with clear explanations of the framework, challenges, and applications. Figures and examples help illustrate the concepts. The limitations are acknowledged in a dedicated section."
+        }
+      },
+      "summary_comment": "This paper presents a commendable first step in adapting data attribution to online RL, proposing a local framework and demonstrating applications. The novelty in problem formulation is clear. However, the work falls short of the top-tier standard due to major concerns in soundness and evaluation. The core attribution method's theoretical grounding for the PPO setting is weak, and the empirical benefits are not convincingly distinguished from simpler, known principles (like advantage error filtering). While the IIF algorithm shows empirical gains, they are not robustly validated against strong baselines. The local nature of the framework also limits the depth of the interpretability claims. For these reasons, I recommend rejection, encouraging a revision that strengthens the theoretical justification, provides more rigorous and comparative empirical validation, and more clearly establishes the unique value of the gradient-based influence measure."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "ICML": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "The paper focuses on reinforcement learning (specifically online RL and PPO) and develops a novel data attribution framework, aligning well with ICML's interest in core machine learning algorithms and optimization methods.",
+        "The work includes extensive empirical evaluation across diverse RL benchmarks (control, navigation, locomotion) and proposes a new algorithm (IIF) that improves sample efficiency, which matches ICML's emphasis on algorithmic contributions with solid experimentation.",
+        "The paper addresses interpretability and efficiency in RL, topics that are relevant to ICML's scope, particularly in the areas of reinforcement learning and trustworthy ML."
+      ],
+      "why_it_does_not_fit": [
+        "The theoretical grounding of the attribution method (TracIn adapted for PPO) is questioned by reviewers, which may not meet ICML's high standards for technical soundness and rigor.",
+        "The local scope of the framework limits its ability to capture long-term dependencies in RL, which might be seen as a significant limitation for a premier conference like ICML that values comprehensive solutions.",
+        "Reviewer concerns about evaluation (e.g., lack of strong baselines) could reduce the perceived impact and novelty, making it a borderline fit for ICML."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "NeurIPS has a strong focus on reinforcement learning, interpretability, and novel methodologies for ML systems, which aligns perfectly with this paper's contributions on data attribution for online RL.",
+        "The application to RLHF for large language models connects to NeurIPS's interest in interdisciplinary topics and AI safety, enhancing the paper's relevance.",
+        "The paper's emphasis on practical applications (diagnosis, intervention, and improved training) fits NeurIPS's appetite for work that bridges theory and practice."
+      ],
+      "why_it_does_not_fit": [
+        "Reviewer concerns about soundness (e.g., use of TracIn with adaptive optimizers without full justification) might be a issue for NeurIPS, which values robust methodological foundations.",
+        "The evaluation, while broad, lacks comparisons to state-of-the-art baselines in data selection for RL, which could be a weakness given NeurIPS's competitive nature.",
+        "The local attribution framework's inability to handle long-term influences might be seen as a limitation for a venue that often features more holistic approaches."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "ICLR's focus on deep learning and representation learning makes the extension to RLHF for LLMs particularly relevant, as it involves deep reinforcement learning and generative models.",
+        "The paper's work on interpretability (e.g., feature learning and behavior analysis) aligns with ICLR's interest in understanding learned representations and model transparency.",
+        "Applications in RL and optimization (e.g., PPO) are within ICLR's scope, especially given the conference's coverage of reinforcement learning topics."
+      ],
+      "why_it_does_not_fit": [
+        "ICLR places strong emphasis on deep learning theory and innovations in neural networks; the paper's core method (TracIn) is not deep learning-specific and may not be novel enough for ICLR.",
+        "Reviewer criticisms about technical soundness and evaluation could be particularly damaging for ICLR, which often requires high methodological rigor and thorough ablation studies.",
+        "The paper's primary focus is on RL algorithms rather than deep learning architectures or fundamental advances in neural network training, which might make it a weaker fit for ICLR compared to NeurIPS."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 4,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper tackles an important and underexplored problem: data attribution for online reinforcement learning (RL), specifically addressing the circular dependency between data and policy.",
+              "Proposes a practical, local data attribution framework with concrete target functions and shows its utility for diagnosis, temporal analysis, and intervention.",
+              "The extension of the framework to RLHF and demonstration of performance gains (IIF algorithm) across diverse tasks is a notable strength, suggesting broader applicability."
+            ],
+            "weaknesses": [
+              "The technical soundness of the core attribution method is questionable. The framework uses TracIn (designed for SGD) but applies it to PPO training with adaptive optimizers without a strong theoretical justification or empirical validation of the approximation.",
+              "The evaluation, while extensive in scope, is not fully convincing in supporting the central claims. The comparisons to simple baselines are limited, and the analysis of 'influence' often correlates with known issues (e.g., inaccurate advantage estimates), raising questions about the unique value of the attribution.",
+              "The framework's local scope restricts its understanding of long-term data influence, which is a critical aspect of online RL. The paper acknowledges this limitation but does not mitigate its impact on the claimed insights."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The technical soundness of the core attribution method is questionable. The framework uses TracIn (designed for SGD) but applies it to PPO training with adaptive optimizers without a strong theoretical justification or empirical validation of the approximation.",
+                "severity": "major",
+                "evidence": "The paper states in Section 7: 'we follow Wang et al. [2025b] and employ SGD as a proxy for Adam. While empirically effective, investigating attribution methods ... is a valuable direction for future work.' The main experiments in traditional RL use SGD, but RLHF uses Adam. The validity of the TracIn gradient-dot-product score for the PPO objective (which involves clipping and ratio computations) under these optimizers is not rigorously established.",
+                "affected_claim": "The claim that the computed influence scores accurately measure a record's contribution to policy updates and target behaviors.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The evaluation, while extensive in scope, is not fully convincing in supporting the central claims. The comparisons to simple baselines are limited, and the analysis of 'influence' often correlates with known issues (e.g., inaccurate advantage estimates), raising questions about the unique value of the attribution.",
+                "severity": "major",
+                "evidence": "The advantage-based heuristics (Sec. B.4) perform similarly to IIF in simple environments, suggesting the identified 'harmful' records are largely those with advantage sign errors—a known problem. The paper lacks a compelling ablation showing that the gradient-based influence score captures something fundamentally beyond simple advantage error. The comparison to random filtering is insufficient; stronger baselines from prior work on experience filtering or prioritization are not adequately discussed or compared.",
+                "affected_claim": "Claims that the proposed attribution framework provides novel, fine-grained insights beyond known RL challenges and that the IIF algorithm's effectiveness stems from a uniquely powerful attribution signal.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The framework's local scope restricts its understanding of long-term data influence, which is a critical aspect of online RL. The paper acknowledges this limitation but does not mitigate its impact on the claimed insights.",
+                "severity": "minor",
+                "evidence": "Section 3 states the framework 'circumvents the challenges in tracing influence through the complex, cascading, and non-differentiable dependencies across the training history' by focusing on a single round. However, this also means the analysis cannot attribute long-term behavioral changes or credit assignment across rounds, which is central to RL.",
+                "affected_claim": "Claims about understanding 'behavior formation' and the general power of the framework for interpretability in online RL.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The central technical claim—that the adapted TracIn-based influence score accurately attributes influence in online PPO—lacks rigorous validation. The method's application to a complex, clipped objective with adaptive optimizers is justified only by empirical correlation and precedent, not by theoretical or thorough empirical analysis of its approximations. This undermines confidence in the scores driving all applications and the IIF algorithm."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper successfully identifies a clear gap: applying data attribution to the non-stationary, online RL setting. The formulation of a local framework with tailored target functions (f_action, f_return) for PPO is a novel contribution to the literature."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "While the problem is important, the demonstrated significance of the contribution is limited. The insights gained (e.g., harmful records have bad advantage estimates) mostly confirm known RL issues. The performance improvements from IIF are appealing but not decisively superior to simpler heuristics in the provided evaluation, and the core interpretability promises are constrained by the local, non-counterfactual nature of the scores."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The experimental evaluation, though broad, has critical weaknesses. It lacks comparisons to state-of-the-art or conceptually relevant baselines for data selection in RL. The analysis correlating influence with advantage error suggests the method may not be capturing novel phenomena. The RLHF results are promising but not sufficiently analyzed to isolate the contribution of the attribution vs. simple data filtering."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written, with clear explanations of the framework, challenges, and applications. Figures and examples help illustrate the concepts. The limitations are acknowledged in a dedicated section."
+              }
+            },
+            "summary_comment": "This paper presents a commendable first step in adapting data attribution to online RL, proposing a local framework and demonstrating applications. The novelty in problem formulation is clear. However, the work falls short of the top-tier standard due to major concerns in soundness and evaluation. The core attribution method's theoretical grounding for the PPO setting is weak, and the empirical benefits are not convincingly distinguished from simpler, known principles (like advantage error filtering). While the IIF algorithm shows empirical gains, they are not robustly validated against strong baselines. The local nature of the framework also limits the depth of the interpretability claims. For these reasons, I recommend rejection, encouraging a revision that strengthens the theoretical justification, provides more rigorous and comparative empirical validation, and more clearly establishes the unique value of the gradient-based influence measure."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

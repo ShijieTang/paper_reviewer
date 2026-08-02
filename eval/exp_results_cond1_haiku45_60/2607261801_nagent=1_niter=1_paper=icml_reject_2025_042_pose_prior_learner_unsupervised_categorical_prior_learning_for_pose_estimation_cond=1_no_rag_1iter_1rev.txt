@@ -1,0 +1,216 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The paper addresses an interesting and well-motivated problem: learning pose priors in an unsupervised manner without human annotations, which is a practical contribution to the pose estimation literature.",
+        "The hierarchical memory design is a reasonable architectural choice for storing compositional parts of prototypical poses, with clear advantages over single-embedding-space approaches like PCT in terms of distillation for prior learning.",
+        "Comprehensive experiments across multiple datasets (Human3.6m, Taichi, CUB-200-2011) with quantitative improvements over baselines, and the iterative inference strategy for occluded scenes demonstrates practical utility.",
+        "Good ablation studies examining prior initialization strategies and the claim that learned priors can outperform human-defined priors is noteworthy and well-supported."
+      ],
+      "weaknesses": [
+        "The core technical contribution is incremental, primarily combining existing techniques (affine transformation, image reconstruction, link heatmaps from AutoLink, memory modules) without substantial innovation. The hierarchical memory is a relatively straightforward extension of PCT.",
+        "Critical technical and methodological issues undermine soundness: (1) The non-differentiable nearest-neighbor retrieval in Eq. 3 uses gradient copying from VQ-VAE, but the justification for why this is appropriate here is unclear; (2) The chicken-and-egg problem acknowledged in Section A6 requires gradient detachment, suggesting the framework may be fundamentally unstable; (3) The mean pooling distillation of M into prior T is overly simplistic and lacks theoretical justification for why this should capture category-level structure.",
+        "Experimental evaluation has significant limitations: (1) Comparisons are primarily against older baselines (2017-2022); no comparison with recent 2023-2024 methods like those using diffusion models or transformers for pose estimation; (2) Different input resolutions across methods (128 vs 256) make fair comparison difficult; (3) Missing important baselines like the mentioned HPE (Yoo & Russakovsky, 2023) in main tables; (4) Occlusion experiments use artificial masking patterns rather than realistic occlusions.",
+        "The paper claims to learn 2D priors but this is a significant limitation acknowledged only briefly in the Discussion. The method cannot capture 3D structure, rotations, or significant shape changes, limiting real-world applicability for many pose estimation scenarios.",
+        "Presentation and clarity issues: (1) Figure 1 schematic is vague and does not clearly convey the method; (2) The relationship between connectivity prior W (N×N matrix) and the link heatmaps S is confusing—how exactly does Eq. 3 use W to modulate Si,j?; (3) Missing details on how gradient detachment in A6 is implemented; (4) The paper uses the term 'unsupervised' loosely when image reconstruction is effectively a form of weak supervision.",
+        "Limited theoretical grounding: The paper lacks formal analysis of why the hierarchical memory approach should converge to meaningful category priors, or theoretical guarantees about what the learned prior represents. The connection between pose reconstruction and prior learning is empirical rather than principled.",
+        "Reproducibility concerns: While the authors promise to release code, many implementation details are missing or relegated to appendices. The choice of 34 memory banks appears arbitrary with limited justification beyond ablation results."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The core technical contribution is incremental, primarily combining existing techniques (affine transformation, image reconstruction, link heatmaps from AutoLink, memory modules) without substantial innovation. The hierarchical memory is a relatively straightforward extension of PCT.",
+          "severity": "major",
+          "evidence": "The paper extensively uses AutoLink's link heatmap formulation (Eq. 3), applies standard affine transformations (Eq. 1-2), and employs image reconstruction losses commonly used in prior work. The hierarchical memory is presented as simply organizing PCT's memory into separate embedding spaces via memory banks. Section 3.3 describes this as a 'relatively straightforward extension'.",
+          "affected_claim": "The novelty of the proposed method",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Critical technical and methodological issues undermine soundness: (1) The non-differentiable nearest-neighbor retrieval in Eq. 3 uses gradient copying from VQ-VAE, but the justification for why this is appropriate here is unclear; (2) The chicken-and-egg problem acknowledged in Section A6 requires gradient detachment, suggesting the framework may be fundamentally unstable; (3) The mean pooling distillation of M into prior T is overly simplistic and lacks theoretical justification for why this should capture category-level structure.",
+          "severity": "major",
+          "evidence": "Section 3.3 shows G' is retrieved in a non-differentiable manner. Appendix A6 explains gradient copying is used but provides no ablation showing this is necessary or that alternatives were considered. The acknowledgment that 'this creates a chicken-and-egg problem that complicates training' (A6) and the need for two separate gradient detachments suggests instability. The mean pooling operation (Section 3.3) for distilling T from M is described as 'further decoded by MIXdec' but no justification for why averaging k vectors per bank produces meaningful category priors.",
+          "affected_claim": "The soundness of the training procedure and the validity of distilled priors",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Experimental evaluation has significant limitations: (1) Comparisons are primarily against older baselines (2017-2022); no comparison with recent 2023-2024 methods; (2) Different input resolutions across methods (128 vs 256) make fair comparison difficult; (3) Missing important baselines like HPE (Yoo & Russakovsky, 2023) in main tables; (4) Occlusion experiments use artificial masking patterns rather than realistic occlusions.",
+          "severity": "major",
+          "evidence": "Tables 1-3 show baselines primarily from 2017-2022. HPE is cited as evidence that predefined priors are suboptimal but is not included in the main quantitative tables. Different resolutions are used (Table 1 uses 128×128 for PPL vs. 256 for baselines; Table 3 acknowledges this note with *). Occlusion experiments in Section 4.3 describe artificial RandomMasking and CenterMasking using 32×32 patches, not realistic occlusion patterns from datasets.",
+          "affected_claim": "The empirical superiority of PPL over state-of-the-art methods",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The paper claims to learn 2D priors but this is a significant limitation acknowledged only briefly in the Discussion. The method cannot capture 3D structure, rotations, or significant shape changes, limiting real-world applicability.",
+          "severity": "major",
+          "evidence": "Section 5 Discussion states: 'it learns 2D priors, which makes it difficult to capture real-world 3D postures. Thus, PPL struggles in scenarios where objects involve rotations or significant shape changes.' This is presented as future work rather than being addressed in the current contribution. The paper also notes (Section 4.1) that 'the quality of estimated poses of dogs is inferior to that of humans...due to significant morphological differences among various dog breeds.'",
+          "affected_claim": "The generalizability and practical applicability of PPL",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Presentation and clarity issues: (1) Figure 1 schematic is vague; (2) The relationship between connectivity prior W (N×N matrix) and link heatmaps S is confusing in Eq. 3; (3) Missing details on gradient detachment implementation; (4) The paper uses 'unsupervised' loosely when image reconstruction is effectively weak supervision.",
+          "severity": "minor",
+          "evidence": "Figure 1 shows abstract arrows and labels but does not clearly convey the pipeline. Equation 3 states 'S = max(w_{i,j}*S_{i,j})' but the dimensions are unclear—how does element-wise multiplication of a scalar w_{i,j} with tensor S_{i,j} ∈ R^{H×W} work? Appendix A6 describes gradient detachment but implementation details for detaching from T and T' are vague. The method uses image reconstruction supervision, which is not fully unsupervised despite the framing.",
+          "affected_claim": "The clarity and technical correctness of the method description",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Limited theoretical grounding: The paper lacks formal analysis of why the hierarchical memory approach should converge to meaningful category priors, or theoretical guarantees about what the learned prior represents.",
+          "severity": "minor",
+          "evidence": "The paper provides no convergence analysis, no formal characterization of what constitutes a 'meaningful' prior, and no theoretical justification for why mean pooling of memory vectors should yield category-level structure. The connection between pose reconstruction (Lkr loss) and prior learning is entirely empirical.",
+          "affected_claim": "The principled justification for why PPL learns meaningful priors",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The framework has critical technical issues: (1) The non-differentiable nearest-neighbor retrieval with gradient copying from VQ-VAE is used without proper justification or ablation; (2) The acknowledged chicken-and-egg problem requiring multiple gradient detachments suggests fundamental instability in the training procedure; (3) The mean pooling distillation strategy lacks theoretical grounding for why it should produce meaningful category priors; (4) The mathematical notation in Eq. 3 is unclear regarding how scalar weights modulate multi-dimensional tensors. These issues collectively undermine confidence in the technical correctness of the approach."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The contribution is primarily an incremental combination of existing techniques. The paper uses AutoLink's link heatmap formulation, standard affine transformations, and conventional image reconstruction losses. The main novelty claimed is the hierarchical memory structure, which is presented as a straightforward extension of PCT by organizing memory into separate embedding spaces. This is insufficient for a top-tier venue, as it lacks substantial technical innovation."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "While the problem of unsupervised prior learning is motivated, the practical significance is limited by several factors: (1) The method only learns 2D priors and struggles with 3D rotations and significant shape changes, severely limiting real-world applicability; (2) The acknowledged inferior performance on diverse categories like dogs undermines the claim of learning general categorical priors; (3) The improvements over baselines, while consistent, are often modest (e.g., 2.56 vs 2.76 on Human3.6m at 256 resolution); (4) Comparisons are against dated baselines, making it unclear if gains are meaningful relative to current state-of-the-art."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The experimental evaluation has significant limitations: (1) Baselines are primarily from 2017-2022 with no comparison to recent 2023-2024 methods; (2) Different input resolutions across comparisons (128 vs 256) compromise fairness; (3) Important baselines like HPE (Yoo & Russakovsky, 2023), which is cited to support a key claim about learned vs. predefined priors, are missing from main quantitative tables; (4) Occlusion experiments use artificial masking rather than realistic occlusions; (5) No ablation on critical components like the gradient detachment strategy or justification for the mean pooling distillation approach; (6) Missing computational cost analysis relative to baselines."
+        },
+        "presentation": {
+          "result": "fail",
+          "justification": "The paper has several clarity and presentation issues that hinder reliable assessment: (1) Figure 1 is vague and does not clearly convey the method; (2) Mathematical notation is imprecise (e.g., Eq. 3 is unclear about how scalar weights modulate tensor-valued link heatmaps); (3) Critical implementation details are relegated to appendices or missing entirely (e.g., gradient detachment implementation); (4) The term 'unsupervised' is used loosely when image reconstruction provides weak supervision; (5) The paper promises to release code but many details necessary for reproducibility are absent from the main text."
+        }
+      },
+      "summary_comment": "The paper tackles an interesting problem of learning pose priors unsupervised for pose estimation. However, it suffers from multiple significant weaknesses that prevent acceptance at a top-tier venue. Technically, the core contribution is incremental—combining existing techniques (AutoLink's link heatmaps, affine transformations, hierarchical memory similar to PCT) without substantial innovation. The training procedure has concerning issues: the non-differentiable retrieval with gradient copying, the acknowledged chicken-and-egg problem requiring gradient detachments, and the unjustified mean pooling distillation strategy raise questions about soundness. Experimentally, comparisons are against baselines from 2017-2022 without comparison to recent 2023-2024 work, use inconsistent input resolutions, and omit important baselines like HPE. Practically, the method is limited to 2D priors and struggles with diverse categories, limiting real-world significance. While the paper is technically competent and shows consistent improvements, these improvements are modest and the overall contribution does not meet the bar for a top-tier machine learning conference."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper addresses unsupervised learning, which is a core ICML topic (self-supervised learning, unsupervised methods)\",\n      \"The hierarchical memory architecture represents a machine learning systems contribution, relevant to ICML's interest in improved implementations and scalability\",\n      \"The work includes comprehensive ablation studies and experiments on multiple benchmarks, which aligns with ICML's emphasis on rigorous empirical evaluation\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICML prioritizes strong methodological contributions with clear technical novelty; the reviewer identifies this as 'incremental, primarily combining existing techniques' (AutoLink, affine transformations, memory modules from PCT) without substantial innovation\",\n      \"The paper has fundamental soundness issues that undermine confidence: the non-differentiable nearest-neighbor retrieval uses gradient copying without justification, the acknowledged 'chicken-and-egg problem' requiring multiple gradient detachments suggests training instability, and mean pooling distillation lacks theoretical grounding\",\n      \"The experimental evaluation is insufficient for ICML standards: baselines are from 2017-2022 with no recent 2023-2024 comparisons, different input resolutions (128 vs 256) compromise fairness, important baseline HPE is missing from main tables, and occlusion experiments use artificial masking rather than realistic scenarios\",\n      \"The core contribution—learning 2D pose priors—has acknowledged severe limitations (cannot handle 3D rotations, significant shape changes, struggles with diverse categories like dogs). This significantly limits both novelty and practical significance for ICML's machine learning community\",\n      \"The theoretical contribution is minimal; the paper lacks formal analysis of convergence properties or theoretical justification for why the hierarchical memory approach should learn meaningful category priors\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"NeurIPS welcomes 'in-depth analysis of existing methods that provide new insights' and 'interdisciplinary submissions that do not fit neatly into existing categories'—the paper's focus on unsupervised prior learning could fit this broader remit\",\n      \"The application to computer vision (pose estimation across humans, animals, birds, flowers) aligns with NeurIPS's interest in 'Computer vision' and 'applications to robotics, autonomy'\",\n      \"The hierarchical memory and compositional approach touches on representation learning and unsupervised methods, which are core NeurIPS topics\",\n      \"The iterative inference strategy for handling occlusion and the visualization of learned priors demonstrate interpretability aspects that NeurIPS values\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"NeurIPS expects strong technical contributions with clear novelty; the reviewer assessment that the method combines existing techniques (AutoLink's link heatmaps, standard affine transformations, PCT-based memory) 'without substantial innovation' is a critical weakness for a top-tier NeurIPS paper\",\n      \"Significant soundness concerns that would concern NeurIPS reviewers: the non-differentiable retrieval with unjustified gradient copying strategy, the chicken-and-egg problem requiring gradient detachments suggesting training instability, and overly simplistic mean pooling distillation without theoretical justification\",\n      \"The experimental evaluation falls short of NeurIPS standards: comparisons against older baselines (2017-2022) without recent 2023-2024 methods, inconsistent input resolutions across baselines, missing HPE comparison despite citing it to support a key claim, and artificial occlusion scenarios rather than realistic ones\",\n      \"The 2D-only limitation is more critical for NeurIPS, where 3D understanding and handling rotations/shape changes are increasingly expected in pose estimation work. The poor performance on diverse dog breeds undermines the claim of learning general categorical priors\",\n      \"The paper's presentation issues (vague Figure 1, unclear Equation 3, missing implementation details, loose use of 'unsupervised' terminology) would require substantial revision for NeurIPS clarity standards\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"ICLR's focus on representation learning and unsupervised/self-supervised learning directly aligns with the paper's goal of learning categorical priors without annotations\",\n      \"The hierarchical memory architecture and compositional approach to pose representation learning fit ICLR's interest in 'unsupervised, self-supervised, semi-supervised, and supervised representation learning'\",\n      \"The method's application to multiple modalities (humans, animals, birds, hands, flowers) and the learned interpretable priors demonstrate multi-domain representation learning capabilities valued at ICLR\",\n      \"The iterative refinement strategy for pose estimation demonstrates a principled approach to improving learned representations, which aligns with ICLR's interest in learning better representations\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICLR expects significant technical and methodological innovation in representation learning; the reviewer's assessment that the core contribution is 'incremental, primarily combining existing techniques' without 'substantial innovation' is a major issue for ICLR acceptance\",\n      \"Critical soundness issues that ICLR would find problematic: the non-differentiable nearest-neighbor retrieval with gradient copying is used without proper ablation or justification; the chicken-and-egg problem requiring gradient detachments suggests the training procedure may be fundamentally unstable; mean pooling distillation of memory banks into prior lacks theoretical justification for why this captures meaningful category structure\",\n      \"The representation learned is limited to 2D and struggles with 3D rotations and significant shape changes—ICLR increasingly emphasizes representations that can handle complex geometric transformations and multi-view consistency. The acknowledged poor performance on diverse dog breeds suggests the learned prior is not sufficiently general\",\n      \"Experimental evaluation issues specific to ICLR concerns: no comparison with recent representation learning baselines (2023-2024), missing important comparisons (HPE), artificial occlusion scenarios, and lack of analysis of what representations the memory banks learn (e.g., what do individual memory banks capture?)\",\n      \"The theoretical contribution is insufficient for ICLR: no formal analysis of what category-level structure the hierarchical memory captures, no convergence guarantees, and the connection between reconstruction loss and prior learning is purely empirical rather than principled\"\n    ]\n  }\n}\n```\n\n### Overall Assessment Summary\n\n**Paper Classification:** Application paper in computer vision (pose estimation) with machine learning methodology contributions.\n\n**Key Strengths:**\n- Well-motivated problem (unsupervised categorical prior learning)\n- Comprehensive experiments across multiple datasets\n- Solid ablation studies showing learned priors can outperform hand-crafted priors\n- Practical utility demonstrated with iterative inference for occluded scenes\n\n**Critical Weaknesses (Consensus Across Venues):**\n\n1. **Limited Novelty:** Core technical contribution is incremental—primarily combining existing techniques (AutoLink's link heatmaps, standard affine transformations, PCT-style hierarchical memory) without substantial innovation.\n\n2. **Soundness Concerns:** \n   - Non-differentiable retrieval with gradient copying lacks justification\n   - Acknowledged \"chicken-and-egg\" problem requiring gradient detachments suggests training instability\n   - Mean pooling distillation strategy lacks theoretical grounding\n\n3. **Experimental Limitations:**\n   - Baselines are from 2017-2022; no recent 2023-2024 comparisons\n   - Inconsistent input resolutions (128 vs 256) across comparisons\n   - Missing important baseline (HPE) despite citing it to support key claims\n   - Artificial vs. realistic occlusion scenarios\n\n4. **Practical Limitations:**\n   - 2D-only approach cannot handle 3D rotations or significant shape changes\n   - Poor generalization to diverse categories (e.g., different dog breeds)\n   - Limited real-world applicability\n\n**Venue-Specific Considerations:**\n\n- **ICML (Score: 4/10):** Emphasizes strong methodological contributions and theoretical grounding. The incremental technical contribution and lack of theoretical justification for the training procedure make this a poor fit.\n\n- **NeurIPS (Score: 5/10):** While NeurIPS is broader and welcomes interdisciplinary work, the incremental nature of the contribution, soundness concerns, and limited novelty relative to existing representation learning methods make acceptance unlikely.\n\n- **ICLR (Score: 5/10):** ICLR's focus on representation learning offers the best fit among these three venues, but the limited novelty, theoretical gaps, and 2D-only constraints conflict with the conference's expectations for deep learning-based representation learning advances.\n\n**Recommendation:** The paper would benefit from: (1) comparing against recent 2023-2024 baselines, (2) providing theoretical justification for the training procedure and memory distillation strategy, (3) extending to 3D pose priors, and (4) addressing soundness concerns about gradient detachment and training stability. In its current form, it falls below the acceptance threshold for top-tier venues.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses an interesting and well-motivated problem: learning pose priors in an unsupervised manner without human annotations, which is a practical contribution to the pose estimation literature.",
+              "The hierarchical memory design is a reasonable architectural choice for storing compositional parts of prototypical poses, with clear advantages over single-embedding-space approaches like PCT in terms of distillation for prior learning.",
+              "Comprehensive experiments across multiple datasets (Human3.6m, Taichi, CUB-200-2011) with quantitative improvements over baselines, and the iterative inference strategy for occluded scenes demonstrates practical utility.",
+              "Good ablation studies examining prior initialization strategies and the claim that learned priors can outperform human-defined priors is noteworthy and well-supported."
+            ],
+            "weaknesses": [
+              "The core technical contribution is incremental, primarily combining existing techniques (affine transformation, image reconstruction, link heatmaps from AutoLink, memory modules) without substantial innovation. The hierarchical memory is a relatively straightforward extension of PCT.",
+              "Critical technical and methodological issues undermine soundness: (1) The non-differentiable nearest-neighbor retrieval in Eq. 3 uses gradient copying from VQ-VAE, but the justification for why this is appropriate here is unclear; (2) The chicken-and-egg problem acknowledged in Section A6 requires gradient detachment, suggesting the framework may be fundamentally unstable; (3) The mean pooling distillation of M into prior T is overly simplistic and lacks theoretical justification for why this should capture category-level structure.",
+              "Experimental evaluation has significant limitations: (1) Comparisons are primarily against older baselines (2017-2022); no comparison with recent 2023-2024 methods like those using diffusion models or transformers for pose estimation; (2) Different input resolutions across methods (128 vs 256) make fair comparison difficult; (3) Missing important baselines like the mentioned HPE (Yoo & Russakovsky, 2023) in main tables; (4) Occlusion experiments use artificial masking patterns rather than realistic occlusions.",
+              "The paper claims to learn 2D priors but this is a significant limitation acknowledged only briefly in the Discussion. The method cannot capture 3D structure, rotations, or significant shape changes, limiting real-world applicability for many pose estimation scenarios.",
+              "Presentation and clarity issues: (1) Figure 1 schematic is vague and does not clearly convey the method; (2) The relationship between connectivity prior W (N×N matrix) and the link heatmaps S is confusing—how exactly does Eq. 3 use W to modulate Si,j?; (3) Missing details on how gradient detachment in A6 is implemented; (4) The paper uses the term 'unsupervised' loosely when image reconstruction is effectively a form of weak supervision.",
+              "Limited theoretical grounding: The paper lacks formal analysis of why the hierarchical memory approach should converge to meaningful category priors, or theoretical guarantees about what the learned prior represents. The connection between pose reconstruction and prior learning is empirical rather than principled.",
+              "Reproducibility concerns: While the authors promise to release code, many implementation details are missing or relegated to appendices. The choice of 34 memory banks appears arbitrary with limited justification beyond ablation results."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The core technical contribution is incremental, primarily combining existing techniques (affine transformation, image reconstruction, link heatmaps from AutoLink, memory modules) without substantial innovation. The hierarchical memory is a relatively straightforward extension of PCT.",
+                "severity": "major",
+                "evidence": "The paper extensively uses AutoLink's link heatmap formulation (Eq. 3), applies standard affine transformations (Eq. 1-2), and employs image reconstruction losses commonly used in prior work. The hierarchical memory is presented as simply organizing PCT's memory into separate embedding spaces via memory banks. Section 3.3 describes this as a 'relatively straightforward extension'.",
+                "affected_claim": "The novelty of the proposed method",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical technical and methodological issues undermine soundness: (1) The non-differentiable nearest-neighbor retrieval in Eq. 3 uses gradient copying from VQ-VAE, but the justification for why this is appropriate here is unclear; (2) The chicken-and-egg problem acknowledged in Section A6 requires gradient detachment, suggesting the framework may be fundamentally unstable; (3) The mean pooling distillation of M into prior T is overly simplistic and lacks theoretical justification for why this should capture category-level structure.",
+                "severity": "major",
+                "evidence": "Section 3.3 shows G' is retrieved in a non-differentiable manner. Appendix A6 explains gradient copying is used but provides no ablation showing this is necessary or that alternatives were considered. The acknowledgment that 'this creates a chicken-and-egg problem that complicates training' (A6) and the need for two separate gradient detachments suggests instability. The mean pooling operation (Section 3.3) for distilling T from M is described as 'further decoded by MIXdec' but no justification for why averaging k vectors per bank produces meaningful category priors.",
+                "affected_claim": "The soundness of the training procedure and the validity of distilled priors",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental evaluation has significant limitations: (1) Comparisons are primarily against older baselines (2017-2022); no comparison with recent 2023-2024 methods; (2) Different input resolutions across methods (128 vs 256) make fair comparison difficult; (3) Missing important baselines like HPE (Yoo & Russakovsky, 2023) in main tables; (4) Occlusion experiments use artificial masking patterns rather than realistic occlusions.",
+                "severity": "major",
+                "evidence": "Tables 1-3 show baselines primarily from 2017-2022. HPE is cited as evidence that predefined priors are suboptimal but is not included in the main quantitative tables. Different resolutions are used (Table 1 uses 128×128 for PPL vs. 256 for baselines; Table 3 acknowledges this note with *). Occlusion experiments in Section 4.3 describe artificial RandomMasking and CenterMasking using 32×32 patches, not realistic occlusion patterns from datasets.",
+                "affected_claim": "The empirical superiority of PPL over state-of-the-art methods",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The paper claims to learn 2D priors but this is a significant limitation acknowledged only briefly in the Discussion. The method cannot capture 3D structure, rotations, or significant shape changes, limiting real-world applicability.",
+                "severity": "major",
+                "evidence": "Section 5 Discussion states: 'it learns 2D priors, which makes it difficult to capture real-world 3D postures. Thus, PPL struggles in scenarios where objects involve rotations or significant shape changes.' This is presented as future work rather than being addressed in the current contribution. The paper also notes (Section 4.1) that 'the quality of estimated poses of dogs is inferior to that of humans...due to significant morphological differences among various dog breeds.'",
+                "affected_claim": "The generalizability and practical applicability of PPL",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Presentation and clarity issues: (1) Figure 1 schematic is vague; (2) The relationship between connectivity prior W (N×N matrix) and link heatmaps S is confusing in Eq. 3; (3) Missing details on gradient detachment implementation; (4) The paper uses 'unsupervised' loosely when image reconstruction is effectively weak supervision.",
+                "severity": "minor",
+                "evidence": "Figure 1 shows abstract arrows and labels but does not clearly convey the pipeline. Equation 3 states 'S = max(w_{i,j}*S_{i,j})' but the dimensions are unclear—how does element-wise multiplication of a scalar w_{i,j} with tensor S_{i,j} ∈ R^{H×W} work? Appendix A6 describes gradient detachment but implementation details for detaching from T and T' are vague. The method uses image reconstruction supervision, which is not fully unsupervised despite the framing.",
+                "affected_claim": "The clarity and technical correctness of the method description",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited theoretical grounding: The paper lacks formal analysis of why the hierarchical memory approach should converge to meaningful category priors, or theoretical guarantees about what the learned prior represents.",
+                "severity": "minor",
+                "evidence": "The paper provides no convergence analysis, no formal characterization of what constitutes a 'meaningful' prior, and no theoretical justification for why mean pooling of memory vectors should yield category-level structure. The connection between pose reconstruction (Lkr loss) and prior learning is entirely empirical.",
+                "affected_claim": "The principled justification for why PPL learns meaningful priors",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The framework has critical technical issues: (1) The non-differentiable nearest-neighbor retrieval with gradient copying from VQ-VAE is used without proper justification or ablation; (2) The acknowledged chicken-and-egg problem requiring multiple gradient detachments suggests fundamental instability in the training procedure; (3) The mean pooling distillation strategy lacks theoretical grounding for why it should produce meaningful category priors; (4) The mathematical notation in Eq. 3 is unclear regarding how scalar weights modulate multi-dimensional tensors. These issues collectively undermine confidence in the technical correctness of the approach."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The contribution is primarily an incremental combination of existing techniques. The paper uses AutoLink's link heatmap formulation, standard affine transformations, and conventional image reconstruction losses. The main novelty claimed is the hierarchical memory structure, which is presented as a straightforward extension of PCT by organizing memory into separate embedding spaces. This is insufficient for a top-tier venue, as it lacks substantial technical innovation."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "While the problem of unsupervised prior learning is motivated, the practical significance is limited by several factors: (1) The method only learns 2D priors and struggles with 3D rotations and significant shape changes, severely limiting real-world applicability; (2) The acknowledged inferior performance on diverse categories like dogs undermines the claim of learning general categorical priors; (3) The improvements over baselines, while consistent, are often modest (e.g., 2.56 vs 2.76 on Human3.6m at 256 resolution); (4) Comparisons are against dated baselines, making it unclear if gains are meaningful relative to current state-of-the-art."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The experimental evaluation has significant limitations: (1) Baselines are primarily from 2017-2022 with no comparison to recent 2023-2024 methods; (2) Different input resolutions across comparisons (128 vs 256) compromise fairness; (3) Important baselines like HPE (Yoo & Russakovsky, 2023), which is cited to support a key claim about learned vs. predefined priors, are missing from main quantitative tables; (4) Occlusion experiments use artificial masking rather than realistic occlusions; (5) No ablation on critical components like the gradient detachment strategy or justification for the mean pooling distillation approach; (6) Missing computational cost analysis relative to baselines."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "The paper has several clarity and presentation issues that hinder reliable assessment: (1) Figure 1 is vague and does not clearly convey the method; (2) Mathematical notation is imprecise (e.g., Eq. 3 is unclear about how scalar weights modulate tensor-valued link heatmaps); (3) Critical implementation details are relegated to appendices or missing entirely (e.g., gradient detachment implementation); (4) The term 'unsupervised' is used loosely when image reconstruction provides weak supervision; (5) The paper promises to release code but many details necessary for reproducibility are absent from the main text."
+              }
+            },
+            "summary_comment": "The paper tackles an interesting problem of learning pose priors unsupervised for pose estimation. However, it suffers from multiple significant weaknesses that prevent acceptance at a top-tier venue. Technically, the core contribution is incremental—combining existing techniques (AutoLink's link heatmaps, affine transformations, hierarchical memory similar to PCT) without substantial innovation. The training procedure has concerning issues: the non-differentiable retrieval with gradient copying, the acknowledged chicken-and-egg problem requiring gradient detachments, and the unjustified mean pooling distillation strategy raise questions about soundness. Experimentally, comparisons are against baselines from 2017-2022 without comparison to recent 2023-2024 work, use inconsistent input resolutions, and omit important baselines like HPE. Practically, the method is limited to 2D priors and struggles with diverse categories, limiting real-world significance. While the paper is technically competent and shows consistent improvements, these improvements are modest and the overall contribution does not meet the bar for a top-tier machine learning conference."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

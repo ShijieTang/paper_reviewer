@@ -1,0 +1,246 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The paper addresses a relevant problem - plasticity loss in neural networks - which has received recent attention in the literature. The motivation for developing weight regularization methods that don't require re-initialization is well-articulated.",
+        "Theorem 1 on proportionality is interesting and provides theoretical justification for why weight rescaling with proper bias adjustment preserves model behavior under homogeneous activation functions. The visualization in Figure 1 effectively demonstrates this concept.",
+        "The paper is comprehensive in its experimental evaluation, covering multiple scenarios (warm-start, continual learning, standard supervised learning) across different architectures (MLP, CNN, VGG-16) and datasets (MNIST, CIFAR-10/100, TinyImageNet).",
+        "The method is simple to implement with minimal computational overhead compared to methods requiring additional gradient computations, and the algorithm is clearly presented."
+      ],
+      "weaknesses": [
+        "The novelty over existing weight rescaling methods is limited. Niehaus et al. (2024) already proposed Weight Rescaling that rescales to enforce standard deviation to initialization, and Alabdulmohsin et al. (2021) proposed Layerwise rescaling. While the paper claims SWR doesn't depend on architecture/intervals, the difference appears primarily incremental - using a weighted average between initial and current norm rather than hard constraints.",
+        "Theorem 2's boundedness proof has significant gaps. The assumption that 'the change of squared Frobenius norm from gradient update is bounded by a constant' is stated without justification. The paper references Merrill et al. (2020) showing O(√t) growth, but this doesn't imply bounded change per step. Corollary 2.1 makes this assumption explicit but doesn't prove it holds in practice, and the connection between O(√t) growth and constant-bounded changes is unclear.",
+        "The experimental results are inconsistent and sometimes unfavorable. In standard supervised learning (Table 1), L2 regularization often matches or exceeds SWR performance. In Table 5 (with learning rate decay), SWR underperforms L2, requiring an ad-hoc 'SWR + re-init' modification that somewhat contradicts the main selling point of avoiding re-initialization. The method requires separate hyperparameters λf and λc for different layer types, adding complexity despite claims of simplicity.",
+        "The balancedness argument (Section 3.4 and Theorem 3) is underdeveloped. Definition 2 defines balance only for pairs of layers, and Theorem 3 shows pairwise balance improves but doesn't prove global balancedness. The toy experiment in Appendix C.1 is limited and doesn't thoroughly validate whether practical improvements stem from balancedness or other factors.",
+        "The paper lacks ablation studies. There is no systematic analysis of how λ and the EMA approach affect different components of performance. The split between λf and λc is introduced late and seems ad-hoc, without principled justification for when to use which value.",
+        "The comparison baselines are limited. The paper compares against L2, L2 Init, Head Reset, and S&P, but doesn't compare against other recent plasticity-preserving methods like those by Lewandowski et al. (2023) or Elsayed et al. (2024), which are cited but not experimentally compared.",
+        "The method's interaction with batch normalization is handled through special casing (Algorithm 1) but the discussion is superficial. The claim that normalization layers' scale-invariance means only final parameters matter contradicts the actual implementation that applies scaling to normalization layers too. This inconsistency needs clarification.",
+        "Critical experimental details are unclear: (1) How were hyperparameters selected? The grid search ranges differ significantly across datasets (e.g., λ from 1e-4 to 1e0 for SWR). (2) Why such variability in the best hyperparameters across similar tasks? (3) Standard deviations in Table 1 and results are small but this may reflect limited random seeds (3 for VGG-16, 5 for others) rather than true robustness."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The novelty over existing weight rescaling methods is limited. Niehaus et al. (2024) already proposed Weight Rescaling that rescales to enforce standard deviation to initialization, and Alabdulmohsin et al. (2021) proposed Layerwise rescaling. While the paper claims SWR doesn't depend on architecture/intervals, the difference appears primarily incremental - using a weighted average between initial and current norm rather than hard constraints.",
+          "severity": "major",
+          "evidence": "Section 2 discusses Niehaus et al. (2024) and Alabdulmohsin et al. (2021) but doesn't empirically compare against them. The main difference is the EMA formulation with coefficient λ, but this is a relatively minor modification. The paper claims advantages but doesn't directly validate them experimentally.",
+          "affected_claim": "Novel method that prevents unbounded weight growth while preserving learned information",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Theorem 2's boundedness proof has significant gaps. The assumption that 'the change of squared Frobenius norm from gradient update is bounded by a constant' is stated without justification. The paper references Merrill et al. (2020) showing O(√t) growth, but this doesn't imply bounded change per step.",
+          "severity": "major",
+          "evidence": "Appendix B, Theorem 2 states the assumption but doesn't prove it holds. The proof in Section C.1 references O(√t) growth but doesn't establish how this implies bounded change Δ||W||² ≤ B per update. This is a critical gap that undermines the theoretical claims.",
+          "affected_claim": "SWR bounds the magnitude of weights",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The experimental results are inconsistent and sometimes unfavorable. In standard supervised learning (Table 1), L2 regularization often matches or exceeds SWR performance. In Table 5 (with learning rate decay), SWR underperforms L2, requiring an ad-hoc 'SWR + re-init' modification.",
+          "severity": "major",
+          "evidence": "Table 1 shows SWR advantages mainly on VGG-16 (+4.4%) but smaller or comparable improvements elsewhere. Table 5 shows SWR performance drops relative to L2 significantly on CIFAR-10 CNN (0.6925 vs 0.7304) and CIFAR-100 CNN (0.3599 vs 0.3949). The SWR + re-init fix contradicts the core motivation of avoiding re-initialization.",
+          "affected_claim": "SWR improves generalization performance across various learning scenarios",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The balancedness argument is underdeveloped. Definition 2 defines balance only for pairs of layers, and Theorem 3 shows pairwise balance improves but doesn't prove global balancedness implications.",
+          "severity": "major",
+          "evidence": "Section 3.4 and Appendix C discuss balancedness but the toy experiment is limited to a 3-layer MLP on CIFAR-10. No systematic empirical validation that improved balancedness translates to performance improvements. Theorem 3 only handles two-layer case.",
+          "affected_claim": "SWR aligns magnitude ratios between layers and improves balancedness",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The paper lacks ablation studies. There is no systematic analysis of how λ and the EMA approach affect performance components. The split between λf and λc is introduced late and seems ad-hoc.",
+          "severity": "major",
+          "evidence": "No ablation comparing hard constraint (λ=1) vs soft constraint (λ<1). No analysis of EMA effect. The λf/λc split (lines 240-241) lacks principled justification - it appears to be a hyperparameter hack discovered through tuning.",
+          "affected_claim": "SWR is a well-motivated method with clear design choices",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The comparison baselines are limited. The paper doesn't compare against other recent plasticity-preserving methods like those by Lewandowski et al. (2023) or Elsayed et al. (2024), which are cited but not experimentally compared.",
+          "severity": "minor",
+          "evidence": "References mention Lewandowski et al. (2023) and Elsayed et al. (2024) as relevant work on plasticity but they don't appear in the experimental comparisons. These are cited in line 12 and 13 of the abstract but only in related work, not in evaluation.",
+          "affected_claim": "SWR is compared with state-of-the-art methods",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The method's interaction with batch normalization is handled through special casing but the discussion is superficial and somewhat contradictory.",
+          "severity": "minor",
+          "evidence": "Lines 233-241 state that normalization layers have scale-invariance so only final normalization parameters matter. However, Algorithm 1 and the experimental setup (λf, λc split) apply scaling to normalization layers anyway. This inconsistency between theory and practice isn't adequately explained.",
+          "affected_claim": "SWR properly handles normalization layers via proportionality",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Critical experimental details are unclear regarding hyperparameter selection and robustness validation.",
+          "severity": "minor",
+          "evidence": "Appendix D.2 mentions grid search but doesn't explain selection criteria when multiple hyperparameters achieve similar performance. VGG-16 uses only 3 seeds vs 5 for others. The dramatic variation in best λ values (1e-4 to 1e0) across similar tasks is not explained.",
+          "affected_claim": "SWR results are robust and fairly evaluated",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "Theorem 2's central boundedness claim relies on an unjustified assumption about constant-bounded gradient updates. While the assumption references O(√t) growth from Merrill et al., this doesn't establish the required per-step boundedness. The proof is incomplete and the gap is substantial. Theorem 3 on balancedness only handles the pairwise case, not global network balancedness."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The core contribution is an EMA-weighted average of initial and current weight norms for rescaling, which is an incremental modification over Niehaus et al. (2024) and Alabdulmohsin et al. (2021). The proportionality framework (Theorem 1) is interesting but applies to any rescaling approach satisfying the bias rule. The paper doesn't experimentally compare against the closest existing work (Niehaus et al. 2024) to establish clear differentiation."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "The experimental results show inconsistent benefits. SWR doesn't consistently outperform simple L2 regularization. In standard supervised learning with learning rate decay (Table 5), L2 significantly outperforms standalone SWR. The method requires hyperparameter tuning across different layer types (λf, λc), reducing its practical appeal. The impact on plasticity loss is demonstrated only in specific non-stationary scenarios, not universally."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "Experimental evaluation has several issues: (1) Missing comparisons with recent methods (Lewandowski et al., Elsayed et al.). (2) Inconsistent results across settings - L2 often matches or exceeds SWR performance. (3) Ad-hoc fixes required (SWR + re-init) that contradict core claims. (4) Limited ablations - no study of λ sensitivity or EMA effects. (5) VGG-16 uses only 3 seeds, limiting statistical confidence. (6) Hyperparameter selection criteria not transparent. (7) The 'balancedness' improvements lack systematic validation beyond a toy MLP experiment."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-written with clear motivation, proper notation, and comprehensive experiments. The algorithm is presented clearly. Figures and tables are informative. However, some theoretical discussions (especially Section 3.4 on balancedness) could be clearer, and the contradiction between theory and practice regarding normalization layer handling should be resolved. Overall clarity is acceptable but not excellent."
+        }
+      },
+      "summary_comment": "The paper addresses plasticity loss via Soft Weight Rescaling (SWR), a method that scales weights proportionally to their growth rate using an EMA-weighted combination of initial and current norms. While the proportionality framework is theoretically interesting and the comprehensive experimental scope is commendable, the work has critical weaknesses that prevent acceptance at a top-tier venue: (1) Limited novelty - the core contribution is an incremental modification (EMA weighting) over Niehaus et al. (2024), and no direct experimental comparison validates claimed advantages. (2) Unsound theory - Theorem 2's central claim depends on an unjustified assumption about constant-bounded gradient updates; the connection between O(√t) growth and per-step boundedness is not established. (3) Weak experimental results - SWR doesn't consistently outperform L2 regularization, sometimes significantly underperforms (Table 5), and requires architectural tweaks (separate λf, λc) and ad-hoc fixes (SWR + re-init) that contradict the simplicity claims. (4) Incomplete evaluation - missing comparisons with recent plasticity methods, no ablations on key design choices, limited statistical validation (3 seeds for VGG-16), and unclear hyperparameter selection criteria. The balancedness argument, while intuitive, lacks rigorous empirical validation. These issues collectively undermine the paper's central contributions and make it unsuitable for publication at a selective top-tier conference."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"The paper addresses weight regularization, a core ICML topic within optimization and machine learning systems\",\n      \"It proposes a practical method (SWR) with minimal computational overhead, aligning with ICML's interest in efficient ML systems\",\n      \"The theoretical framework using Theorem 1 on proportionality provides formal justification for the approach, matching ICML's appreciation for theoretical grounding\",\n      \"Comprehensive experimental evaluation across multiple architectures (MLP, CNN, VGG-16) and datasets demonstrates rigor in methodology\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Reviewer identifies limited novelty: SWR is an incremental modification (EMA weighting) over Niehaus et al. (2024), lacking sufficient methodological advance for ICML's standards\",\n      \"Critical theoretical gaps: Theorem 2's central boundedness claim relies on unjustified assumptions about constant-bounded gradient updates. The connection between O(√t) growth and per-step boundedness is not rigorously established, undermining theoretical contributions ICML values\",\n      \"Inconsistent and sometimes weak experimental results: L2 regularization frequently matches or outperforms SWR (Table 1); with learning rate decay (Table 5), SWR significantly underperforms L2 on CIFAR-10 CNN (0.6925 vs 0.7304) and CIFAR-100 CNN (0.3599 vs 0.3949)\",\n      \"Missing critical comparisons: No experiments against recent plasticity-preserving methods (Lewandowski et al. 2023, Elsayed et al. 2024) that are cited but not evaluated, making it difficult to assess competitive positioning\",\n      \"Lack of ablation studies: No systematic analysis of λ sensitivity, EMA effects, or the ad-hoc λf/λc split, which is inconsistent with ICML's expectation for rigorous methodological justification\",\n      \"Ad-hoc fixes contradict core claims: The 'SWR + re-init' modification required for learning rate decay contradicts the main selling point of avoiding re-initialization, suggesting the method is less robust than claimed\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"NeurIPS's broad interdisciplinary scope welcomes work on plasticity loss and weight regularization as relevant to learning theory and optimization\",\n      \"The paper spans multiple learning scenarios (warm-start, continual, single-task learning), aligning with NeurIPS's interest in diverse learning settings and non-stationary environments\",\n      \"Theoretical contributions (Theorem 1 on proportionality, Theorem 3 on balancedness) fit NeurIPS's appreciation for formal analysis alongside empirical validation\",\n      \"Comprehensive experimental evaluation across standard benchmarks demonstrates methodological thoroughness valued at NeurIPS\",\n      \"The work touches on fairness and robustness considerations implicit in weight regularization, which fits NeurIPS's societal considerations track\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Reviewer identifies fundamental soundness concerns: Theorem 2's boundedness proof makes unjustified assumptions about constant-bounded gradient updates per step, which is not rigorously derived from cited O(√t) growth results. This undermines the theoretical credibility needed for NeurIPS acceptance\",\n      \"Limited novelty over closely related work: The core contribution is an EMA-weighted rescaling approach, which is an incremental modification of Niehaus et al. (2024). No direct experimental comparison validates claimed advantages over this prior method, failing to establish clear differentiation\",\n      \"Inconsistent empirical performance: In standard supervised learning (Table 1), L2 regularization often equals or exceeds SWR. Critically, with learning rate decay (Table 5), L2 substantially outperforms SWR (0.7304 vs 0.6925 on CIFAR-10 CNN), and SWR requires an ad-hoc 'SWR + re-init' fix that contradicts the motivation of avoiding re-initialization\",\n      \"Incomplete experimental comparison: Missing evaluations against recent plasticity methods (Lewandowski et al. 2023, Elsayed et al. 2024) cited in the paper but not compared experimentally, leaving gaps in understanding relative performance\",\n      \"Insufficient ablation studies: No systematic analysis of key design choices (λ sensitivity, EMA effects, the λf/λc split introduced late and seemingly ad-hoc), which NeurIPS expects for validating methodological claims\",\n      \"Balancedness argument lacks rigor: Theorem 3 only handles pairwise layer balance; global balancedness is not proven. Empirical validation is limited to a toy 3-layer MLP experiment, insufficient for NeurIPS's standards\",\n      \"Statistical robustness concerns: VGG-16 experiments use only 3 random seeds versus 5 for others, potentially underestimating variance. Hyperparameter selection criteria are not transparent, and dramatic variation in best λ values (1e-4 to 1e0) across similar tasks is unexplained\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"Weight regularization and representation learning stability are core ICLR topics, particularly in the context of continual learning and transfer learning scenarios covered in the paper\",\n      \"The proportionality framework (Theorem 1) provides formal theoretical grounding for why rescaling with bias adjustment preserves model behavior, matching ICLR's emphasis on principled representation learning\",\n      \"Comprehensive experimental evaluation including continual learning scenarios aligns with ICLR's interest in learning dynamics across non-stationary settings\",\n      \"The paper demonstrates awareness of deep learning specifics (interaction with batch normalization, handling of classifier vs feature extractor layers), which fits ICLR's focus on representation learning architectures\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Weak theoretical foundation: Theorem 2's central boundedness claim relies on an unjustified assumption about constant-bounded gradient updates. While Merrill et al. (2020) shows O(√t) growth, the paper doesn't rigorously establish how this implies per-step bounded changes, undermining ICLR's high theoretical standards\",\n      \"Limited novelty for representation learning perspective: The core contribution—EMA-weighted rescaling—is an incremental modification over Niehaus et al. (2024). ICLR expects clearer theoretical or empirical advances over prior work; no direct comparison is provided against Niehaus et al. to validate claimed improvements\",\n      \"Inconsistent and unconvincing empirical results: L2 regularization frequently matches or outperforms SWR in Table 1. With learning rate decay (Table 5), L2 significantly outperforms SWR across multiple datasets (CIFAR-10: 0.7304 vs 0.6925; CIFAR-100: 0.3949 vs 0.3599). The required 'SWR + re-init' fix contradicts the core motivation, suggesting the method lacks robustness ICLR expects\",\n      \"Missing comparisons with relevant work: No experimental evaluation against recent methods by Lewandowski et al. (2023) or Elsayed et al. (2024) that are cited and relevant to representation learning stability. This gap makes it difficult to assess whether SWR advances the field\",\n      \"Underdeveloped balancedness theory: Theorem 3 proves pairwise balance improves but doesn't establish global balancedness or its connection to generalization. Empirical validation is limited to a toy 3-layer MLP, insufficient for ICLR's expectations on representation quality\",\n      \"Lack of ablation studies and principled design: No systematic analysis of λ sensitivity, EMA effects, or the λf/λc split, which appears ad-hoc. ICLR emphasizes understanding learned representations; the absence of ablations makes it unclear which design choices drive performance\",\n      \"Contradiction in normalization layer handling: The theory claims only final normalization parameters matter due to scale-invariance, but the implementation (Algorithm 1, λf/λc split) applies scaling more broadly. This inconsistency between theory and practice raises concerns about methodological rigor\",\n      \"Statistical concerns: VGG-16 uses only 3 seeds; hyperparameter selection criteria lack transparency; extreme variation in best λ values (1e-4 to 1e0) across similar tasks is unexplained, undermining confidence in robustness\"\n    ]\n  }\n}\n```\n\n---\n\n### High-Level Synthesis\n\n**Overall Assessment:** This paper addresses plasticity loss through Soft Weight Rescaling (SWR), proposing an EMA-weighted approach to regularize weight magnitudes. While the core idea is sensible and the experimental scope is comprehensive, the paper suffers from three critical weaknesses that limit its fit at all three top venues:\n\n1. **Theoretical Soundness:** Theorem 2's boundedness proof depends on an unjustified assumption about constant-bounded per-step gradient updates. The paper cites O(√t) growth but doesn't rigorously connect this to the required assumptions, creating a fundamental gap in theoretical validity.\n\n2. **Limited Novelty:** The core contribution—using an EMA-weighted combination of initial and current weight norms—is an incremental modification over Niehaus et al. (2024). No direct experimental comparison validates claimed advantages, making it difficult to establish clear differentiation.\n\n3. **Weak and Inconsistent Empirical Results:** SWR doesn't consistently outperform simple L2 regularization. Most critically, with learning rate decay (Table 5), L2 significantly outperforms SWR, and SWR requires an ad-hoc 'SWR + re-init' fix that contradicts the method's core motivation.\n\n**Venue-Specific Considerations:**\n- **ICML (fit_score: 5):** ICML values both theoretical rigor and practical impact. The unsound theory is disqualifying, and empirical inconsistencies undermine claims of advancing optimization practice.\n- **NeurIPS (fit_score: 5):** NeurIPS's broader scope and interdisciplinary nature provide slightly more flexibility, but the same fundamental issues apply. Missing comparisons with cited recent work and insufficient ablations are particularly problematic.\n- **ICLR (fit_score: 4):** ICLR's focus on representation learning and deep learning specifics makes balancedness claims relevant, but the underdeveloped theory and contradiction between stated and implemented normalization handling are significant concerns.\n\n**Recommendation:** The paper would require substantial revisions to be suitable for these venues: (1) rigorous proof or empirical validation of Theorem 2's assumptions, (2) direct experimental comparison with Niehaus et al. (2024) and recent plasticity methods, (3) comprehensive ablation studies justifying design choices, and (4) resolution of the empirical inconsistencies (particularly the poor performance with learning rate decay and the need for ad-hoc fixes).",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a relevant problem - plasticity loss in neural networks - which has received recent attention in the literature. The motivation for developing weight regularization methods that don't require re-initialization is well-articulated.",
+              "Theorem 1 on proportionality is interesting and provides theoretical justification for why weight rescaling with proper bias adjustment preserves model behavior under homogeneous activation functions. The visualization in Figure 1 effectively demonstrates this concept.",
+              "The paper is comprehensive in its experimental evaluation, covering multiple scenarios (warm-start, continual learning, standard supervised learning) across different architectures (MLP, CNN, VGG-16) and datasets (MNIST, CIFAR-10/100, TinyImageNet).",
+              "The method is simple to implement with minimal computational overhead compared to methods requiring additional gradient computations, and the algorithm is clearly presented."
+            ],
+            "weaknesses": [
+              "The novelty over existing weight rescaling methods is limited. Niehaus et al. (2024) already proposed Weight Rescaling that rescales to enforce standard deviation to initialization, and Alabdulmohsin et al. (2021) proposed Layerwise rescaling. While the paper claims SWR doesn't depend on architecture/intervals, the difference appears primarily incremental - using a weighted average between initial and current norm rather than hard constraints.",
+              "Theorem 2's boundedness proof has significant gaps. The assumption that 'the change of squared Frobenius norm from gradient update is bounded by a constant' is stated without justification. The paper references Merrill et al. (2020) showing O(√t) growth, but this doesn't imply bounded change per step. Corollary 2.1 makes this assumption explicit but doesn't prove it holds in practice, and the connection between O(√t) growth and constant-bounded changes is unclear.",
+              "The experimental results are inconsistent and sometimes unfavorable. In standard supervised learning (Table 1), L2 regularization often matches or exceeds SWR performance. In Table 5 (with learning rate decay), SWR underperforms L2, requiring an ad-hoc 'SWR + re-init' modification that somewhat contradicts the main selling point of avoiding re-initialization. The method requires separate hyperparameters λf and λc for different layer types, adding complexity despite claims of simplicity.",
+              "The balancedness argument (Section 3.4 and Theorem 3) is underdeveloped. Definition 2 defines balance only for pairs of layers, and Theorem 3 shows pairwise balance improves but doesn't prove global balancedness. The toy experiment in Appendix C.1 is limited and doesn't thoroughly validate whether practical improvements stem from balancedness or other factors.",
+              "The paper lacks ablation studies. There is no systematic analysis of how λ and the EMA approach affect different components of performance. The split between λf and λc is introduced late and seems ad-hoc, without principled justification for when to use which value.",
+              "The comparison baselines are limited. The paper compares against L2, L2 Init, Head Reset, and S&P, but doesn't compare against other recent plasticity-preserving methods like those by Lewandowski et al. (2023) or Elsayed et al. (2024), which are cited but not experimentally compared.",
+              "The method's interaction with batch normalization is handled through special casing (Algorithm 1) but the discussion is superficial. The claim that normalization layers' scale-invariance means only final parameters matter contradicts the actual implementation that applies scaling to normalization layers too. This inconsistency needs clarification.",
+              "Critical experimental details are unclear: (1) How were hyperparameters selected? The grid search ranges differ significantly across datasets (e.g., λ from 1e-4 to 1e0 for SWR). (2) Why such variability in the best hyperparameters across similar tasks? (3) Standard deviations in Table 1 and results are small but this may reflect limited random seeds (3 for VGG-16, 5 for others) rather than true robustness."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The novelty over existing weight rescaling methods is limited. Niehaus et al. (2024) already proposed Weight Rescaling that rescales to enforce standard deviation to initialization, and Alabdulmohsin et al. (2021) proposed Layerwise rescaling. While the paper claims SWR doesn't depend on architecture/intervals, the difference appears primarily incremental - using a weighted average between initial and current norm rather than hard constraints.",
+                "severity": "major",
+                "evidence": "Section 2 discusses Niehaus et al. (2024) and Alabdulmohsin et al. (2021) but doesn't empirically compare against them. The main difference is the EMA formulation with coefficient λ, but this is a relatively minor modification. The paper claims advantages but doesn't directly validate them experimentally.",
+                "affected_claim": "Novel method that prevents unbounded weight growth while preserving learned information",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Theorem 2's boundedness proof has significant gaps. The assumption that 'the change of squared Frobenius norm from gradient update is bounded by a constant' is stated without justification. The paper references Merrill et al. (2020) showing O(√t) growth, but this doesn't imply bounded change per step.",
+                "severity": "major",
+                "evidence": "Appendix B, Theorem 2 states the assumption but doesn't prove it holds. The proof in Section C.1 references O(√t) growth but doesn't establish how this implies bounded change Δ||W||² ≤ B per update. This is a critical gap that undermines the theoretical claims.",
+                "affected_claim": "SWR bounds the magnitude of weights",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental results are inconsistent and sometimes unfavorable. In standard supervised learning (Table 1), L2 regularization often matches or exceeds SWR performance. In Table 5 (with learning rate decay), SWR underperforms L2, requiring an ad-hoc 'SWR + re-init' modification.",
+                "severity": "major",
+                "evidence": "Table 1 shows SWR advantages mainly on VGG-16 (+4.4%) but smaller or comparable improvements elsewhere. Table 5 shows SWR performance drops relative to L2 significantly on CIFAR-10 CNN (0.6925 vs 0.7304) and CIFAR-100 CNN (0.3599 vs 0.3949). The SWR + re-init fix contradicts the core motivation of avoiding re-initialization.",
+                "affected_claim": "SWR improves generalization performance across various learning scenarios",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The balancedness argument is underdeveloped. Definition 2 defines balance only for pairs of layers, and Theorem 3 shows pairwise balance improves but doesn't prove global balancedness implications.",
+                "severity": "major",
+                "evidence": "Section 3.4 and Appendix C discuss balancedness but the toy experiment is limited to a 3-layer MLP on CIFAR-10. No systematic empirical validation that improved balancedness translates to performance improvements. Theorem 3 only handles two-layer case.",
+                "affected_claim": "SWR aligns magnitude ratios between layers and improves balancedness",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The paper lacks ablation studies. There is no systematic analysis of how λ and the EMA approach affect performance components. The split between λf and λc is introduced late and seems ad-hoc.",
+                "severity": "major",
+                "evidence": "No ablation comparing hard constraint (λ=1) vs soft constraint (λ<1). No analysis of EMA effect. The λf/λc split (lines 240-241) lacks principled justification - it appears to be a hyperparameter hack discovered through tuning.",
+                "affected_claim": "SWR is a well-motivated method with clear design choices",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The comparison baselines are limited. The paper doesn't compare against other recent plasticity-preserving methods like those by Lewandowski et al. (2023) or Elsayed et al. (2024), which are cited but not experimentally compared.",
+                "severity": "minor",
+                "evidence": "References mention Lewandowski et al. (2023) and Elsayed et al. (2024) as relevant work on plasticity but they don't appear in the experimental comparisons. These are cited in line 12 and 13 of the abstract but only in related work, not in evaluation.",
+                "affected_claim": "SWR is compared with state-of-the-art methods",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The method's interaction with batch normalization is handled through special casing but the discussion is superficial and somewhat contradictory.",
+                "severity": "minor",
+                "evidence": "Lines 233-241 state that normalization layers have scale-invariance so only final normalization parameters matter. However, Algorithm 1 and the experimental setup (λf, λc split) apply scaling to normalization layers anyway. This inconsistency between theory and practice isn't adequately explained.",
+                "affected_claim": "SWR properly handles normalization layers via proportionality",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Critical experimental details are unclear regarding hyperparameter selection and robustness validation.",
+                "severity": "minor",
+                "evidence": "Appendix D.2 mentions grid search but doesn't explain selection criteria when multiple hyperparameters achieve similar performance. VGG-16 uses only 3 seeds vs 5 for others. The dramatic variation in best λ values (1e-4 to 1e0) across similar tasks is not explained.",
+                "affected_claim": "SWR results are robust and fairly evaluated",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "Theorem 2's central boundedness claim relies on an unjustified assumption about constant-bounded gradient updates. While the assumption references O(√t) growth from Merrill et al., this doesn't establish the required per-step boundedness. The proof is incomplete and the gap is substantial. Theorem 3 on balancedness only handles the pairwise case, not global network balancedness."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The core contribution is an EMA-weighted average of initial and current weight norms for rescaling, which is an incremental modification over Niehaus et al. (2024) and Alabdulmohsin et al. (2021). The proportionality framework (Theorem 1) is interesting but applies to any rescaling approach satisfying the bias rule. The paper doesn't experimentally compare against the closest existing work (Niehaus et al. 2024) to establish clear differentiation."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The experimental results show inconsistent benefits. SWR doesn't consistently outperform simple L2 regularization. In standard supervised learning with learning rate decay (Table 5), L2 significantly outperforms standalone SWR. The method requires hyperparameter tuning across different layer types (λf, λc), reducing its practical appeal. The impact on plasticity loss is demonstrated only in specific non-stationary scenarios, not universally."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Experimental evaluation has several issues: (1) Missing comparisons with recent methods (Lewandowski et al., Elsayed et al.). (2) Inconsistent results across settings - L2 often matches or exceeds SWR performance. (3) Ad-hoc fixes required (SWR + re-init) that contradict core claims. (4) Limited ablations - no study of λ sensitivity or EMA effects. (5) VGG-16 uses only 3 seeds, limiting statistical confidence. (6) Hyperparameter selection criteria not transparent. (7) The 'balancedness' improvements lack systematic validation beyond a toy MLP experiment."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear motivation, proper notation, and comprehensive experiments. The algorithm is presented clearly. Figures and tables are informative. However, some theoretical discussions (especially Section 3.4 on balancedness) could be clearer, and the contradiction between theory and practice regarding normalization layer handling should be resolved. Overall clarity is acceptable but not excellent."
+              }
+            },
+            "summary_comment": "The paper addresses plasticity loss via Soft Weight Rescaling (SWR), a method that scales weights proportionally to their growth rate using an EMA-weighted combination of initial and current norms. While the proportionality framework is theoretically interesting and the comprehensive experimental scope is commendable, the work has critical weaknesses that prevent acceptance at a top-tier venue: (1) Limited novelty - the core contribution is an incremental modification (EMA weighting) over Niehaus et al. (2024), and no direct experimental comparison validates claimed advantages. (2) Unsound theory - Theorem 2's central claim depends on an unjustified assumption about constant-bounded gradient updates; the connection between O(√t) growth and per-step boundedness is not established. (3) Weak experimental results - SWR doesn't consistently outperform L2 regularization, sometimes significantly underperforms (Table 5), and requires architectural tweaks (separate λf, λc) and ad-hoc fixes (SWR + re-init) that contradict the simplicity claims. (4) Incomplete evaluation - missing comparisons with recent plasticity methods, no ablations on key design choices, limited statistical validation (3 seeds for VGG-16), and unclear hyperparameter selection criteria. The balancedness argument, while intuitive, lacks rigorous empirical validation. These issues collectively undermine the paper's central contributions and make it unsuitable for publication at a selective top-tier conference."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

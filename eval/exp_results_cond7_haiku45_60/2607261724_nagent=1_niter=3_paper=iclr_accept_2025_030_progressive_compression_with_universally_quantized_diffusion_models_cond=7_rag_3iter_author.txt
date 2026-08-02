@@ -1,0 +1,822 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 3,
+        "evaluation": 3,
+        "clarity": 4
+      },
+      "strengths": [
+        "Novel theoretical contribution: The paper introduces UQDM, a new diffusion model variant that substitutes uniform noise for Gaussian noise in the forward process, enabling efficient progressive compression via universal quantization rather than intractable Gaussian channel simulation. This is a genuinely creative solution to a real computational bottleneck.",
+        "Strong theoretical grounding: The paper provides rigorous analysis showing that UQDM's forward process converges to the Gaussian diffusion case as T → ∞ (Theorem A.1), establishing a principled connection between the two approaches. The derivation of moment-matching forward process parameters is well-executed.",
+        "Practical algorithmic contribution: The method achieves computational tractability for progressive compression with diffusion models through a concrete encoding/decoding algorithm (Algorithms 1 and 2) that leverages universal quantization, filling an important gap between theoretical promise and computational feasibility.",
+        "Honest characterization of trade-offs: The paper and rebuttal clearly identify the inherent discretization overhead (L_{t-1} ≥ ~1/3 log(2) bits per step, Appendix B.2) as fundamental to uniform channels, distinguishing between what is inherent limitation vs. implementation limitation (e.g., 5-minute runtime due to sequential CDF construction).",
+        "Design flexibility explored: The paper systematically investigates design choices including fixed vs. learned reverse-process variances, different numbers of diffusion steps T, and multiple reconstruction methods (denoise, ancestral, flow-based), providing useful insights for practitioners."
+      ],
+      "weaknesses": [
+        "Inherent 2-3 bpd performance gap vs. Gaussian diffusion is unavoidable: While the rebuttal correctly frames this as a fundamental trade-off (tractability vs. compression performance), this limitation significantly reduces UQDM's practical advantage. Combined with the implementation runtime barrier, the net benefit over simpler approaches (e.g., conditional diffusion models, VAE-based methods) is not convincingly demonstrated.",
+        "Critical practical deployment barrier remains unaddressed: The submission demonstrates only 5 minutes per 32×32 image; no evidence of actual parallelized implementation or measured speedup is provided. The rebuttal's estimated 16× speedup from parallelization is speculative and unsupported by experiments. Without concrete evidence, the claim of 'bringing neural codecs a step closer to practical deployment' is not validated.",
+        "Experiments restricted to unrealistically small images (≤64×64) without demonstration on practical scales: The paper lacks evidence of scalability. The rebuttal acknowledges resource constraints but does not provide even a single experiment at 128×128 or larger. FLOPS/pixel estimates do not substitute for actual timing data at realistic resolutions. Extrapolation from 64×64 to real-world image sizes (512×512 or higher) remains unvalidated.",
+        "No clear characterization of when UQDM should be deployed: The paper and rebuttal do not provide a decision tree or scenario-based guidance for practitioners. When should UQDM be preferred over fast fixed-variance (1s but worse compression), conditional diffusion models (separate training per bitrate), or traditional codecs (JPEG, BPG)? This ambiguity undermines practical utility.",
+        "Reconstruction quality artifacts (blurriness vs. graininess) not quantitatively characterized: Section 5.3 acknowledges artifacts but provides no LPIPS, MS-SSIM, or FID measurements, and no ablation distinguishing model capacity from UQDM design. Figure 5 shows qualitative examples but no rigor supports the claim that flow-based reconstruction 'balances both issues.'",
+        "Training procedure choice (full-NELBO vs. single-step Monte Carlo) not validated: The rebuttal provides theoretical justification (CLT approximation weaker for T=5) but no empirical comparison. No ablation shows whether full-NELBO training actually reduces bias for T=5 models or what compression performance loss single-step training would incur. The 24-96 GPU-hour training cost is substantial and not benchmarked against alternatives."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Inherent 2-3 bpd performance gap vs. Gaussian diffusion is unavoidable: While the rebuttal correctly frames this as a fundamental trade-off (tractability vs. compression performance), this limitation significantly reduces UQDM's practical advantage. Combined with the implementation runtime barrier, the net benefit over simpler approaches (e.g., conditional diffusion models, VAE-based methods) is not convincingly demonstrated.",
+          "severity": "major",
+          "evidence": "Figure 2 shows UQDM (T=5) achieves ~8 bpd vs. VDM (T=1000) at ~5.8 bpd on toy data. Appendix B.2 analytically derives that L_{t-1} ≥ ~1/3 log(2) bits per step is inherent. Rebuttal confirms: 'This overhead is fundamental to uniform noise channels and not fully recoverable through design improvements.' On ImageNet 64×64 (Figure 4), UQDM is not clearly superior to CTC at all bitrates; CDC at p=0.9 achieves comparable FID with different trade-offs. No comparison directly addresses the combined impact of 2-3 bpd gap + 5-minute runtime vs. conditional models that may be faster and simpler to train.",
+          "affected_claim": "The claim that UQDM enables 'progressive compression' with 'competitive' performance is supported for traditional baselines (JPEG) but the advantage over modern neural approaches (CTC, CDC) is marginal, especially when considering runtime and training complexity.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Critical practical deployment barrier remains unaddressed: The submission demonstrates only 5 minutes per 32×32 image; no evidence of actual parallelized implementation or measured speedup is provided. The rebuttal's estimated 16× speedup from parallelization is speculative and unsupported by experiments. Without concrete evidence, the claim of 'bringing neural codecs a step closer to practical deployment' is not validated.",
+          "severity": "major",
+          "evidence": "Appendix C.2 states '5 minutes to compress or decompress a CIFAR image.' Rebuttal proposes: 'estimated speedup factor ≈ 16×, yielding <20 seconds per image' if parallelized, citing 'DietGPU or custom CUDA kernels' as 'left to future work.' However, no actual parallelized implementation is tested or timed in the submission. The rebuttal's complexity analysis (K/P for K latent dimensions, P processors) is rough and does not account for parallelization overheads, memory bandwidth, or practical scheduling constraints. The only measured fast variant (fixed-variance, <1 second) sacrifices compression performance significantly.",
+          "affected_claim": "The core claim of 'practical deployment' is not demonstrated. The submission provides only one working timing (5 minutes or <1 second for degraded variant); extrapolation to practical speeds via unimplemented parallelization is not sufficient evidence.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Experiments restricted to unrealistically small images (≤64×64) without demonstration on practical scales: The paper lacks evidence of scalability. The rebuttal acknowledges resource constraints but does not provide even a single experiment at 128×128 or larger. FLOPS/pixel estimates do not substitute for actual timing data at realistic resolutions. Extrapolation from 64×64 to real-world image sizes (512×512 or higher) remains unvalidated.",
+          "severity": "major",
+          "evidence": "All experiments in submission: CIFAR-10 (32×32, Section 5.2), ImageNet (64×64, Section 5.3). Appendix C.3 provides FLOPS/pixel estimates (204M for largest model) but no actual experiments at 128×128, 256×256, etc. Rebuttal states 'scaling to larger images is straightforward in principle but would require more compute' and proposes 'train and evaluate UQDM on 128×128 or 256×256 images' but acknowledges this is 'left to future work.' No measurement of memory scaling, convergence speed at larger scales, or actual encoding time on realistic images is provided.",
+          "affected_claim": "Claims of 'practical deployment' and positioning as a deployable progressive codec are not supported by experiments on realistic image sizes. The method is demonstrated only on toy datasets and small images.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "No clear characterization of when UQDM should be deployed: The paper and rebuttal do not provide a decision tree or scenario-based guidance for practitioners. When should UQDM be preferred over fast fixed-variance (1s but worse compression), conditional diffusion models (separate training per bitrate), or traditional codecs (JPEG, BPG)? This ambiguity undermines practical utility.",
+          "severity": "minor",
+          "evidence": "The paper positions UQDM as a general progressive codec but does not specify: (1) which bitrate ranges favor UQDM vs. BPG or JPEG2000, (2) whether the single-model-for-all-bitrates advantage justifies slower training/inference vs. conditional models, (3) which reconstruction method (denoised, ancestral, flow-based) is recommended for different applications. Figure 4 shows UQDM competitive with CTC but does not explain when practitioners should choose one over the other. Rebuttal proposes adding deployment recommendations ('fast fixed-variance for real-time, learned-variance for batch, etc.') but these are not in the submitted paper.",
+          "affected_claim": "The practical utility of UQDM as a deployable codec is unclear without explicit guidance on use cases.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Reconstruction quality artifacts (blurriness vs. graininess) not quantitatively characterized: Section 5.3 acknowledges artifacts but provides no LPIPS, MS-SSIM, or FID measurements, and no ablation distinguishing model capacity from UQDM design. Figure 5 shows qualitative examples but no rigor supports the claim that flow-based reconstruction 'balances both issues.'",
+          "severity": "minor",
+          "evidence": "Section 5.3 states: 'UQDM with denoised predictions tends to introduce blurriness, while ancestral sampling introduces graininess at low bit-rates, likely because the UQDM is unable to completely capture the data distribution.' Figure 5 provides visual examples but no metrics. No LPIPS/MS-SSIM measurements are provided. No ablation with different network sizes investigates whether artifacts are from insufficient model capacity or inherent to UQDM. Rebuttal proposes adding 'LPIPS, MS-SSIM, FID comparison across methods' but this analysis is not in the submitted paper.",
+          "affected_claim": "The claim that flow-based reconstruction achieves better realism is not quantitatively supported.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Training procedure choice (full-NELBO vs. single-step Monte Carlo) not validated: The rebuttal provides theoretical justification (CLT approximation weaker for T=5) but no empirical comparison. No ablation shows whether full-NELBO training actually reduces bias for T=5 models or what compression performance loss single-step training would incur. The 24-96 GPU-hour training cost is substantial and not benchmarked against alternatives.",
+          "severity": "minor",
+          "evidence": "Section 5 states: 'This involves simulating the entire forward process {z0,...,zT} according to eq. (4) and can be computationally expensive... We found a small T (< 10) to give the best compression performance, and therefore leave the investigation of training with a single-step Monte-Carlo objective to future work.' Rebuttal justifies using full-NELBO (T=5 has not converged to CLT limit) but does not provide empirical validation: no comparison of full-NELBO vs. single-step training on the same model, no measurement of bias reduction, no estimate of compression performance loss. Training times (24-96 GPU-hours) are provided but not compared to single-step training cost.",
+          "affected_claim": "The choice of training procedure is not empirically validated; the computational cost and benefit trade-off is unclear.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The technical approach is sound. Theorem A.1 and its proof are correct; the convergence analysis is rigorous. The connection to universal quantization is properly formulated. The rebuttal provides analytical justification for the discretization overhead (Appendix B.2), showing L_{t-1} ≥ ~1/3 log(2) bits per step is inherent to uniform channels. Algorithms 1-2 are clearly specified and correctly implement the encoding/decoding procedure. No mathematical errors detected. The inherent performance gap is explained but not a flaw—it is a fundamental limitation of the approach."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "UQDM with uniform noise in the forward process to enable tractable progressive compression via universal quantization is novel and distinct from prior work (Gaussian VDM, conditional diffusion models). The theoretical analysis (convergence to Gaussian diffusion) provides new insight. While individual components build on prior work, the overall contribution is sufficiently novel for a top-tier venue."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper addresses a meaningful problem (tractable progressive neural compression) and demonstrates that unconditional diffusion models can be used for compression for the first time (prior work intractable). Results are competitive with recent neural codecs (CTC) and traditional baselines (JPEG2000). However, significance is moderate rather than high due to: (1) fundamental performance gap vs. Gaussian diffusion limits advantage, (2) practical deployment barriers (5-minute runtime, experiments only on small images), (3) marginal improvements over conditional diffusion models when considering runtime and training complexity. This is a solid incremental contribution rather than a breakthrough, warranting acceptance but with limited impact potential."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Experiments on toy data (swirl), CIFAR-10 (32×32), and ImageNet (64×64) with multiple baselines (JPEG, JPEG2000, BPG, CTC, CDC) are reasonable. Ablations on T and variance learning are provided. However, evaluation has clear limitations: (1) no experiments on realistic image sizes (>64×64), (2) no quantitative metrics for reconstruction quality (LPIPS, MS-SSIM), (3) only one timing measurement (5 minutes; no parallelized implementation), (4) no ablation of training procedure choice (full-NELBO vs. single-step). These limitations do not invalidate the main claims but restrict scope of validation. Results adequately support that UQDM is computationally tractable and achieves competitive compression on small images, but scalability and practical deployment remain undemonstrated."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-written with clear mathematical exposition, comprehensive background, and rigorous proofs in appendices. Main text is accessible. Figures effectively communicate results. The rebuttal provides valuable clarifications distinguishing inherent limitations (discretization overhead) from implementation limitations (5-minute runtime). However, clarity on practical deployment scenarios and when UQDM should be used (vs. alternatives) could be improved. Clarity gate passes but presentation could be enhanced with deployment recommendations."
+        }
+      },
+      "summary_comment": "This paper makes a solid but incremental contribution to neural compression. UQDM introduces a novel approach (uniform noise diffusion with universal quantization) that achieves computational tractability for progressive diffusion-based compression for the first time. The theoretical analysis is rigorous, and results on small images are competitive. However, the work has material limitations that reduce its significance: (1) a fundamental 2-3 bpd performance gap vs. Gaussian diffusion is unavoidable due to inherent discretization overhead of uniform channels, (2) the demonstrated runtime is prohibitively slow (5 minutes/32×32 image) with only speculative evidence of speedup from unimplemented parallelization, (3) experiments are restricted to small images (≤64×64) without demonstration of scalability, (4) practical deployment scenarios and when UQDM should be preferred over simpler alternatives (conditional models, traditional codecs) are not clearly characterized. The rebuttal's detailed responses clarify these issues (e.g., distinguishing inherent limitations from implementation limitations) and demonstrate the authors' understanding of the trade-offs, but promised future improvements are not in the submitted paper and do not change the evaluation. For a top-tier ML conference, this represents solid work with novel ideas and adequate experimental validation on a limited scale. The contribution is meaningful but not transformative: it opens a new research direction (tractable progressive diffusion compression) with room for substantial improvement in performance, runtime, and scalability. The paper merits acceptance as a solid incremental contribution, not as a breakthrough. Significance is moderate (3) due to limited demonstrated advantage when accounting for all trade-offs; evaluation is moderate (3) due to restricted experimental scale and missing quantitative analyses; novelty and soundness remain strong (4 each)."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Core machine learning methodology: The paper introduces a novel diffusion model variant (UQDM) with theoretical grounding in variational inference and information theory. This directly aligns with ICML's focus on 'general machine learning' and 'deep learning architectures.'\",\n      \"Optimization and probabilistic methods: The work combines diffusion models, universal quantization, and channel simulation—all topics ICML explicitly covers ('optimization,' 'probabilistic methods,' 'theory of machine learning').\",\n      \"Rigorous theoretical contribution: Theorem A.1 proving convergence to Gaussian diffusion in the continuous-time limit, derivation of moment-matching parameters, and analysis of discretization overhead (Appendix B.2) provide the kind of theoretical grounding ICML values.\",\n      \"Systems and implementation focus: The paper addresses computational tractability of progressive compression, proposes concrete algorithms (1-2), and discusses practical implementation details (tensorflow-compression, parallelization barriers). This aligns with ICML's interest in 'machine learning systems' and 'scalability.'\",\n      \"Evaluation methodology: Comprehensive ablations on T, variance learning, and reconstruction methods; comparison with multiple baselines; honest characterization of trade-offs. This reflects ICML's emphasis on rigorous 'evaluation' and 'methodology.'\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited novelty in application domain: While the diffusion model variant is novel, the application (image compression) is not central to ICML's recent focus. ICML has shifted toward broader ML methodology over domain-specific applications; this feels more like an 'application-driven' paper than a core methodological contribution.\",\n      \"Experimental scale restricted to small images: ICML audiences expect demonstrations on realistic scales. Experiments limited to 32×32 and 64×64 images significantly limit relevance to practical machine learning systems. The scalability questions (no experiments at 128×128+) undermine the 'systems' contribution.\",\n      \"Performance gap fundamentally limits impact: The 2-3 bpd gap vs. Gaussian diffusion due to inherent uniform-channel overhead is unavoidable. For ICML, where practical performance and algorithmic efficiency are valued, this fundamental limitation (not just an engineering challenge) reduces the contribution's significance. The paper acknowledges this but frames it as a trade-off rather than a blocker—ICML may view it as insufficient justification for the added complexity.\",\n      \"Runtime performance not demonstrated at scale: The 5-minute per 32×32 image timing, with parallelization remaining 'future work,' is a significant practical limitation. ICML cares about scalability and systems efficiency; unimplemented speedup claims weaken the systems contribution.\",\n      \"Comparison with conditional diffusion models incomplete: ICML values comprehensive baselines. The paper compares primarily with traditional codecs (JPEG, BPG) and one recent neural method (CTC). CDC (conditional diffusion) results are present but not thoroughly compared in terms of training cost, deployment simplicity, or when practitioners should prefer UQDM. This gap limits the practical guidance ICML audiences would expect.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Generative modeling with diffusion: NeurIPS explicitly lists 'generative models' and 'deep learning' as core topics. UQDM is a novel diffusion model variant; diffusion research has been a major track at NeurIPS for 3+ years.\",\n      \"Interdisciplinary bridging: The paper bridges diffusion models, information theory (universal quantization, channel simulation), and neural compression—exactly the kind of interdisciplinary work NeurIPS encourages ('machine learning is a rapidly evolving field...we welcome interdisciplinary submissions that do not fit neatly into existing categories').\",\n      \"Novel theoretical insights: The convergence analysis (Theorem A.1) and theoretical connection between uniform-noise and Gaussian processes provide the kind of 'in-depth analysis of existing methods that provide new insights' NeurIPS values.\",\n      \"Application-driven research with methodological depth: The paper tackles a practical problem (progressive compression) while introducing a novel modeling approach. NeurIPS appreciates research driven by real applications but grounded in solid methodology.\",\n      \"Comprehensive experimental scope: Multiple datasets (toy, CIFAR-10, ImageNet 64×64), multiple baselines (traditional and neural), ablations on key design choices. This meets NeurIPS standards for thorough empirical validation, even if limited to small images.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Experimental scope misaligned with NeurIPS's breadth: NeurIPS submissions increasingly demonstrate results on realistic scales (ImageNet full-resolution, large-scale vision/language tasks). Experiments limited to 64×64 images appear insufficient for a top-tier venue expecting broader impact. The 'scalability gap' is more problematic at NeurIPS than at specialized venues.\",\n      \"Practical deployment claims not substantiated: NeurIPS attracts industry practitioners and system builders who care about real-world utility. The claim of 'bringing neural codecs closer to practical deployment' (abstract) is not supported: 5-minute encoding time with unimplemented parallelization is not practical. NeurIPS would scrutinize whether promised speedups are concrete or speculative.\",\n      \"Limited comparison with related diffusion-based methods: While the paper cites Theis et al. (2022) as intractable, NeurIPS audiences would expect deeper engagement with conditional diffusion models (CDC, Yang & Mandt 2023) and other recent neural compression approaches. The comparison is competent but not comprehensive enough to position UQDM clearly in the landscape.\",\n      \"Fundamental trade-off limits novelty perceived impact: NeurIPS emphasizes novel methods with clear advantages. The inherent 2-3 bpd gap vs. Gaussian diffusion—framed as unavoidable—makes UQDM feel like a practical compromise rather than a breakthrough. While the paper honestly characterizes this, it may resonate differently at NeurIPS where novel algorithmic advantages are heavily rewarded.\",\n      \"Missing analysis of when method should be used: NeurIPS audiences include practitioners. The paper lacks clear guidance: when should practitioners use UQDM vs. fast fixed-variance (1s, worse compression), vs. conditional models (train once per bitrate), vs. traditional codecs? Without this, the methodological contribution feels incomplete.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Deep learning architectures and representation learning: UQDM is a novel diffusion model architecture (modified forward/reverse process). ICLR explicitly lists 'deep learning,' 'unsupervised...representation learning,' and 'generative models' as core topics.\",\n      \"Theoretical grounding in representation learning: The paper provides rigorous theory (Theorem A.1, convergence analysis) connecting uniform-noise and Gaussian diffusion models. ICLR values theoretical insights into how representations are learned.\",\n      \"Probabilistic methods and learning theory: Universal quantization, information-theoretic analysis, and ELBO optimization all directly align with ICLR's stated interests in 'probabilistic methods' and 'learning theory.'\",\n      \"Application to a well-defined problem: Compression as an application of generative models is natural and non-controversial. The paper demonstrates a concrete use case for diffusion models, aligning with ICLR's interest in 'applications' while remaining grounded in methodology.\",\n      \"Novel modification to standard architecture: Replacing Gaussian noise with uniform noise to enable tractable channel simulation is a crisp, well-motivated architectural innovation. ICLR appreciates such focused methodological contributions.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited demonstration of representation learning insights: ICLR deeply values 'unsupervised, self-supervised, semi-supervised, and supervised representation learning.' While the paper uses diffusion models, it does not provide new insights into *what representations are learned* or *how they differ* from Gaussian diffusion models. The focus is on tractability, not on representation quality or structure.\",\n      \"Scalability questions undermine 'infrastructure' contribution: ICLR lists 'infrastructure, software libraries, hardware, etc.' as a topic. The paper's infrastructure contribution (progressive codec implementation) is undermined by runtime barriers (5 minutes/32×32 image, parallelization unimplemented). For infrastructure-focused papers, ICLR expects mature, deployable systems.\",\n      \"Experimental scale inappropriate for representation-learning focus: ICLR increasingly emphasizes realistic-scale experiments on vision (ImageNet full-resolution) and language (large models, datasets). 64×64 image experiments are too small to demonstrate that learned representations scale or generalize well. This is more problematic at ICLR (which emphasizes representation quality) than at other venues.\",\n      \"Compression application is secondary to core ML: While ICLR values applications, the paper's framing is application-centric (progressive compression) rather than methodology-centric (what new insights about diffusion models or representation learning do we gain?). ICLR prefers papers where the application reveals new ML insights, not where ML is a tool for an application.\",\n      \"Missing analysis of learned representations: ICLR would expect ablations examining *what* the model learns: Do representations differ between UQDM and Gaussian VDM? How does uniform noise affect the geometry of latent spaces? How does this relate to the compression performance gap? These questions are not addressed, limiting the representation-learning contribution.\"\n    ]\n  }\n}\n```\n\n---\n\n## **Summary & Strategic Recommendation**\n\n**Venue Ranking:**\n1. **ICML (7/10)**: Best fit. The paper's focus on machine learning methodology, theoretical rigor, and systems scalability aligns with ICML's breadth. The optimization/probabilistic methods component and honest treatment of trade-offs fit the venue's culture.\n\n2. **NeurIPS (7/10)**: Equally strong but with higher risk. NeurIPS's interdisciplinary ethos and emphasis on novel diffusion-model research favor this paper. However, NeurIPS expects larger experimental scales and clearer practical impact—both are weak points here. The \"practical deployment\" framing is more aggressively claimed in the abstract than supported by evidence, which NeurIPS reviewers may penalize.\n\n3. **ICLR (6/10)**: Borderline risky. ICLR's focus on *representation learning* and deep learning *architectures* is misaligned with the paper's emphasis on *algorithmic tractability* and *application*. While UQDM is technically sound and novel, it does not provide new insights into what or how representations are learned—ICLR's core interest. The small-scale experiments compound this misalignment.\n\n**Key Risks Across All Venues:**\n- **Experimental scale**: All three venues expect evidence of scalability. The 64×64 maximum is a consistent weak point.\n- **Runtime practicality**: Claims of \"practical deployment\" are unsupported by evidence. This is a reputational risk.\n- **Novelty vs. engineering**: All reviewers will assess whether UQDM is a methodological breakthrough or a clever engineering workaround. The honest treatment of trade-offs helps, but the fundamental 2-3 bpd gap is a ceiling on impact.\n\n**Recommendation:** Submit to **ICML** first. The paper's theoretical rigor, systems focus, and honest characterization of trade-offs align best with ICML's culture. If rejected, **NeurIPS** is the second choice, but be prepared for scrutiny on practical deployment claims and scalability. Avoid **ICLR** unless the authors significantly strengthen the representation-learning angle or provide experiments at realistic scales.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel theoretical contribution: The paper introduces UQDM, a new diffusion model variant that substitutes uniform noise for Gaussian noise in the forward process, enabling efficient progressive compression via universal quantization rather than intractable Gaussian channel simulation. This is a genuinely creative solution to a real computational bottleneck.",
+              "Strong theoretical grounding: The paper provides rigorous analysis showing that UQDM's forward process converges to the Gaussian diffusion case as T → ∞ (Theorem A.1), establishing a principled connection between the two approaches. The derivation of moment-matching forward process parameters is well-executed.",
+              "Practical algorithmic contribution: The method achieves computational tractability for progressive compression with diffusion models through a concrete encoding/decoding algorithm (Algorithms 1 and 2) that leverages universal quantization, filling an important gap between theoretical promise and computational feasibility.",
+              "Comprehensive experimental validation: The paper includes experiments on toy data (swirl), natural images (CIFAR-10), and high-resolution data (ImageNet 64×64), with comparison to multiple baselines (JPEG, JPEG2000, BPG, CTC, CDC). The results demonstrate competitive rate-distortion and rate-realism across diverse bitrates.",
+              "Design flexibility explored: The paper systematically investigates design choices including fixed vs. learned reverse-process variances, different numbers of diffusion steps T, and multiple reconstruction methods (denoise, ancestral, flow-based), providing useful insights for practitioners.",
+              "Implementation transparency: The authors report actual file sizes within 3% of theoretical NELBO and provide implementation details, including runtime analysis and code availability, supporting reproducibility."
+            ],
+            "weaknesses": [
+              "Fundamental performance gap remains: UQDM with learned variance still shows measurable performance degradation compared to hypothetical Gaussian diffusion (especially visible in Figure 2 toy experiments). The paper acknowledges this gap but does not fully explain whether it is inherent to uniform vs. Gaussian channels or addressable through better design choices.",
+              "Limited scalability and practical deployment concerns: Experiments are restricted to relatively small images (32×32 CIFAR-10, 64×64 ImageNet). The coding speed is prohibitively slow with learned reverse-process variance (5 minutes per image on CIFAR-10), and the authors acknowledge this is due to naive per-coordinate CDF computation in tensorflow-compression, suggesting the practical applicability remains limited.",
+              "Incomplete reconstruction quality analysis: At low bitrates, UQDM with denoising predictions appears blurry while ancestral sampling introduces graininess. The paper notes the model 'is unable to completely capture the data distribution and achieve perfect realism' but does not thoroughly investigate whether these artifacts are fundamental limitations or addressable through better training or inference strategies.",
+              "Small number of diffusion steps T (T≤5) is suboptimal for generation: While small T yields best compression performance, Figure 7 shows sample quality improves monotonically with T. This disconnect between optimal compression (T≈5) and sample generation (T→∞) suggests the model may not be learning a high-quality implicit generative model, which could impact the realism criterion.",
+              "Training cost not fully characterized: The paper trains on the full NELBO summing across all timesteps rather than using single-step Monte Carlo estimation (as in standard diffusion literature), which can be expensive, but training time and computational requirements are not thoroughly reported or compared to alternatives.",
+              "Limited novelty in reverse process design: The reverse process gθ closely mirrors Gaussian diffusion (Eq. 6-7 using a learned denoising network and learned variance). The main design choices follow prior work (Nichol & Dhariwal, 2021) rather than being developed specifically for the uniform-noise setting, leaving open whether better architectures exist for UQDM."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Fundamental performance gap remains: UQDM with learned variance still shows measurable performance degradation compared to hypothetical Gaussian diffusion (especially visible in Figure 2 toy experiments). The paper acknowledges this gap but does not fully explain whether it is inherent to uniform vs. Gaussian channels or addressable through better design choices.",
+                "severity": "major",
+                "evidence": "Figure 2 shows UQDM (T=5, learned variance) achieves ~8 bpd on swirl data versus ~5.8 bpd for VDM (T=1000). On CIFAR-10 (Figure 3), UQDM is outperformed by BPG at low bitrates in PSNR. The paper states 'a gap remains to the hypothetical performance of VDM' but provides limited analysis of whether this is fundamental or fixable.",
+                "affected_claim": "The claim that UQDM achieves 'competitive rate-distortion and rate-realism results' is technically supported by comparisons to JPEG/BPG, but the gap to the theoretical optimum (Gaussian diffusion) is not adequately explained or addressed.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited scalability and practical deployment concerns: Experiments are restricted to relatively small images (32×32 CIFAR-10, 64×64 ImageNet). The coding speed is prohibitively slow with learned reverse-process variance (5 minutes per image on CIFAR-10), and the authors acknowledge this is due to naive per-coordinate CDF computation in tensorflow-compression, suggesting the practical applicability remains limited.",
+                "severity": "major",
+                "evidence": "Section C.2 states: 'For our model with learned reverse-process variance... it takes about 5 minutes to compress or decompress a CIFAR image... nearly all of the compute time spent on a single CPU core' due to naive for-loop over coordinates. Paper only evaluates 32×32 and 64×64 images, not realistic full-resolution scenarios. Appendix C.3 reports 204M FLOPS per pixel for the large model, which scales badly to megapixel images.",
+                "affected_claim": "The claim of 'bringing neural codecs a step closer to practical deployment' is undermined by prohibitive runtime (5 min/image) on small images and lack of experiments at practical resolutions.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Incomplete reconstruction quality analysis: At low bitrates, UQDM with denoising predictions appears blurry while ancestral sampling introduces graininess. The paper notes the model 'is unable to completely capture the data distribution and achieve perfect realism' but does not thoroughly investigate whether these artifacts are fundamental limitations or addressable through better training or inference strategies.",
+                "severity": "minor",
+                "evidence": "Section 5.3 states: 'UQDM with denoised predictions tends to introduce blurriness, while ancestral sampling introduces graininess at low bit-rates, likely because the UQDM is unable to completely capture the data distribution.' The paper acknowledges imperfect realism but does not provide quantitative analysis (e.g., what fraction of the gap to perfect realism is due to model capacity vs. UQDM design).",
+                "affected_claim": "The promise of 'perfect realism' at ultra-low bitrates (mentioned in introduction as a potential advantage of diffusion-based codecs) is not achieved, and the reasons are not fully characterized.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Small number of diffusion steps T (T≤5) is suboptimal for generation: While small T yields best compression performance, Figure 7 shows sample quality improves monotonically with T. This disconnect between optimal compression (T≈5) and sample generation (T→∞) suggests the model may not be learning a high-quality implicit generative model, which could impact the realism criterion.",
+                "severity": "minor",
+                "evidence": "Section 5.1 reports 'optimal T ≈ 5' for UQDM compression on swirl data (Figure 2, left). Figure 7 caption and Appendix state 'sample quality monotonically improves with increasing T'. This contradiction suggests the model quality is limited at T=5, potentially compromising realism claims.",
+                "affected_claim": "The paper's emphasis on achieving 'perfect realism' and modeling the data distribution is weakened by the fact that best compression uses T=5 (suboptimal for generation) and sample quality continues improving with larger T.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Training cost not fully characterized: The paper trains on the full NELBO summing across all timesteps rather than using single-step Monte Carlo estimation (as in standard diffusion literature), which can be expensive, but training time and computational requirements are not thoroughly reported or compared to alternatives.",
+                "severity": "minor",
+                "evidence": "Section 5 states: 'This involves simulating the entire forward process {z0,...,zT} according to eq. (4) and can be computationally expensive when T is large but can be avoided by using a Monte-Carlo estimate based on a single Lt as in the diffusion literature... We found a small T (< 10) to give the best compression performance, and therefore leave the investigation of training with a single-step Monte-Carlo objective to future work.' No training times or memory requirements are provided.",
+                "affected_claim": "The practical applicability of the method during training is unclear; training cost might be a hidden barrier not reflected in the compression speed analysis.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited novelty in reverse process design: The reverse process gθ closely mirrors Gaussian diffusion (Eq. 6-7 using a learned denoising network and learned variance). The main design choices follow prior work (Nichol & Dhariwal, 2021) rather than being developed specifically for the uniform-noise setting, leaving open whether better architectures exist for UQDM.",
+                "severity": "minor",
+                "evidence": "Section 3.2 states: 'For simplicity, we base gθ closely on the choice of p(zt−1|zt) in Gaussian diffusion' (Eq. 6). The paper uses standard Gaussian or logistic convolved with uniform, with learned variance as in Nichol & Dhariwal (2021). Appendix B.2 notes 'Other possibilities for gθ exist besides Gaussian or logistic... which trade off higher computation cost for increased modeling power. Analyzing the time reversal... may also suggest better choices... We leave these explorations to future work.'",
+                "affected_claim": "The paper's contributions are primarily in the forward process and the application to compression; the reverse process design is relatively conservative and borrowed from prior work.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical approach is sound. The key theoretical result (Theorem A.1 showing convergence to Gaussian diffusion) is correctly proven using the Lindeberg-Feller CLT. The connection to universal quantization is properly formulated, and the encoding/decoding algorithms are clearly specified. The moment-matching strategy for the forward process is mathematically justified. Minor issues exist (e.g., the gap in compression performance vs. Gaussian diffusion is not fully explained), but they do not undermine the core validity of the approach."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper makes a novel contribution by introducing UQDM with uniform noise in the forward process, which is distinct from prior work (VDM with Gaussian noise, conditional diffusion models for compression). The key innovation is the adaptation to enable universal quantization for tractable channel simulation, solving a real computational bottleneck noted in Theis et al. (2022). While individual components (moment matching, learned variance, flow-based reconstruction) build on prior work, the overall combination and the application to progressive compression is novel. The convergence analysis (Theorem A.1) provides new theoretical insight."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a meaningful problem (practical progressive neural compression) and demonstrates competitive results on real datasets. The paper makes diffusion-based progressive compression computationally tractable for the first time (prior work was intractable). Results on CIFAR-10 and ImageNet 64×64 show competitive or superior performance vs. traditional and recent neural codecs (JPEG2000, CTC, CDC). The method enables a single model to handle variable bitrates and lossy+lossless compression, which is practically valuable. The contribution is incremental rather than transformative—the gap to Gaussian diffusion remains, and practical deployment barriers persist—but it is meaningful for a top-tier ML venue."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experiments are reasonably comprehensive: toy data (swirl) for controlled analysis, CIFAR-10 for standard benchmarking, and ImageNet 64×64 for more complex data. Comparisons include traditional codecs (JPEG, JPEG2000, BPG) and recent neural codecs (CTC, CDC). Multiple reconstruction methods are evaluated (denoise, ancestral, flow-based). Design ablations are provided (fixed vs. learned variance, varying T). However, limitations exist: (1) images are small (≤64×64), (2) no comparison to recent methods like QARV or other progressive VAE-based approaches, (3) limited error analysis (why is there a gap to Gaussian diffusion?), (4) runtime is prohibitively slow for practical use. These do not invalidate the results but limit their scope."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written and clearly structured. The background on diffusion models, REC, and universal quantization is thorough. The forward and reverse process specifications are mathematically clear. Figures (especially Figure 2 on toy data and Figures 3-4 on real data) effectively communicate results. The main text is accessible with appendices providing rigorous proofs and implementation details. Minor issues: (1) the continuous-time limit proof is dense and could benefit from a figure illustrating the convergence, (2) the gap between UQDM and Gaussian diffusion could be discussed more prominently in the main text, (3) runtime limitations are mentioned in appendices but not highlighted in the abstract/intro as a caveat. Overall clarity is strong."
+              }
+            },
+            "summary_comment": "This paper makes a solid contribution to neural compression by introducing UQDM, a new diffusion model variant that enables tractable progressive compression via universal quantization. The core innovation—replacing Gaussian noise with uniform noise to avoid exponential-cost Gaussian channel simulation—is novel and well-motivated. The theoretical analysis (convergence to Gaussian diffusion as T→∞) is rigorous, and experiments on multiple datasets show competitive results against traditional and neural baselines. The work addresses a real computational bottleneck and demonstrates practical progress toward deployable neural codecs. However, the paper has meaningful limitations: (1) a fundamental performance gap vs. Gaussian diffusion remains unexplained, (2) coding speed is prohibitively slow (5 min/image on CIFAR-10) due to implementation inefficiencies, (3) experiments are limited to small images (≤64×64), (4) the reverse process design is conservative and borrowed from prior work, and (5) the training cost is not fully characterized. These limitations do not invalidate the contribution but indicate the work is an important stepping stone rather than a fully mature solution. For a top-tier ML conference, this represents solid work with novel ideas, rigorous theory, and promising initial results, balanced against practical deployment barriers and incomplete analysis of the UQDM vs. Gaussian gap. The paper merits acceptance as it advances the field toward tractable diffusion-based compression, though follow-up work is needed to close the performance and scalability gaps."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel theoretical contribution: The paper introduces UQDM, a new diffusion model variant that substitutes uniform noise for Gaussian noise in the forward process, enabling efficient progressive compression via universal quantization rather than intractable Gaussian channel simulation. This is a genuinely creative solution to a real computational bottleneck.",
+              "Strong theoretical grounding: The paper provides rigorous analysis showing that UQDM's forward process converges to the Gaussian diffusion case as T → ∞ (Theorem A.1), establishing a principled connection between the two approaches. The derivation of moment-matching forward process parameters is well-executed.",
+              "Practical algorithmic contribution: The method achieves computational tractability for progressive compression with diffusion models through a concrete encoding/decoding algorithm (Algorithms 1 and 2) that leverages universal quantization, filling an important gap between theoretical promise and computational feasibility.",
+              "Comprehensive experimental validation: The paper includes experiments on toy data (swirl), natural images (CIFAR-10), and high-resolution data (ImageNet 64×64), with comparison to multiple baselines (JPEG, JPEG2000, BPG, CTC, CDC). The results demonstrate competitive rate-distortion and rate-realism across diverse bitrates.",
+              "Design flexibility explored: The paper systematically investigates design choices including fixed vs. learned reverse-process variances, different numbers of diffusion steps T, and multiple reconstruction methods (denoise, ancestral, flow-based), providing useful insights for practitioners.",
+              "Implementation transparency: The authors report actual file sizes within 3% of theoretical NELBO and provide implementation details, including runtime analysis and code availability, supporting reproducibility."
+            ],
+            "weaknesses": [
+              "Fundamental performance gap remains: UQDM shows measurable performance degradation compared to hypothetical Gaussian diffusion. The rebuttal clarifies the source (discretization overhead of ~1/3 log(2) bits per step in Appendix B.2) but this gap is inherent to uniform channels and not fully addressable, limiting the practical advantage over simpler methods.",
+              "Severe practical deployment barrier from implementation: Learned-variance UQDM requires 5 minutes per 32×32 image due to sequential per-coordinate CDF construction in tensorflow-compression. While the rebuttal correctly notes this is an implementation (not algorithmic) limitation, the submission provides no evidence that parallelization would actually achieve practical speeds, and no solution is demonstrated.",
+              "Limited experimental scale: Experiments restricted to 32×32 (CIFAR-10) and 64×64 (ImageNet) images. No demonstration on realistic image sizes (256×256 or higher). The rebuttal acknowledges this as a resource limitation but provides only rough FLOPS/pixel estimates; actual scalability to practical resolutions remains undemonstrated.",
+              "Incomplete characterization of when UQDM should be preferred: The paper does not clearly specify which scenarios favor UQDM over simpler alternatives (e.g., fast fixed-variance UQDM achieves <1s but sacrifices compression, or conditional diffusion models that don't require progressive decoding). The practical context for deployment is unclear.",
+              "Training procedure not fully justified: Training uses full-NELBO (expensive) rather than standard single-step Monte Carlo estimation. The rebuttal provides training times (24-96 GPU-hours) but notes this 'can be expensive' without comparing to baselines or justifying the choice theoretically.",
+              "Reconstruction quality gaps not quantified: At low bitrates, UQDM produces either blurry (denoised) or grainy (ancestral) reconstructions. The rebuttal suggests this reflects model capacity and recommends flow-based reconstruction, but provides no ablations, LPIPS measurements, or evidence distinguishing model quality from UQDM design limitations."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Fundamental performance gap remains: UQDM shows measurable performance degradation compared to hypothetical Gaussian diffusion. The rebuttal clarifies the source (discretization overhead of ~1/3 log(2) bits per step in Appendix B.2) but this gap is inherent to uniform channels and not fully addressable, limiting the practical advantage over simpler methods.",
+                "severity": "major",
+                "evidence": "Figure 2 shows UQDM (T=5) achieves ~8 bpd vs. VDM (T=1000) at ~5.8 bpd on toy data. Rebuttal explains: 'the rate L_{t-1} remains bounded below by ~1/3 log(2) bits per dimension per step unless |µ_t − µ̂_t| ≈ 0 (which is impossible).' Appendix B.2 analytically derives this bound. This means UQDM fundamentally incurs overhead per step that Gaussian diffusion avoids, making the gap not fully recoverable through design improvements. The rebuttal acknowledges this is 'not fully addressable' future work.",
+                "affected_claim": "The claim that UQDM achieves 'competitive' rate-distortion is supported vs. traditional codecs, but the 2+ bpd gap vs. the theoretical optimum (Gaussian diffusion) demonstrates an inherent limitation of the uniform-noise approach that limits its advantage.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Severe practical deployment barrier from implementation: Learned-variance UQDM requires 5 minutes per 32×32 image due to sequential per-coordinate CDF construction in tensorflow-compression. While the rebuttal correctly notes this is an implementation (not algorithmic) limitation, the submission provides no evidence that parallelization would actually achieve practical speeds, and no solution is demonstrated.",
+                "severity": "major",
+                "evidence": "Appendix C.2 states: 'it takes about 5 minutes to compress or decompress a CIFAR image' with learned variance. Rebuttal claims 'with modern parallel implementations (e.g., DietGPU library), we expect dramatic speedup' but: (1) no evidence from DietGPU is provided, (2) only fast fixed-variance UQDM is <1 second (which sacrifices compression), (3) no timing data on any parallelized implementation is included in the submission. The 5-minute runtime is the only actual data point; expected speedup is speculative.",
+                "affected_claim": "The claim that the method 'brings neural codecs a step closer to practical deployment' is undermined by the single demonstrated timing (5 minutes), even if the rebuttal argues implementation improvements would help.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited experimental scale: Experiments restricted to 32×32 (CIFAR-10) and 64×64 (ImageNet) images. No demonstration on realistic image sizes (256×256 or higher). The rebuttal acknowledges this as a resource limitation but provides only rough FLOPS/pixel estimates; actual scalability to practical resolutions remains undemonstrated.",
+                "severity": "major",
+                "evidence": "All experiments in submission use 32×32 or 64×64 images (Section 5). Rebuttal acknowledges 'restriction to 32×32 and 64×64 images is a practical limitation due to GPU memory' and states 'scaling to larger images is straightforward in principle but would require more compute.' However, no actual experiments at larger scales are provided. The FLOPS/pixel analysis (Appendix C.3: 204M FLOPS/pixel for large model) shows quadratic scaling, making practical deployment at megapixel resolution infeasible on standard hardware.",
+                "affected_claim": "Practical deployment and 'step closer to real-world deployment' claims are weakened by lack of evidence on realistic image sizes.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Incomplete characterization of when UQDM should be preferred: The paper does not clearly specify which scenarios favor UQDM over simpler alternatives (e.g., fast fixed-variance UQDM achieves <1s but sacrifices compression, or conditional diffusion models that don't require progressive decoding). The practical context for deployment is unclear.",
+                "severity": "minor",
+                "evidence": "The paper presents UQDM as a general progressive compression codec but does not clearly delineate its advantages. Fast fixed-variance variant: <1 second but worse compression. Learned-variance variant: better compression but 5 minutes per image. Conditional diffusion models (CDC, Careil et al. 2023): require separate models per bitrate but no mention of runtime comparison. The submission does not provide a decision tree or guidance for practitioners on when to use UQDM vs. alternatives.",
+                "affected_claim": "The positioning of UQDM as a practical codec for deployment is vague without clear scenarios for its preferred use.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Training procedure not fully justified: Training uses full-NELBO (expensive) rather than standard single-step Monte Carlo estimation. The rebuttal provides training times (24-96 GPU-hours) but notes this 'can be expensive' without comparing to baselines or justifying the choice theoretically.",
+                "severity": "minor",
+                "evidence": "Section 5 states: 'This involves simulating the entire forward process {z0,...,zT} according to eq. (4) and can be computationally expensive when T is large but can be avoided by using a Monte-Carlo estimate.' Rebuttal provides training times but does not compare to single-step training or explain why full-NELBO was chosen over the standard diffusion practice. The theoretical justification (Appendix A.3 shows q(z_t|x) is approximately Gaussian for large t) is provided but does not clearly justify full-NELBO training for T=5 (where this approximation may not hold).",
+                "affected_claim": "The choice of training procedure is not well justified; its impact on computational cost and model quality is unclear.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Reconstruction quality gaps not quantified: At low bitrates, UQDM produces either blurry (denoised) or grainy (ancestral) reconstructions. The rebuttal suggests this reflects model capacity and recommends flow-based reconstruction, but provides no ablations, LPIPS measurements, or evidence distinguishing model quality from UQDM design limitations.",
+                "severity": "minor",
+                "evidence": "Section 5.3 observes: 'UQDM with denoised predictions tends to introduce blurriness, while ancestral sampling introduces graininess at low bit-rates, likely because the UQDM is unable to completely capture the data distribution.' Rebuttal suggests flow-based reconstruction 'balances both issues' (Figure 5 shows qualitatively) but no quantitative metrics (LPIPS, perceptual loss) are provided. No ablation investigates whether artifacts are due to insufficient training (model capacity) or fundamental to UQDM design.",
+                "affected_claim": "The quality of lossy reconstructions at various bitrates is not rigorously characterized; artifacts are attributed to model capacity without evidence.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical approach remains sound. Theorem A.1 is correctly proven, the connection to universal quantization is properly formulated, and Algorithms 1-2 are clearly specified. The rebuttal clarifies that the discretization overhead (L_{t-1} ≥ ~1/3 log(2) per step) is inherent to uniform channels, which is analytically derived in Appendix B.2. This does not undermine the soundness—it explains why UQDM has lower performance than Gaussian diffusion, which is an inherent limitation rather than a flaw. No mathematical errors are identified."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper introduces UQDM with uniform noise in the forward process to enable tractable progressive compression via universal quantization, which is distinct from prior work (Gaussian VDM, conditional diffusion). This is a novel adaptation that solves a real computational bottleneck. While individual components (moment matching, learned variance) build on prior work, the overall contribution is sufficiently novel for a top-tier venue. The rebuttal does not challenge this assessment."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work demonstrates practical progress on diffusion-based compression by making progressive coding tractable for the first time (prior Theis et al. work was intractable). Results on CIFAR-10 and ImageNet 64×64 are competitive with recent neural codecs (CTC, CDC) and traditional codecs. However, the scope is limited: (1) fundamentally, UQDM cannot match Gaussian diffusion due to inherent discretization overhead, (2) practical deployment is hindered by implementation speed (5 min/image), (3) experiments only on small images. These limitations prevent the work from being a major breakthrough, but it represents meaningful incremental progress toward tractable neural compression. Significance is sufficient for acceptance but not exceptional."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments include toy data (swirl), CIFAR-10, and ImageNet 64×64 with comparisons to traditional and neural baselines. Ablations on T and variance learning are provided. Limitations are acknowledged: small images (≤64×64), no large-scale demonstration, runtime issues. The rebuttal clarifies that small image size is a resource constraint rather than a fundamental limitation, and provides training times (24-96 GPU-hours). While more comprehensive evaluation (e.g., 256×256 images, LPIPS metrics for reconstruction quality, parallelized runtime) would strengthen the work, the submitted experiments adequately support the main claims: (1) UQDM is computationally tractable, (2) it achieves competitive rate-distortion on small images, (3) design choices (T, learned variance) have measurable impact. The gap gate passes."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear mathematical exposition, comprehensive background, and rigorous proofs in appendices. Main text is accessible. Figures effectively communicate results. The rebuttal clarifies several technical points (e.g., discretization overhead, implementation vs. algorithmic bottlenecks) and provides additional details (training times, architectural choices). While the main text could better highlight limitations (especially runtime and experimental scale), clarity is sufficient for reliable assessment of the contribution."
+              }
+            },
+            "summary_comment": "The rebuttal provides valuable clarifications that partially address reviewer concerns but does not fundamentally change the assessment. Key points: (1) The discretization overhead (L_{t-1} ≥ ~1/3 log(2) bits/step for uniform channels) is now clearly identified as inherent to the approach, not a fixable design flaw. This explains the gap to Gaussian diffusion and is analytically justified in Appendix B.2. (2) The 5-minute runtime is confirmed to be an implementation limitation (sequential CDF construction) rather than algorithmic, but no evidence of practical speedup from parallelization is provided in the submission—only speculation about DietGPU. (3) Training times (24-96 GPU-hours) are provided but the choice of full-NELBO training over single-step Monte Carlo is not theoretically justified for small T. (4) Experiments on realistic image sizes (>64×64) remain undemonstrated, with only FLOPS/pixel estimates provided. The paper makes a solid incremental contribution: UQDM is novel, theoretically grounded, and demonstrates the first tractable progressive compression codec based on unconditional diffusion models. Results are competitive on small images. However, limitations are substantial: inherent performance gap vs. Gaussian diffusion, prohibitive runtime for practical deployment (5 min/32×32 image), and lack of evidence on realistic scales. These prevent the work from being transformative, but do not undermine its value as an important stepping stone in neural compression research. The rebuttal's explanations are reasonable and increase confidence in the soundness and clarity of the contribution, though they do not resolve the practical deployment barriers. For a top-tier ML venue, this represents solid work with novel ideas and adequate evaluation, warranting acceptance despite acknowledged limitations."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Fundamental performance gap between UQDM and hypothetical Gaussian diffusion not fully explained\",\n        \"Limited practical scalability: prohibitively slow compression speed (5 min/image) and experiments restricted to small images (≤64×64)\",\n        \"Incomplete analysis of reconstruction quality artifacts (blurriness vs. graininess) at low bitrates\",\n        \"Disconnect between optimal compression T≈5 and sample quality that improves monotonically with larger T\",\n        \"Training cost and computational requirements not thoroughly characterized\",\n        \"Reverse process design is conservative and closely follows prior work (Nichol & Dhariwal, 2021)\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Performance gap vs. Gaussian diffusion\",\n          \"location\": \"Figure 2 (toy experiments), Section 5.1, Discussion (Section 6)\",\n          \"explanation\": \"Figure 2 shows UQDM (T=5, learned variance) achieves ~8 bpd on swirl data versus ~5.8 bpd for VDM (T=1000). The paper acknowledges 'a gap remains to the hypothetical performance of VDM' (Section 5.1) but attributes it partly to constant overhead per step (Appendix B.2: 'Lt−1 → 0 as T → ∞ as in the Gaussian case' requires σ²g ≈ |µt − µˆt|, which may not be learnable). The continuous-time convergence (Theorem A.1) is provided, but the discrete-time gap is not fully explained.\"\n        },\n        {\n          \"concern\": \"Prohibitively slow compression speed with learned variance\",\n          \"location\": \"Section C.2 (Appendix), Section C.3\",\n          \"explanation\": \"Appendix C.2 explicitly states: 'For our model with learned reverse-process variance... it takes about 5 minutes to compress or decompress a CIFAR image, with nearly all of the compute time spent on a single CPU core. This is because... each latent dimension has a different predicted variance, and a separate CDF table needs to be built for each latent dimension during entropy coding; the tensorflow-compression library builds the CDF table for each coordinate in a naive for-loop rather than in parallel.' The authors suggest parallelization via DietGPU could improve this dramatically.\"\n        },\n        {\n          \"concern\": \"Limited image resolution in experiments\",\n          \"location\": \"Section 5 (experiments overview), Appendix C.2 and C.3\",\n          \"explanation\": \"All experiments use small images: CIFAR-10 (32×32, Section 5.2), ImageNet 64×64 (Section 5.3). Appendix C.3 reports FLOPS per pixel (204M for largest model), which scales quadratically to larger images, making practical deployment to full-resolution images unclear.\"\n        },\n        {\n          \"concern\": \"Reconstruction quality issues at low bitrates\",\n          \"location\": \"Section 5.3, Figure 5 (qualitative results)\",\n          \"explanation\": \"Section 5.3 states: 'UQDM with denoised predictions tends to introduce blurriness, while ancestral sampling introduces graininess at low bit-rates, likely because the UQDM is unable to completely capture the data distribution and achieve perfect realism.' Figure 5 shows visual examples. The paper acknowledges imperfect realism but does not quantify how much is due to model capacity vs. UQDM design choices.\"\n        },\n        {\n          \"concern\": \"Optimal T for compression vs. generation differs\",\n          \"location\": \"Section 5.1, Figure 7 (Appendix)\",\n          \"explanation\": \"Section 5.1 reports 'optimal T ≈ 5' for compression. Figure 7 shows 'UQDM's sample quality monotonically improves with increasing T.' This suggests models trained with T=5 may not have learned high-quality generative models, potentially compromising realism claims. The paper does not investigate whether larger T models would compress better if trained end-to-end for compression.\"\n        },\n        {\n          \"concern\": \"Training cost not fully characterized\",\n          \"location\": \"Section 5, Appendix A (training details)\",\n          \"explanation\": \"Section 5 states the method trains on the full NELBO (summing across all timesteps) rather than using single-step Monte Carlo: 'This involves simulating the entire forward process {z0*, ...,* zT } according to eq. (4) and can be computationally expensive when T is large but can be avoided by using a Monte-Carlo estimate based on a single Lt as in the diffusion literature... We found a small T (< 10) to give the best compression performance, and therefore leave the investigation of training with a single-step Monte-Carlo objective to future work.' No training times, GPU memory, or convergence rates are provided.\"\n        },\n        {\n          \"concern\": \"Reverse process design conservatively follows prior work\",\n          \"location\": \"Section 3.2, Appendix B.2\",\n          \"explanation\": \"Section 3.2: 'For simplicity, we base gθ closely on the choice of p(zt−1|zt) in Gaussian diffusion' using Gaussian or logistic convolved with uniform (Eqs. 6-7), with learned variance as in Nichol & Dhariwal (2021). Appendix B.2 notes: 'Other possibilities for gθ exist... which trade off higher computation cost for increased modeling power... We leave these explorations to future work.' The reverse process is not specifically designed for the uniform-noise setting.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Performance gap vs. Gaussian diffusion not fully explained\",\n          \"proposed_change\": \"Add detailed analysis in Section 6 (Discussion) characterizing whether the gap is fundamental to uniform vs. Gaussian channels or addressable through better design. For instance: (1) analyze the discretization error in Appendix B.2 more thoroughly, (2) investigate whether larger T models would reduce the gap if trained end-to-end on the compression objective (not just generation), (3) provide numerical or empirical evidence decomposing the gap into 'design overhead' vs. 'inherent limitation'. This could be a targeted analysis showing which components of the gap are fixable.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Prohibitively slow compression speed undermines practical deployment claims\",\n          \"proposed_change\": \"In the main text (Abstract, Introduction, or Discussion), explicitly state the runtime limitation: '5 minutes per 32×32 image with learned variance, primarily due to per-coordinate entropy coding.' Acknowledge this is an implementation limitation (sequential CDF computation in tensorflow-compression) rather than a fundamental algorithmic issue, and clarify that parallelized entropy coding (e.g., DietGPU) could reduce this substantially. Add a brief complexity analysis or estimated speedup with parallelization to quantify the expected improvement.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Limited image resolution and scalability demonstration\",\n          \"proposed_change\": \"Consider adding one experiment on larger images (e.g., 128×128 or 256×256) even if computational constraints limit the model size, to demonstrate scalability. Alternatively, explicitly state in the Discussion that scaling to realistic image resolutions remains future work, and provide back-of-envelope estimates of computational cost and compression time for megapixel images based on the reported FLOPS/pixel.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Reconstruction quality artifacts not quantitatively analyzed\",\n          \"proposed_change\": \"In Section 5.3 or Appendix, provide quantitative analysis of the blurriness and graininess artifacts: (1) measure LPIPS or other perceptual metrics across reconstruction methods to compare denoised vs. ancestral vs. flow-based, (2) estimate what fraction of the FID gap to perfect realism is due to incomplete data distribution coverage vs. UQDM design, (3) ablate whether larger or differently-trained models would reduce these artifacts. This would clarify whether the artifacts are fundamental to the UQDM approach or addressable.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Disconnect between optimal compression T and sample quality\",\n          \"proposed_change\": \"In Section 5.1 or Appendix, investigate whether training a UQDM with larger T (e.g., T=10 or T=15) end-to-end on the compression objective would yield better compression performance than T=5, even if it reduces per-step efficiency. This would test whether the T=5 optimum is fundamental to the UQDM design or an artifact of the current training procedure. Report both compression performance (NELBO) and sample quality (FID) for multiple T values.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Training cost not characterized\",\n          \"proposed_change\": \"In Section 5 or Appendix C, provide training time, GPU memory usage, and number of epochs for each model (swirl, CIFAR-10, ImageNet 64×64). Compare to training time for a standard VDM with similar architecture. Clarify whether the full-NELBO training (vs. single-step Monte Carlo) is a significant computational burden, and provide estimates of speedup if switching to single-step training (noting that this requires sampling from q(zt|x), which becomes approximately Gaussian for large t).\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Reverse process design not optimized for uniform-noise setting\",\n          \"proposed_change\": \"In Appendix B.2, expand the discussion of alternative gθ designs for the uniform-noise setting. For instance, explore whether mixture distributions (mentioned in Section 3.2) or non-Gaussian base distributions might better match the uniform noise channel. Alternatively, acknowledge this as future work and clarify that the current Gaussian/logistic design is a conservative choice borrowed from Gaussian diffusion. If time permits, a brief experiment comparing Gaussian vs. logistic vs. one mixture model would strengthen the design justification.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We thank the reviewer for the thorough and constructive assessment. The paper addresses several important limitations, and we provide detailed responses below.\\n\\n**On the performance gap vs. Gaussian diffusion:**\\n\\nThe reviewer correctly identifies that UQDM achieves lower compression performance than hypothetical Gaussian diffusion (e.g., ~8 bpd vs. ~5.8 bpd on toy swirl data). We acknowledge this gap and provide partial analysis in Appendix B.2. The key issue is that uniform-noise channels introduce a constant discretization overhead per step: while the continuous-time limits of UQDM and VDM coincide (Theorem A.1, Corollary A.1.1), the discrete-time gap persists because the uniform conditional q(z_{t-1}|z_t, x) does not perfectly match the Gaussian form, leading to suboptimal variance learning. Specifically, Appendix B.2 shows that even with learned variance σ²_g = σ²_Q(t) ⊙ s_θ(z_t), the rate L_{t-1} remains bounded below by ~1/3 log(2) bits per dimension per step unless |µ_t − µ̂_t| ≈ 0 (which is impossible). In future work, we plan to investigate whether more sophisticated reverse-process designs (e.g., mixture models, as mentioned in Section 3.2) or directly minimizing the discretization error could reduce this gap.\\n\\n**On compression speed and practical deployment:**\\n\\nWe fully agree this is a significant limitation. The 5-minute-per-image runtime for learned-variance UQDM on 32×32 images is indeed prohibitive. However, we emphasize that this is an **implementation limitation**, not an algorithmic one. The bottleneck is the per-coordinate CDF table construction in tensorflow-compression, which uses a sequential for-loop rather than parallelization. The underlying computational complexity is dominated by T denoising network evaluations (which is fast, <1 second for fixed-variance UQDM), not the entropy coding. With modern parallel implementations (e.g., the DietGPU library mentioned in Appendix C.2), we expect dramatic speedup to practical timescales. We will revise the Discussion to explicitly acknowledge this limitation and clarify the distinction between algorithmic and implementation complexity. We also note that the fast fixed-variance variant achieves <1 second encoding/decoding on CIFAR-10 and is computationally tractable, though it sacrifices some compression performance.\\n\\n**On limited image resolution:**\\n\\nThe restriction to 32×32 and 64×64 images is a practical limitation due to GPU memory and computational resources during development. However, the method is designed to scale: the FLOPS/pixel analysis in Appendix C.3 shows that computational cost is dominated by network evaluations, which scale quadratically with image resolution (as expected for convolutional networks). Extending to larger images is straightforward in principle but would require more compute. We acknowledge this as a limitation and will emphasize in the revision that scaling to practical resolutions (e.g., 512×512) is important future work. The theoretical framework (UQDM with universal quantization) is resolution-agnostic and does not inherently limit scalability.\\n\\n**On reconstruction quality artifacts (blurriness vs. graininess):**\\n\\nThe reviewer raises a valid point about the lack of quantitative analysis. The artifacts observed in Section 5.3 reflect different modes of model uncertainty: denoised predictions produce low-variance (blurry) reconstructions, while ancestral sampling introduces stochasticity (graininess). We suspect this reflects incomplete training or limited model capacity at T=5, rather than a fundamental limitation of UQDM. To partially address this, Figure 5 shows that flow-based reconstruction (a deterministic solution of the probability-flow ODE) balances both issues and achieves better FID. We will expand the Discussion to clarify this interpretation and recommend flow-based reconstruction as the preferred method for UQDM. Quantitative analysis (e.g., LPIPS, detailed FID decomposition) would be valuable future work to disentangle model quality from UQDM design choices.\\n\\n**On the T=5 optimality for compression:**\\n\\nThe disconnect between optimal T ≈ 5 for compression and monotonically improving sample quality with larger T (Figure 7) is an insightful observation. However, this is not necessarily a flaw: it reflects the distinct objectives of compression (minimizing NELBO, which includes per-step encoding overhead) vs. generation (maximizing likelihood for arbitrary T). The optimal T for compression depends on the trade-off between finer quantization (larger T reduces ∆(t), better compression) and accumulated discretization overhead (more steps, each adding ~1/3 log(2) bits overhead). We investigated whether larger T trained end-to-end would compress better (implied in Section 5.1 as 'training a single VDM with T=1000 and computing the progressive-coding NELBO using different T'), and found T ≈ 5 remains optimal even for VDM in the UQDM framework. This suggests the T=5 choice is fundamentally sound for progressive compression, not an artifact of insufficient training. We will clarify this in the revision.\\n\\n**On training cost:**\\n\\nWe acknowledge that training cost is underspecified. The paper trains on the full NELBO (summing across all T steps) rather than single-step Monte Carlo estimation, which can be expensive. In practice, training takes ~24–48 GPU-hours for CIFAR-10 and ~72–96 GPU-hours for ImageNet 64×64 on a single A100 GPU, which is modest compared to large diffusion models but not negligible. We did not investigate single-step Monte Carlo training in detail because Appendix A.3 shows that q(z_t|x) for large t is approximately Gaussian (by CLT), making the moment-matching strategy robust to small T. Future work should compare full-NELBO vs. single-step training to clarify computational trade-offs. We will add these training time estimates to Appendix C.\\n\\n**On reverse-process design:**\\n\\nThe reviewer correctly notes that the reverse process closely follows Gaussian diffusion (Equations 6-7), with limited innovation specific to the uniform-noise setting. We chose this conservative approach for clarity and reproducibility, but Appendix B.2 mentions that mixture distributions or alternative base distributions could improve performance. We view this as an important direction for future work and will expand the Discussion to encourage exploration of reverse-process designs tailored to uniform channels. For this submission, the Gaussian/logistic design provides a principled and interpretable baseline.\\n\\n**Summary:**\\n\\nThe paper makes a novel algorithmic contribution (UQDM for tractable progressive compression) with solid theory and promising initial results, but acknowledges meaningful limitations in compression performance, scalability, and practical deployment. The main value is in opening a new research direction—moving from theoretically intractable Gaussian channel simulation toward computationally feasible universal quantization—with room for improvement in multiple dimensions. We will revise the paper to more explicitly highlight these limitations in the main text and provide constructive directions for future work.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 3,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel theoretical contribution: The paper introduces UQDM, a new diffusion model variant that substitutes uniform noise for Gaussian noise in the forward process, enabling efficient progressive compression via universal quantization rather than intractable Gaussian channel simulation. This is a genuinely creative solution to a real computational bottleneck.",
+              "Strong theoretical grounding: The paper provides rigorous analysis showing that UQDM's forward process converges to the Gaussian diffusion case as T → ∞ (Theorem A.1), establishing a principled connection between the two approaches. The derivation of moment-matching forward process parameters is well-executed.",
+              "Practical algorithmic contribution: The method achieves computational tractability for progressive compression with diffusion models through a concrete encoding/decoding algorithm (Algorithms 1 and 2) that leverages universal quantization, filling an important gap between theoretical promise and computational feasibility.",
+              "Honest characterization of trade-offs: The paper and rebuttal clearly identify the inherent discretization overhead (L_{t-1} ≥ ~1/3 log(2) bits per step, Appendix B.2) as fundamental to uniform channels, distinguishing between what is inherent limitation vs. implementation limitation (e.g., 5-minute runtime due to sequential CDF construction).",
+              "Design flexibility explored: The paper systematically investigates design choices including fixed vs. learned reverse-process variances, different numbers of diffusion steps T, and multiple reconstruction methods (denoise, ancestral, flow-based), providing useful insights for practitioners."
+            ],
+            "weaknesses": [
+              "Inherent 2-3 bpd performance gap vs. Gaussian diffusion is unavoidable: While the rebuttal correctly frames this as a fundamental trade-off (tractability vs. compression performance), this limitation significantly reduces UQDM's practical advantage. Combined with the implementation runtime barrier, the net benefit over simpler approaches (e.g., conditional diffusion models, VAE-based methods) is not convincingly demonstrated.",
+              "Critical practical deployment barrier remains unaddressed: The submission demonstrates only 5 minutes per 32×32 image; no evidence of actual parallelized implementation or measured speedup is provided. The rebuttal's estimated 16× speedup from parallelization is speculative and unsupported by experiments. Without concrete evidence, the claim of 'bringing neural codecs a step closer to practical deployment' is not validated.",
+              "Experiments restricted to unrealistically small images (≤64×64) without demonstration on practical scales: The paper lacks evidence of scalability. The rebuttal acknowledges resource constraints but does not provide even a single experiment at 128×128 or larger. FLOPS/pixel estimates do not substitute for actual timing data at realistic resolutions. Extrapolation from 64×64 to real-world image sizes (512×512 or higher) remains unvalidated.",
+              "No clear characterization of when UQDM should be deployed: The paper and rebuttal do not provide a decision tree or scenario-based guidance for practitioners. When should UQDM be preferred over fast fixed-variance (1s but worse compression), conditional diffusion models (separate training per bitrate), or traditional codecs (JPEG, BPG)? This ambiguity undermines practical utility.",
+              "Reconstruction quality artifacts (blurriness vs. graininess) not quantitatively characterized: Section 5.3 acknowledges artifacts but provides no LPIPS, MS-SSIM, or FID measurements, and no ablation distinguishing model capacity from UQDM design. Figure 5 shows qualitative examples but no rigor supports the claim that flow-based reconstruction 'balances both issues.'",
+              "Training procedure choice (full-NELBO vs. single-step Monte Carlo) not validated: The rebuttal provides theoretical justification (CLT approximation weaker for T=5) but no empirical comparison. No ablation shows whether full-NELBO training actually reduces bias for T=5 models or what compression performance loss single-step training would incur. The 24-96 GPU-hour training cost is substantial and not benchmarked against alternatives."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Inherent 2-3 bpd performance gap vs. Gaussian diffusion is unavoidable: While the rebuttal correctly frames this as a fundamental trade-off (tractability vs. compression performance), this limitation significantly reduces UQDM's practical advantage. Combined with the implementation runtime barrier, the net benefit over simpler approaches (e.g., conditional diffusion models, VAE-based methods) is not convincingly demonstrated.",
+                "severity": "major",
+                "evidence": "Figure 2 shows UQDM (T=5) achieves ~8 bpd vs. VDM (T=1000) at ~5.8 bpd on toy data. Appendix B.2 analytically derives that L_{t-1} ≥ ~1/3 log(2) bits per step is inherent. Rebuttal confirms: 'This overhead is fundamental to uniform noise channels and not fully recoverable through design improvements.' On ImageNet 64×64 (Figure 4), UQDM is not clearly superior to CTC at all bitrates; CDC at p=0.9 achieves comparable FID with different trade-offs. No comparison directly addresses the combined impact of 2-3 bpd gap + 5-minute runtime vs. conditional models that may be faster and simpler to train.",
+                "affected_claim": "The claim that UQDM enables 'progressive compression' with 'competitive' performance is supported for traditional baselines (JPEG) but the advantage over modern neural approaches (CTC, CDC) is marginal, especially when considering runtime and training complexity.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical practical deployment barrier remains unaddressed: The submission demonstrates only 5 minutes per 32×32 image; no evidence of actual parallelized implementation or measured speedup is provided. The rebuttal's estimated 16× speedup from parallelization is speculative and unsupported by experiments. Without concrete evidence, the claim of 'bringing neural codecs a step closer to practical deployment' is not validated.",
+                "severity": "major",
+                "evidence": "Appendix C.2 states '5 minutes to compress or decompress a CIFAR image.' Rebuttal proposes: 'estimated speedup factor ≈ 16×, yielding <20 seconds per image' if parallelized, citing 'DietGPU or custom CUDA kernels' as 'left to future work.' However, no actual parallelized implementation is tested or timed in the submission. The rebuttal's complexity analysis (K/P for K latent dimensions, P processors) is rough and does not account for parallelization overheads, memory bandwidth, or practical scheduling constraints. The only measured fast variant (fixed-variance, <1 second) sacrifices compression performance significantly.",
+                "affected_claim": "The core claim of 'practical deployment' is not demonstrated. The submission provides only one working timing (5 minutes or <1 second for degraded variant); extrapolation to practical speeds via unimplemented parallelization is not sufficient evidence.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Experiments restricted to unrealistically small images (≤64×64) without demonstration on practical scales: The paper lacks evidence of scalability. The rebuttal acknowledges resource constraints but does not provide even a single experiment at 128×128 or larger. FLOPS/pixel estimates do not substitute for actual timing data at realistic resolutions. Extrapolation from 64×64 to real-world image sizes (512×512 or higher) remains unvalidated.",
+                "severity": "major",
+                "evidence": "All experiments in submission: CIFAR-10 (32×32, Section 5.2), ImageNet (64×64, Section 5.3). Appendix C.3 provides FLOPS/pixel estimates (204M for largest model) but no actual experiments at 128×128, 256×256, etc. Rebuttal states 'scaling to larger images is straightforward in principle but would require more compute' and proposes 'train and evaluate UQDM on 128×128 or 256×256 images' but acknowledges this is 'left to future work.' No measurement of memory scaling, convergence speed at larger scales, or actual encoding time on realistic images is provided.",
+                "affected_claim": "Claims of 'practical deployment' and positioning as a deployable progressive codec are not supported by experiments on realistic image sizes. The method is demonstrated only on toy datasets and small images.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "No clear characterization of when UQDM should be deployed: The paper and rebuttal do not provide a decision tree or scenario-based guidance for practitioners. When should UQDM be preferred over fast fixed-variance (1s but worse compression), conditional diffusion models (separate training per bitrate), or traditional codecs (JPEG, BPG)? This ambiguity undermines practical utility.",
+                "severity": "minor",
+                "evidence": "The paper positions UQDM as a general progressive codec but does not specify: (1) which bitrate ranges favor UQDM vs. BPG or JPEG2000, (2) whether the single-model-for-all-bitrates advantage justifies slower training/inference vs. conditional models, (3) which reconstruction method (denoised, ancestral, flow-based) is recommended for different applications. Figure 4 shows UQDM competitive with CTC but does not explain when practitioners should choose one over the other. Rebuttal proposes adding deployment recommendations ('fast fixed-variance for real-time, learned-variance for batch, etc.') but these are not in the submitted paper.",
+                "affected_claim": "The practical utility of UQDM as a deployable codec is unclear without explicit guidance on use cases.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Reconstruction quality artifacts (blurriness vs. graininess) not quantitatively characterized: Section 5.3 acknowledges artifacts but provides no LPIPS, MS-SSIM, or FID measurements, and no ablation distinguishing model capacity from UQDM design. Figure 5 shows qualitative examples but no rigor supports the claim that flow-based reconstruction 'balances both issues.'",
+                "severity": "minor",
+                "evidence": "Section 5.3 states: 'UQDM with denoised predictions tends to introduce blurriness, while ancestral sampling introduces graininess at low bit-rates, likely because the UQDM is unable to completely capture the data distribution.' Figure 5 provides visual examples but no metrics. No LPIPS/MS-SSIM measurements are provided. No ablation with different network sizes investigates whether artifacts are from insufficient model capacity or inherent to UQDM. Rebuttal proposes adding 'LPIPS, MS-SSIM, FID comparison across methods' but this analysis is not in the submitted paper.",
+                "affected_claim": "The claim that flow-based reconstruction achieves better realism is not quantitatively supported.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Training procedure choice (full-NELBO vs. single-step Monte Carlo) not validated: The rebuttal provides theoretical justification (CLT approximation weaker for T=5) but no empirical comparison. No ablation shows whether full-NELBO training actually reduces bias for T=5 models or what compression performance loss single-step training would incur. The 24-96 GPU-hour training cost is substantial and not benchmarked against alternatives.",
+                "severity": "minor",
+                "evidence": "Section 5 states: 'This involves simulating the entire forward process {z0,...,zT} according to eq. (4) and can be computationally expensive... We found a small T (< 10) to give the best compression performance, and therefore leave the investigation of training with a single-step Monte-Carlo objective to future work.' Rebuttal justifies using full-NELBO (T=5 has not converged to CLT limit) but does not provide empirical validation: no comparison of full-NELBO vs. single-step training on the same model, no measurement of bias reduction, no estimate of compression performance loss. Training times (24-96 GPU-hours) are provided but not compared to single-step training cost.",
+                "affected_claim": "The choice of training procedure is not empirically validated; the computational cost and benefit trade-off is unclear.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical approach is sound. Theorem A.1 and its proof are correct; the convergence analysis is rigorous. The connection to universal quantization is properly formulated. The rebuttal provides analytical justification for the discretization overhead (Appendix B.2), showing L_{t-1} ≥ ~1/3 log(2) bits per step is inherent to uniform channels. Algorithms 1-2 are clearly specified and correctly implement the encoding/decoding procedure. No mathematical errors detected. The inherent performance gap is explained but not a flaw—it is a fundamental limitation of the approach."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "UQDM with uniform noise in the forward process to enable tractable progressive compression via universal quantization is novel and distinct from prior work (Gaussian VDM, conditional diffusion models). The theoretical analysis (convergence to Gaussian diffusion) provides new insight. While individual components build on prior work, the overall contribution is sufficiently novel for a top-tier venue."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a meaningful problem (tractable progressive neural compression) and demonstrates that unconditional diffusion models can be used for compression for the first time (prior work intractable). Results are competitive with recent neural codecs (CTC) and traditional baselines (JPEG2000). However, significance is moderate rather than high due to: (1) fundamental performance gap vs. Gaussian diffusion limits advantage, (2) practical deployment barriers (5-minute runtime, experiments only on small images), (3) marginal improvements over conditional diffusion models when considering runtime and training complexity. This is a solid incremental contribution rather than a breakthrough, warranting acceptance but with limited impact potential."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments on toy data (swirl), CIFAR-10 (32×32), and ImageNet (64×64) with multiple baselines (JPEG, JPEG2000, BPG, CTC, CDC) are reasonable. Ablations on T and variance learning are provided. However, evaluation has clear limitations: (1) no experiments on realistic image sizes (>64×64), (2) no quantitative metrics for reconstruction quality (LPIPS, MS-SSIM), (3) only one timing measurement (5 minutes; no parallelized implementation), (4) no ablation of training procedure choice (full-NELBO vs. single-step). These limitations do not invalidate the main claims but restrict scope of validation. Results adequately support that UQDM is computationally tractable and achieves competitive compression on small images, but scalability and practical deployment remain undemonstrated."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written with clear mathematical exposition, comprehensive background, and rigorous proofs in appendices. Main text is accessible. Figures effectively communicate results. The rebuttal provides valuable clarifications distinguishing inherent limitations (discretization overhead) from implementation limitations (5-minute runtime). However, clarity on practical deployment scenarios and when UQDM should be used (vs. alternatives) could be improved. Clarity gate passes but presentation could be enhanced with deployment recommendations."
+              }
+            },
+            "summary_comment": "This paper makes a solid but incremental contribution to neural compression. UQDM introduces a novel approach (uniform noise diffusion with universal quantization) that achieves computational tractability for progressive diffusion-based compression for the first time. The theoretical analysis is rigorous, and results on small images are competitive. However, the work has material limitations that reduce its significance: (1) a fundamental 2-3 bpd performance gap vs. Gaussian diffusion is unavoidable due to inherent discretization overhead of uniform channels, (2) the demonstrated runtime is prohibitively slow (5 minutes/32×32 image) with only speculative evidence of speedup from unimplemented parallelization, (3) experiments are restricted to small images (≤64×64) without demonstration of scalability, (4) practical deployment scenarios and when UQDM should be preferred over simpler alternatives (conditional models, traditional codecs) are not clearly characterized. The rebuttal's detailed responses clarify these issues (e.g., distinguishing inherent limitations from implementation limitations) and demonstrate the authors' understanding of the trade-offs, but promised future improvements are not in the submitted paper and do not change the evaluation. For a top-tier ML conference, this represents solid work with novel ideas and adequate experimental validation on a limited scale. The contribution is meaningful but not transformative: it opens a new research direction (tractable progressive diffusion compression) with room for substantial improvement in performance, runtime, and scalability. The paper merits acceptance as a solid incremental contribution, not as a breakthrough. Significance is moderate (3) due to limited demonstrated advantage when accounting for all trade-offs; evaluation is moderate (3) due to restricted experimental scale and missing quantitative analyses; novelty and soundness remain strong (4 each)."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Fundamental performance gap vs. Gaussian diffusion is inherent and not fully recoverable\",\n        \"Severe practical deployment barrier: 5 minutes per 32×32 image with no demonstrated parallelization speedup\",\n        \"Limited experimental scale: only 32×32 and 64×64 images, no demonstration on realistic resolutions\",\n        \"Incomplete characterization of deployment scenarios and when UQDM should be preferred\",\n        \"Training procedure choice (full-NELBO vs. single-step Monte Carlo) not theoretically justified\",\n        \"Reconstruction quality artifacts not quantitatively characterized or distinguished from model capacity issues\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Inherent discretization overhead per step makes UQDM fundamentally suboptimal vs. Gaussian diffusion\",\n          \"location\": \"Figure 2, Appendix B.2\",\n          \"explanation\": \"Appendix B.2 analytically derives that L_{t-1} ≥ ~1/3 log(2) bits per dimension per step for uniform channels, regardless of variance learning (the bound assumes 'sufficiently similar' distributions and uses mean-value theorem). This is contrasted with Gaussian diffusion where L_{t-1} → 0 as T → ∞. This explains the ~2.2 bpd gap in Figure 2 (UQDM ~8 bpd vs. VDM ~5.8 bpd on toy data) and is inherent to the uniform-noise approach, not addressable through better design.\"\n        },\n        {\n          \"concern\": \"Prohibitively slow encoding/decoding with learned variance\",\n          \"location\": \"Appendix C.2, Section 3.3\",\n          \"explanation\": \"Appendix C.2 explicitly states: 'For our model with learned reverse-process variance... it takes about 5 minutes to compress or decompress a CIFAR image, with nearly all of the compute time spent on a single CPU core.' The root cause is acknowledged: per-coordinate CDF table construction via sequential for-loop in tensorflow-compression rather than parallel implementation. However, no parallelized implementation is demonstrated or timed in the submission; only fast fixed-variance variant (<1 second) is confirmed working.\"\n        },\n        {\n          \"concern\": \"All experiments limited to 32×32 and 64×64 images\",\n          \"location\": \"Section 5, Appendix C\",\n          \"explanation\": \"CIFAR-10 experiments use 32×32 (Section 5.2), ImageNet experiments use 64×64 (Section 5.3). Appendix C.3 provides FLOPS/pixel analysis (204M FLOPS/pixel for largest model) showing quadratic scaling to larger images. No actual experiments at 128×128, 256×256, or higher are provided. Rebuttal confirms 'restriction to 32×32 and 64×64 images is a practical limitation due to GPU memory and computational resources during development.'\"\n        },\n        {\n          \"concern\": \"No clear guidance on deployment scenarios or when UQDM should be used\",\n          \"location\": \"Introduction, Discussion (Section 6), Experiments (Section 5)\",\n          \"explanation\": \"The paper positions UQDM as a general progressive codec but does not clearly specify when it should be preferred: fast fixed-variance achieves <1 second but sacrifices compression; learned-variance achieves better compression but requires 5 minutes. No comparison of runtime vs. conditional diffusion models (e.g., CDC, CTC) is provided. No decision tree or guidance for practitioners on scenario selection.\"\n        },\n        {\n          \"concern\": \"Full-NELBO training (expensive) chosen over standard single-step Monte Carlo\",\n          \"location\": \"Section 5, Appendix A.3\",\n          \"explanation\": \"Section 5 states: 'This involves simulating the entire forward process {z0,...,zT} according to eq. (4) and can be computationally expensive when T is large but can be avoided by using a Monte-Carlo estimate based on a single Lt as in the diffusion literature... We found a small T (< 10) to give the best compression performance, and therefore leave the investigation of training with a single-step Monte-Carlo objective to future work.' The rebuttal provides training times (24-96 GPU-hours) but does not compare to single-step training or provide theoretical justification for the full-NELBO choice when T=5 (where CLT approximation in Appendix A.3 may not strongly hold).\"\n        },\n        {\n          \"concern\": \"Reconstruction quality artifacts not quantitatively measured or traced to their source\",\n          \"location\": \"Section 5.3, Figure 5\",\n          \"explanation\": \"Section 5.3 reports: 'UQDM with denoised predictions tends to introduce blurriness, while ancestral sampling introduces graininess at low bit-rates, likely because the UQDM is unable to completely capture the data distribution.' Figure 5 shows qualitative examples. However, no LPIPS, MS-SSIM, or other perceptual metrics are provided; no ablation investigates whether artifacts are from insufficient model training vs. fundamental UQDM design limitations. No quantitative comparison of flow-based reconstruction's improvement is provided.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Inherent performance gap vs. Gaussian diffusion limits practical advantage\",\n          \"proposed_change\": \"Revise Discussion (Section 6) to explicitly frame the inherent limitation: 'The discretization overhead of uniform channels (L_{t-1} ≥ ~1/3 log(2) bits/step, analytically derived in Appendix B.2) represents a fundamental trade-off: UQDM achieves computational tractability through universal quantization at the cost of ~2-3 bpd performance gap vs. Gaussian diffusion. This overhead is not fully recoverable through design improvements but may be acceptable if practical encoder/decoder speed can be realized.' Clarify whether this trade-off is worthwhile compared to simpler non-progressive baselines (e.g., conditional models or VAE-based methods).\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Severe runtime barrier with no demonstrated solution\",\n          \"proposed_change\": \"In Discussion or Appendix C.2, add language: 'The current 5-minute encoding time for learned-variance UQDM on 32×32 images reflects sequential per-coordinate CDF table construction in tensorflow-compression. Parallelization (e.g., via the DietGPU library) is expected to achieve sub-second timings comparable to the fixed-variance variant, but this optimization is not yet implemented. Practitioners seeking immediate deployment should use the fixed-variance variant (achieving <1 second/image at modest compression sacrifice) or conditional diffusion models with known runtime characteristics.' Optionally, implement a quick parallelized entropy coding pass to provide evidence of achievable speedup, or provide detailed complexity analysis and estimated speedup factors from parallelization.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Experiments limited to small images; scalability to realistic resolutions undemonstrated\",\n          \"proposed_change\": \"Add one additional experiment: train and evaluate UQDM on 128×128 or 256×256 images (even with a smaller network to reduce memory), or provide measured timing/memory on a scaled-up problem to validate the FLOPS/pixel estimates. If resource constraints prevent new experiments, explicitly state in Abstract and Discussion: 'Current experiments are limited to 32×32 and 64×64 images; scaling to realistic resolutions (≥256×256) remains important future work and may reveal additional computational or memory bottlenecks.' Avoid claiming 'practical deployment' without evidence at realistic scales.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"No guidance on when UQDM should be deployed vs. alternatives\",\n          \"proposed_change\": \"Add a subsection in Discussion or Appendix C titled 'Deployment Recommendations' that clearly states: (1) Fast fixed-variance UQDM: <1 second/image, competitive PSNR at mid-to-high bitrates, sacrifices some compression; recommended for latency-critical applications. (2) Learned-variance UQDM: 5 minutes/image (implementation-limited; expected <1 second with parallelization), best compression performance, suits offline/batch compression. (3) Conditional diffusion models: separate models per bitrate, known encoder/decoder speeds (cite CTC, CDC papers), simpler implementation. Provide a decision tree or table comparing runtime, compression ratio, single-model-covers-all-bitrates, and realism criterion to help practitioners choose.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Training procedure choice not theoretically justified\",\n          \"proposed_change\": \"In Section 5 or Appendix B, add brief justification: 'We train on the full NELBO (summing across all timesteps) rather than single-step Monte Carlo estimation because for small T (T=5), the marginal distribution q(z_t|x) does not yet satisfy the CLT approximation (Appendix A.3), and thus single-step estimates may be biased. As future work, we plan to investigate single-step training for larger T values (T≥20) where the Gaussian approximation is stronger.' Provide actual comparison if feasible: train one small model with both methods and compare convergence rate and final NELBO to quantify the trade-off.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Reconstruction quality artifacts not quantitatively analyzed\",\n          \"proposed_change\": \"In Section 5.3 or Appendix, add quantitative metrics: (1) Compute LPIPS and MS-SSIM for denoised vs. ancestral vs. flow-based reconstructions across multiple bitrates (e.g., 0.1-2 bpp). (2) Measure FID separately for each reconstruction method to isolate the quality gap attributable to UQDM design vs. model capacity. (3) Ablate by training identical UQDM models with different network sizes (small, medium, large) and evaluate whether larger models reduce blurriness/graininess, distinguishing model capacity from UQDM design limitations. Report results in a table or figure showing which method (and architecture size) is optimal at each bitrate. If new experiments are not feasible, state: 'Quantitative characterization of reconstruction quality artifacts and their sources (model capacity vs. UQDM design) remains future work.'\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the reviewer's detailed follow-up assessment. The rebuttal confirms several key points, and we address the remaining concerns below.\\n\\n**On the inherent discretization overhead and performance gap:**\\n\\nThe reviewer correctly emphasizes that the discretization overhead (L_{t-1} ≥ ~1/3 log(2) bits/step, Appendix B.2) is fundamental to uniform channels and not fully recoverable. We agree this represents an inherent trade-off: UQDM achieves **tractability** through universal quantization at the cost of a **permanent performance gap** vs. Gaussian diffusion. This gap is not a flaw—it is the price of computational feasibility. We will revise the Discussion to explicitly frame this trade-off: 'UQDM achieves computational tractability for progressive compression by replacing intractable Gaussian channel simulation with efficient universal quantization. This substitution incurs an inherent discretization overhead (~1/3 log(2) bits per step, Appendix B.2), resulting in a ~2-3 bpd performance gap vs. Gaussian diffusion (Figure 2). This overhead is fundamental to uniform noise channels and not fully addressable through design improvements. However, the practical value of this trade-off—computational tractability vs. modest compression performance loss—depends on whether parallel implementation of entropy coding can achieve practical encoding times (see below).'\\n\\nWe also note that the 2-3 bpd gap is smaller than one might expect from the theoretical overhead alone (~0.33 bits/step × 5 steps ≈ 1.65 bpd), suggesting that learned reverse-process variances and careful hyperparameter tuning can partially compensate. Future work exploring alternative reverse-process designs (mixture models, non-Gaussian base distributions) may further reduce this gap, as suggested in Appendix B.2.\\n\\n**On the 5-minute runtime and practical deployment:**\\n\\nThe reviewer's criticism is fair: claiming 'practical deployment' while demonstrating only 5-minute encoding times on 32×32 images is contradictory. However, we emphasize that this timing reflects a **specific implementation choice** (sequential CDF construction in tensorflow-compression), not the algorithm's inherent complexity. The encoding procedure (Algorithm 1) requires:\\n- T ≈ 5 forward passes through the denoising network: ~0.1-0.2 seconds\\n- Per-timestep entropy coding: dominated by CDF table construction for each latent dimension (~0.5-1 second if parallelized, but tensorflow-compression uses a for-loop, causing 4+ minutes)\\n\\nWe acknowledge that the submission provides **no direct evidence** of parallelized speedup. The rebuttal's reference to DietGPU is speculative. To strengthen this claim, we propose adding a brief computational analysis in Appendix C:\\n\\n**Proposed addition to Appendix C.2:**\\n'**Speedup potential with parallel entropy coding:** The 5-minute encoding time is dominated by sequential CDF table construction (4.5+ of 5 minutes). With K latent dimensions, CDF construction requires K independent 1D table builds, which are embarrassingly parallelizable. Assuming P processors: expected speedup = K/P (for P ≤ K). For ImageNet 64×64 with ~4,096 latent dimensions and P=256 (typical GPU), estimated speedup factor ≈ 16×, yielding <20 seconds per image. A GPU-optimized entropy coding implementation (e.g., DietGPU or custom CUDA kernels) is left to future work but is a straightforward optimization.'\\n\\nWe also note that the **fast fixed-variance variant** achieves <1 second per image and remains practical for deployment if the compression performance trade-off is acceptable. We will clarify in the Discussion when each variant is recommended.\\n\\n**On limited experimental scale (32×32 and 64×64 images):**\\n\\nThe reviewer correctly identifies that experiments on only 32×32 and 64×64 images do not demonstrate realistic scalability. The rebuttal's acknowledgment of resource constraints is honest but insufficient for a venue claiming 'practical deployment.' We propose two approaches:\\n\\n*Option 1 (preferred):* Add one experiment on 128×128 images with a smaller architecture (e.g., 8 ResNet blocks, 64 channels instead of 64 ResNet blocks) to demonstrate scalability. Report compression performance, file sizes, and encoding time. This would provide evidence that UQDM scales to slightly larger images and would validate the FLOPS/pixel estimates in Appendix C.3.\\n\\n*Option 2:* Revise the abstract and discussion to explicitly scope claims: 'We demonstrate UQDM on small images (≤64×64); scaling to realistic resolutions (≥256×256) remains important future work.' Remove claims of 'practical deployment' without caveat.\\n\\nWe recommend Option 1 if feasible, or a combination of Option 2 plus detailed computational analysis showing extrapolated timing for larger images.\\n\\n**On deployment scenarios and when UQDM should be preferred:**\\n\\nThe reviewer identifies a genuine gap: the paper does not clearly specify when UQDM is preferable to alternatives. We will add a **Deployment Recommendations** section to the Discussion or Appendix:\\n\\n**Proposed addition to Discussion (Section 6):**\\n'**When to use UQDM:**\\n- *Fast fixed-variance UQDM* (<1 second/image, 32×32): Suitable for real-time or interactive applications requiring variable-bitrate compression, accepting modest compression performance loss. Best for mid-to-high bitrates (>0.5 bpp).\\n- *Learned-variance UQDM* (expected <1 second with parallelization; currently 5 minutes): Suitable for offline batch compression where encoding speed is less critical. Achieves best compression performance across all bitrates. Requires implementation of parallel entropy coding to be practical.\\n- *Conditional diffusion models* (CDC, CTC): Simpler implementation, known encoder speeds, but require separate models per bitrate or retraining for each trade-off. Single UQDM model covers all bitrates and lossy+lossless compression.\\n- *Traditional codecs* (JPEG, BPG): Mature, fast, widely deployed. UQDM achieves superior realism at ultra-low bitrates (ideal for synthetic image generation use cases); choose UQDM only if realism or progressive decoding are critical requirements.'\\n\\n**On the choice of full-NELBO training:**\\n\\nThe reviewer raises a valid point: why use expensive full-NELBO training instead of standard single-step Monte Carlo? We clarify: For small T (T=5), the CLT has not yet converged strongly, so sampling from the marginal q(z_t|x) is approximately (but not exactly) Gaussian. Using single-step Monte Carlo with T=5 could introduce bias. For larger T (T≥20), the Gaussian approximation is stronger, and single-step training would be more efficient. We trained with full-NELBO to avoid this bias for small T, but at the computational cost you identified (24-96 GPU-hours vs. potentially 6-12 GPU-hours for single-step).\\n\\n**Proposed addition to Section 5:**\\n'We train using the full NELBO rather than single-step Monte Carlo estimation because for small T (T=5), the marginal distribution q(z_t|x) does not fully satisfy the Central Limit Theorem approximation (Appendix A.3), which could introduce bias in single-step estimates. As T increases, this approximation strengthens; future work should investigate whether single-step training becomes viable for T≥20, potentially reducing training cost. (Training times: full-NELBO with T=5 requires ~24-96 GPU-hours; estimated single-step training cost is ~2-4× lower but not yet validated.)'\\n\\nIf time permits, we recommend running a quick ablation: train identical small models with full-NELBO (T=5) and single-step Monte Carlo, and report final NELBO and training time to quantify the trade-off.\\n\\n**On reconstruction quality artifacts:**\\n\\nThe reviewer emphasizes that artifacts (blurriness vs. graininess) are not quantitatively characterized. We agree this is a weakness. We propose adding quantitative analysis to Appendix B.3 or a new subsection:\\n\\n**Proposed addition (Appendix B.3.1: Quantitative Reconstruction Quality Analysis):**\\n'To characterize reconstruction quality across methods, we compute: (1) LPIPS (learned perceptual image patch similarity) and MS-SSIM for each reconstruction method (denoised, ancestral, flow-based) at multiple bitrates. (2) FID (Fréchet Inception Distance) separately for each method to isolate model-capacity artifacts from UQDM design effects. (3) Model-capacity ablation: train UQDM models with different network sizes (UQDM-small: 2M parameters, UQDM-medium: 122M, UQDM-big: 237M) and evaluate whether larger models reduce blurriness/graininess, indicating these artifacts are from model capacity rather than fundamental UQDM limitations. (Preliminary results: flow-based reconstruction outperforms denoised and ancestral on FID; larger models reduce graininess in ancestral sampling; denoised predictions remain slightly blurry at low bitrates regardless of model size, suggesting inherent trade-off between efficient gradual decoding and artifact-free reconstructions.)'\\n\\nIf implementing this analysis is not feasible before resubmission, we will state explicitly in the revised submission: 'Quantitative characterization of reconstruction quality (LPIPS, MS-SSIM, FID comparison across methods) and investigation of whether artifacts are from model capacity or UQDM design limitations remain important future work.'\\n\\n**Summary of revisions:**\\n\\nThe rebuttal and this response clarify that:\\n1. The performance gap vs. Gaussian diffusion is inherent and framed as a tractability trade-off.\\n2. The 5-minute runtime is an implementation limitation with concrete parallelization potential (16× speedup estimated).\\n3. Experiments are limited to small images for resource reasons; larger-scale experiments or clear scoping would strengthen claims.\\n4. UQDM should be recommended for specific scenarios (progressive decoding, single-model-for-all-bitrates, realism criterion) rather than as a general replacement for existing codecs.\\n5. Reconstruction quality artifacts and training procedure choices require more rigorous analysis or explicit acknowledgment as future work.\\n\\nThese revisions address the reviewer's main concerns without requiring fundamental changes to the method or claiming capabilities beyond what the submission demonstrates.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_dc27f1074816",
+    "conference": "ICLR",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/iclr_accept_2025_030_progressive_compression_with_universally_quantized_diffusion_models.md",
+    "target_paper_summary": {
+      "paper_id": "paper_dc27f1074816",
+      "title": "Progressive Compression With Universally Quantized Diffusion Models",
+      "abstract": "Diffusion probabilistic models have achieved mainstream success in many generative modeling tasks, from image generation to inverse problem solving. A distinct feature of these models is that they correspond to deep hierarchical latent variable models optimizing a variational evidence lower bound (ELBO) on the data likelihood. Drawing on a basic connection between likelihood modeling and compression, we explore the potential of diffusion models for progressive coding, resulting in a sequence of bits that can be incrementally transmitted and decoded with progressively improving reconstruction quality. Unlike prior work based on Gaussian diffusion or conditional diffusion models, we propose a new form of diffusion model with uniform noise in the forward process, whose negative ELBO corresponds to the end-to-end compression cost using universal quantization. We obtain promising first results on image compression, achieving competitive ratedistortion and rate-realism results on a wide range of bit-rates with a single model, bringing neural codecs a step closer to practical deployment. Our code can be found at https://github.com/mandt-lab/uqdm.",
+      "topic": "",
+      "claims": [
+        "we propose a new form of diffusion model with uniform noise in the forward process, whose negative ELBO corresponds to the end-to-end compression cost using universal quantization."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_002_6edc72b55",
+        "title": "QARV: Quantization-Aware ResNet VAE for Lossy Image Compression",
+        "authors": [
+          "Zhihao Duan",
+          "Ming Lu",
+          "Jack Ma",
+          "Yuning Huang",
+          "Zhan Ma",
+          "Fengqing Zhu"
+        ],
+        "year": 2023,
+        "publication_date": "2023-10-09",
+        "venue": "IEEE Transactions on Pattern Analysis and Machine Intelligence",
+        "abstract": "This paper addresses the problem of lossy image compression, a fundamental problem in image processing and information theory that is involved in many real-world applications. We start by reviewing the framework of variational autoencoders (VAEs), a powerful class of generative probabilistic models that has a deep connection to lossy compression. Based on VAEs, we develop a new scheme for lossy image compression, which we name quantization-aware ResNet VAE (QARV). Our method incorporates a hierarchical VAE architecture integrated with test-time quantization and quantization-aware training, without which efficient entropy coding would not be possible. In addition, we design the neural network architecture of QARV specifically for fast decoding and propose an adaptive normalization operation for variable-rate compression. Extensive experiments are conducted, and results show that QARV achieves variable-rate compression, high-speed decoding, and better rate-distortion performance than existing baseline methods.",
+        "url": "https://doi.org/10.1109/tpami.2023.3322904",
+        "doi": "https://doi.org/10.1109/tpami.2023.3322904",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4387449305"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 87
+      },
+      {
+        "paper_id": "rw_003_13bbde5bf",
+        "title": "Progressive Compression with Universally Quantized Diffusion Models",
+        "authors": [
+          "Yibo Yang",
+          "Justus C. Will",
+          "Stephan Mandt"
+        ],
+        "year": 2024,
+        "publication_date": "2024-12-14",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Diffusion probabilistic models have achieved mainstream success in many generative modeling tasks, from image generation to inverse problem solving. A distinct feature of these models is that they correspond to deep hierarchical latent variable models optimizing a variational evidence lower bound (ELBO) on the data likelihood. Drawing on a basic connection between likelihood modeling and compression, we explore the potential of diffusion models for progressive coding, resulting in a sequence of bits that can be incrementally transmitted and decoded with progressively improving reconstruction quality. Unlike prior work based on Gaussian diffusion or conditional diffusion models, we propose a new form of diffusion model with uniform noise in the forward process, whose negative ELBO corresponds to the end-to-end compression cost using universal quantization. We obtain promising first results on image compression, achieving competitive rate-distortion and rate-realism results on a wide range of bit-rates with a single model, bringing neural codecs a step closer to practical deployment.",
+        "url": "http://arxiv.org/abs/2412.10935",
+        "doi": "https://doi.org/10.48550/arxiv.2412.10935",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4405468662"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 0
+      },
+      {
+        "paper_id": "rw_004_5cad3b835",
+        "title": "A Metaverse: Taxonomy, Components, Applications, and Open Challenges",
+        "authors": [
+          "Sangmin Park",
+          "Young‐Gab Kim"
+        ],
+        "year": 2022,
+        "publication_date": "2022-01-01",
+        "venue": "IEEE Access",
+        "abstract": "Unlike previous studies on the Metaverse based on Second Life, the current Metaverse is based on the social value of Generation Z that online and offline selves are not different. With the technological development of deep learning-based high-precision recognition models and natural generation models, Metaverse is being strengthened with various factors, from mobile-based always-on access to connectivity with reality using virtual currency. The integration of enhanced social activities and neural-net methods requires a new definition of Metaverse suitable for the present, different from the previous Metaverse. This paper divides the concepts and essential techniques necessary for realizing the Metaverse into three components (i.e., hardware, software, and contents) and three approaches (i.e., user interaction, implementation, and application) rather than marketing or hardware approach to conduct a comprehensive analysis. Furthermore, we describe essential methods based on three components and techniques to Metaverse&#x2019;s representative Ready Player One, Roblox, and Facebook research in the domain of films, games, and studies. Finally, we summarize the limitations and directions for implementing the immersive Metaverse as social influences, constraints, and open challenges.",
+        "url": "https://doi.org/10.1109/access.2021.3140175",
+        "doi": "https://doi.org/10.1109/access.2021.3140175",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4206484811"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1789
+      },
+      {
+        "paper_id": "rw_005_44ccf549a",
+        "title": "Inorganic Chemistry: Principles of Structure and Reactivity",
+        "authors": [
+          "Haneen Mohammed Abbas Kasar",
+          "Zainab Najib Badr",
+          "Zahraa Sattar Jaber Khnyab",
+          "Adil Saleh Mohammed Jofan"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-01",
+        "venue": "Bright Sky Publications eBooks",
+        "abstract": "Buy Inorganic Chemistry: Principles of Structure and Reactivity edited by Haneen Mohammed Abbas Kasar, Zainab Najib Badr Abd, Zahraa Sattar Jaber Khnyab and Yasser Ammar Habib Daoud Al-Samarrai at low price.",
+        "url": "https://doi.org/10.62906/bs.book.181",
+        "doi": "https://doi.org/10.62906/bs.book.181",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4403733501"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 2395
+      },
+      {
+        "paper_id": "rw_006_dcf4bb274",
+        "title": "Parameter-Efficient Fine-Tuning for Large Models: A Comprehensive Survey",
+        "authors": [
+          "Zeyu Han",
+          "Chao Gao",
+          "Jinyang Liu",
+          "Jeff",
+          "Zhang"
+        ],
+        "year": 2024,
+        "publication_date": "2024-03-21",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large models represent a groundbreaking advancement in multiple application fields, enabling remarkable achievements across various tasks. However, their unprecedented scale comes with significant computational costs. These models, often consisting of billions of parameters, require vast amounts of computational resources for execution. Especially, the expansive scale and computational demands pose considerable challenges when customizing them for particular downstream tasks, particularly over the hardware platforms constrained by computational capabilities. Parameter Efficient Fine-Tuning (PEFT) provides a practical solution by efficiently adjusting the large models over the various downstream tasks. In particular, PEFT refers to the process of adjusting the parameters of a pre-trained large model to adapt it to a specific task or domain while minimizing the number of additional parameters introduced or computational resources required. This approach is particularly important when dealing with large-scale language models with high parameter counts, as fine-tuning these models from scratch can be computationally expensive and resource-intensive, posing considerable challenges in the supporting system platform design. In this survey, we present comprehensive studies of various PEFT algorithms, examining their performance and computational overhead. Moreover, we provide an overview of applications developed using different PEFT algorithms and discuss common techniques employed to mitigate computation costs for PEFT. In addition to providing an extensive survey from an algorithmic standpoint, we also examine various real-world system designs to investigate the implementation costs associated with different PEFT approaches. This survey serves as a valuable resource for researchers aiming to understand both the PEFT algorithm and its system implementation, offering detailed ......",
+        "url": "http://arxiv.org/abs/2403.14608",
+        "doi": "https://doi.org/10.48550/arxiv.2403.14608",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4393138529"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 92
+      },
+      {
+        "paper_id": "rw_007_08a8a4961",
+        "title": "An overview of large AI models and their applications",
+        "authors": [
+          "Xiaoguang Tu",
+          "Zhimin He",
+          "Yi Huang",
+          "Zhihao Zhang",
+          "Ming Yang",
+          "Jian Zhao"
+        ],
+        "year": 2024,
+        "publication_date": "2024-12-27",
+        "venue": "Visual Intelligence",
+        "abstract": "Abstract In recent years, large-scale artificial intelligence (AI) models have become a focal point in technology, attracting widespread attention and acclaim. Notable examples include Google’s BERT and OpenAI’s GPT, which have scaled their parameter sizes to hundreds of billions or even tens of trillions. This growth has been accompanied by a significant increase in the amount of training data, significantly improving the capabilities and performance of these models. Unlike previous reviews, this paper provides a comprehensive discussion of the algorithmic principles of large-scale AI models and their industrial applications from multiple perspectives. We first outline the evolutionary history of these models, highlighting milestone algorithms while exploring their underlying principles and core technologies. We then evaluate the challenges and limitations of large-scale AI models, including computational resource requirements, model parameter inflation, data privacy concerns, and specific issues related to multi-modal AI models, such as reliance on text-image pairs, inconsistencies in understanding and generation capabilities, and the lack of true “multi-modality”. Various industrial applications of these models are also presented. Finally, we discuss future trends, predicting further expansion of model scale and the development of cross-modal fusion. This study provides valuable insights to inform and inspire future future research and practice.",
+        "url": "https://doi.org/10.1007/s44267-024-00065-8",
+        "doi": "https://doi.org/10.1007/s44267-024-00065-8",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4405827891"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 65
+      },
+      {
+        "paper_id": "rw_008_3ee8ae2f4",
+        "title": "Salient object detection: A survey",
+        "authors": [
+          "Ali Borji",
+          "Ming-Ming Cheng",
+          "Qibin Hou",
+          "Huaizu Jiang",
+          "Jia Li"
+        ],
+        "year": 2019,
+        "publication_date": "2019-06-01",
+        "venue": "Computational Visual Media",
+        "abstract": "Detecting and segmenting salient objects from natural scenes, often referred to as salient object detection, has attracted great interest in computer vision. While many models have been proposed and several applications have emerged, a deep understanding of achievements and issues remains lacking. We aim to provide a comprehensive review of recent progress in salient object detection and situate this field among other closely related areas such as generic scene segmentation, object proposal generation, and saliency for fixation prediction. Covering 228 publications, we survey i) roots, key concepts, and tasks, ii) core techniques and main modeling trends, and iii) datasets and evaluation metrics for salient object detection. We also discuss open problems such as evaluation metrics and dataset bias in model performance, and suggest future research directions.",
+        "url": "https://doi.org/10.1007/s41095-019-0149-9",
+        "doi": "https://doi.org/10.1007/s41095-019-0149-9",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2160613239"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 503
+      },
+      {
+        "paper_id": "rw_009_b96e3d2fd",
+        "title": "Compression with Bayesian Implicit Neural Representations",
+        "authors": [
+          "Zongyu Guo",
+          "Gergely Flamich",
+          "Jiajun He",
+          "Zhibo Chen",
+          "José Miguel Hernández-Lobato"
+        ],
+        "year": 2023,
+        "publication_date": "2023-05-30",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Many common types of data can be represented as functions that map coordinates to signal values, such as pixel locations to RGB values in the case of an image. Based on this view, data can be compressed by overfitting a compact neural network to its functional representation and then encoding the network weights. However, most current solutions for this are inefficient, as quantization to low-bit precision substantially degrades the reconstruction quality. To address this issue, we propose overfitting variational Bayesian neural networks to the data and compressing an approximate posterior weight sample using relative entropy coding instead of quantizing and entropy coding it. This strategy enables direct optimization of the rate-distortion performance by minimizing the $β$-ELBO, and target different rate-distortion trade-offs for a given network architecture by adjusting $β$. Moreover, we introduce an iterative algorithm for learning prior weight distributions and employ a progressive refinement process for the variational posterior that significantly enhances performance. Experiments show that our method achieves strong performance on image and audio compression while retaining simplicity.",
+        "url": "http://arxiv.org/abs/2305.19185",
+        "doi": "https://doi.org/10.48550/arxiv.2305.19185",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4378945638"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 6
+      },
+      {
+        "paper_id": "rw_010_412cb6fab",
+        "title": "A Survey of Resource-efficient LLM and Multimodal Foundation Models",
+        "authors": [
+          "Mengwei Xu",
+          "Wangsong Yin",
+          "Dongqi Cai",
+          "Rongjie Yi",
+          "Daliang Xu",
+          "Qipeng Wang",
+          "Bingyang Wu",
+          "Yihao Zhao",
+          "Chen Yang",
+          "Shihe Wang",
+          "Qiyang Zhang",
+          "Zhen-Yan Lu",
+          "Li Zhang",
+          "Shangguang Wang",
+          "Yuanchun Li",
+          "Yunxin Liu",
+          "Xin Jin",
+          "Xuanzhe Liu"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-16",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large foundation models, including large language models (LLMs), vision transformers (ViTs), diffusion, and LLM-based multimodal models, are revolutionizing the entire machine learning lifecycle, from training to deployment. However, the substantial advancements in versatility and performance these models offer come at a significant cost in terms of hardware resources. To support the growth of these large models in a scalable and environmentally sustainable way, there has been a considerable focus on developing resource-efficient strategies. This survey delves into the critical importance of such research, examining both algorithmic and systemic aspects. It offers a comprehensive analysis and valuable insights gleaned from existing literature, encompassing a broad array of topics from cutting-edge model architectures and training/serving algorithms to practical system designs and implementations. The goal of this survey is to provide an overarching understanding of how current approaches are tackling the resource challenges posed by large foundation models and to potentially inspire future breakthroughs in this field.",
+        "url": "http://arxiv.org/abs/2401.08092",
+        "doi": "https://doi.org/10.48550/arxiv.2401.08092",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4390962670"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 32
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_003_13bbde5bf",
+        "relevance_score": 1.0,
+        "relevance_types": [
+          "same_problem",
+          "same_method",
+          "novelty_competitor"
+        ],
+        "rationale": "This is the same paper as the target, matching title, authors, abstract, and content.",
+        "evidence_summary": "In 2024, Yang et al. published 'Progressive Compression with Universally Quantized Diffusion Models,' which proposed a diffusion model with uniform noise in the forward process, linking its negative ELBO to end-to-end compression cost via universal quantization. The method achieved competitive rate-distortion and rate-realism results across a wide range of bit-rates for image compression with a single model."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_002_6edc72b55",
+        "relevance_score": 0.9,
+        "relevance_types": [
+          "same_problem",
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "Directly addresses lossy image compression using variational autoencoders, a related generative model approach, with quantization-aware training and entropy coding, providing a relevant baseline.",
+        "evidence_summary": "In 2023, Duan et al. published 'QARV: Quantization-Aware ResNet VAE for Lossy Image Compression,' which developed a hierarchical VAE architecture integrated with test-time quantization and quantization-aware training for efficient entropy coding. The method achieved variable-rate compression, high-speed decoding, and better rate-distortion performance than existing baselines in extensive experiments."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_009_b96e3d2fd",
+        "relevance_score": 0.8,
+        "relevance_types": [
+          "same_problem",
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Focuses on compression using neural representations with Bayesian methods, addressing quantization inefficiencies and optimizing rate-distortion, which relates to the target's compression approach.",
+        "evidence_summary": "In 2023, Guo et al. published 'Compression with Bayesian Implicit Neural Representations,' which proposed overfitting variational Bayesian neural networks to data and compressing weight samples using relative entropy coding to optimize rate-distortion via minimizing the β-ELBO. The method achieved strong performance on image and audio compression while addressing quantization inefficiencies through iterative prior learning and progressive refinement."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_006_dcf4bb274",
+        "relevance_score": 0.5,
+        "relevance_types": [
+          "same_constraints",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Discusses parameter-efficient fine-tuning for large models, highlighting computational constraints and resource challenges relevant to neural codec deployment.",
+        "evidence_summary": "In 2024, Han et al. published 'Parameter-Efficient Fine-Tuning for Large Models: A Comprehensive Survey,' which examined PEFT algorithms for adapting pre-trained models to downstream tasks with minimal additional parameters or computational resources. The survey analyzed performance, computational overhead, and techniques to mitigate costs, addressing challenges in system platform design for large-scale models."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_010_412cb6fab",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "same_constraints",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Surveys resource-efficient strategies for large foundation models, including computational and hardware constraints, which contextualizes deployment challenges for neural codecs.",
+        "evidence_summary": "In 2024, Xu et al. published 'A Survey of Resource-efficient LLM and Multimodal Foundation Models,' which analyzed algorithmic and systemic approaches to reduce hardware resource demands for large models like LLMs and ViTs. The survey covered model architectures, training/serving algorithms, and system designs to address scalability and environmental sustainability."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_007_08a8a4961",
+        "relevance_score": 0.4,
+        "relevance_types": [
+          "same_constraints"
+        ],
+        "rationale": "Provides an overview of large AI models and their applications, discussing computational resource requirements and limitations, which offers background on model scalability issues.",
+        "evidence_summary": "In 2024, Tu et al. published 'An overview of large AI models and their applications,' which discussed the evolutionary history, algorithmic principles, and industrial applications of large-scale AI models like BERT and GPT. The paper evaluated challenges such as computational resource requirements, model parameter inflation, and data privacy concerns, while predicting future trends in model scale and cross-modal fusion."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_008_3ee8ae2f4",
+        "relevance_score": 0.2,
+        "relevance_types": [],
+        "rationale": "Focuses on salient object detection, a computer vision task unrelated to compression or diffusion models, with minimal relevance.",
+        "evidence_summary": "In 2019, Borji et al. published 'Salient object detection: A survey,' which reviewed progress in detecting and segmenting salient objects from natural scenes, covering concepts, techniques, datasets, and evaluation metrics. The survey discussed open problems like evaluation metrics and dataset bias, suggesting future research directions."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_004_5cad3b835",
+        "relevance_score": 0.1,
+        "relevance_types": [],
+        "rationale": "Discusses the Metaverse taxonomy and components, involving deep learning and social factors, with no direct connection to compression or diffusion models.",
+        "evidence_summary": "In 2022, Park and Kim published 'A Metaverse: Taxonomy, Components, Applications, and Open Challenges,' which analyzed concepts and techniques for the Metaverse, dividing them into hardware, software, and contents components. The paper described methods based on films, games, and studies like Ready Player One and Roblox, summarizing limitations and challenges for immersive implementation."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_005_44ccf549a",
+        "relevance_score": 0.05,
+        "relevance_types": [],
+        "rationale": "Covers inorganic chemistry principles, entirely unrelated to machine learning, compression, or diffusion models.",
+        "evidence_summary": "In 2024, Kasar et al. published 'Inorganic Chemistry: Principles of Structure and Reactivity,' which presented principles of inorganic chemistry without detailing specific methods, datasets, or results relevant to computational topics."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Yibo Yang et al. published \"Progressive Compression with Universally Quantized Diffusion Models\" in arXiv (Cornell University). Unlike prior work based on Gaussian diffusion or conditional diffusion models, the authors propose a new form of diffusion model with uniform noise in the forward process, whose negative ELBO corresponds to the end-to-end compression cost using universal quantization. Diffusion probabilistic models have achieved mainstream success in many generative modeling tasks, from image generation to inverse problem solving. The authors obtain promising first results on image compression, achieving competitive rate-distortion and rate-realism results on a wide range of bit-rates with a single model, bringing neural codecs a step closer to practical deployment. In 2023, Zhihao Duan et al. published \"QARV: Quantization-Aware ResNet VAE for Lossy Image Compression\" in IEEE Transactions on Pattern Analysis and Machine Intelligence. Based on VAEs, the authors develop a new scheme for lossy image compression, which the authors name quantization-aware ResNet VAE (QARV). Extensive experiments are conducted, and results show that QARV achieves variable-rate compression, high-speed decoding, and better rate-distortion performance than existing baseline methods. This paper addresses the problem of lossy image compression, a fundamental problem in image processing and information theory that is involved in many real-world applications. In 2023, Zongyu Guo et al. published \"Compression with Bayesian Implicit Neural Representations\" in arXiv (Cornell University). Many common types of data can be represented as functions that map coordinates to signal values, such as pixel locations to RGB values in the case of an image. Experiments show that the method achieves strong performance on image and audio compression while retaining simplicity. To address this issue, the authors propose overfitting variational Bayesian neural networks to the data and compressing an approximate posterior weight sample using relative entropy coding instead of quantizing and entropy coding it. In 2024, Zeyu Han et al. published \"Parameter-Efficient Fine-Tuning for Large Models: A Comprehensive Survey\" in arXiv (Cornell University). Large models represent a groundbreaking advancement in multiple application fields, enabling remarkable achievements across various tasks. Parameter Efficient Fine-Tuning (PEFT) provides a practical solution by efficiently adjusting the large models over the various downstream tasks. However, their unprecedented scale comes with significant computational costs. In 2024, Mengwei Xu et al. published \"A Survey of Resource-efficient LLM and Multimodal Foundation Models\" in arXiv (Cornell University). To support the growth of these large models in a scalable and environmentally sustainable way, there has been a considerable focus on developing resource-efficient strategies. However, the substantial advancements in versatility and performance these models offer come at a significant cost in terms of hardware resources. Large foundation models, including large language models (LLMs), vision transformers (ViTs), diffusion, and LLM-based multimodal models, are revolutionizing the entire machine learning lifecycle, from training to deployment. In 2024, Xiaoguang Tu et al. published \"An overview of large AI models and their applications\" in Visual Intelligence. The authors first outline the evolutionary history of these models, highlighting milestone algorithms while exploring their underlying principles and core technologies. Notable examples include Google’s BERT and OpenAI’s GPT, which have scaled their parameter sizes to hundreds of billions or even tens of trillions. This growth has been accompanied by a significant increase in the amount of training data, significantly improving the capabilities and performance of these models.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

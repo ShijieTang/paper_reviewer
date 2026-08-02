@@ -1,0 +1,196 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "Addresses a practical and important problem: Fully Unsupervised Anomaly Detection (FUAD) with noisy training data is more realistic than standard UAD and has received limited attention from knowledge distillation methods.",
+        "Well-motivated approach: The paper provides clear intuition for why KD-based methods can work for FUAD through two key assumptions about normal sample dominance and anomaly diversity, supported by both probabilistic and distributional arguments.",
+        "Comprehensive experimental evaluation: The paper includes experiments on two standard datasets (MVTec AD and VisA) with multiple noise levels, both no-overlap and overlap settings, and provides detailed ablation studies examining each component's contribution."
+      ],
+      "weaknesses": [
+        "Limited theoretical grounding for core assumptions: Assumptions 1 and 2 are presented informally with only heuristic justification. The claim that small P(A_m) leads to negligible gradient contribution lacks rigorous analysis of when this holds in practice. The No Free Lunch argument for Assumption 2 is oversimplified and doesn't clearly establish when pseudo-normal features will be reliably generated.",
+        "Modest empirical improvements with high complexity: While CDD shows consistent gains over RD baseline, improvements are often marginal (e.g., on VisA-noise-0.05: +0.9% I-AUC, +0.8% P-AUC in overlap setting). The method introduces significant complexity through domain-specific students, pseudo-normal feature selection, confidence-guided construction, and dynamic K scheduling. The computational overhead and training complexity are not adequately discussed.",
+        "Insufficient experimental analysis of failure cases and robustness: The paper lacks investigation into when and why the method fails. For instance, some categories show inconsistent performance (e.g., transistor, wood). No analysis of sensitivity to hyperparameter choices (r(e), σ_noise, λ(e) schedule, K values) is provided. The limited noise ratios tested (0.05-0.15) don't explore the method's performance under higher contamination.",
+        "Generality claims not adequately supported: The paper claims potential applicability beyond RD but provides no evidence. No experiments test the approach with other KD-based or non-KD anomaly detection paradigms, limiting support for the generality claim.",
+        "Missing critical implementation details and statistical rigor: No error bars or statistical significance tests are reported despite claims of reproducibility. The pseudo-normal feature selection mechanism relies on a previous epoch's global student (S^Glo_{e-1}), creating a circular dependency on epoch 1 that isn't explained. Only one run per experiment appears to be reported."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited theoretical grounding for core assumptions: Assumptions 1 and 2 are presented informally with only heuristic justification. The claim that small P(A_m) leads to negligible gradient contribution lacks rigorous analysis of when this holds in practice. The No Free Lunch argument for Assumption 2 is oversimplified and doesn't clearly establish when pseudo-normal features will be reliably generated.",
+          "severity": "major",
+          "evidence": "Section 3.2 provides Assumptions 1 and 2 with informal probabilistic arguments. The gradient analysis in Eq. (7) assumes negligibility but provides no bounds or conditions. The No Free Lunch invocation (line 165-166) is informal and doesn't rigorously connect to the pseudo-normal feature hypothesis.",
+          "affected_claim": "The core mechanism that domain-specific students generate pseudo-normal features for out-of-domain samples, enabling the cross-domain distillation to work effectively",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Modest empirical improvements with high complexity: While CDD shows consistent gains over RD baseline, improvements are often marginal (e.g., on VisA-noise-0.05: +0.9% I-AUC, +0.8% P-AUC in overlap setting). The method introduces significant complexity through domain-specific students, pseudo-normal feature selection, confidence-guided construction, and dynamic K scheduling. The computational overhead and training complexity are not adequately discussed.",
+          "severity": "major",
+          "evidence": "Table 3 shows VisA overlap improvements: 0.656 (RD) to 0.936 (CDD) for I-AUC, but average metrics show +0.9% gain. Table 1 shows P-AUC improvement of 0.981 vs SoftPatch 0.980 (negligible). The method requires K student networks per epoch, dynamic K schedules, confidence recomputation, and affinity matrix construction, yet computation time and memory usage are not reported.",
+          "affected_claim": "CDD provides significant performance improvements over baseline RD and other FUAD methods with practical efficiency",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Insufficient experimental analysis of failure cases and robustness: The paper lacks investigation into when and why the method fails. For instance, some categories show inconsistent performance (e.g., transistor, wood). No analysis of sensitivity to hyperparameter choices (r(e), σ_noise, λ(e) schedule, K values) is provided. The limited noise ratios tested (0.05-0.15) don't explore the method's performance under higher contamination.",
+          "severity": "major",
+          "evidence": "Table 1 shows high variance across categories (bottle 1.000 vs capsule 0.942 I-AUC). Transistor and screw categories have notably lower performance. No sensitivity analysis for r(e), σ_noise=0.2, or the S-shaped schedule is provided. Only Rnoise ∈ {0.05, 0.1, 0.15} are tested; higher noise ratios are not explored.",
+          "affected_claim": "CDD is a robust method that effectively handles FUAD across diverse scenarios with controlled hyperparameters",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Generality claims not adequately supported: The paper claims potential applicability beyond RD but provides no evidence. No experiments test the approach with other KD-based or non-KD anomaly detection paradigms, limiting support for the generality claim.",
+          "severity": "major",
+          "evidence": "Section 6 (Discussion) states: 'Although CDD is implemented based on the RD paradigm, the core design is conceptually general...' but then admits 'our experiments are restricted to RD-based architectures' and 'Future work will focus on adapting and validating CDD under other paradigms.' No evidence of generality is provided.",
+          "affected_claim": "The proposed domain-specific training and cross-domain knowledge aggregation framework is a general approach applicable to various anomaly detection paradigms",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Missing critical implementation details and statistical rigor: No error bars or statistical significance tests are reported despite claims of reproducibility. The pseudo-normal feature selection mechanism relies on a previous epoch's global student (S^Glo_{e-1}), creating a circular dependency on epoch 1 that isn't explained. Only one run per experiment appears to be reported.",
+          "severity": "major",
+          "evidence": "Section 5.3 (Checklist Q7) states 'We do not report error bars.' The confidence calculation in Eq. (12) uses S^Glo_{e-1}, but initialization for epoch 1 is not specified. All tables show single numerical results without variance. The paper provides no discussion of multiple runs or random seed handling.",
+          "affected_claim": "Experimental results are reproducible and the reported performance improvements are statistically significant and robust",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "While the overall approach is technically sound, critical assumptions lack rigorous theoretical justification. Assumption 1's claim about gradient negligibility is not formally analyzed, and Assumption 2's invocation of the No Free Lunch theorem is oversimplified. The circular dependency on the previous epoch's global student for confidence calculation in epoch 1 is not properly explained. These issues undermine confidence in the theoretical foundation."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The novelty is limited. The paper applies domain-specific training and cross-domain knowledge aggregation to existing Reverse Distillation framework for a new setting (FUAD). While applying KD to FUAD is somewhat novel, the individual components (domain construction, pseudo-normal feature selection, confidence-guided training) are relatively standard techniques. The contribution is primarily an engineering solution rather than a fundamental advance."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "The significance is questionable. Although FUAD is a practical problem, the empirical improvements are marginal (often <1% improvement on key metrics). The method adds substantial complexity (multiple student networks, dynamic K scheduling, affinity matrix computation) for modest gains. The restriction to RD-based architectures and lack of generalization to other paradigms limits broader impact. The scope of evaluation (two datasets, limited noise ratios) is narrow for a machine learning venue."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The experimental evaluation has significant limitations. No error bars or statistical significance tests are reported, making it impossible to assess if improvements are statistically meaningful. Only single runs appear to be reported. High variance across categories is not analyzed. Sensitivity analysis for key hyperparameters is absent. Limited exploration of noise regimes (only 0.05-0.15 tested). Missing computational efficiency analysis despite method complexity. These gaps prevent convincing demonstration of robustness and reliability."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-written and clearly structured. The motivation is well-presented with clear intuition. Figures (especially Figure 2) effectively illustrate the method. Mathematical notation is mostly consistent. The related work is comprehensive. However, some technical details could be clearer (e.g., epoch 1 initialization for confidence calculation), and the presentation could better acknowledge limitations upfront."
+        }
+      },
+      "summary_comment": "This paper addresses the practical problem of Fully Unsupervised Anomaly Detection (FUAD) by adapting knowledge distillation through domain-specific training and cross-domain knowledge aggregation. While the problem motivation is sound and the paper is generally well-written, it suffers from several critical limitations that prevent acceptance at a top-tier venue. First, the theoretical assumptions lack rigorous justification—Assumption 1's claim about gradient negligibility and Assumption 2's No Free Lunch argument are heuristic rather than formal. Second, empirical improvements are marginal (often <1% on key metrics) despite significant added complexity (multiple student networks, dynamic scheduling). Third, the experimental evaluation lacks statistical rigor (no error bars, no significance tests, likely single runs) and comprehensiveness (limited noise ratios, narrow hyperparameter analysis). Fourth, claims of generality are unsubstantiated—the method is only tested with RD, and the authors acknowledge this as future work. Finally, critical implementation details (e.g., epoch 1 initialization) are not properly explained. The work is a reasonable engineering contribution to the FUAD problem but falls short of the standards expected for a selective top-tier ML conference due to limited novelty, marginal empirical gains, questionable theoretical foundations, and insufficient experimental rigor."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Addresses unsupervised anomaly detection, which is explicitly listed as a core ICML topic (clustering, unsupervised learning)\",\n      \"Proposes a novel application of knowledge distillation paradigm to the FUAD setting, which fits ICML's interest in machine learning systems and methodologies\",\n      \"Provides comprehensive experimental evaluation on standard benchmarks (MVTec AD, VisA) with detailed ablation studies, reflecting ICML's emphasis on rigorous empirical validation\",\n      \"Tackles a practical problem in industrial applications, aligning with ICML's focus on application-driven machine learning\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited theoretical contribution: Reviewer explicitly notes that Assumptions 1 and 2 lack rigorous theoretical grounding, relying instead on heuristic probabilistic arguments. ICML values theoretical rigor in machine learning foundations\",\n      \"Marginal empirical improvements (often <1% on key metrics) with substantial added complexity, which is insufficient to meet ICML's standards for significance. The method introduces multiple student networks, dynamic K scheduling, and affinity matrices for modest gains\",\n      \"Lacks statistical rigor: No error bars, confidence intervals, or significance tests reported despite reproducibility claims. ICML expects rigorous experimental methodology and statistical analysis\",\n      \"Narrow scope of contribution: The method is only validated on RD-based architectures. Claims of generality are unsupported, and the paper acknowledges this as future work, limiting its contribution to the broader ML community\",\n      \"Insufficient analysis of hyperparameter sensitivity and robustness: No systematic exploration of r(e), σ_noise, λ(e) schedule, or K values. Limited noise ratio exploration (only 0.05-0.15)\",\n      \"Missing computational analysis: Despite substantial method complexity (K student networks per epoch), no computational cost or memory overhead is reported—critical for ICML's systems-focused community\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Fits NeurIPS's broader mandate to accept interdisciplinary submissions that may not fit neatly into existing categories; FUAD with noisy training is a realistic and underexplored problem\",\n      \"Aligns with NeurIPS's interest in 'in-depth analysis of existing methods that provide new insights in terms of their limitations or behavior beyond the scope of the original work' through the extension of RD to the FUAD setting\",\n      \"Comprehensive experimental evaluation on multiple datasets with both no-overlap and overlap settings, reflecting NeurIPS's interest in rigorous empirical analysis\",\n      \"Addresses AI/ML for physical sciences and manufacturing (industrial anomaly detection), which falls under NeurIPS's application track interests\",\n      \"The problem of handling noisy/contaminated training data is practically motivated and aligns with NeurIPS's focus on real-world applicability\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Theoretical foundations are weak: Reviewer identifies major issues with informal assumptions and lack of rigorous analysis. NeurIPS expects stronger theoretical justification, especially when core claims rely on probabilistic arguments about gradient negligibility and the No Free Lunch theorem\",\n      \"Novelty concerns: The contribution is primarily an engineering adaptation of existing techniques (domain construction, pseudo-normal feature selection, knowledge distillation) to a new setting. While applying KD to FUAD is novel, the individual components are standard, limiting the conceptual advance\",\n      \"Statistical rigor issues: No error bars, significance tests, or multiple runs reported. This is a critical gap for NeurIPS, which expects rigorous empirical validation and reproducibility\",\n      \"Marginal improvements with high complexity: Performance gains are often <1% despite introducing substantial complexity (multiple student networks, dynamic scheduling, affinity matrices). This poor complexity-benefit tradeoff is problematic for a selective venue\",\n      \"Generality claims unsupported: The paper claims the approach is 'conceptually general' but provides no evidence. All experiments are restricted to RD; testing on other KD-based or non-KD anomaly detection paradigms is relegated to future work\",\n      \"Limited experimental scope: Only two datasets, narrow noise ratio ranges (0.05-0.15), and no analysis of failure modes or category-specific variations. High variance across categories (e.g., capsule 0.942 vs bottle 1.000 I-AUC) is not investigated\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"ICLR's broad topics include 'representation learning' and 'applications to physical sciences,' which could accommodate unsupervised anomaly detection methods\",\n      \"The paper addresses a practical problem in industrial settings with a deep learning approach using teacher-student distillation frameworks, relevant to ICLR's application focus\",\n      \"Provides ablation studies examining the effectiveness of proposed components (DST, CDKA), reflecting ICLR's interest in understanding learned representations\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Poor fit with ICLR's core focus on representation learning: The paper doesn't provide new insights into how representations are learned or why cross-domain distillation produces better normal vs. anomalous feature separations. The analysis remains superficial\",\n      \"Weak theoretical grounding: ICLR values learning theory and principled approaches. The two core assumptions are heuristically motivated without formal justification. No formal analysis of when/why pseudo-normal features work\",\n      \"Insufficient novelty for ICLR: The contribution is primarily an engineering combination of existing techniques (domain partitioning, knowledge distillation, confidence-based weighting). No fundamental insights about representation learning or deep learning\",\n      \"Marginal empirical gains with questionable complexity tradeoff: ICLR audiences expect either significant performance improvements or important theoretical insights. This work provides neither—gains are modest (<1% typical improvement) while complexity increases substantially\",\n      \"Missing rigor in experimental methodology: No statistical significance testing, error bars, or multiple runs. This fails ICLR's standards for reproducibility and rigorous evaluation\",\n      \"Limited scope and generalization concerns: Only tested on RD-based architectures; claims of applicability to other paradigms are unsupported. Narrow exploration of noise regimes and hyperparameter sensitivity\",\n      \"The paper is positioned as a computer vision application (anomaly detection) rather than as a contribution to representation learning theory or methodology, making it less aligned with ICLR's primary interests\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\nThis paper proposes **Cross-Domain Distillation (CDD)** for Fully Unsupervised Anomaly Detection, extending knowledge distillation methods to handle noisy training sets. While the problem is practical and motivation is clear, the paper has **fundamental weaknesses that limit its fit for top-tier venues**:\n\n### Critical Issues:\n\n1. **Weak Theoretical Foundation**: Assumptions 1 and 2 rely on informal heuristics. The claim that small P(A_m) makes gradient contributions negligible lacks rigorous bounds or conditions. The No Free Lunch invocation for Assumption 2 is oversimplified.\n\n2. **Marginal Empirical Gains**: Improvements are often <1% (e.g., VisA overlap: +0.9% I-AUC) despite adding substantial complexity (multiple student networks, dynamic K scheduling, affinity matrices).\n\n3. **Statistical Rigor Failures**: No error bars, confidence intervals, or significance tests reported. Likely only single runs per experiment. This violates expectations at selective venues.\n\n4. **Unsubstantiated Generality Claims**: Method only tested with RD; claims of applicability to other paradigms are deferred to future work with no supporting evidence.\n\n5. **Insufficient Robustness Analysis**: No sensitivity studies for hyperparameters (r(e), σ_noise, λ(e), K). Limited noise ratio exploration (0.05-0.15 only). High category-to-category variance unexplained.\n\n### Venue Fit Assessment:\n\n- **ICML (5/10)**: Fits topic (unsupervised learning, applications) but falls short on novelty, theoretical rigor, and statistical validation. Marginal gains insufficient for a selective venue.\n- **NeurIPS (5/10)**: Broader acceptance criteria, but paper still struggles with weak assumptions, marginal improvements, missing statistical rigor, and limited generalization beyond RD.\n- **ICLR (4/10)**: Poorest fit. Not a core representation learning contribution. Lacks theoretical insights. Empirical gains insufficient to offset complexity.\n\n**Recommendation**: This is a **borderline paper with significant limitations**. It would be better suited for a specialized workshop or applications-focused venue. For acceptance at ICML/NeurIPS/ICLR, the authors would need to: (1) provide rigorous theoretical analysis with bounds, (2) demonstrate substantially larger improvements or test on diverse paradigms beyond RD, (3) include comprehensive statistical validation and sensitivity analysis, and (4) explore higher noise regimes and failure modes.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 3,
+              "clarity": 3
+            },
+            "strengths": [
+              "Addresses a practical and important problem: Fully Unsupervised Anomaly Detection (FUAD) with noisy training data is more realistic than standard UAD and has received limited attention from knowledge distillation methods.",
+              "Well-motivated approach: The paper provides clear intuition for why KD-based methods can work for FUAD through two key assumptions about normal sample dominance and anomaly diversity, supported by both probabilistic and distributional arguments.",
+              "Comprehensive experimental evaluation: The paper includes experiments on two standard datasets (MVTec AD and VisA) with multiple noise levels, both no-overlap and overlap settings, and provides detailed ablation studies examining each component's contribution."
+            ],
+            "weaknesses": [
+              "Limited theoretical grounding for core assumptions: Assumptions 1 and 2 are presented informally with only heuristic justification. The claim that small P(A_m) leads to negligible gradient contribution lacks rigorous analysis of when this holds in practice. The No Free Lunch argument for Assumption 2 is oversimplified and doesn't clearly establish when pseudo-normal features will be reliably generated.",
+              "Modest empirical improvements with high complexity: While CDD shows consistent gains over RD baseline, improvements are often marginal (e.g., on VisA-noise-0.05: +0.9% I-AUC, +0.8% P-AUC in overlap setting). The method introduces significant complexity through domain-specific students, pseudo-normal feature selection, confidence-guided construction, and dynamic K scheduling. The computational overhead and training complexity are not adequately discussed.",
+              "Insufficient experimental analysis of failure cases and robustness: The paper lacks investigation into when and why the method fails. For instance, some categories show inconsistent performance (e.g., transistor, wood). No analysis of sensitivity to hyperparameter choices (r(e), σ_noise, λ(e) schedule, K values) is provided. The limited noise ratios tested (0.05-0.15) don't explore the method's performance under higher contamination.",
+              "Generality claims not adequately supported: The paper claims potential applicability beyond RD but provides no evidence. No experiments test the approach with other KD-based or non-KD anomaly detection paradigms, limiting support for the generality claim.",
+              "Missing critical implementation details and statistical rigor: No error bars or statistical significance tests are reported despite claims of reproducibility. The pseudo-normal feature selection mechanism relies on a previous epoch's global student (S^Glo_{e-1}), creating a circular dependency on epoch 1 that isn't explained. Only one run per experiment appears to be reported."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited theoretical grounding for core assumptions: Assumptions 1 and 2 are presented informally with only heuristic justification. The claim that small P(A_m) leads to negligible gradient contribution lacks rigorous analysis of when this holds in practice. The No Free Lunch argument for Assumption 2 is oversimplified and doesn't clearly establish when pseudo-normal features will be reliably generated.",
+                "severity": "major",
+                "evidence": "Section 3.2 provides Assumptions 1 and 2 with informal probabilistic arguments. The gradient analysis in Eq. (7) assumes negligibility but provides no bounds or conditions. The No Free Lunch invocation (line 165-166) is informal and doesn't rigorously connect to the pseudo-normal feature hypothesis.",
+                "affected_claim": "The core mechanism that domain-specific students generate pseudo-normal features for out-of-domain samples, enabling the cross-domain distillation to work effectively",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Modest empirical improvements with high complexity: While CDD shows consistent gains over RD baseline, improvements are often marginal (e.g., on VisA-noise-0.05: +0.9% I-AUC, +0.8% P-AUC in overlap setting). The method introduces significant complexity through domain-specific students, pseudo-normal feature selection, confidence-guided construction, and dynamic K scheduling. The computational overhead and training complexity are not adequately discussed.",
+                "severity": "major",
+                "evidence": "Table 3 shows VisA overlap improvements: 0.656 (RD) to 0.936 (CDD) for I-AUC, but average metrics show +0.9% gain. Table 1 shows P-AUC improvement of 0.981 vs SoftPatch 0.980 (negligible). The method requires K student networks per epoch, dynamic K schedules, confidence recomputation, and affinity matrix construction, yet computation time and memory usage are not reported.",
+                "affected_claim": "CDD provides significant performance improvements over baseline RD and other FUAD methods with practical efficiency",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Insufficient experimental analysis of failure cases and robustness: The paper lacks investigation into when and why the method fails. For instance, some categories show inconsistent performance (e.g., transistor, wood). No analysis of sensitivity to hyperparameter choices (r(e), σ_noise, λ(e) schedule, K values) is provided. The limited noise ratios tested (0.05-0.15) don't explore the method's performance under higher contamination.",
+                "severity": "major",
+                "evidence": "Table 1 shows high variance across categories (bottle 1.000 vs capsule 0.942 I-AUC). Transistor and screw categories have notably lower performance. No sensitivity analysis for r(e), σ_noise=0.2, or the S-shaped schedule is provided. Only Rnoise ∈ {0.05, 0.1, 0.15} are tested; higher noise ratios are not explored.",
+                "affected_claim": "CDD is a robust method that effectively handles FUAD across diverse scenarios with controlled hyperparameters",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Generality claims not adequately supported: The paper claims potential applicability beyond RD but provides no evidence. No experiments test the approach with other KD-based or non-KD anomaly detection paradigms, limiting support for the generality claim.",
+                "severity": "major",
+                "evidence": "Section 6 (Discussion) states: 'Although CDD is implemented based on the RD paradigm, the core design is conceptually general...' but then admits 'our experiments are restricted to RD-based architectures' and 'Future work will focus on adapting and validating CDD under other paradigms.' No evidence of generality is provided.",
+                "affected_claim": "The proposed domain-specific training and cross-domain knowledge aggregation framework is a general approach applicable to various anomaly detection paradigms",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Missing critical implementation details and statistical rigor: No error bars or statistical significance tests are reported despite claims of reproducibility. The pseudo-normal feature selection mechanism relies on a previous epoch's global student (S^Glo_{e-1}), creating a circular dependency on epoch 1 that isn't explained. Only one run per experiment appears to be reported.",
+                "severity": "major",
+                "evidence": "Section 5.3 (Checklist Q7) states 'We do not report error bars.' The confidence calculation in Eq. (12) uses S^Glo_{e-1}, but initialization for epoch 1 is not specified. All tables show single numerical results without variance. The paper provides no discussion of multiple runs or random seed handling.",
+                "affected_claim": "Experimental results are reproducible and the reported performance improvements are statistically significant and robust",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While the overall approach is technically sound, critical assumptions lack rigorous theoretical justification. Assumption 1's claim about gradient negligibility is not formally analyzed, and Assumption 2's invocation of the No Free Lunch theorem is oversimplified. The circular dependency on the previous epoch's global student for confidence calculation in epoch 1 is not properly explained. These issues undermine confidence in the theoretical foundation."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The novelty is limited. The paper applies domain-specific training and cross-domain knowledge aggregation to existing Reverse Distillation framework for a new setting (FUAD). While applying KD to FUAD is somewhat novel, the individual components (domain construction, pseudo-normal feature selection, confidence-guided training) are relatively standard techniques. The contribution is primarily an engineering solution rather than a fundamental advance."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The significance is questionable. Although FUAD is a practical problem, the empirical improvements are marginal (often <1% improvement on key metrics). The method adds substantial complexity (multiple student networks, dynamic K scheduling, affinity matrix computation) for modest gains. The restriction to RD-based architectures and lack of generalization to other paradigms limits broader impact. The scope of evaluation (two datasets, limited noise ratios) is narrow for a machine learning venue."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The experimental evaluation has significant limitations. No error bars or statistical significance tests are reported, making it impossible to assess if improvements are statistically meaningful. Only single runs appear to be reported. High variance across categories is not analyzed. Sensitivity analysis for key hyperparameters is absent. Limited exploration of noise regimes (only 0.05-0.15 tested). Missing computational efficiency analysis despite method complexity. These gaps prevent convincing demonstration of robustness and reliability."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written and clearly structured. The motivation is well-presented with clear intuition. Figures (especially Figure 2) effectively illustrate the method. Mathematical notation is mostly consistent. The related work is comprehensive. However, some technical details could be clearer (e.g., epoch 1 initialization for confidence calculation), and the presentation could better acknowledge limitations upfront."
+              }
+            },
+            "summary_comment": "This paper addresses the practical problem of Fully Unsupervised Anomaly Detection (FUAD) by adapting knowledge distillation through domain-specific training and cross-domain knowledge aggregation. While the problem motivation is sound and the paper is generally well-written, it suffers from several critical limitations that prevent acceptance at a top-tier venue. First, the theoretical assumptions lack rigorous justification—Assumption 1's claim about gradient negligibility and Assumption 2's No Free Lunch argument are heuristic rather than formal. Second, empirical improvements are marginal (often <1% on key metrics) despite significant added complexity (multiple student networks, dynamic scheduling). Third, the experimental evaluation lacks statistical rigor (no error bars, no significance tests, likely single runs) and comprehensiveness (limited noise ratios, narrow hyperparameter analysis). Fourth, claims of generality are unsubstantiated—the method is only tested with RD, and the authors acknowledge this as future work. Finally, critical implementation details (e.g., epoch 1 initialization) are not properly explained. The work is a reasonable engineering contribution to the FUAD problem but falls short of the standards expected for a selective top-tier ML conference due to limited novelty, marginal empirical gains, questionable theoretical foundations, and insufficient experimental rigor."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

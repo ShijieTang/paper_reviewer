@@ -7,13 +7,11 @@ from dataclasses import dataclass
 class RAGConfig:
     enable_rag: bool = False
     enable_related_work_rag: bool = True
-    enable_review_memory_rag: bool = False
     cutoff_date: str = "2024-12-31"
     allow_undated_evidence: bool = False
     rag_cache_dir: str = "data/rag_cache"
     provider_top_k: int = 10
     rerank_top_k: int = 12
-    review_memory_max_reviews: int = 4
 
 
 def rag_config_from_dict(values: dict | None = None) -> RAGConfig:

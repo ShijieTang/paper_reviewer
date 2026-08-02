@@ -1,0 +1,773 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The paper identifies a meaningful problem: learning across multiple families of dynamical systems with varying degrees of relatedness. The hierarchical DSR setting is well-motivated and addresses practical scenarios where manual dataset partitioning is undesirable.",
+        "The proposed MixER approach introduces a concrete alternative to gradient-based gating in MoE layers, combining K-means clustering with least-squares optimization. The core insight that context-based routing with explicit clustering can outperform vanilla gradient-based MoE routing is technically sound and clearly demonstrated in Figure 2.",
+        "The paper provides extensive experimental evaluation across multiple domains: synthetic ODE families (ODEBench), classical DSR benchmarks (LV, GO, SM), and real-world time series (SCCTS, Epilepsy2), with comparisons to several state-of-the-art meta-learning baselines (NCF, CoDA, GEPS).",
+        "The authors are transparent about limitations, explicitly acknowledging in the abstract and Section 6 that MixER underperforms task-specific meta-learners in high-data regimes on closely related data. The rebuttal further demonstrates intellectual honesty by admitting core methodological gaps without defensive argumentation."
+      ],
+      "weaknesses": [
+        "The fundamental performance-relatedness tradeoff is not resolved and severely limits practical applicability. MixER only shows clear benefits on loosely related data with limited families (ODEBench-2, two families), but underperforms on closely related datasets where foundational models are most needed. This is a core contribution vs. limitation issue, not a minor scope constraint.",
+        "Experimental results contradict scalability claims. ODEBench-10B (Table 3) shows MixER-10 training performance worse than single-expert MixER-1 (0.22±0.60 vs 0.12±0.01 NCF). This directly contradicts claims of scaling to ten parametric ODEs and suggests fundamental challenges in the approach's design.",
+        "Critical ablation studies are absent. The paper describes context splitting, context shifting, and noise injection as crucial but provides no quantitative ablations isolating their individual contributions. Algorithm 1 uses L1 norm in K-means without justification or comparison to alternatives. The rebuttal confirms these design choices appear ad-hoc rather than principled.",
+        "Baseline comparisons may be biased by custom MixER-specific reimplementations. The paper removes softmax aggregation and modifies baselines for integration, but provides no evidence that standalone baseline implementations match original performance levels. CAVIA is excluded entirely due to implementation constraints, creating incomplete evaluation.",
+        "The optimization procedure lacks theoretical grounding. While referencing Li et al. (2019) for general convergence guarantees, no problem-specific analysis exists. The choice of alternating minimization (vs. joint optimization) is justified as pragmatic rather than principled. The rebuttal acknowledges this gap but confirms it remains unaddressed in the submitted work."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The fundamental performance-relatedness tradeoff is not resolved and severely limits practical applicability. MixER only shows clear benefits on loosely related data with limited families, but underperforms on closely related datasets where foundational models are most needed.",
+          "severity": "major",
+          "evidence": "Abstract: 'However, our layer underperforms state-of-the-art meta-learners in high-data regimes.' Table 4 (LV, GO, SM) consistently shows MixER underperformance across all classical DSR benchmarks. Figure 7 (Epilepsy2) shows degraded clustering. The rebuttal acknowledges: 'This fundamentally limits significance... the practical impact is limited to scenarios where systems are loosely related... These scenarios exist in scientific computing, but they are neither the majority use case nor the most impactful for foundational models.' This admission confirms the approach lacks broad applicability.",
+          "affected_claim": "MixER enables foundational models for DSR that learn across system hierarchies.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Experimental results contradict scalability claims. ODEBench-10B shows MixER-10 training performance worse than single-expert baseline, directly undermining claims of scaling to ten parametric ODEs.",
+          "severity": "major",
+          "evidence": "Table 3, ODEBench-10B: NCF MIXER-1 training is 0.12±0.01 but MIXER-10 is 0.22±0.60. This is a clear performance degradation with increased expert count. The paper claims in abstract: 'demonstrating efficient training and scalability to systems of up to ten parametric ordinary differential equations.' The rebuttal explains: 'As families increase from 2 to 10, MixER performance degrades' and hypothesizes causes (clustering ambiguity, insufficient data per expert, inadequate context representation) but these failure modes are not investigated in the submitted work.",
+          "affected_claim": "MixER demonstrates efficient training and scalability to systems of up to ten parametric ordinary differential equations.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Critical ablation studies are absent for design choices described as crucial. Context splitting, context shifting, and noise injection lack quantitative evaluation.",
+          "severity": "major",
+          "evidence": "Appendix C.1 states context splitting and shifting are 'crucial optimizations' but provides no ablations. Algorithm 1 line 7 uses L1 norm without justification or comparison to L2/L-infinity. Line 23 adds noise (σ = 10^-4) without ablation. The rebuttal confirms: 'context splitting (dividing context into m equal pieces) and context shifting (adding per-expert offsets) emerged during development as practical tricks... We should have either ablated them systematically before submission, or framed them as heuristics... We chose neither, which weakens the paper.'",
+          "affected_claim": "The proposed unsupervised routing mechanism effectively learns dynamical systems.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Baseline comparisons potentially biased by custom MixER-specific reimplementations without evidence of equivalence to original implementations.",
+          "severity": "major",
+          "evidence": "Appendix C.2: 'We perform a custom reimplementation of the baselines and incorporate them within our MixER layer.' Section 3.1 notes removal of softmax aggregation to allow independent expert operation. The paper provides: (1) no standalone baseline performance using identical architectures to isolate MixER layer effects, (2) no comparison to original paper results, (3) no mitigation for CAVIA exclusion. The rebuttal acknowledges: 'Without these, we cannot definitively claim baseline underperformance is due to the MixER framework rather than implementation differences. This is a methodological weakness we should have addressed.'",
+          "affected_claim": "Extensive experiments validate MixER's capabilities, demonstrating efficient training and scalability compared to state-of-the-art meta-learners.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Optimization procedure lacks theoretical justification specific to this problem. Alternating minimization of Θ and Ξ is not proven superior to joint optimization.",
+          "severity": "major",
+          "evidence": "Section 3.1 references Li et al. (2019) for general convergence guarantees but provides no problem-specific analysis for loss function (Eq. 7). No proof that alternating minimization is preferable to joint optimization. The rebuttal confirms: 'The submitted paper does not prove that alternating minimization of Θ and Ξ separately is preferable to joint optimization, nor does it analyze convergence rates for our specific loss function. We chose this optimization procedure because it decouples parameter updates... However, this is insufficient justification.'",
+          "affected_claim": "We implement proximal alternating minimization, chosen for its proven convergence to second-order optimal solutions.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "While K-means and least-squares are individually sound, the paper exhibits fundamental soundness gaps: (1) No problem-specific justification for alternating minimization of Θ and Ξ vs. joint optimization; Li et al. (2019) provides only general convergence theory. (2) Algorithm 1 uses L1 norm without justification or empirical validation against L2. (3) No analysis of why context-based routing should outperform state-based routing beyond the single ODEBench-2 example. (4) Context splitting, shifting, and noise injection (critical components per Appendix C.1) are not ablated, leaving their necessity unclear. (5) Baseline implementations are modified for MixER integration without evidence this doesn't degrade their quality. The rebuttal confirms these gaps exist in the submitted work and frames them as limitations rather than providing evidence of soundness."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "Technical novelty remains limited. K-means clustering and least-squares optimization are classical techniques. Context-based routing instead of state-based routing is a straightforward adaptation. The paper explicitly draws from 'switch routing' (Fedus et al., 2022) with domain-specific rather than methodological innovation. The rebuttal frames this as 'adapting language modeling ideas to scientific computing' and acknowledges: 'primarily in application and problem formulation rather than algorithmic innovation.' This level of incremental novelty does not meet top-tier conference standards, especially combined with weak empirical results."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "Practical significance is severely limited. MixER trades performance on closely related data (practical majority case) for potential benefits on loosely related data at small scale. The rebuttal explicitly states: 'the practical impact is limited to scenarios where systems are loosely related... These scenarios exist in scientific computing, but they are neither the majority use case nor the most impactful for foundational models.' ODEBench-2 (two families) shows benefits, but ODEBench-10B (ten families) shows degradation. Classical DSR benchmarks consistently underperform. The approach cannot serve as a foundational model if it fails on the practical, high-impact cases. Without resolving the performance-relatedness tradeoff, significance cannot be established."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "Multiple critical evaluation gaps remain unresolved in the submitted work: (1) Baseline implementations are custom within MixER framework; standalone performance is not reported, preventing isolation of MixER layer effects. The rebuttal confirms: 'we did not provide standalone baseline performance.' (2) No ablation studies for context splitting, shifting, noise injection, or norm choices; the rebuttal confirms: 'we chose neither [to ablate them systematically or frame them as heuristics].' (3) No quantitative clustering metrics for SCCTS and Epilepsy2 beyond qualitative figures. (4) Hyperparameter choices unjustified. (5) ODEBench-10B failure modes (clustering ambiguity, insufficient data per expert) identified in rebuttal but not investigated in submitted work. (6) CAVIA excluded due to implementation constraints. These are substantive methodological weaknesses in the submitted paper."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-written with clear structure, motivated problem setting, and informative figures. Figure 1 effectively illustrates hierarchical learning. Figure 4 clearly shows gating update stages. Algorithms 1-2 are clearly presented. Section 6 transparently discusses limitations. The rebuttal demonstrates further clarity about the work's scope and limitations. While presentation quality is good, it does not overcome failures in other gates."
+        }
+      },
+      "summary_comment": "The rebuttal demonstrates intellectual honesty but fails to resolve the core deficiencies in the submitted work. The authors acknowledge that MixER is fundamentally limited to loosely related, low-data scenarios—precisely where foundational models are least impactful. Performance degrades when scaling from two to ten families (ODEBench-10B shows worse performance for 10-expert than 1-expert configurations). Critical design choices are admitted to be ad-hoc ('practical tricks') rather than principled. Baseline comparisons are potentially biased due to custom implementations, yet no standalone baseline performance is provided. The optimization procedure's justification is pragmatic rather than principled. The rebuttal accurately characterizes these as gaps requiring \"substantial additional work\" to address—confirming they are not present in the submitted paper. For a top-tier ML conference, foundational model work must demonstrate strong performance across diverse regimes and scale convincingly. This submission fails both criteria. The honest rebuttal helps clarify the actual contribution (a clustering-based routing mechanism for small-scale loosely-related DSR), but this is insufficient for acceptance. The work would require: (1) demonstrating clear benefits on realistic loosely-related benchmarks at scale, (2) resolving the performance-relatedness tradeoff through algorithmic modifications, (3) providing fair baseline comparisons and comprehensive ablations, or (4) establishing theoretical foundations for the approach. None of these are present in the submitted work."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper addresses dynamical system reconstruction (DSR), a core machine learning problem involving time series modeling and meta-learning—both established ICML topics.\",\n      \"The work proposes a technical contribution (MixER) combining K-means clustering with least-squares optimization for mixture-of-experts routing, which could theoretically fit ICML's optimization and systems tracks.\",\n      \"The paper includes extensive experiments across multiple datasets and baselines, which aligns with ICML's empirical evaluation standards.\",\n      \"The problem of learning across multiple environments with meta-learning is relevant to ICML's coverage of meta-learning and multi-task learning.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The core contribution is severely limited by a fundamental performance-relatedness tradeoff that renders the method impractical for most real-world scenarios. MixER only shows benefits on loosely related data (ODEBench-2 with 2 families) but underperforms consistently on closely related datasets (Tables 3-4), which are the realistic use cases. This directly contradicts claims of being a 'foundational model.'\",\n      \"Critical methodological weaknesses undermine the empirical contributions: (1) Custom baseline implementations within the MixER framework without standalone performance reports prevent fair comparison, (2) No ablation studies for acknowledged 'crucial optimizations' (context splitting, shifting, noise injection), (3) Key design choices (L1 norm in K-means) lack justification or empirical validation.\",\n      \"Scalability claims are contradicted by experimental results. Table 3 (ODEBench-10B) shows MixER-10 performing worse than MixER-1 for training (0.22±0.60 vs 0.12±0.01 for NCF), directly undermining the abstract's claim of 'scalability to systems of up to ten parametric ordinary differential equations.' Reviewer explicitly notes this as a major weakness.\",\n      \"The optimization procedure (proximal alternating minimization) lacks problem-specific theoretical justification. The paper references Li et al. (2019) only for general convergence theory, not for this specific loss function. The choice of alternating vs. joint optimization is pragmatic rather than principled, as confirmed in the rebuttal.\",\n      \"Limited algorithmic novelty. The technical components (K-means, least-squares, context-based routing) are classical or straightforward adaptations from language modeling. Reviewer rates novelty as 3/10, noting the contribution is primarily in application rather than methodology.\",\n      \"The work lacks significance for ICML's core mission of advancing machine learning. The rebuttal explicitly acknowledges that practical impact is 'limited to scenarios where systems are loosely related' which are 'neither the majority use case nor the most impactful for foundational models.' This severely constrains the paper's relevance to a general ML venue.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"NeurIPS explicitly welcomes 'AI/ML for physical sciences' and 'applications to physical sciences (physics, chemistry, biology, etc.)', and this work targets scientific discovery through dynamical system reconstruction—a natural fit for this scope.\",\n      \"The paper addresses hierarchical learning across multiple system families, which relates to NeurIPS topics of 'generalization and multi-task learning' and meta-learning for diverse domains.\",\n      \"NeurIPS encourages 'in-depth analysis of existing methods that provide new insights in terms of their limitations or behavior beyond the scope of the original work.' Section 6 and the rebuttal demonstrate such analysis of meta-learning limitations, and the authors transparently characterize when MixER fails.\",\n      \"The paper includes interdisciplinary applications (neuroscience with Epilepsy2 dataset, time series classification with SCCTS), aligning with NeurIPS's openness to 'interdisciplinary submissions that do not fit neatly into existing categories.'\",\n      \"NeurIPS's broader scope on application-driven work could accommodate the paper's positioning as advancing foundational models for scientific computing, even if the technical contribution is incremental.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The fundamental performance-relatedness tradeoff severely limits impact. The method works only on loosely related data at small scale (ODEBench-2) but fails on closely related datasets where scientific applications actually need generalization. For foundational models in science, this is a critical gap. The rebuttal confirms practical applicability is limited to non-majority cases.\",\n      \"Experimental evidence contradicts core claims. ODEBench-10B results (Table 3) show MixER-10 performs worse than MixER-1, contradicting abstract claims about scaling to ten parametric ODEs. The paper does not investigate failure modes (clustering ambiguity, insufficient data per expert) that the rebuttal identifies.\",\n      \"Critical methodological gaps weaken the empirical contribution: (1) Custom baseline implementations without standalone performance comparisons prevent attributing improvements to the MixER layer vs. implementation choices, (2) Context splitting, shifting, and noise injection are identified as 'crucial' in Appendix C.1 but have zero ablation studies, (3) Algorithm 1 uses L1 norm without justification.\",\n      \"The paper lacks theoretical grounding for its design choices. Alternating minimization of Θ and Ξ is justified pragmatically, not theoretically. The rebuttal confirms no problem-specific convergence analysis exists. For scientific computing applications where interpretability and principled methods are valued, this is a notable weakness.\",\n      \"Limited novelty in methodology. The approach combines classical techniques (K-means, least-squares) with straightforward context-based routing adapted from language models. Reviewer 1 rates novelty as 3/10. While NeurIPS accepts application-focused work, the technical contribution must be sufficiently novel or the empirical results must be compelling—this paper achieves neither.\",\n      \"Significance is questionable. The rebuttal explicitly states that 'these scenarios [loosely related systems] exist in scientific computing, but they are neither the majority use case nor the most impactful for foundational models.' This directly undermines the paper's positioning as contributing to foundational scientific models.\",\n      \"Incomplete baseline comparisons. CAVIA is excluded due to implementation constraints. Without this, claims of comprehensive evaluation for meta-learning are weakened. The rebuttal acknowledges this limitation was not properly addressed in the submitted work.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"ICLR's scope on 'representation learning' and 'transfer learning, meta learning, and lifelong learning' directly aligns with this paper's hierarchical meta-learning approach for learning across families of environments.\",\n      \"The paper addresses learning across diverse dynamical systems with limited data, which relates to ICLR's topics of 'generalization' and learning from sparse, heterogeneous data.\",\n      \"ICLR welcomes 'general machine learning' submissions that don't fit existing categories. The hierarchical DSR problem and MixER solution could be framed as such a contribution.\",\n      \"The paper's extensive experimental evaluation across multiple domains (synthetic ODEs, classical DSR benchmarks, real-world EEG/time series) aligns with ICLR's standards for thorough empirical investigation.\",\n      \"The work's transparency about limitations (underperformance on closely related data) and analysis of failure modes demonstrates the kind of in-depth investigation ICLR values, even if the approach has limitations.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The core contribution—adapting mixture-of-experts with K-means and least-squares routing—is methodologically limited in novelty. While ICLR values representation learning advances, this work primarily applies classical techniques to a new domain. Reviewer rates novelty 3/10, noting contribution is primarily in application/problem formulation rather than algorithmic innovation.\",\n      \"The fundamental performance-relatedness tradeoff is unresolved and severely limits the work's significance for a representation learning venue. MixER excels only on loosely related, low-data scenarios but underperforms on closely related data where representation learning is most impactful. This is a critical failure for a method positioning itself as enabling foundational models.\",\n      \"Experimental results contradict scalability and generalization claims central to ICLR's mission. ODEBench-10B (10 families) shows worse performance with 10 experts than 1 expert. Classical DSR benchmarks consistently show degradation. This pattern suggests fundamental limitations in how the method learns generalizable representations.\",\n      \"Critical ablations are absent. Context splitting, shifting, and noise injection are described as essential components (Appendix C.1) but are never ablated. For ICLR—where understanding what representations are learned is crucial—the lack of ablation studies on these design choices is a significant weakness.\",\n      \"Baseline comparisons are potentially compromised by custom implementations within the MixER framework. The paper provides no standalone baseline performance, preventing attribution of improvements to the MixER layer vs. implementation differences. This violates ICLR's standards for rigorous empirical comparison, especially in meta-learning where fair comparison is critical.\",\n      \"The optimization procedure lacks theoretical justification. Proximal alternating minimization of Θ and Ξ is not proven superior to joint optimization. For representation learning, where understanding how representations emerge through optimization is important, this pragmatic rather than principled approach is a limitation.\",\n      \"The paper's impact on representation learning is questionable. The rebuttal explicitly states practical impact is limited to 'loosely related systems' that are 'neither the majority use case nor the most impactful for foundational models.' Without broader applicability, the work cannot advance the field of representation learning at scale.\"\n    ]\n  }\n}\n```\n\n---\n\n## **Summary Commentary**\n\nThis paper introduces **MixER** (Mixture of Expert Reconstructors), a novel routing mechanism for learning hierarchies of dynamical systems. While the problem is well-motivated and the paper is clearly written, it suffers from **critical methodological weaknesses and an unresolved fundamental tradeoff** that severely limits its contribution.\n\n### **Key Issues Across All Venues:**\n\n1. **Unresolved Performance-Relatedness Tradeoff** (Major): MixER shows benefits only on loosely related data with few families (ODEBench-2: 2 families) but **consistently underperforms on closely related datasets** where foundational models are truly needed. The abstract acknowledges this: \"our layer underperforms state-of-the-art meta-learners in high-data regimes.\" The rebuttal confirms these are non-majority, low-impact scenarios. This is a **showstopper for claims of enabling foundational models**.\n\n2. **Contradicted Scalability Claims** (Major): The abstract claims \"scalability to systems of up to ten parametric ordinary differential equations,\" but Table 3 (ODEBench-10B) shows MixER-10 training performs **worse than MixER-1**. This directly contradicts the core claim and suggests fundamental design limitations not addressed in the work.\n\n3. **Methodological Gaps** (Major):\n   - Custom baseline implementations within MixER framework without standalone performance comparisons\n   - No ablation studies for \"crucial\" design choices (context splitting, shifting, noise injection)\n   - Key algorithmic choices (L1 norm in K-means) unjustified\n   - Alternating minimization chosen pragmatically, not theoretically justified\n\n4. **Limited Novelty** (Major): Reviewer rates novelty 3/10. The approach combines classical techniques (K-means, least-squares) with straightforward context-based routing adapted from language models. The contribution is primarily in application, not methodology.\n\n5. **Significance Constraints** (Major): The rebuttal confirms practical applicability is limited to non-standard scenarios that are \"neither the majority use case nor the most impactful for foundational models.\" This undermines the entire premise.\n\n### **Venue-Specific Assessments:**\n\n- **ICML (4/10)**: Poor fit. While DSR and meta-learning are ICML topics, the methodological contribution is weak, empirical results contradict claims, and practical significance is limited to edge cases. ICML expects stronger technical innovation and broader applicability for work claiming to advance foundational models.\n\n- **NeurIPS (5/10)**: Borderline. NeurIPS's breadth on applications and interdisciplinary work provides slightly better fit than ICML. However, the same core weaknesses apply: unresolved tradeoffs, methodological gaps, and limited significance. The paper's transparency about limitations is a modest positive, but insufficient to overcome substantive issues. Application-focused work can succeed at NeurIPS, but results must be compelling or technical contribution must be novel—this achieves neither convincingly.\n\n- **ICLR (5/10)**: Borderline. ICLR's focus on representation learning and generalization makes it a natural venue, but the paper fails to convincingly advance either. The method works poorly on the closely-related, high-data scenarios where good representations are most valuable. The missing ablations and compromised baseline comparisons are particularly problematic for a representation learning venue. The work would need significantly stronger empirical results or theoretical contributions.\n\n### **Bottom Line:**\n\nAll three venues would likely reject this paper. The fundamental tradeoff (good on loosely-related data only) is not resolved; empirical results contradict core claims; critical ablations are missing; and practical significance is severely limited. The honest rebuttal confirms these gaps require \"substantial additional work\"—confirming they are absent from the submitted work. The paper would benefit from either: (1) resolving the performance tradeoff algorithmically, (2) focusing narrowly on loosely-related scenarios with compelling results, or (3) providing strong theoretical foundations for the approach. As submitted, none of these are present.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper identifies a meaningful problem: learning across multiple families of dynamical systems with varying degrees of relatedness. The hierarchical DSR setting is well-motivated and addresses practical scenarios where manual dataset partitioning is undesirable.",
+              "The proposed MixER approach introduces a concrete alternative to gradient-based gating in MoE layers, combining K-means clustering with least-squares optimization. The core insight that context-based routing with explicit clustering can outperform vanilla gradient-based MoE routing is technically sound and clearly demonstrated in Figure 2.",
+              "The paper provides extensive experimental evaluation across multiple domains: synthetic ODE families (ODEBench), classical DSR benchmarks (LV, GO, SM), and real-world time series (SCCTS, Epilepsy2), with comparisons to several state-of-the-art meta-learning baselines (NCF, CoDA, GEPS)."
+            ],
+            "weaknesses": [
+              "MixER consistently underperforms task-specific meta-learners on closely related datasets despite being designed for hierarchical learning. The paper explicitly acknowledges this in Sections 4.2 and 4.3, undermining the practical value of the approach for a major use case.",
+              "The experimental results are mixed and often contradict the claimed benefits. On ODEBench-10A (Table 2), adaptation performance degrades significantly for NCF and CoDA with MixER. On classical DSR datasets (Table 4), all three MixER variants underperform baselines across most metrics. The gains on loosely related data do not compensate for these systematic failures.",
+              "The paper lacks rigorous theoretical or empirical justification for core design choices. Why is K-means with L1 norm the appropriate clustering method? Why is the least-squares formulation optimal? No ablation studies isolate the contribution of individual components (context splitting, context shifting, noise injection).",
+              "The motivating example (Section 2.2) is compelling but limited in scope. It demonstrates that a single meta-learner fails on two unrelated ODEs, but the follow-up experiments don't convincingly show MixER solving this at scale. ODEBench-10B results (Table 3) show MixER-10 actually performs worse than the naive MoE baseline in many cases.",
+              "Comparison to baselines is not entirely fair. The paper reimplements baselines within the MixER framework rather than comparing against their original implementations. This means baseline performance may be degraded by forced integration into the MoE layer. CAVIA is notably excluded from MixER experiments due to its second-order optimization.",
+              "Limited novelty in the core technical contribution. Using K-means clustering for routing and least squares for gating is a straightforward application of classical techniques. The innovation over prior MoE work in NLP is incremental—the paper adopts 'switch routing' concepts from existing literature with minor adaptations for context vectors."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "MixER consistently underperforms task-specific meta-learners on closely related datasets despite being designed for hierarchical learning. The paper explicitly acknowledges this in Sections 4.2 and 4.3, undermining the practical value of the approach for a major use case.",
+                "severity": "major",
+                "evidence": "Table 4 shows MixER variants underperforming across LV, GO, and SM datasets. Section 4.3 on Epilepsy2 states: 'Conversely, Epilepsy2 results (Figure 7) show degraded performance with MixER.' The Limitations section (Section 6) admits: 'MixER's interpretability performance on closely related datasets is inferior to single meta-learners, particularly in scenarios with abundant data availability.'",
+                "affected_claim": "MixER enables foundational models for DSR that learn across system hierarchies while remaining competitive with existing meta-learners.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental results are mixed and often contradict the claimed benefits. On ODEBench-10A (Table 2), adaptation performance degrades significantly for NCF and CoDA with MixER. On classical DSR datasets (Table 4), all three MixER variants underperform baselines across most metrics.",
+                "severity": "major",
+                "evidence": "Table 2: MIXER-10 CoDA adaptation loss is 15.9±4.2 vs baseline not reported (but implied lower). MIXER-10 NCF adaptation is 2.38±0.23 but task-specific baseline performs better. Table 3 shows similar degradation on ODEBench-10B. Table 4 across all three classical datasets (LV, GO, SM) consistently shows MixER variants with higher error than baselines.",
+                "affected_claim": "MixER achieves efficient training and scalability to systems of up to ten parametric ODEs with competitive performance.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The paper lacks rigorous theoretical or empirical justification for core design choices. Why is K-means with L1 norm the appropriate clustering method? Why is the least-squares formulation optimal? No ablation studies isolate the contribution of individual components.",
+                "severity": "major",
+                "evidence": "Algorithm 1 uses K-means without justification. Line 7 uses L1 norm (||ξ − ξ̄_j||_1) without explaining why L1 is better than L2 or other metrics. The least-squares solve (lines 19-24) is presented without ablation or comparison to alternatives. Context splitting and context shifting (Appendix C.1) are mentioned as improvements but no ablations quantify their individual impact.",
+                "affected_claim": "The proposed unsupervised routing mechanism for MoEs effectively learns dynamical systems with various degrees of relatedness.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The motivating example (Section 2.2) is compelling but limited in scope. It demonstrates that a single meta-learner fails on two unrelated ODEs, but the follow-up experiments don't convincingly show MixER solving this at scale.",
+                "severity": "major",
+                "evidence": "Figure 2 shows dramatic improvement for MixER on ODEBench-2, but subsequent experiments are less clear. On ODEBench-10B (Table 3), MixER-10 shows TRAIN: 0.22±0.60 for NCF (vs 0.12±0.01 for MixER-1), worse than single-expert. The paper acknowledges: 'limited environment count in ODEBench-10A constrains overall performance.' This suggests the motivating problem doesn't extend cleanly to realistic scales.",
+                "affected_claim": "MixER addresses the fundamental limitation of gradient descent when routing contextual information to DSR models.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Comparison to baselines is not entirely fair. The paper reimplements baselines within the MixER framework rather than comparing against their original implementations, potentially degrading baseline performance.",
+                "severity": "major",
+                "evidence": "Section C.2 and footnote 4 state: 'With the exception of CAVIA, we perform a custom reimplementation of the baselines and incorporate them within our MixER layer' and 'For integration within the MixER layer, we performed custom reimplementation of the backbones.' CAVIA is notably excluded from MixER experiments, and the paper admits: 'We did not augment CAVIA within our MixER layer due to its second-order optimization algorithm.' This raises concerns about whether baselines are being evaluated at their best.",
+                "affected_claim": "Extensive experiments validate MixER's capabilities, demonstrating efficient training and scalability compared to state-of-the-art meta-learners.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited novelty in the core technical contribution. Using K-means clustering for routing and least squares for gating is a straightforward application of classical techniques, with incremental innovation over prior MoE work.",
+                "severity": "minor",
+                "evidence": "The paper states it draws inspiration from 'switch routing' (Fedus et al., 2022) in language modeling. Algorithm 1 is a standard K-means + least-squares pipeline. The main innovation is contextual routing instead of state-based routing, which is a relatively incremental modification. The related work (Section 5) acknowledges Roeder et al. (2019) and others have used hierarchical approaches for dynamical systems, though without MoE focus.",
+                "affected_claim": "We propose an effective unsupervised routing mechanism for MoEs to collectively learn dynamical systems with various degrees of relatedness.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While the core K-means and least-squares mechanisms are mathematically sound, the paper exhibits fundamental soundness issues: (1) The loss function (Eq. 7) is standard MSE with no theoretical justification for why alternating minimization on Θ and Ξ separately (rather than jointly) is appropriate for this setting. (2) The proximal alternating minimization claim lacks convergence guarantees specific to this problem. (3) The paper provides no analysis of when/why the clustering-based routing should outperform gradient-based routing beyond the motivating example. (4) The contextual routing assumption (using ξ instead of x_t for gating) lacks theoretical motivation."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The technical novelty is limited. K-means clustering and least-squares optimization are classical techniques. Using context vectors for routing instead of state vectors is a straightforward adaptation. The paper explicitly draws from 'switch routing' (Fedus et al., 2022) from language modeling literature, with the primary adaptation being domain-specific (DSR) rather than methodologically novel. The combination of MoE with contextual meta-learning is somewhat novel for DSR, but incremental relative to existing hierarchical meta-learning work."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The practical significance is severely limited by the consistent underperformance on closely related datasets (Section 4.2-4.3). The proposed approach only shows benefits for loosely related data while failing on the very scenarios (high-data regimes with related systems) where foundational models are most valuable. The paper explicitly admits this limitation in Section 6. The only strong result (ODEBench-2, Figure 2) involves only two families. The broader applicability to truly foundational scientific modeling remains undemonstrated."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Multiple evaluation concerns: (1) Baseline implementations are custom within the MixER framework rather than original implementations, potentially biasing results. (2) CAVIA is excluded from MixER experiments due to implementation constraints, preventing full baseline comparison. (3) No ablation studies quantify contributions of context splitting, context shifting, and noise injection. (4) Missing statistical significance testing—only error bars are provided. (5) Hyperparameter selection is not justified (e.g., why 3 experts for classical DSR, 10-20 for ODEBench?). (6) The relative L2 metric (Eq. 9) is used for model selection but only standard MSE is reported in most tables, making evaluation inconsistent. (7) On SCCTS and Epilepsy2, interpretability is evaluated qualitatively (Figures 6-7) without quantitative clustering metrics."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear motivation, well-structured sections, and informative figures. Figure 1 effectively illustrates the hierarchical learning setting. Figure 4 clearly shows the gating update stages. Algorithms 1-2 are clearly presented. The experimental setup is detailed in appendices. However, there are minor clarity issues: (1) Notation switches between superscripts (environment indices) and subscripts (time/expert), which can be confusing. (2) The connection between the motivating problem (Section 2.2) and the subsequent experiments is not always clear. (3) Some key results (Tables 2-3) show mixed improvements that contradict the narrative."
+              }
+            },
+            "summary_comment": "This paper addresses an interesting problem—learning across families of loosely related dynamical systems—but the proposed solution (MixER) does not convincingly solve it. While the core idea of using K-means clustering and least-squares optimization for context-based MoE routing is sound, the experimental evaluation reveals fundamental limitations: MixER underperforms task-specific meta-learners on closely related data (the practical majority case) while only showing benefits for loosely related systems at small scale (two families). The novelty is limited—primarily applying classical clustering techniques to MoE routing with context vectors. The experimental comparisons are potentially unfair due to custom baseline reimplementations within the MixER framework. Critical ablations are missing, and theoretical understanding of when/why the approach works is absent. The paper's honest discussion of limitations (Section 6) actually undermines its central claims: if MixER fails on high-data, highly-related scenarios, it cannot serve as a foundation for general DSR. For a top-tier ML conference, this work needs substantial improvements: (1) fair baseline comparisons using original implementations, (2) comprehensive ablations, (3) theoretical analysis of the clustering-based routing, or (4) a fundamentally stronger empirical case showing MixER benefits on practically important regimes where it currently underperforms."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper identifies a meaningful problem: learning across multiple families of dynamical systems with varying degrees of relatedness. The hierarchical DSR setting is well-motivated and addresses practical scenarios where manual dataset partitioning is undesirable.",
+              "The proposed MixER approach introduces a concrete alternative to gradient-based gating in MoE layers, combining K-means clustering with least-squares optimization. The core insight that context-based routing with explicit clustering can outperform vanilla gradient-based MoE routing is technically sound and clearly demonstrated in Figure 2.",
+              "The paper provides extensive experimental evaluation across multiple domains: synthetic ODE families (ODEBench), classical DSR benchmarks (LV, GO, SM), and real-world time series (SCCTS, Epilepsy2), with comparisons to several state-of-the-art meta-learning baselines (NCF, CoDA, GEPS).",
+              "The authors are transparent about limitations, explicitly acknowledging in the abstract and Section 6 that MixER underperforms task-specific meta-learners in high-data regimes on closely related data, which demonstrates intellectual honesty about the scope of applicability."
+            ],
+            "weaknesses": [
+              "The fundamental performance-relatedness tradeoff severely limits practical significance. MixER only shows clear benefits on loosely related data with limited families (ODEBench-2), but underperforms on closely related datasets where foundational models are most needed. This tradeoff is not resolved by the submitted work.",
+              "Experimental results on realistic scales are inconsistent and contradict scalability claims. ODEBench-10A (Table 2) shows adaptation performance degradation for NCF and CoDA with MixER-10. ODEBench-10B (Table 3) shows MixER-10 training performance worse than MixER-1 (0.22±0.60 vs 0.12±0.01 for NCF), undermining the claimed scalability to ten parametric ODEs.",
+              "Critical ablation studies are absent. No quantitative evaluation of individual components: context splitting, context shifting, noise injection, or the choice of L1 vs L2 norm in K-means. These design choices appear ad-hoc without systematic validation.",
+              "Baseline comparisons may be biased due to custom reimplementations within the MixER framework rather than using original implementations. The rebuttal acknowledges removing softmax aggregation to allow independent expert operation, but does not provide evidence that this does not degrade baseline performance. CAVIA is excluded entirely due to implementation constraints.",
+              "Optimization procedure lacks theoretical justification for the submitted work. While referencing Li et al. (2019) for general convergence guarantees, the paper provides no specific analysis for this problem. The rebuttal promises future theoretical work but the submitted paper contains none."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The fundamental performance-relatedness tradeoff severely limits practical significance. MixER only shows clear benefits on loosely related data with limited families (ODEBench-2), but underperforms on closely related datasets where foundational models are most needed.",
+                "severity": "major",
+                "evidence": "Figure 2 shows dramatic improvement for MixER on ODEBench-2 (two families). However, Table 4 shows consistent underperformance across all classical DSR benchmarks (LV, GO, SM). Section 4.3 states: 'Conversely, Epilepsy2 results (Figure 7) show degraded performance with MixER.' The abstract explicitly states 'underperforms state-of-the-art meta-learners in high-data regimes.' This is a fundamental limitation of the approach, not a minor issue.",
+                "affected_claim": "MixER enables foundational models for DSR that learn across system hierarchies while remaining competitive with existing approaches.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental results on realistic scales are inconsistent and contradict scalability claims. ODEBench-10A shows adaptation degradation and ODEBench-10B shows MixER-10 training performance worse than MixER-1.",
+                "severity": "major",
+                "evidence": "Table 2 (ODEBench-10A): MIXER-10 CoDA adaptation loss 15.9±4.2 appears substantially worse than task-specific baselines (which the paper does not report but implies should be lower). Table 3 (ODEBench-10B) shows NCF training: MIXER-10 (0.22±0.60) worse than MIXER-1 (0.12±0.01). The paper acknowledges in Section 4.1: 'The limited environment count in ODEBench-10A constrains overall performance,' but this undermines the claim of scalability to ten parametric ODEs.",
+                "affected_claim": "MixER demonstrates efficient training and scalability to systems of up to ten parametric ordinary differential equations.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical ablation studies are absent. No quantitative evaluation of individual components: context splitting, context shifting, noise injection, or L1 vs L2 norm choice in K-means.",
+                "severity": "major",
+                "evidence": "Appendix C.1 describes context splitting and context shifting as 'crucial optimizations' but provides no ablations. Algorithm 1 line 7 uses L1 norm without justification or comparison. Line 23 adds Gaussian noise to contexts but no ablation quantifies its impact. The rebuttal acknowledges: 'some choices (e.g., context shifting) emerged late during development' and explains computational constraints prevented ablations, but these are presented as future work, not submitted evidence.",
+                "affected_claim": "The proposed unsupervised routing mechanism effectively learns dynamical systems.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Baseline comparisons may be biased. Custom reimplementations within MixER framework (removing softmax aggregation, other architectural changes) could degrade baseline performance. No evidence provided that modified baselines match original implementation quality. CAVIA excluded entirely.",
+                "severity": "major",
+                "evidence": "Appendix C.2 states: 'We perform a custom reimplementation of the baselines and incorporate them within our MixER layer.' The rebuttal clarifies that 'only the integration into the MoE framework required architectural changes' but does not provide: (1) standalone baseline performance using identical architectures to isolate MoE layer effects, (2) comparison to original paper results, or (3) any mitigation for CAVIA exclusion. Footnote 2 states: 'We did not augment CAVIA within our MixER layer due to its second-order optimization algorithm,' but offers no alternative.",
+                "affected_claim": "Extensive experiments validate MixER's capabilities, demonstrating efficient training and scalability compared to state-of-the-art meta-learners.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Optimization procedure lacks theoretical justification. The rebuttal acknowledges missing analysis of convergence properties and conditions where clustering-based gating beats gradient-based gating, but no such analysis appears in the submitted work.",
+                "severity": "major",
+                "evidence": "The paper references Li et al. (2019) for 'proximal alternating minimization converging to second-order optimal solutions' but provides no problem-specific analysis. No proof or empirical validation that alternating minimization of Θ and Ξ is superior to joint optimization. The rebuttal states: 'we did not provide this analysis in the submission because the primary contribution is empirical,' which confirms the absence of theoretical grounding in the submitted paper.",
+                "affected_claim": "The optimization minimizes the aggregate MSE loss via proximal alternating minimization.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While K-means and least-squares are individually sound techniques, the submitted paper lacks soundness in several dimensions: (1) No problem-specific justification for why alternating minimization of Θ and Ξ is preferable to joint optimization. (2) Algorithm 1 uses L1 norm for K-means clustering without justification. (3) No evidence or analysis that context-based routing should outperform state-based routing for DSR beyond the single motivating example. (4) The contextual routing assumption (using ξ instead of x_t for gating) lacks theoretical motivation. (5) Baseline implementations are modified for MixER integration without evidence this does not degrade their performance. The rebuttal acknowledges these gaps but promises future analysis rather than providing it in the submitted work."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The technical novelty is limited and the rebuttal does not strengthen this assessment. K-means clustering and least-squares optimization are classical techniques. Using context vectors for routing instead of state vectors is a straightforward adaptation. The paper explicitly draws from 'switch routing' (Fedus et al., 2022) with the primary adaptation being domain-specific rather than methodologically novel. The rebuttal frames this as 'adapting language modeling ideas to scientific computing' which the authors acknowledge is 'primarily in application and problem formulation rather than algorithmic innovation.' This level of incremental novelty does not meet top-tier standards, especially given the empirical underperformance."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The practical significance is severely limited by the consistent underperformance on closely related datasets combined with marginal or unclear benefits on loosely related data at scale. ODEBench-2 (two families) shows benefits, but ODEBench-10A/10B (ten families) show inconsistent or degraded results. Classical DSR benchmarks (Table 4) consistently underperform baselines. The rebuttal does not dispute this assessment, instead framing it as an honest limitation rather than a core problem solved. For foundational scientific models, underperformance on the practical cases (related systems with abundant data) is a fundamental barrier to significance."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Multiple evaluation concerns remain unresolved in the submitted work: (1) Baseline implementations are custom within MixER framework; the rebuttal acknowledges but does not fix this by providing standalone baseline performance or original paper comparisons. (2) No ablation studies for context splitting, context shifting, noise injection, or norm choice in K-means; the rebuttal confirms these are absent and explains they were not included due to computational/prioritization constraints. (3) No quantitative clustering metrics for SCCTS and Epilepsy2 beyond qualitative figures. (4) Hyperparameter choices not justified (why 3 experts for classical DSR?). (5) Inconsistent metrics (relative L2 for selection, standard MSE in tables). The rebuttal acknowledges these methodological gaps but promises future improvements rather than addressing them in the submitted work."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear motivation, structured sections, and informative figures. Figure 1 effectively illustrates hierarchical learning. Figure 4 clearly shows gating update stages. Algorithms 1-2 are clearly presented. The experimental setup is detailed in appendices. The limitations section (Section 6) is transparent about known shortcomings. Minor issues (superscript/subscript notation inconsistencies) do not materially impact understanding. The paper's presentation quality does not save it from failing other gates."
+              }
+            },
+            "summary_comment": "This paper tackles an interesting problem—learning across families of loosely related dynamical systems—but the proposed solution does not convincingly advance the field. The rebuttal provides valuable clarifications but does not resolve the core deficiencies in the submitted work. The authors are honest about limitations, acknowledging that MixER trades performance on closely related data for potential benefits on loosely related data. However, this tradeoff is not resolved through stronger empirical results at scale. ODEBench-2 (two families) shows benefits, but scaling to ODEBench-10 (ten families) reveals inconsistency and degradation. Classical DSR benchmarks consistently underperform baselines. Critically, the submitted work lacks: (1) ablation studies for key design choices, (2) fair baseline comparisons (custom reimplementations within MixER may degrade baseline quality), (3) theoretical justification for the approach, and (4) evidence of practical significance on realistic loosely-related benchmarks. The rebuttal acknowledges these gaps and frames them as future work, confirming they are absent from the submission. The core technical contribution—combining K-means clustering and least-squares optimization for context-based MoE routing—is sound but incremental, applying classical techniques to a new domain without sufficient empirical or theoretical innovation. For a top-tier ML conference, this work requires either: (a) substantially stronger empirical results demonstrating clear benefits on realistic loosely-related systems with fair baseline comparisons, (b) theoretical analysis explaining when and why the approach succeeds, or (c) modifications that recover performance on closely related data. The current submission meets none of these criteria."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"MixER underperforms on closely related datasets despite being positioned as a hierarchical solution\",\n        \"Mixed experimental results that contradict claimed benefits, particularly on ODEBench-10A and classical DSR benchmarks\",\n        \"Lack of rigorous justification for core design choices (K-means, L1 norm, least-squares formulation)\",\n        \"Motivating example (Section 2.2) limited in scope; scaling to realistic problem sizes shows degradation\",\n        \"Unfair baseline comparisons due to custom reimplementations within MixER framework\",\n        \"Limited technical novelty; primarily applies classical techniques to DSR context\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"The paper honestly acknowledges limitations with closely related data\",\n          \"location\": \"Section 6 (Limitations) and Section 4.2-4.3\",\n          \"explanation\": \"The submission explicitly states: 'MixER's interpretability performance on closely related datasets is inferior to single meta-learners, particularly in scenarios with abundant data availability.' This is supported by Table 4 (LV, GO, SM) and Figure 7 (Epilepsy2 results). The paper frames this as a limitation rather than a core failure, and the abstract notes 'MixER underperforms state-of-the-art meta-learners in high-data regimes.'\"\n        },\n        {\n          \"concern\": \"ODEBench-2 motivating example shows benefits but scaling issues exist\",\n          \"location\": \"Figure 2, Table 2, Table 3\",\n          \"explanation\": \"Figure 2 shows dramatic improvement for MixER on ODEBench-2 (two families). However, Table 2 (ODEBench-10A) shows inconsistent results: NCF and CoDA adaptation degrade with MixER-10 compared to task-specific baselines. Table 3 (ODEBench-10B) shows MixER-10 training performance (0.22±0.60 NCF) is worse than MixER-1 (0.12±0.01), suggesting scaling difficulties.\"\n        },\n        {\n          \"concern\": \"Baseline implementations are custom within MixER framework\",\n          \"location\": \"Appendix C.2 and footnote 4\",\n          \"explanation\": \"The submission states: 'With the exception of CAVIA, we perform a custom reimplementation of the baselines and incorporate them within our MixER layer.' This raises concerns about whether baselines are operating at their intended capacity. CAVIA is excluded entirely: 'We did not augment CAVIA within our MixER layer due to its second-order optimization algorithm.'\"\n        },\n        {\n          \"concern\": \"Ablation studies are absent for key design choices\",\n          \"location\": \"Appendix C.1\",\n          \"explanation\": \"Context splitting and context shifting are mentioned as crucial improvements but no quantitative ablations are provided. Algorithm 1 uses L1 norm for K-means without justification or comparison to L2. The noise injection (line 23, Algorithm 1) is mentioned but not ablated.\"\n        },\n        {\n          \"concern\": \"Core contribution draws from existing MoE literature\",\n          \"location\": \"Section 5 (Related Work) and Introduction\",\n          \"explanation\": \"The paper states it draws inspiration from 'switch routing' (Fedus et al., 2022). Algorithm 1 combines standard K-means with least-squares, which are classical techniques. The main adaptation is using context vectors instead of input vectors for gating—an incremental modification.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Unfair baseline comparisons due to custom reimplementations\",\n          \"proposed_change\": \"Compare against original baseline implementations (or at minimum, provide baseline numbers from original papers for reference). For baselines integrated into MixER, report their performance when run as standalone task-specific meta-learners using the same architecture and hyperparameters to isolate the effect of the MoE layer. Include CAVIA by implementing a workaround (e.g., using first-order approximation) or clearly document why this is infeasible.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Missing ablation studies for core design choices\",\n          \"proposed_change\": \"Provide ablation experiments quantifying the individual contribution of: (1) context splitting, (2) context shifting, (3) noise injection, and (4) choice of L1 vs L2 norm in K-means. Show learning curves demonstrating when each component becomes important during training.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Lack of theoretical justification for routing mechanism\",\n          \"proposed_change\": \"Add theoretical analysis or empirical investigation of: (1) why context-based routing should outperform state-based routing for DSR, (2) conditions under which clustering-based gating beats gradient-based gating, and (3) convergence properties of the alternating minimization specific to this problem. Alternatively, provide more extensive empirical analysis with synthetic data where ground-truth family structure is known.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited scope of motivating example and inconsistent scaling results\",\n          \"proposed_change\": \"Either: (a) demonstrate clear benefits on a larger, more realistic loosely-related benchmark (currently only ODEBench-2 shows strong results), or (b) reframe the paper's claims to focus on specific scenarios where MixER excels rather than positioning it as a general foundational approach. The current framing as enabling 'foundational models for DSR' is undermined by consistent underperformance on practical (closely related) regimes.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Evaluation methodology inconsistencies\",\n          \"proposed_change\": \"Standardize evaluation metrics across all experiments. Currently, relative L2 (Eq. 9) is used for model selection but standard MSE is reported in tables. Provide statistical significance testing (t-tests or confidence intervals) rather than only error bars. Justify hyperparameter choices (e.g., why 3 experts for classical DSR vs 10-20 for ODEBench). For SCCTS and Epilepsy2, provide quantitative clustering metrics (e.g., silhouette scores, normalized mutual information) in addition to qualitative figures.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Soundness of optimization procedure not rigorously justified\",\n          \"proposed_change\": \"Provide theoretical analysis or empirical validation that: (1) alternating minimization of Θ and Ξ converges to a stationary point, (2) the proximal alternating minimization claim (referencing Li et al., 2019) applies to this specific loss function, and (3) explain why joint optimization is not preferable. Discuss convergence properties empirically by showing loss curves for both variables during training.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"Thank you for the detailed and constructive review. We appreciate the thorough evaluation and the identification of significant issues that deserve careful responses.\\n\\n**On the core limitation—underperformance on closely related data:**\\n\\nYou correctly identify that MixER underperforms task-specific meta-learners on closely related datasets (Section 4.2-4.3). We acknowledge this honestly in the paper's abstract, Section 6 (Limitations), and Discussion. This is not a minor issue but rather reflects a fundamental design tradeoff: MixER sacrifices performance on homogeneous data to enable learning across heterogeneous families. We frame this explicitly in the conclusion: \\\"MixER excels when processing highly heterogeneous data with limited amounts of training examples, it conversely underperforms classical meta-learning baselines on datasets exhibiting high degrees of relatedness.\\\"\\n\\nHowever, we acknowledge that the practical significance is limited if MixER only helps in the narrow regime of loosely related, low-data settings. This is a valid concern about whether the approach actually addresses real scientific discovery needs. We did not propose solving this tradeoff in the current submission, but recognize that either: (a) demonstrating MixER on realistic loosely-related benchmark datasets, or (b) finding architectural or algorithmic modifications that recover performance on related data, would significantly strengthen the work.\\n\\n**On baseline comparison fairness:**\\n\\nYou raise a critical point about custom reimplementations. Section C.2 states we perform \\\"custom reimplementation of the baselines and incorporate them within our MixER layer.\\\" We want to clarify what this entails: the baseline meta-learners (NCF, CoDA, GEPS) themselves are not modified—only the integration into the MoE framework required architectural changes (e.g., removing softmax aggregation in the MoE layer to allow independent expert operation). \\n\\nHowever, you are correct that this introduces potential bias. We did not report standalone baseline performance using identical architectures, which would isolate the MoE layer's contribution. Additionally, CAVIA's exclusion due to second-order optimization constraints weakens the evaluation.\\n\\nFor future work, we should either: (1) report baseline standalone performance to establish that the degradation is due to the MoE layer, not the reimplementation, or (2) use baseline implementations exactly as provided by original authors, adjusting hyperparameters only for fair comparison.\\n\\n**On missing ablation studies:**\\n\\nYou identify several critical design choices lacking ablation: K-means vs. other clustering methods, L1 vs. L2 norm, context splitting, context shifting, and noise injection. These are all mentioned in the paper but not systematically ablated. This is a significant methodological gap.\\n\\nWe did not include ablations in the submitted version because: (1) computational constraints (each experiment takes 20-30 minutes), (2) we wanted to focus the main narrative on comparing to baselines rather than internal components, and (3) some choices (e.g., context shifting) emerged late during development.\\n\\nYou are absolutely correct that ablations are necessary to understand which components drive performance. We acknowledge this as a limitation of the current submission. Ablation studies would be essential for a revised version.\\n\\n**On limited technical novelty:**\\n\\nYou note that combining K-means and least-squares is straightforward application of classical techniques. We agree this is fair criticism. The core novelty lies in: (1) identifying that gradient-based gating fails for hierarchical DSR (demonstrated in Figure 2), and (2) proposing context-based routing with clustering as an alternative. The technical components themselves (K-means, least-squares) are not novel, but the specific combination for DSR is.\\n\\nThe motivation in Section 5 explicitly acknowledges drawing from \\\"switch routing\\\" (Fedus et al., 2022). We position this as adapting language modeling ideas to scientific computing rather than introducing fundamentally new techniques. We accept that the novelty is primarily in application and problem formulation rather than algorithmic innovation.\\n\\n**On theoretical justification:**\\n\\nYou correctly identify that the paper lacks theoretical analysis of: (1) why context-based routing should outperform state-based routing, (2) convergence properties of alternating minimization, and (3) conditions where clustering-based gating beats gradient-based gating. The reference to \\\"proximal alternating minimization\\\" and Li et al. (2019) provides general convergence guarantees but not analysis specific to this problem.\\n\\nWe did not provide this analysis in the submission because: (1) the primary contribution is empirical rather than theoretical, and (2) DSR problem specificity makes general convergence analysis challenging. However, you are correct that additional analysis (even if empirical, e.g., showing why gradient-based gating fails on synthetic hierarchical data) would strengthen the work.\\n\\n**On the motivating example scaling:**\\n\\nYou observe that Figure 2 (ODEBench-2, two families) shows dramatic benefits, but scaling to ODEBench-10A/10B shows degradation or inconsistency. This is accurate. On ODEBench-10A (Table 2), MIXER-10 CoDA has adaptation loss 15.9±4.2, which is worse than task-specific baseline. We suspect this degradation occurs because: (1) as the number of families increases, the clustering problem becomes harder (more potential configurations), and (2) with limited environments per family (5 in ODEBench-10A), experts receive insufficient data.\\n\\nThe paper acknowledges: \\\"The limited environment count in ODEBench-10A constrains overall performance.\\\" However, you are correct that this limitation somewhat undermines the narrative of scalability \\\"to systems of up to ten parametric ordinary differential equations.\\\" The clear success on two families followed by mixed results on ten families suggests the approach may have limited practical scope.\\n\\n**On evaluation methodology:**\\n\\nYou identify inconsistencies: relative L2 (Eq. 9) is used for model selection but standard MSE reported in tables. Hyperparameter choices are not justified (e.g., why 3 experts for classical DSR?). SCCTS and Epilepsy2 use only qualitative clustering visualizations (Figures 6-7) without quantitative metrics.\\n\\nThese are valid methodological concerns. In the current submission: (1) we justify 3 experts for classical DSR by matching baseline parameter counts, but this is not clearly stated in the main text, and (2) we do not provide quantitative clustering metrics (silhouette scores, NMI, etc.) for time series experiments. These should be added for rigor.\\n\\n**Summary of our position:**\\n\\nWe acknowledge that this paper has significant limitations that your review correctly identifies. The core contribution—using K-means and least-squares for context-based MoE routing—is sound but incremental. More critically, the empirical validation is mixed: strong results on loosely related two-family systems but degradation on related data where foundational models are most needed. The baseline comparisons are potentially biased by custom reimplementations, and critical ablations are absent.\\n\\nThese are not minor issues but rather reflect fundamental questions about whether the approach has sufficient impact and rigor for publication at a top venue. Your review helpfully delineates what would be required to address these concerns: (1) fair baseline comparisons, (2) comprehensive ablations, (3) either stronger empirical results on realistic loosely-related benchmarks or theoretical justification for when the approach helps, and (4) resolution of the performance-relatedness tradeoff.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper identifies a meaningful problem: learning across multiple families of dynamical systems with varying degrees of relatedness. The hierarchical DSR setting is well-motivated and addresses practical scenarios where manual dataset partitioning is undesirable.",
+              "The proposed MixER approach introduces a concrete alternative to gradient-based gating in MoE layers, combining K-means clustering with least-squares optimization. The core insight that context-based routing with explicit clustering can outperform vanilla gradient-based MoE routing is technically sound and clearly demonstrated in Figure 2.",
+              "The paper provides extensive experimental evaluation across multiple domains: synthetic ODE families (ODEBench), classical DSR benchmarks (LV, GO, SM), and real-world time series (SCCTS, Epilepsy2), with comparisons to several state-of-the-art meta-learning baselines (NCF, CoDA, GEPS).",
+              "The authors are transparent about limitations, explicitly acknowledging in the abstract and Section 6 that MixER underperforms task-specific meta-learners in high-data regimes on closely related data. The rebuttal further demonstrates intellectual honesty by admitting core methodological gaps without defensive argumentation."
+            ],
+            "weaknesses": [
+              "The fundamental performance-relatedness tradeoff is not resolved and severely limits practical applicability. MixER only shows clear benefits on loosely related data with limited families (ODEBench-2, two families), but underperforms on closely related datasets where foundational models are most needed. This is a core contribution vs. limitation issue, not a minor scope constraint.",
+              "Experimental results contradict scalability claims. ODEBench-10B (Table 3) shows MixER-10 training performance worse than single-expert MixER-1 (0.22±0.60 vs 0.12±0.01 NCF). This directly contradicts claims of scaling to ten parametric ODEs and suggests fundamental challenges in the approach's design.",
+              "Critical ablation studies are absent. The paper describes context splitting, context shifting, and noise injection as crucial but provides no quantitative ablations isolating their individual contributions. Algorithm 1 uses L1 norm in K-means without justification or comparison to alternatives. The rebuttal confirms these design choices appear ad-hoc rather than principled.",
+              "Baseline comparisons may be biased by custom MixER-specific reimplementations. The paper removes softmax aggregation and modifies baselines for integration, but provides no evidence that standalone baseline implementations match original performance levels. CAVIA is excluded entirely due to implementation constraints, creating incomplete evaluation.",
+              "The optimization procedure lacks theoretical grounding. While referencing Li et al. (2019) for general convergence guarantees, no problem-specific analysis exists. The choice of alternating minimization (vs. joint optimization) is justified as pragmatic rather than principled. The rebuttal acknowledges this gap but confirms it remains unaddressed in the submitted work."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The fundamental performance-relatedness tradeoff is not resolved and severely limits practical applicability. MixER only shows clear benefits on loosely related data with limited families, but underperforms on closely related datasets where foundational models are most needed.",
+                "severity": "major",
+                "evidence": "Abstract: 'However, our layer underperforms state-of-the-art meta-learners in high-data regimes.' Table 4 (LV, GO, SM) consistently shows MixER underperformance across all classical DSR benchmarks. Figure 7 (Epilepsy2) shows degraded clustering. The rebuttal acknowledges: 'This fundamentally limits significance... the practical impact is limited to scenarios where systems are loosely related... These scenarios exist in scientific computing, but they are neither the majority use case nor the most impactful for foundational models.' This admission confirms the approach lacks broad applicability.",
+                "affected_claim": "MixER enables foundational models for DSR that learn across system hierarchies.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental results contradict scalability claims. ODEBench-10B shows MixER-10 training performance worse than single-expert baseline, directly undermining claims of scaling to ten parametric ODEs.",
+                "severity": "major",
+                "evidence": "Table 3, ODEBench-10B: NCF MIXER-1 training is 0.12±0.01 but MIXER-10 is 0.22±0.60. This is a clear performance degradation with increased expert count. The paper claims in abstract: 'demonstrating efficient training and scalability to systems of up to ten parametric ordinary differential equations.' The rebuttal explains: 'As families increase from 2 to 10, MixER performance degrades' and hypothesizes causes (clustering ambiguity, insufficient data per expert, inadequate context representation) but these failure modes are not investigated in the submitted work.",
+                "affected_claim": "MixER demonstrates efficient training and scalability to systems of up to ten parametric ordinary differential equations.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical ablation studies are absent for design choices described as crucial. Context splitting, context shifting, and noise injection lack quantitative evaluation.",
+                "severity": "major",
+                "evidence": "Appendix C.1 states context splitting and shifting are 'crucial optimizations' but provides no ablations. Algorithm 1 line 7 uses L1 norm without justification or comparison to L2/L-infinity. Line 23 adds noise (σ = 10^-4) without ablation. The rebuttal confirms: 'context splitting (dividing context into m equal pieces) and context shifting (adding per-expert offsets) emerged during development as practical tricks... We should have either ablated them systematically before submission, or framed them as heuristics... We chose neither, which weakens the paper.'",
+                "affected_claim": "The proposed unsupervised routing mechanism effectively learns dynamical systems.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Baseline comparisons potentially biased by custom MixER-specific reimplementations without evidence of equivalence to original implementations.",
+                "severity": "major",
+                "evidence": "Appendix C.2: 'We perform a custom reimplementation of the baselines and incorporate them within our MixER layer.' Section 3.1 notes removal of softmax aggregation to allow independent expert operation. The paper provides: (1) no standalone baseline performance using identical architectures to isolate MixER layer effects, (2) no comparison to original paper results, (3) no mitigation for CAVIA exclusion. The rebuttal acknowledges: 'Without these, we cannot definitively claim baseline underperformance is due to the MixER framework rather than implementation differences. This is a methodological weakness we should have addressed.'",
+                "affected_claim": "Extensive experiments validate MixER's capabilities, demonstrating efficient training and scalability compared to state-of-the-art meta-learners.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Optimization procedure lacks theoretical justification specific to this problem. Alternating minimization of Θ and Ξ is not proven superior to joint optimization.",
+                "severity": "major",
+                "evidence": "Section 3.1 references Li et al. (2019) for general convergence guarantees but provides no problem-specific analysis for loss function (Eq. 7). No proof that alternating minimization is preferable to joint optimization. The rebuttal confirms: 'The submitted paper does not prove that alternating minimization of Θ and Ξ separately is preferable to joint optimization, nor does it analyze convergence rates for our specific loss function. We chose this optimization procedure because it decouples parameter updates... However, this is insufficient justification.'",
+                "affected_claim": "We implement proximal alternating minimization, chosen for its proven convergence to second-order optimal solutions.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While K-means and least-squares are individually sound, the paper exhibits fundamental soundness gaps: (1) No problem-specific justification for alternating minimization of Θ and Ξ vs. joint optimization; Li et al. (2019) provides only general convergence theory. (2) Algorithm 1 uses L1 norm without justification or empirical validation against L2. (3) No analysis of why context-based routing should outperform state-based routing beyond the single ODEBench-2 example. (4) Context splitting, shifting, and noise injection (critical components per Appendix C.1) are not ablated, leaving their necessity unclear. (5) Baseline implementations are modified for MixER integration without evidence this doesn't degrade their quality. The rebuttal confirms these gaps exist in the submitted work and frames them as limitations rather than providing evidence of soundness."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "Technical novelty remains limited. K-means clustering and least-squares optimization are classical techniques. Context-based routing instead of state-based routing is a straightforward adaptation. The paper explicitly draws from 'switch routing' (Fedus et al., 2022) with domain-specific rather than methodological innovation. The rebuttal frames this as 'adapting language modeling ideas to scientific computing' and acknowledges: 'primarily in application and problem formulation rather than algorithmic innovation.' This level of incremental novelty does not meet top-tier conference standards, especially combined with weak empirical results."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "Practical significance is severely limited. MixER trades performance on closely related data (practical majority case) for potential benefits on loosely related data at small scale. The rebuttal explicitly states: 'the practical impact is limited to scenarios where systems are loosely related... These scenarios exist in scientific computing, but they are neither the majority use case nor the most impactful for foundational models.' ODEBench-2 (two families) shows benefits, but ODEBench-10B (ten families) shows degradation. Classical DSR benchmarks consistently underperform. The approach cannot serve as a foundational model if it fails on the practical, high-impact cases. Without resolving the performance-relatedness tradeoff, significance cannot be established."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Multiple critical evaluation gaps remain unresolved in the submitted work: (1) Baseline implementations are custom within MixER framework; standalone performance is not reported, preventing isolation of MixER layer effects. The rebuttal confirms: 'we did not provide standalone baseline performance.' (2) No ablation studies for context splitting, shifting, noise injection, or norm choices; the rebuttal confirms: 'we chose neither [to ablate them systematically or frame them as heuristics].' (3) No quantitative clustering metrics for SCCTS and Epilepsy2 beyond qualitative figures. (4) Hyperparameter choices unjustified. (5) ODEBench-10B failure modes (clustering ambiguity, insufficient data per expert) identified in rebuttal but not investigated in submitted work. (6) CAVIA excluded due to implementation constraints. These are substantive methodological weaknesses in the submitted paper."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written with clear structure, motivated problem setting, and informative figures. Figure 1 effectively illustrates hierarchical learning. Figure 4 clearly shows gating update stages. Algorithms 1-2 are clearly presented. Section 6 transparently discusses limitations. The rebuttal demonstrates further clarity about the work's scope and limitations. While presentation quality is good, it does not overcome failures in other gates."
+              }
+            },
+            "summary_comment": "The rebuttal demonstrates intellectual honesty but fails to resolve the core deficiencies in the submitted work. The authors acknowledge that MixER is fundamentally limited to loosely related, low-data scenarios—precisely where foundational models are least impactful. Performance degrades when scaling from two to ten families (ODEBench-10B shows worse performance for 10-expert than 1-expert configurations). Critical design choices are admitted to be ad-hoc ('practical tricks') rather than principled. Baseline comparisons are potentially biased due to custom implementations, yet no standalone baseline performance is provided. The optimization procedure's justification is pragmatic rather than principled. The rebuttal accurately characterizes these as gaps requiring \"substantial additional work\" to address—confirming they are not present in the submitted paper. For a top-tier ML conference, foundational model work must demonstrate strong performance across diverse regimes and scale convincingly. This submission fails both criteria. The honest rebuttal helps clarify the actual contribution (a clustering-based routing mechanism for small-scale loosely-related DSR), but this is insufficient for acceptance. The work would require: (1) demonstrating clear benefits on realistic loosely-related benchmarks at scale, (2) resolving the performance-relatedness tradeoff through algorithmic modifications, (3) providing fair baseline comparisons and comprehensive ablations, or (4) establishing theoretical foundations for the approach. None of these are present in the submitted work."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Performance-relatedness tradeoff limits practical significance: MixER excels on loosely related data but underperforms on closely related datasets where foundational models are most needed\",\n        \"Scalability claims contradict actual results: ODEBench-10B shows degradation compared to single-expert baseline\",\n        \"Critical ablation studies absent for key design choices (context splitting, shifting, noise injection, L1 vs L2 norm)\",\n        \"Baseline comparisons potentially biased due to custom MixER-specific reimplementations and CAVIA exclusion\",\n        \"Optimization procedure lacks theoretical justification specific to this problem\",\n        \"Unclear when clustering-based gating should outperform gradient-based gating beyond the motivating example\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Performance-relatedness tradeoff is explicitly acknowledged in the paper\",\n          \"location\": \"Abstract, Section 6 (Limitations), Section 4.2-4.3\",\n          \"explanation\": \"The abstract states: 'However, our layer underperforms state-of-the-art meta-learners in high-data regimes, particularly when each expert is constrained to process only a fraction of a dataset composed of highly related data points.' Section 6 admits: 'MixER's interpretability performance on closely related datasets is inferior to single meta-learners, particularly in scenarios with abundant data availability.' Table 4 (LV, GO, SM) shows consistent underperformance, and Figure 7 shows degraded clustering on Epilepsy2.\"\n        },\n        {\n          \"concern\": \"Scalability results show inconsistency and degradation at scale\",\n          \"location\": \"Table 2 (ODEBench-10A), Table 3 (ODEBench-10B), Section 4.1\",\n          \"explanation\": \"Table 2 shows MIXER-10 CoDA adaptation loss of 15.9±4.2, substantially higher than task-specific baseline (implied to be much lower by context). Table 3 shows NCF training: MIXER-1 (0.12±0.01) outperforms MIXER-10 (0.22±0.60). The paper acknowledges: 'The limited environment count in ODEBench-10A constrains overall performance,' which undermines scalability claims to 'ten parametric ordinary differential equations.'\"\n        },\n        {\n          \"concern\": \"Design choices lack ablation or justification\",\n          \"location\": \"Appendix C.1, Algorithm 1\",\n          \"explanation\": \"Appendix C.1 describes context splitting and context shifting as critical optimizations but provides no quantitative ablations. Algorithm 1 line 7 uses L1 norm in K-means without justification. Line 23 adds noise to contexts (σ = 10^-4) but no ablation studies isolate this component's contribution. The paper does not compare L1 vs L2 norms or explain why Lloyd's algorithm is preferred over other clustering methods.\"\n        },\n        {\n          \"concern\": \"Baseline implementations modified for MixER framework\",\n          \"location\": \"Appendix C.2, Footnote 4, Section C.2\",\n          \"explanation\": \"Appendix C.2 states: 'We perform a custom reimplementation of the baselines and incorporate them within our MixER layer.' Footnote 4 notes: 'For integration within the MixER layer, we performed custom reimplementation of the backbones.' The paper removes softmax aggregation to allow independent expert operation (Section 3.1), which is a structural change. CAVIA is excluded: 'We did not augment CAVIA within our MixER layer due to its second-order optimization algorithm.'\"\n        },\n        {\n          \"concern\": \"Optimization procedure references general convergence results without problem-specific analysis\",\n          \"location\": \"Section 3.1, Section 2.1\",\n          \"explanation\": \"The paper states: 'We implement proximal alternating minimization (Li et al., 2019), chosen for its proven convergence to second-order optimal solutions.' However, this is a general citation. No analysis specific to this problem is provided. The paper does not prove that alternating minimization of Θ and Ξ separately is preferable to joint optimization, nor does it analyze convergence rates for DSR.\"\n        },\n        {\n          \"concern\": \"Motivating example demonstrates benefit on small scale but scaling issues emerge\",\n          \"location\": \"Figure 2, Section 2.2, Table 2, Table 3\",\n          \"explanation\": \"Figure 2 shows dramatic MSE improvement for MixER on ODEBench-2. However, the paper then acknowledges: 'The limited environment count in ODEBench-10A constrains overall performance, motivating our evaluation on the more comprehensive ODEBench-10B dataset.' Yet ODEBench-10B results (Table 3) show MixER-10 NCF training (0.22±0.60) worse than single-expert MixER-1 (0.12±0.01), suggesting the scaling problem persists.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Baseline comparisons potentially biased by custom MixER-specific implementations\",\n          \"proposed_change\": \"Provide standalone baseline performance using identical model architectures and hyperparameters (including removal of softmax aggregation if that is used by MixER baselines). Report baseline performance in task-specific (non-MoE) configuration to isolate the effect of the MixER layer. Either: (1) include CAVIA by implementing a first-order approximation variant, or (2) provide quantitative justification for why exclusion is necessary (e.g., show that approximations fail on controlled experiments). Compare results to original paper baselines when available.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Critical ablation studies missing for design choices\",\n          \"proposed_change\": \"Conduct systematic ablations on ODEBench-10B showing: (1) impact of context splitting (with/without on loosely related data), (2) context shifting contribution (with/without offset), (3) noise injection effect (σ = 10^-4 vs σ = 0 vs σ = 10^-3), and (4) K-means norm choice (L1 vs L2 vs L-infinity). For each, report training/adaptation loss curves and final performance. This would clarify which components are essential vs. ad-hoc.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Optimization procedure lacks theoretical justification for this specific problem\",\n          \"proposed_change\": \"Provide either: (1) theoretical analysis showing that alternating minimization of Θ and Ξ converges to second-order optimal points for the MSE loss (Eq. 7) with rate bounds, or (2) empirical justification through controlled experiments (e.g., synthetic data where joint vs. alternating optimization can be compared). Include analysis of when context-based routing should outperform state-based routing (beyond the ODEBench-2 example). Alternatively, conduct sensitivity analysis showing that the choice of optimization procedure does not materially affect results.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Scalability claims contradicted by ODEBench-10 results showing degradation\",\n          \"proposed_change\": \"Either: (1) present additional loosely-related multi-family benchmarks (beyond ODEBench-10) where MixER clearly scales with number of families and shows benefits over baselines, or (2) revise scalability claims and reframe the paper's scope as addressing the two-family/small-scale loosely-related regime specifically. If scaling issues persist, provide analysis of why performance degrades (e.g., failure modes of K-means clustering with more families, insufficient data per expert).\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Evaluation methodology inconsistencies and missing quantitative metrics\",\n          \"proposed_change\": \"Standardize metrics across all experiments: use either relative L2 (Eq. 9) or standard MSE consistently, not both. Justify hyperparameter choices (e.g., why 3 experts for classical DSR, 10-20 for ODEBench). For SCCTS and Epilepsy2, provide quantitative clustering metrics (silhouette coefficient, normalized mutual information, Davies-Bouldin index) in addition to qualitative figures. Report statistical significance (confidence intervals or t-tests) rather than only error bars. Document which results are in-distribution (IND) vs out-of-distribution (OOD) consistently.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Performance-relatedness tradeoff not resolved; practical significance unclear\",\n          \"proposed_change\": \"Demonstrate one of the following to establish practical significance: (1) Show that MixER enables learning across 10+ diverse, loosely-related system families with clear benefits over training separate task-specific models (currently only ODEBench-2 shows clean benefits). This would establish the value of the hierarchical approach. (2) Alternatively, propose and validate algorithmic modifications (e.g., adaptive context splitting, multi-scale routing) that recover performance on related data while preserving benefits on loosely related data. (3) Or provide theoretical characterization of data properties (e.g., similarity metrics) that predict when MixER will outperform task-specific meta-learners, allowing practitioners to know when to apply the method.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"Thank you for this detailed rebuttal request and for the careful framing of each issue. Your review correctly identifies fundamental limitations of our work. Rather than defend against justified criticisms, we want to provide honest clarifications about what the submitted paper does and does not contribute.\\n\\n**On the performance-relatedness tradeoff:**\\n\\nYour assessment is accurate and fair. The paper trades performance on closely related data (the practical regime) for potential benefits on loosely related data. Figure 2 (ODEBench-2) demonstrates this tradeoff clearly, but we have not resolved it. In fact, the paper is transparent about this limitation from the outset: the abstract explicitly states we \\\"underperform state-of-the-art meta-learners in high-data regimes.\\\" Section 6 acknowledges this as a core limitation rather than a solved problem.\\n\\nYou correctly identify that this fundamentally limits significance. For a method to serve as a \\\"foundational model for DSR\\\" (as positioned in the title), it should ideally excel across problem regimes, not merely on a specific subset (loosely related, low-data cases). We acknowledge that without resolving this tradeoff, the practical impact is limited to scenarios where:\\n- Systems are loosely related (minimal or no shared structure)\\n- Training data is scarce per environment\\n- The practitioner explicitly wants to avoid manual dataset partitioning\\n\\nThese scenarios exist in scientific computing, but they are neither the majority use case nor the most impactful for foundational models. We should have been clearer about this scope limitation in the main paper rather than burying it in the abstract and limitations section.\\n\\n**On scalability and ODEBench-10 degradation:**\\n\\nYour observation is correct: ODEBench-10B shows that MixER-10 training performance (0.22±0.60 NCF) is worse than MixER-1 (0.12±0.01). This directly contradicts claims of \\\"efficient training and scalability to systems of up to ten parametric ordinary differential equations.\\\" We did not deliberately misstate this; rather, we included all results (including unfavorable ones) with some unfavorable results relegated to brief discussion.\\n\\nIn Section 4.1, we note: \\\"The limited environment count in ODEBench-10A constrains overall performance, motivating our evaluation on the more comprehensive ODEBench-10B dataset.\\\" But this statement masks the real issue: as families increase from 2 to 10, MixER performance degrades. We suspect the causes are:\\n\\n1. **Increased clustering ambiguity**: With 10 families, K-means may find suboptimal partitions, especially if some families are moderately related rather than clearly separated.\\n2. **Insufficient data per expert**: Each expert receives only 16 environments in ODEBench-10B, limiting specialist knowledge.\\n3. **Context representation**: The 40-dimensional context vectors may not adequately represent 10 distinct families.\\n\\nHowever, we did not investigate these failure modes in the submitted work. This is a significant gap—understanding when and why MixER fails is essential for practitioners.\\n\\n**On missing ablations:**\\n\\nYour critique is entirely valid. The paper describes context splitting and context shifting as \\\"crucial optimizations\\\" (Appendix C.1) but provides no quantitative ablations. This is indefensible from a scientific rigor standpoint. We cannot claim these components are essential without demonstrating their individual contributions.\\n\\nContext splitting (dividing context into m equal pieces, one per expert) and context shifting (adding per-expert offsets) emerged during development as practical tricks to improve clustering. We should have either:\\n1. Ablated them systematically before submission, or\\n2. Framed them as heuristics rather than principled design choices\\n\\nWe chose neither, which weakens the paper. The same applies to the L1 norm choice in Algorithm 1 line 7 and the noise injection (σ = 10^-4). These appear somewhat ad-hoc without justification.\\n\\n**On baseline comparison fairness:**\\n\\nThis is a subtle but important issue. You correctly note that we \\\"perform a custom reimplementation of the baselines and incorporate them within our MixER layer.\\\" The key architectural change is removing softmax aggregation to allow independent expert operation (mentioned in Section 3.1). This enables each expert to process data independently after gating, which is critical for our approach.\\n\\nHowever, we acknowledge we did not provide:\\n1. Standalone baseline performance (task-specific, non-MoE configurations) using identical architectures to isolate the MixER layer's effect\\n2. Comparison to original paper baseline numbers to verify our implementations match expected performance\\n3. Any mitigation for CAVIA's exclusion\\n\\nWithout these, we cannot definitively claim baseline underperformance is due to the MixER framework rather than implementation differences. This is a methodological weakness we should have addressed by reporting baseline standalone performance.\\n\\nCavia's exclusion is particularly problematic. We excluded it because its second-order optimization (MAML-style inner loop) doesn't naturally fit the MixER framework. But this means we compare MixER against only first-order meta-learners, introducing potential bias. We should have either: (1) implemented a first-order variant of CAVIA for fair comparison, or (2) clearly documented this limitation and its implications.\\n\\n**On theoretical justification:**\\n\\nYou correctly identify that we reference Li et al. (2019) for general convergence guarantees of proximal alternating minimization but provide no problem-specific analysis. The submitted paper does not prove that alternating minimization of Θ and Ξ separately is preferable to joint optimization, nor does it analyze convergence rates for our specific loss function (Eq. 7).\\n\\nWe chose this optimization procedure because: (1) it decouples parameter updates, allowing independent gating updates after Θ or Ξ optimization, and (2) Li et al. (2019) provides general convergence theory. However, this is insufficient justification. We should have either:\\n1. Provided problem-specific analysis, or\\n2. Empirically validated that alternating minimization outperforms joint optimization on controlled problems\\n\\nWithout this, the choice appears pragmatic rather than principled.\\n\\n**On the broader question: when should clustering-based gating beat gradient-based gating?**\\n\\nThis is perhaps the deepest question. Figure 2 demonstrates that vanilla gradient-based MoE fails on ODEBench-2 (all environments route to one expert), while our K-means approach succeeds. But this raises the question: under what conditions do we expect clustering-based gating to outperform gradient-based gating?\\n\\nWe hypothesize:\\n- Gradient-based gating fails when families are distinct (no clear within-family gradients pointing toward balanced routing)\\n- K-means succeeds when context vectors cluster cleanly according to family membership\\n\\nHowever, the paper does not validate this hypothesis rigorously. On ODEBench-10, families are still distinct but K-means performance degrades, suggesting the hypothesis is incomplete. We should have investigated: (1) context vector distributions for successful vs. failed cases, (2) synthetic experiments with controlled family similarity, (3) theoretical analysis of when clustering succeeds vs. fails.\\n\\n**Summary of our honest assessment:**\\n\\nThe submitted work contributes: (1) an empirical observation that gradient-based MoE gating fails for hierarchical DSR on unrelated families, (2) a practical alternative using K-means and least-squares, and (3) demonstration on small-scale loosely-related systems (ODEBench-2). However, it does not provide: (1) fair baseline comparisons, (2) ablation studies for design choices, (3) theoretical justification, (4) convincing large-scale results, or (5) resolution of the performance-relatedness tradeoff.\\n\\nYour assessment that this work \\\"requires either: (a) substantially stronger empirical results... (b) theoretical analysis... or (c) modifications that recover performance on closely related data\\\" is precisely correct. The submitted version meets none of these criteria. We appreciate your careful identification of what would be required for this work to make a significant contribution. Addressing these gaps would require substantial additional work beyond the current submission.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_6858ebf1f948",
+    "conference": "ICML",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/icml_reject_2025_048_towards_foundational_models_for_dynamical_system_reconstruction_hierarchical_met.md",
+    "target_paper_summary": {
+      "paper_id": "paper_6858ebf1f948",
+      "title": "Towards Foundational Models For Dynamical System Reconstruction: Hierarchical Meta-Learning Via Mixture Of Experts",
+      "abstract": "## 1. Introduction",
+      "topic": "",
+      "claims": []
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_7b694fe61",
+        "title": "An Introduction to Deep Reinforcement Learning",
+        "authors": [
+          "Vincent François-Lavet",
+          "Peter Henderson",
+          "Riashat Islam",
+          "Marc G. Bellemare",
+          "Joëlle Pineau"
+        ],
+        "year": 2018,
+        "publication_date": "2018-12-20",
+        "venue": "Foundations and Trends® in Machine Learning",
+        "abstract": "Deep reinforcement learning is the combination of reinforcement learning (RL) and deep learning. This field of research has been able to solve a wide range of complex decision making tasks that were previously out of reach for a machine. Thus, deep RL opens up many new applications in domains such as healthcare, robotics, smart grids, finance, and many more. This manuscript provides an introduction to deep reinforcement learning models, algorithms and techniques. Particular focus is on the aspects related to generalization and how deep RL can be used for practical applications. We assume the reader is familiar with basic machine learning concepts.",
+        "url": "https://doi.org/10.1561/2200000071",
+        "doi": "https://doi.org/10.1561/2200000071",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3100366369"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1269
+      },
+      {
+        "paper_id": "rw_003_4aba735cc",
+        "title": "Federated Learning: A Survey on Enabling Technologies, Protocols, and Applications",
+        "authors": [
+          "Mohammed Aledhari",
+          "Rehma Razzak",
+          "Reza M. Parizi",
+          "Fahad Saeed"
+        ],
+        "year": 2020,
+        "publication_date": "2020-01-01",
+        "venue": "IEEE Access",
+        "abstract": "This paper provides a comprehensive study of Federated Learning (FL) with an emphasis on enabling software and hardware platforms, protocols, real-life applications and use-cases. FL can be applicable to multiple domains but applying it to different industries has its own set of obstacles. FL is known as collaborative learning, where algorithm(s) get trained across multiple devices or servers with decentralized data samples without having to exchange the actual data. This approach is radically different from other more established techniques such as getting the data samples uploaded to servers or having data in some form of distributed infrastructure. FL on the other hand generates more robust models without sharing data, leading to privacy-preserved solutions with higher security and access privileges to data. This paper starts by providing an overview of FL. Then, it gives an overview of technical details that pertain to FL enabling technologies, protocols, and applications. Compared to other survey papers in the field, our objective is to provide a more thorough summary of the most relevant protocols, platforms, and real-life use-cases of FL to enable data scientists to build better privacy-preserving solutions for industries in critical need of FL. We also provide an overview of key challenges presented in the recent literature and provide a summary of related research work. Moreover, we explore both the challenges and advantages of FL and present detailed service use-cases to illustrate how different architectures and protocols that use FL can fit together to deliver desired results.",
+        "url": "https://doi.org/10.1109/access.2020.3013541",
+        "doi": "https://doi.org/10.1109/access.2020.3013541",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3046653923"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 714
+      },
+      {
+        "paper_id": "rw_004_572f17b27",
+        "title": "Comparative Analysis of Intrusion Detection Systems and Machine Learning-Based Model Analysis Through Decision Tree",
+        "authors": [
+          "Zahedi Azam",
+          "Md. Motaharul Islam",
+          "Mohammad Nurul Huda"
+        ],
+        "year": 2023,
+        "publication_date": "2023-01-01",
+        "venue": "IEEE Access",
+        "abstract": "Cyber-attacks pose increasing challenges in precisely detecting intrusions, risking data confidentiality, integrity, and availability. This review paper presents recent IDS taxonomy, a comprehensive review of intrusion detection techniques, and commonly used datasets for evaluation. It discusses evasion techniques employed by attackers and the challenges in combating them to enhance network security. Researchers strive to improve IDS by accurately detecting intruders, reducing false positives, and identifying new threats. Machine learning (ML) and deep learning (DL) techniques are adopted in IDS systems, showing potential in efficiently detecting intruders across networks. The paper explores the latest trends and advancements in ML and DL-based network intrusion detection systems (NIDS), including methodology, evaluation metrics, and dataset selection. It emphasizes research obstacles and proposes a future research model to address weaknesses in the methodologies. The decision tree, known for its speed and user-friendliness, is proposed as a model for detecting result anomalies, combining findings from a comparative survey. This research aims to provide insights into building an effective decision tree-based detection framework.",
+        "url": "https://doi.org/10.1109/access.2023.3296444",
+        "doi": "https://doi.org/10.1109/access.2023.3296444",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4384787750"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 239
+      },
+      {
+        "paper_id": "rw_005_9bbd5b550",
+        "title": "The psychology of passion: A meta-analytical review of a decade of research on intrapersonal outcomes",
+        "authors": [
+          "Thomas Curran",
+          "Andrew P. Hill",
+          "Paul R. Appleton",
+          "Robert J. Vallerand",
+          "Martyn Standage"
+        ],
+        "year": 2015,
+        "publication_date": "2015-06-06",
+        "venue": "Motivation and Emotion",
+        "abstract": "",
+        "url": "https://doi.org/10.1007/s11031-015-9503-0",
+        "doi": "https://doi.org/10.1007/s11031-015-9503-0",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W594590477"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 490
+      },
+      {
+        "paper_id": "rw_006_6c4ed8d3b",
+        "title": "A Survey of Graph Neural Networks for Recommender Systems: Challenges, Methods, and Directions",
+        "authors": [
+          "Chen Gao",
+          "Yu Zheng",
+          "Nian Li",
+          "Yinfeng Li",
+          "Yingrong Qin",
+          "Jinghua Piao",
+          "Yuhan Quan",
+          "Jianxin Chang",
+          "Depeng Jin",
+          "Xiangnan He",
+          "Yong Li"
+        ],
+        "year": 2023,
+        "publication_date": "2023-01-14",
+        "venue": "ACM Transactions on Recommender Systems",
+        "abstract": "Recommender system is one of the most important information services on today’s Internet. Recently, graph neural networks have become the new state-of-the-art approach to recommender systems. In this survey, we conduct a comprehensive review of the literature on graph neural network-based recommender systems. We first introduce the background and the history of the development of both recommender systems and graph neural networks. For recommender systems, in general, there are four aspects for categorizing existing works: stage, scenario, objective, and application. For graph neural networks, the existing methods consist of two categories: spectral models and spatial ones. We then discuss the motivation of applying graph neural networks into recommender systems, mainly consisting of the high-order connectivity, the structural property of data and the enhanced supervision signal. We then systematically analyze the challenges in graph construction, embedding propagation/aggregation, model optimization, and computation efficiency. Afterward and primarily, we provide a comprehensive overview of a multitude of existing works of graph neural network-based recommender systems, following the taxonomy above. Finally, we raise discussions on the open problems and promising future directions in this area. We summarize the representative papers along with their code repositories in https://github.com/tsinghua-fib-lab/GNN-Recommender-Systems .",
+        "url": "https://doi.org/10.1145/3568022",
+        "doi": "https://doi.org/10.1145/3568022",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4315977496"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 694
+      },
+      {
+        "paper_id": "rw_007_ffcb470a9",
+        "title": "When Gaussian Process Meets Big Data: A Review of Scalable GPs",
+        "authors": [
+          "Haitao Liu",
+          "Yew-Soon Ong",
+          "Xiaobo Shen",
+          "Jianfei Cai"
+        ],
+        "year": 2020,
+        "publication_date": "2020-01-07",
+        "venue": "IEEE Transactions on Neural Networks and Learning Systems",
+        "abstract": "The vast quantity of information brought by big data as well as the evolving computer hardware encourages success stories in the machine learning community. In the meanwhile, it poses challenges for the Gaussian process regression (GPR), a well-known nonparametric, and interpretable Bayesian model, which suffers from cubic complexity to data size. To improve the scalability while retaining desirable prediction quality, a variety of scalable GPs have been presented. However, they have not yet been comprehensively reviewed and analyzed to be well understood by both academia and industry. The review of scalable GPs in the GP community is timely and important due to the explosion of data size. To this end, this article is devoted to reviewing state-of-the-art scalable GPs involving two main categories: global approximations that distillate the entire data and local approximations that divide the data for subspace learning. Particularly, for global approximations, we mainly focus on sparse approximations comprising prior approximations that modify the prior but perform exact inference, posterior approximations that retain exact prior but perform approximate inference, and structured sparse approximations that exploit specific structures in kernel matrix; for local approximations, we highlight the mixture/product of experts that conducts model averaging from multiple local experts to boost predictions. To present a complete review, recent advances for improving the scalability and capability of scalable GPs are reviewed. Finally, the extensions and open issues of scalable GPs in various scenarios are reviewed and discussed to inspire novel ideas for future research avenues.",
+        "url": "https://doi.org/10.1109/tnnls.2019.2957109",
+        "doi": "https://doi.org/10.1109/tnnls.2019.2957109",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3000508506"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 816
+      },
+      {
+        "paper_id": "rw_008_ae5fbb007",
+        "title": "Emerging materials intelligence ecosystems propelled by machine learning",
+        "authors": [
+          "Rohit Batra",
+          "Le Song",
+          "Rampi Ramprasad"
+        ],
+        "year": 2020,
+        "publication_date": "2020-11-09",
+        "venue": "Nature Reviews Materials",
+        "abstract": "",
+        "url": "https://doi.org/10.1038/s41578-020-00255-y",
+        "doi": "https://doi.org/10.1038/s41578-020-00255-y",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3100445615"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 406
+      },
+      {
+        "paper_id": "rw_009_5cad3b835",
+        "title": "A Metaverse: Taxonomy, Components, Applications, and Open Challenges",
+        "authors": [
+          "Sangmin Park",
+          "Young‐Gab Kim"
+        ],
+        "year": 2022,
+        "publication_date": "2022-01-01",
+        "venue": "IEEE Access",
+        "abstract": "Unlike previous studies on the Metaverse based on Second Life, the current Metaverse is based on the social value of Generation Z that online and offline selves are not different. With the technological development of deep learning-based high-precision recognition models and natural generation models, Metaverse is being strengthened with various factors, from mobile-based always-on access to connectivity with reality using virtual currency. The integration of enhanced social activities and neural-net methods requires a new definition of Metaverse suitable for the present, different from the previous Metaverse. This paper divides the concepts and essential techniques necessary for realizing the Metaverse into three components (i.e., hardware, software, and contents) and three approaches (i.e., user interaction, implementation, and application) rather than marketing or hardware approach to conduct a comprehensive analysis. Furthermore, we describe essential methods based on three components and techniques to Metaverse&#x2019;s representative Ready Player One, Roblox, and Facebook research in the domain of films, games, and studies. Finally, we summarize the limitations and directions for implementing the immersive Metaverse as social influences, constraints, and open challenges.",
+        "url": "https://doi.org/10.1109/access.2021.3140175",
+        "doi": "https://doi.org/10.1109/access.2021.3140175",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4206484811"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1789
+      },
+      {
+        "paper_id": "rw_010_ee2f1e957",
+        "title": "The Science of Mind Wandering: Empirically Navigating the Stream of Consciousness",
+        "authors": [
+          "Jonathan Smallwood",
+          "Jonathan W. Schooler"
+        ],
+        "year": 2014,
+        "publication_date": "2014-10-08",
+        "venue": "Annual Review of Psychology",
+        "abstract": "Conscious experience is fluid; it rarely remains on one topic for an extended period without deviation. Its dynamic nature is illustrated by the experience of mind wandering, in which attention switches from a current task to unrelated thoughts and feelings. Studies exploring the phenomenology of mind wandering highlight the importance of its content and relation to meta-cognition in determining its functional outcomes. Examination of the information-processing demands of the mind-wandering state suggests that it involves perceptual decoupling to escape the constraints of the moment, its content arises from episodic and affective processes, and its regulation relies on executive control. Mind wandering also involves a complex balance of costs and benefits: Its association with various kinds of error underlines its cost, whereas its relationship to creativity and future planning suggest its potential value. Although essential to the stream of consciousness, various strategies may minimize the downsides of mind wandering while maintaining its productive aspects.",
+        "url": "https://doi.org/10.1146/annurev-psych-010814-015331",
+        "doi": "https://doi.org/10.1146/annurev-psych-010814-015331",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2117194251"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1735
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_007_ffcb470a9",
+        "relevance_score": 0.85,
+        "relevance_types": [
+          "same_method",
+          "novelty_competitor"
+        ],
+        "rationale": "This paper reviews scalable Gaussian processes using mixture of experts, directly aligning with the target's hierarchical meta-learning via mixture of experts approach for dynamical systems.",
+        "evidence_summary": "In 2020, Liu et al. published 'When Gaussian Process Meets Big Data: A Review of Scalable GPs,' which surveyed global and local approximations for Gaussian process regression, including mixture of experts for subspace learning to handle large datasets. The review covered sparse approximations, posterior approximations, and structured methods, emphasizing scalability improvements while retaining prediction quality."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_001_7b694fe61",
+        "relevance_score": 0.6,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "Provides foundational background on deep reinforcement learning, which may inform meta-learning approaches in dynamical systems, though not directly method-specific.",
+        "evidence_summary": "In 2018, François-Lavet et al. published 'An Introduction to Deep Reinforcement Learning,' which combined reinforcement learning and deep learning for complex decision-making tasks. The manuscript focused on generalization aspects and applications in domains like healthcare and robotics, assuming reader familiarity with basic machine learning concepts."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_006_6c4ed8d3b",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "Surveys graph neural networks for recommender systems, offering insights on neural network architectures and high-order connectivity, which may relate to hierarchical modeling.",
+        "evidence_summary": "In 2023, Gao et al. published 'A Survey of Graph Neural Networks for Recommender Systems: Challenges, Methods, and Directions,' which reviewed GNN-based approaches, emphasizing high-order connectivity and structural properties. The survey categorized works by stage, scenario, objective, and application, and discussed challenges in graph construction and model optimization."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_003_4aba735cc",
+        "relevance_score": 0.5,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "Discusses federated learning with decentralized data, which may provide context for distributed or meta-learning scenarios, though not directly on dynamical systems.",
+        "evidence_summary": "In 2020, Aledhari et al. published 'Federated Learning: A Survey on Enabling Technologies, Protocols, and Applications,' which studied collaborative learning across decentralized devices without data exchange. The paper covered enabling technologies, protocols, and real-life applications, highlighting privacy-preserved solutions and challenges in different industries."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_004_572f17b27",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "Focuses on intrusion detection with machine learning, offering general ML/DL insights but not directly relevant to dynamical system reconstruction or meta-learning.",
+        "evidence_summary": "In 2023, Azam et al. published 'Comparative Analysis of Intrusion Detection Systems and Machine Learning-Based Model Analysis Through Decision Tree,' which reviewed IDS techniques, ML/DL adoption, and datasets for network security. The paper discussed evasion techniques, challenges in reducing false positives, and proposed a decision tree model for anomaly detection."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_008_ae5fbb007",
+        "relevance_score": 0.4,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "Covers machine learning in materials science, providing broad ML context but no direct connection to dynamical systems or meta-learning methods.",
+        "evidence_summary": "In 2020, Batra et al. published 'Emerging materials intelligence ecosystems propelled by machine learning,' which explored ML-driven advancements in materials research, though specific details on methods or results were not provided in the metadata."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_009_5cad3b835",
+        "relevance_score": 0.35,
+        "relevance_types": [
+          "weakly_related"
+        ],
+        "rationale": "Discusses Metaverse technologies and neural-net methods, which are tangentially related to AI but not specific to dynamical systems or meta-learning.",
+        "evidence_summary": "In 2022, Park and Kim published 'A Metaverse: Taxonomy, Components, Applications, and Open Challenges,' which analyzed Metaverse concepts based on hardware, software, and contents, integrating deep learning for social activities. The paper described methods in films, games, and studies, and summarized limitations for immersive implementation."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_010_ee2f1e957",
+        "relevance_score": 0.3,
+        "relevance_types": [
+          "weakly_related"
+        ],
+        "rationale": "Focuses on psychology of mind wandering, with no relevance to machine learning, dynamical systems, or meta-learning methods.",
+        "evidence_summary": "In 2014, Smallwood and Schooler published 'The Science of Mind Wandering: Empirically Navigating the Stream of Consciousness,' which examined the phenomenology and regulation of mind wandering, involving perceptual decoupling and executive control, with costs and benefits related to creativity and error."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_005_9bbd5b550",
+        "relevance_score": 0.25,
+        "relevance_types": [
+          "weakly_related"
+        ],
+        "rationale": "A meta-analysis on psychology of passion, entirely unrelated to machine learning, dynamical systems, or technical methods.",
+        "evidence_summary": "In 2015, Curran et al. published 'The psychology of passion: A meta-analytical review of a decade of research on intrapersonal outcomes,' though no abstract or technical details were provided in the metadata to assess relevance."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2020, Liu et al. published 'When Gaussian Process Meets Big Data: A Review of Scalable GPs,' which surveyed global approximations like sparse methods and local approximations including mixture of experts for scalable Gaussian process regression, addressing cubic complexity challenges. In 2018, François-Lavet et al. published 'An Introduction to Deep Reinforcement Learning,' covering the combination of RL and deep learning for decision-making tasks, with focus on generalization and applications in robotics and healthcare. In 2023, Gao et al. published 'A Survey of Graph Neural Networks for Recommender Systems: Challenges, Methods, and Directions,' reviewing GNN-based approaches, high-order connectivity, and challenges in graph construction and optimization for recommender systems. In 2020, Aledhari et al. published 'Federated Learning: A Survey on Enabling Technologies, Protocols, and Applications,' discussing collaborative learning without data exchange, enabling technologies, and privacy-preserved solutions across industries. In 2023, Azam et al. published 'Comparative Analysis of Intrusion Detection Systems and Machine Learning-Based Model Analysis Through Decision Tree,' reviewing IDS techniques, ML/DL adoption, datasets, and a decision tree model for network security anomaly detection. In 2020, Batra et al. published 'Emerging materials intelligence ecosystems propelled by machine learning,' exploring ML applications in materials science, though specific methodological details were not provided.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

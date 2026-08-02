@@ -1,0 +1,840 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Novel concept and first comprehensive analysis: The paper introduces 'knowledge entropy' as a new metric to quantify how broadly language models integrate their parametric knowledge across pretraining stages. This is framed as the first work to systematically analyze how model behavior in integrating memory vectors changes throughout pretraining and its effects on knowledge acquisition in continual learning.",
+        "Well-motivated hypothesis with supporting experiments and appropriately calibrated claims: The core finding that declining knowledge entropy correlates with degraded knowledge acquisition and retention is substantiated through multiple complementary experiments including: (1) direct measurement across pretraining stages, (2) continual learning experiments on new domains, and (3) targeted interventions (memory vector resuscitation) that test the causal hypothesis. Importantly, the paper honestly reports that resuscitation only partially recovers performance (Figure 5, Appendix B.7), transparently framing knowledge entropy as 'a contributing factor' rather than the sole explanation for learning degradation.",
+        "Comprehensive experimental evaluation with consistent trends across multiple conditions: The paper validates entropy decline across three datasets (PubMed, C4, Dolma), confirms trends on two model families (OLMo 1B/7B, Pythia 1.4B), explores hyperparameter sensitivity (batch size, learning rate, epochs—Section B.4), and tests multiple entropy definitions (attention entropy, next-token prediction entropy—Figure 3). Section B.4 explicitly documents consistency 'across various hyperparameter settings, including batch size, learning rate, training corpus, and the number of epochs.'",
+        "Gradient-flow explanation and honest treatment of mechanistic limitations: Appendix A.1 provides valid gradient decomposition (∂L/∂v_{i,j} = (∂L/∂FFN(x)) · c_i) explaining why coefficient concentration concentrates updates on fewer vectors. The paper appropriately distinguishes between explaining the consequence of low entropy (concentrated updates) versus the root cause of entropy decline itself, identifying the latter as an open question rather than a resolved mechanism.",
+        "Appropriate scope calibration and clear experimental design: Section 4.1 and Section 6 Limitations clearly distinguish between measured phenomena (continual learning setup with synthetic knowledge starting from different pretraining stages) and hypothesized mechanisms (pretraining-phase dynamics). The paper explicitly acknowledges computational constraints preventing pretraining-phase validation and appropriately frames findings as actionable within the tested regime (mid-stage checkpoints for continual learning)."
+      ],
+      "weaknesses": [
+        "Root cause of entropy decline during pretraining remains unexplained: While the paper establishes that entropy declines and correlates with degraded learning, it does not explain why pretraining fundamentally causes entropy to decrease. The gradient-flow analysis explains consequences of low entropy but not its origin. The paper appropriately frames this as 'an important open question' rather than an unsolved gap, but the mechanistic understanding remains incomplete.",
+        "Knowledge entropy is identified as a contributing rather than complete explanation: The rebuttal confirms that resuscitation results show knowledge entropy 'is one contributing factor to late-stage learning degradation, not the sole factor.' This is appropriately reported and interpreted, but it means other properties developed during mid-stage pretraining remain uncharacterized. The gap between resuscitated and naturally mid-stage models (Figure 5b, Appendix B.7) indicates additional factors beyond entropy drive plasticity."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Root cause of entropy decline during pretraining remains unexplained",
+          "severity": "minor",
+          "evidence": "Section A.1 provides gradient analysis of consequences (why low entropy impairs updates) but not causes (why entropy declines). The rebuttal states: 'we agree this is an important open question that warrants future investigation... Understanding whether entropy decline is an inevitable consequence of optimization convergence, a by-product of dataset properties, or a specific outcome of the pretraining objective remains an important direction for future work.' This is properly framed as acknowledged limitation rather than unmet requirement.",
+          "affected_claim": "While mechanistic understanding is incomplete, the paper does not claim to explain entropy decline's root cause. The correlation and intervention evidence are sufficient to support the claim that entropy decline correlates with and contributes to learning degradation.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Knowledge entropy is identified as a contributing rather than complete explanation",
+          "severity": "minor",
+          "evidence": "Figure 5b and Appendix B.7 document resuscitated final-stage models improve over baseline but remain substantially below mid-stage checkpoints. The rebuttal states: 'entropy is *one* contributing factor to late-stage learning degradation, not the sole factor... By not overstating what the intervention achieves, we avoid false claims and instead offer a more nuanced understanding.' This honest reporting and appropriate framing is a strength, not a weakness, as it reflects accurate calibration of claims to evidence.",
+          "affected_claim": "The claim that entropy contributes to learning degradation is well-supported. The paper appropriately does not claim entropy is the sole factor, instead offering a more nuanced view of the plasticity-stability phenomenon.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The mathematical definitions and experimental methodology are sound. Appendix A.1 provides valid gradient analysis explaining consequences of entropy concentration. Knowledge entropy measurement (Equations 1-2) uses standard Shannon entropy on normalized coefficient distributions. Knowledge acquisition and forgetting metrics (Equations 4-5) follow established protocols from prior work (Chang et al., 2024; Jang et al., 2022). Robustness is demonstrated through consistent results across datasets (Figures 7, 10), model sizes (Figures 4a for both 1B and 7B), hyperparameter variations (Section B.4, Tables 1 and Figures 12-13), and alternative entropy definitions (Figures 3, 9). The rebuttal confirms appropriate framing of entropy as contributing factor rather than complete explanation, calibrated to partial resuscitation results. No major logical or methodological errors detected."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The concept of 'knowledge entropy' as a metric for FFN memory vector integration across pretraining stages is novel and distinct from prior entropy measures (attention entropy—Kumar & Sarawagi 2019; next-token prediction entropy—Malinin & Gales 2021; Yang 2024). The specific application to analyze memory integration behavior evolution during pretraining and effects on continual learning is presented and supported as first-of-its-kind. While the phenomenon (late-stage models struggle with knowledge acquisition) is known from prior work (Dohare et al., 2024; Jang et al., 2022; Chang et al., 2024), the rebuttal clarifies 'novelty lies in proposing knowledge entropy as an explanation mechanism, not the phenomenon itself.' This framing appropriately positions the contribution as introducing a new interpretable lens on known behavior."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The work meaningfully advances understanding of LLM pretraining dynamics by introducing knowledge entropy as an interpretable, measurable metric and demonstrating its correlation with knowledge acquisition/retention abilities. The practical recommendation to use mid-stage checkpoints for continual learning is actionable. The insight that memory integration becomes sparse during pretraining provides a new perspective on the plasticity-stability tradeoff, with potential implications for continual learning research. Significance is appropriately graded as solid rather than top-tier due to: (1) partial resuscitation effectiveness indicating other factors contribute, (2) continual learning experiments restricted to OLMo, and (3) inability to validate during actual pretraining. These limitations are honestly reported in Section 6 and do not undermine the conceptual contribution, which meets the standard for a selective top-tier venue."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Experiments comprehensively support main claims: (1) Knowledge entropy decline is consistently demonstrated across model sizes (1B, 7B OLMo; Pythia 1.4B in Appendix A.2), datasets (Figures 7; Dolma, PubMed, C4), and activation functions (Figure 9; SwiGLU, ReLU); (2) Correlation with knowledge acquisition/forgetting is shown in Figure 4 with robustness across hyperparameter settings documented in Section B.4 (batch size Figure 12; dataset choice Figure 13a); (3) Complementary entropy definitions (Figure 3; attention, next-token prediction) validate phenomenon generality; (4) Resuscitation intervention (Section 4.3, Algorithm 1) provides causal evidence with honest reporting of partial effectiveness (Appendix B.7). Metrics are appropriate and follow prior work. Section 6 Limitations appropriately identifies pretraining-phase validation as future work. Results are reproducible with released code."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper maintains clear organization with logical progression: motivation and related work (Sections 1-2) → knowledge entropy definition (Section 3.1) → measurement across pretraining (Section 3.3) → continual learning experiments (Section 4.1-4.2) → resuscitation intervention (Section 4.3) → limitations and conclusions (Section 6). Figures effectively communicate findings with appropriate labels. Mathematical notation is generally clear (Equations 1-2 for knowledge entropy, Equations 4-5 for metrics). Critically, the paper distinguishes between measured phenomena (continual learning on synthetic knowledge from different pretraining stages) and hypothesized mechanisms (pretraining-phase dynamics), explicitly acknowledging computational constraints in Section 6 Limitations. Appendices are comprehensive (A for entropy, B for acquisition/forgetting). The writing avoids overstating claims, maintaining appropriate intellectual humility about the scope of findings."
+        }
+      },
+      "summary_comment": "The second rebuttal does not introduce new evidence or arguments but confirms that the paper's framing is appropriate and its limitations are honestly acknowledged. The rebuttal's emphasis on 'responsible scientific practice' for honestly reporting partial resuscitation effectiveness and identifying entropy as a contributing rather than complete explanation reinforces rather than changes the technical assessment. The paper makes a solid conceptual contribution—introducing knowledge entropy as a novel, measurable lens on LLM pretraining behavior—supported by rigorous experiments within clearly acknowledged constraints. The finding that entropy decline correlates with and contributes to degraded knowledge acquisition in late-stage models is well-established through consistent measurements, intervention results, and robustness checks. Appropriate limitations (partial resuscitation effectiveness, OLMo-focused continual learning, lack of pretraining-phase validation) are honestly reported and identified as future directions. The root-cause analysis of entropy decline itself and characterization of additional factors driving mid-stage plasticity are appropriately framed as open questions. This meets the standard for acceptance at a selective top-tier conference: novel metric, sound methodology, comprehensive evaluation, appropriate scope calibration, and clear presentation."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Strong alignment with ICML's focus on understanding machine learning systems: The paper provides mechanistic analysis of how language models store and integrate parametric knowledge across pretraining stages, directly relevant to ICML's interests in representation learning, optimization dynamics, and learning theory.\",\n      \"Novel metric with broad applicability: Knowledge entropy is introduced as a general-purpose metric for quantifying memory vector utilization in FFNs. This type of interpretable analysis metric fits ICML's emphasis on improved understanding of core ML mechanisms.\",\n      \"Rigorous empirical methodology with multiple validation approaches: The paper demonstrates consistent trends across model sizes (1B, 7B OLMo; Pythia 1.4B), datasets (Dolma, PubMed, C4), hyperparameter settings, and alternative entropy definitions. This breadth of validation aligns well with ICML's expectations for thorough experimental grounding.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited scope: Continual learning experiments are restricted to OLMo models due to availability of intermediate checkpoints. While the paper acknowledges this limitation honestly, it reduces the generalizability claims and breadth of contribution that ICML typically values. ICML prefers work demonstrating broad impact across model families and scales.\",\n      \"Incomplete mechanistic explanation: While the paper establishes correlation between knowledge entropy and learning degradation, it does not explain why pretraining causes entropy to decline in the first place. The gradient analysis in Appendix A.1 explains consequences but not root causes. ICML values deeper theoretical understanding of optimization dynamics—this gap may be seen as a significant limitation.\",\n      \"Partial intervention effectiveness weakens the causal claim: The resuscitation experiments (Section 4.3, Figure 5) show that artificially increasing entropy improves learning but only partially restores performance compared to naturally mid-stage models. This indicates knowledge entropy is 'a contributing factor' rather than the core driver, which is appropriately acknowledged but limits the strength of the mechanistic contribution.\",\n      \"Continual learning is not a core ICML focus area: While the application to continual learning is valid, ICML's primary interests center on general machine learning methodology. The framing of findings as primarily relevant to continual learning practitioners rather than the broader ML community reduces fit with the conference's strategic priorities.\",\n      \"Limited actionable implications for core ML: The practical recommendation (use mid-stage checkpoints for continual learning) is useful for a specific use case but does not lead to new optimization techniques, theoretical insights, or broadly applicable training methods that ICML typically values.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Directly addresses NeurIPS core theme on learning dynamics and representation: The paper investigates how language models' knowledge integration behavior evolves during training, a central question for understanding neural network learning. This aligns with NeurIPS's emphasis on understanding learned representations and training dynamics.\",\n      \"Novel lens on known phenomenon: While late-stage models' difficulty acquiring new knowledge is known (Dohare et al., 2024; Jang et al., 2022), this paper introduces knowledge entropy as a new interpretable mechanism explaining the phenomenon. NeurIPS values papers that provide fresh perspectives on existing phenomena.\",\n      \"Comprehensive experimental validation with good scientific rigor: The paper demonstrates consistency across multiple conditions (datasets, model sizes, hyperparameters, entropy definitions), conducts intervention experiments, and honestly reports limitations. This scientific rigor aligns with NeurIPS's standards.\",\n      \"Interdisciplinary relevance: The work connects optimization theory (gradient flow analysis in Appendix A.1), information theory (entropy), and practical ML systems (language model pretraining and continual learning), fitting NeurIPS's tradition of bridging multiple research areas.\",\n      \"Strong reviewer consensus: The single reviewer gave Accept with scores of 4/5 on all dimensions, noting 'well-motivated hypothesis,' 'comprehensive experimental evaluation,' and 'honest treatment of limitations.' This indicates the work meets NeurIPS acceptance threshold.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Not primarily a systems or applications paper: While NeurIPS welcomes 'applications to robotics, autonomy, planning, neuroscience, physical sciences' etc., this paper is fundamentally an analysis paper rather than proposing new methods or applications. It contributes understanding rather than capabilities.\",\n      \"Experimental scope limited to OLMo for continual learning: The continual learning experiments (the main empirical contribution) are restricted to OLMo 1B/7B due to checkpoint availability. While Pythia 1.4B is shown for entropy measurement (Appendix A.2), the core results lack broader model coverage that would strengthen conference impact.\",\n      \"Root cause remains unexplained: The paper establishes that entropy declines and correlates with learning degradation, but does not explain why pretraining causes entropy to decline. Section 6 appropriately identifies this as open, but for a top-tier venue like NeurIPS, deeper mechanistic insight would strengthen the contribution.\",\n      \"Partial resuscitation effectiveness limits causal claims: Modified models achieve ~52.1% knowledge probe performance (Figure 5b, q=1) versus ~52.3% for naturally mid-stage models. The paper correctly interprets this as indicating entropy is one of multiple factors, but this qualified causal relationship is weaker than would be ideal for significant mechanistic contributions.\",\n      \"Practical applicability remains narrow: The main actionable insight is 'use mid-stage checkpoints for continual learning on new domains.' This is useful but specific to continual learning practitioners and doesn't generate broader methodological innovations or theoretical advances that amplify conference impact.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Representation learning is a core ICLR focus: The paper analyzes how representations (parameterized as memory vectors in FFNs) evolve during pretraining and how this affects model behavior. This directly engages with ICLR's emphasis on understanding learned representations.\",\n      \"Novel interpretable metric for representation analysis: Knowledge entropy provides a new lens for understanding how broadly models integrate parametric knowledge. ICLR values interpretability and mechanistic understanding of deep learning, which this metric contributes.\",\n      \"Connections to learning theory and optimization: The gradient analysis (Appendix A.1) and discussion of plasticity-stability tradeoff relate to learning theory, a valued ICLR topic. The paper positions entropy decline within optimization dynamics.\",\n      \"Comprehensive experimental evaluation: The work demonstrates consistent trends across datasets, model sizes, and hyperparameter settings, with good scientific rigor in reporting both positive findings and limitations.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited methodological contribution: The paper introduces a new metric and analysis but does not propose new training methods, architectural innovations, or techniques to improve representation learning. ICLR particularly values papers that contribute novel methods or architectures alongside analysis.\",\n      \"Incomplete mechanistic understanding of representation dynamics: While the paper shows entropy declines and correlates with learning degradation, it does not explain why representations become more concentrated during pretraining or what drives this specialization. ICLR values deeper theoretical understanding of how representations emerge.\",\n      \"Resuscitation results are not convincing as fundamental insight: The intervention experiments (Section 4.3) show only partial success, indicating knowledge entropy is one of multiple factors. The gap between resuscitated final-stage and naturally mid-stage models suggests other representational properties (not identified in the paper) are crucial. This limits the mechanistic insight.\",\n      \"Narrow focus on continual learning application: While representation learning is central to ICLR, the paper frames findings primarily through the lens of continual learning rather than advancing general representation learning theory. ICLR's recent trends emphasize novel methods and theoretical insights over analysis-focused papers in specific applications.\",\n      \"Limited scope of evaluated models: Continual learning experiments focus exclusively on OLMo. While this is justified by checkpoint availability (Section 6), ICLR expects broader validation across model families to support generalizability of insights about representation learning.\",\n      \"Unclear implications for representation learning broadly: The finding that models concentrate memory vector usage during pretraining is interesting, but the paper does not clearly articulate what this means for how we should design or train models for better representations. The practical recommendation (use mid-stage checkpoints) is narrow.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary and Strategic Recommendation\n\n**Best fit: NeurIPS (score 7)**\n\nThis paper makes a solid empirical and conceptual contribution—introducing knowledge entropy as a novel metric and demonstrating its correlation with knowledge acquisition/retention degradation in language models. It has been accepted at a top venue (reviewer consensus: Accept, scores 4/5 across all dimensions) and appropriately frames its contributions, limitations, and mechanistic uncertainties.\n\n**Why NeurIPS over alternatives:**\n\n- **NeurIPS** values papers that provide fresh perspectives on known phenomena and demonstrate solid empirical science. The work fits this profile: it takes the known challenge of late-stage learning difficulty and introduces an interpretable new mechanism (knowledge entropy) to help explain it.\n\n- **ICML** (score 6) would be borderline. While the mechanistic analysis aligns with ICML's interests, the paper lacks the optimization or theoretical advances (e.g., new training methods, convergence guarantees) that strengthen ICML submissions. The continual learning framing also narrows appeal to ICML's broader ML audience.\n\n- **ICLR** (score 5) is the weakest fit despite representation learning being central. ICLR increasingly emphasizes novel methods and architectural contributions alongside analysis. This paper is primarily analytical without proposing new techniques to improve representation learning or pretraining. The incomplete mechanistic understanding and narrow continual learning focus further reduce fit.\n\n**Key strengths across venues:**\n- Novel, well-motivated metric\n- Rigorous, reproducible experiments\n- Honest acknowledgment of limitations\n- Clear presentation\n\n**Key limitations across venues:**\n- Root cause of entropy decline unexplained\n- Resuscitation shows only partial effectiveness (entropy is one factor, not the sole driver)\n- Continual learning results limited to OLMo\n- Narrow practical applicability\n\nThe paper represents good scientific work appropriate for a top venue, but NeurIPS's broader mandate and tradition of welcoming fresh perspectives on known phenomena makes it the best strategic choice.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel concept and first comprehensive analysis: The paper introduces 'knowledge entropy' as a new metric to quantify how broadly language models integrate their parametric knowledge across pretraining stages. This is framed as the first work to systematically analyze how model behavior in integrating memory vectors changes throughout pretraining and its effects on knowledge acquisition in continual learning.",
+              "Well-motivated hypothesis with supporting experiments: The core finding that declining knowledge entropy correlates with degraded knowledge acquisition and retention is substantiated through multiple complementary experiments including: (1) direct measurement across pretraining stages, (2) continual learning experiments on new domains, and (3) targeted interventions (memory vector resuscitation) that validate the causal hypothesis.",
+              "Comprehensive experimental evaluation with multiple datasets and metrics: The paper evaluates on three datasets (PubMed, C4, Fictional Knowledge), tests across model sizes (1B and 7B), explores hyperparameter sensitivity (batch size, learning rate, epochs), and uses both probing metrics and downstream task performance, demonstrating consistency of findings across various settings.",
+              "Clear presentation of consistent trends: Figures effectively show the decline in knowledge entropy across pretraining (Figure 2), the correlation with knowledge acquisition/forgetting (Figure 4), and the beneficial effect of memory vector resuscitation (Figure 5), making the main findings accessible.",
+              "Theoretical grounding in established memory concepts: The work builds soundly on prior research showing FFNs function as key-value memories, leveraging this foundation to motivate the knowledge entropy definition and interpretation."
+            ],
+            "weaknesses": [
+              "Limited mechanistic understanding of why knowledge entropy decreases and its relationship to plasticity-stability tradeoff: While the paper establishes a correlation between knowledge entropy decline and reduced knowledge acquisition, the explanation relies on a relatively straightforward gradient-scaling argument. The paper does not deeply explore why pretraining fundamentally causes this entropy decrease or provide sufficient mechanistic insight into how it relates to the well-known plasticity-stability tradeoff mentioned but not thoroughly analyzed.",
+              "Memory vector resuscitation shows partial effectiveness and unclear practical applicability: The resuscitation experiments (Section 4.3, Algorithm 1) demonstrate improved performance over unmodified final-stage models, but performance remains substantially below mid-stage models with similar entropy. The paper acknowledges this limitation but does not provide a satisfactory explanation or path forward, making the intervention more of a proof-of-concept than a practical solution.",
+              "Limited experimental scope restricted to OLMo models: While the paper mentions Pythia experiments in the appendix, the main analysis focuses exclusively on OLMo (1B/7B) because it is 'the only model' with released intermediate checkpoints. This significantly limits generalizability claims. The RAG evidence confirms this is a 2024 paper, but the restriction to a single model family remains a notable limitation.",
+              "Definition of knowledge entropy lacks principled justification for specific choices: The paper uses absolute values of SwiGLU activations and averages coefficients across all tokens in a dataset, but does not provide strong theoretical or empirical justification for these specific choices. While Appendix A.2 shows trends persist with alternative definitions, the core design decisions remain somewhat arbitrary.",
+              "Continual learning setup is artificial and may not reflect real-world scenarios: The use of synthetic fictional knowledge injected repeatedly into the training stream is somewhat removed from realistic continual learning scenarios. The paper acknowledges limitations due to computational constraints preventing pretraining-phase analysis, which undermines the generalizability of conclusions about pretraining dynamics."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited mechanistic understanding of why knowledge entropy decreases and its relationship to plasticity-stability tradeoff",
+                "severity": "major",
+                "evidence": "Section A.1 provides intuition based on gradient magnitude scaling (∂L/∂v_i,j = (∂L/∂FFN(x)) · c_i), but this is straightforward backpropagation mechanics. The paper does not explain why pretraining inherently drives entropy down or how this fundamentally relates to the plasticity-stability phenomenon beyond citing related work. The mechanism section states 'Centralization can affect the model's ability to evenly utilize its memory capacity' but this is stated rather than proven.",
+                "affected_claim": "The central claim that decreasing knowledge entropy explains degraded knowledge acquisition in later-stage models depends on understanding the underlying mechanism, not just observing correlation.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Memory vector resuscitation shows partial effectiveness and unclear practical applicability",
+                "severity": "major",
+                "evidence": "Section 4.3, Figure 5: 'the performance remains lower compared to models from the pretraining step with similar knowledge entropy, such as the mid-stage model' and 'applying linear scaling to a subset of specific layers alone is insufficient to induce fundamental behavioral changes in the model.' This significantly undermines the utility of the proposed intervention and suggests the knowledge entropy metric, while correlative, does not capture all factors limiting later-stage learning.",
+                "affected_claim": "The hypothesis that increasing knowledge entropy can restore knowledge acquisition capability is only partially supported; the limited effectiveness suggests other factors beyond entropy depletion contribute to the problem.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited experimental scope restricted to OLMo models",
+                "severity": "major",
+                "evidence": "Section 3.2: 'We use the OLMo (Groeneveld et al., 2024) models (1B and 7B)... as they are the only models that publicly provide intermediate pretraining checkpoints.' Appendix A.2 shows Pythia 1.4B experiments confirming the trend, but the main continual learning analysis is OLMo-only. This limits generalizability to other model architectures, scales, and training regimes.",
+                "affected_claim": "The generalizability of findings about knowledge entropy dynamics across pretraining stages and their impact on knowledge acquisition to other language models remains uncertain.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Definition of knowledge entropy lacks principled justification for specific choices",
+                "severity": "minor",
+                "evidence": "Section 3.1-3.2: The paper uses abs(SwiGLU(x_j)) for coefficients and averages across all dataset instances. Appendix A.2 tests alternatives (ReLU, different datasets) but the paper does not justify why these specific choices are optimal or whether alternatives fundamentally change conclusions. The choices appear somewhat arbitrary.",
+                "affected_claim": "While the core trend of entropy decline appears robust, the specific quantitative values and interpretations depend on these design choices, which lack strong theoretical grounding.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Continual learning setup is artificial and may not reflect real-world scenarios",
+                "severity": "minor",
+                "evidence": "Section 4.1: The experiments use synthetic fictional knowledge inserted 10 times during training on new corpora. Section 6 Limitations: 'Due to computational constraints, our study measures knowledge acquisition and forgetting in a continual learning setup. Future work could explore whether these behaviors also manifest during the pretraining phase.' This artificial setup and inability to test during actual pretraining weakens claims about pretraining dynamics.",
+                "affected_claim": "Conclusions about how knowledge entropy affects learning dynamics during pretraining are based on measurements from a different regime (continual learning on new domains), which may not reflect the mechanisms during pretraining itself.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical definitions of knowledge entropy (Equations 2) are sound and build on established FFN-as-memory literature. The experimental methodology is reasonable: entropy measurements use standard Shannon entropy on probability distributions of coefficients; knowledge acquisition and forgetting metrics follow prior work (Chang et al., 2024; Jang et al., 2022); continual learning setup with probing and downstream tasks is appropriate. The intuition for why low entropy impairs learning (gradient concentration on fewer parameters) is logically coherent, even if not deeply proven. Appendix A.1 provides valid gradient analysis. Results are consistent across multiple conditions (datasets, model sizes, hyperparameters), strengthening confidence in findings. No major mathematical or logical errors detected."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The concept of 'knowledge entropy' as a metric for parametric knowledge integration is novel and distinct from prior entropy measures (attention entropy, next-token prediction entropy). While entropy has been used in NLP before (as discussed in Section 2), this specific application to FFN memory vector coefficients across pretraining stages appears new. The paper's focus on how memory integration behavior evolves during pretraining and its effects on continual knowledge learning is claimed as first-of-its-kind and supported by the related work discussion. The RAG evidence confirms no prior publication of this exact work. However, the core finding that late-stage models struggle with knowledge acquisition is known (cited prior work: Dohare et al., 2024; Jang et al., 2022; Chang et al., 2024). The novelty lies in proposing knowledge entropy as an explanation mechanism, not the phenomenon itself."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The findings have meaningful implications for the ML community: (1) identifying knowledge entropy decline as a factor in late-stage model degradation provides a new perspective on the plasticity-stability tradeoff, (2) the practical recommendation to use mid-stage checkpoints for continual learning is actionable, (3) understanding model behavior evolution during pretraining advances fundamental knowledge of LLM training. The work addresses a real problem (late-stage models' poor knowledge acquisition) with a novel lens. However, significance is somewhat limited by: the resuscitation method's partial effectiveness reducing practical impact, restriction to OLMo models, and inability to test during actual pretraining. These prevent the work from being top-tier in terms of immediate practical impact, but the conceptual contribution is solid."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments comprehensively support the main claims: (1) Knowledge entropy decline is demonstrated across two model sizes (1B, 7B), confirmed on Pythia 1.4B, and shown to persist across different datasets (Dolma, PubMed, C4) and activation functions (SwiGLU, ReLU); (2) Correlation between entropy and knowledge acquisition/forgetting is shown in Figures 2 and 4 with consistent trends across hyperparameter variations (Section B.4); (3) The resuscitation experiments (Section 4.3, Algorithm 1) provide evidence that activating inactive memory improves performance, supporting the causal hypothesis. Metrics are appropriate: probing performance for knowledge acquisition, downstream task performance for forgetting. The experimental design includes proper baselines (unmodified models at different stages) and ablations (hyperparameter sensitivity). Limitations are acknowledged: computational constraints, model family restriction, artificial continual learning setup. Results are largely reproducible with released code promised."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with well-organized sections and logical flow: motivation → concept definition → measurement across pretraining → continual learning experiments → resuscitation intervention. Figures are informative (Figure 2 clearly shows entropy decline, Figure 4 shows correlation with performance metrics, Figure 5 demonstrates resuscitation effects). Mathematical notation is generally clear, though dense in places. The main narrative is accessible to readers familiar with LLM internals. Appendices are comprehensive and well-organized (A for knowledge entropy details, B for acquisition/forgetting experiments). Tables and additional results support the main claims. Some complexity in metrics (Equations 4-5) could be more clearly explained in main text, but overall the presentation is strong enough for a top venue."
+              }
+            },
+            "summary_comment": "This paper introduces 'knowledge entropy,' a novel metric for measuring how broadly language models integrate their parametric knowledge, and demonstrates that entropy systematically declines during pretraining. This decline correlates with and plausibly explains degraded knowledge acquisition and retention in later-stage models when learning new information. The work is well-executed with comprehensive experiments across models and settings, addresses a real phenomenon in LLM training, and provides actionable insights (mid-stage checkpoints). However, the contribution is partially limited by: (1) incomplete mechanistic understanding of why entropy declines and how to reverse it effectively, (2) restriction to OLMo models due to data availability, (3) inability to test hypotheses during actual pretraining due to computational constraints, and (4) limited practical utility of the proposed resuscitation method. The resuscitation experiments show the intervention only partially recovers performance compared to naturally-occurring mid-stage models, suggesting knowledge entropy is correlative rather than fully explanatory of the phenomenon. Despite these limitations, the paper makes a solid conceptual contribution to understanding LLM pretraining dynamics and knowledge acquisition, with novel measurement approach, clear presentation, and rigorous experimental methodology. It merits acceptance at a top-tier venue, though it is not among the very strongest contributions due to the limitations noted."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel concept and first comprehensive analysis: The paper introduces 'knowledge entropy' as a new metric to quantify how broadly language models integrate their parametric knowledge across pretraining stages. This is framed as the first work to systematically analyze how model behavior in integrating memory vectors changes throughout pretraining and its effects on knowledge acquisition in continual learning.",
+              "Well-motivated hypothesis with supporting experiments and honest interpretation: The core finding that declining knowledge entropy correlates with degraded knowledge acquisition and retention is substantiated through multiple complementary experiments including: (1) direct measurement across pretraining stages, (2) continual learning experiments on new domains, and (3) targeted interventions (memory vector resuscitation) that validate the causal hypothesis. Importantly, the paper honestly reports that resuscitation only partially recovers performance (Figure 5, Appendix B.7), explicitly acknowledging that knowledge entropy is 'a contributing factor' rather than the sole explanation.",
+              "Comprehensive experimental evaluation with consistent trends across multiple conditions: The paper evaluates knowledge entropy decline on three datasets (PubMed, C4, Dolma), confirms the trend across model sizes (1B and 7B OLMo, plus Pythia 1.4B in Appendix A.2), explores hyperparameter sensitivity (batch size, learning rate, epochs—Section B.4), tests multiple entropy definitions (attention entropy, next-token prediction entropy—Figure 3), and uses both probing metrics and downstream task performance. The rebuttal appropriately clarifies that this consistency strengthens confidence in the core phenomenon.",
+              "Clear presentation of consistent trends and honest treatment of limitations: Figures effectively communicate the main findings. Critically, the paper distinguishes clearly between what is measured (continual learning with synthetic knowledge starting from different pretraining stages) versus what is hypothesized (pretraining-phase mechanisms). Section 6 explicitly acknowledges computational constraints preventing pretraining-phase validation.",
+              "Theoretical grounding in established memory concepts with gradient-flow justification: The work builds on prior research showing FFNs function as key-value memories. Appendix A.1 provides valid gradient analysis showing how coefficient concentration (low entropy) leads to concentrated gradient updates: ∂L/∂v_{i,j} depends proportionally on c_i by the chain rule, so lower entropy distributions concentrate updates on fewer positions. While not exhaustively mechanistic, this is logically sound."
+            ],
+            "weaknesses": [
+              "Incomplete explanation for why knowledge entropy decreases during pretraining: While the paper establishes that entropy declines and correlates with degraded learning, it does not explain the root cause of entropy decline itself. The rebuttal acknowledges this as 'an important open question,' noting that the paper 'hypothesizes that as models converge during pretraining, optimization naturally concentrates on fewer, more predictive memory vectors—but we do not rigorously prove this.' This limits depth of mechanistic understanding.",
+              "Resuscitation method's partial effectiveness indicates knowledge entropy is correlative rather than fully explanatory: The rebuttal appropriately emphasizes that this limitation 'honestly reports' the phenomenon and is interpreted as supporting the claim that entropy is 'a contributing factor' rather than sole cause. However, the gap between resuscitated final-stage models and naturally-occurring mid-stage checkpoints (Figure 5b, Appendix B.7) raises questions about what other factors drive plasticity during pretraining, which the paper does not fully explore.",
+              "Limited experimental scope restricted to OLMo models with only supplementary Pythia validation: While the paper cites data availability constraints, the continual learning experiments (Section 4) are OLMo-only. Appendix A.2 provides Pythia 1.4B confirmation of entropy decline trends but does not validate the full continual learning analysis on alternative architectures, limiting generalizability claims.",
+              "Knowledge entropy definition design choices lack strong first-principles justification: The selection of absolute values of SwiGLU outputs and dataset-level averaging in Equation 2 are pragmatic choices. While Appendix A.2 shows trends persist under alternative definitions (ReLU, different datasets), the paper does not rigorously justify why these specific choices are optimal or provide theoretical principles guiding the definition."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Incomplete explanation for why knowledge entropy decreases during pretraining",
+                "severity": "minor",
+                "evidence": "Rebuttal states: 'Our current explanation focuses on the consequence of low entropy (concentrated updates) rather than the cause of entropy decline. This is a fair critique... The paper hypothesizes that as models converge during pretraining, optimization naturally concentrates on fewer, more predictive memory vectors—but we do not rigorously prove this.' Section A.1 provides gradient analysis of consequences but not root causes.",
+                "affected_claim": "While the paper demonstrates entropy decline occurs and correlates with learning degradation, the mechanistic explanation of why pretraining drives entropy down remains incomplete. This is acknowledged as an open question rather than a gap requiring resolution.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Resuscitation method's partial effectiveness indicates knowledge entropy is correlative rather than fully explanatory",
+                "severity": "minor",
+                "evidence": "Rebuttal clarifies: 'the paper honestly reports that resuscitation only partially recovers performance... This gap is important. It indicates that knowledge entropy, while correlative with knowledge acquisition ability, does not fully explain the phenomenon... entropy decline is *a contributing factor* to late-stage degradation, but not the sole factor.' Section 4.3 and Appendix B.7 show resuscitated final-stage models improve over baseline but remain substantially below mid-stage checkpoints with similar entropy.",
+                "affected_claim": "The causal claim is appropriately framed as explaining one contributing mechanism rather than the complete phenomenon. The paper's honest reporting of partial effectiveness strengthens rather than weakens this claim.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited experimental scope restricted to OLMo models with only supplementary Pythia validation",
+                "severity": "minor",
+                "evidence": "Section 3.2 states OLMo is 'the only model that publicly provides intermediate pretraining checkpoints' and Appendix A.2 provides Pythia 1.4B entropy decline validation. Rebuttal acknowledges 'the restriction to OLMo is indeed a limitation imposed by data availability, not by choice' and recognizes this would strengthen the work if feasible. Section 6 identifies this as valuable future direction.",
+                "affected_claim": "Generalizability claims are limited to models with available intermediate checkpoints. The core entropy decline phenomenon is validated on two model families (OLMo, Pythia) but continual learning experiments are OLMo-specific.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Knowledge entropy definition design choices lack strong first-principles justification",
+                "severity": "minor",
+                "evidence": "Rebuttal acknowledges: 'The design choices in knowledge entropy (absolute values, dataset-level averaging) are pragmatic rather than theoretically optimized' and notes that 'Appendix A.2 provides empirical validation that trends persist under alternative definitions (ReLU instead of absolute value, different datasets).' The paper chooses pragmatism over theoretical optimization.",
+                "affected_claim": "While design choices are pragmatically justified through robustness testing rather than first-principles theory, the core phenomenon (entropy decline) appears robust. This is a minor weakness as the practical validity is demonstrated empirically.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical definitions and experimental methodology remain sound. Appendix A.1 provides valid gradient analysis explaining why coefficient concentration impacts parameter updates. The experimental design properly measures knowledge entropy using standard Shannon entropy on normalized coefficient distributions, and knowledge acquisition/forgetting metrics follow established protocols from prior work (Chang et al., 2024; Jang et al., 2022). Robustness is demonstrated across datasets, model sizes, and hyperparameter settings (Section B.4). The rebuttal's clarification that entropy is 'a contributing factor' rather than sole cause is consistent with the partial resuscitation results, indicating the paper's claims are appropriately calibrated to the evidence. No major logical errors detected."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The concept of 'knowledge entropy' as a metric for FFN memory vector integration across pretraining stages is novel and distinct from prior entropy measures (attention entropy, next-token prediction entropy). The specific application to analyze how memory integration behavior evolves during pretraining and its effects on continual learning is presented as first-of-its-kind, supported by the related work discussion (Section 2). While the phenomenon that late-stage models struggle with knowledge acquisition is known from prior work (Dohare et al., 2024; Jang et al., 2022; Chang et al., 2024), the rebuttal clarifies that 'the novelty lies in proposing knowledge entropy as an explanation mechanism, not the phenomenon itself.' This is an appropriate framing of the contribution."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work advances understanding of LLM pretraining dynamics by introducing a new interpretable metric (knowledge entropy) and demonstrating its correlation with knowledge acquisition/retention abilities. The practical recommendation to use mid-stage checkpoints for continual learning is actionable. The conceptual insight that memory integration becomes increasingly sparse during pretraining offers a new lens on the plasticity-stability tradeoff. Significance is appropriately graded as solid but not top-tier due to: partial resuscitation effectiveness suggesting other factors contribute, restriction to OLMo for continual learning experiments, and inability to validate during actual pretraining. These limitations are accurately reflected in the rebuttal and do not undermine the conceptual contribution, which merits publication at a selective venue."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments comprehensively support the main claims through multiple forms of evidence: (1) Knowledge entropy decline is consistently demonstrated across model sizes (1B, 7B OLMo, confirmed on Pythia 1.4B Appendix A.2), datasets (Dolma, PubMed, C4 in Figure 7), and activation functions (SwiGLU, ReLU in Figure 9); (2) Correlation with knowledge acquisition/forgetting is shown in Figure 4 with robustness across hyperparameter settings detailed in Section B.4; (3) Resuscitation experiments (Section 4.3, Algorithm 1) provide intervention evidence, with honest reporting of partial effectiveness (Appendix B.7); (4) Complementary entropy definitions (attention, next-token prediction in Figure 3) validate the phenomenon's generality. Metrics are appropriate and measurements are rigorous. The rebuttal appropriately acknowledges that testing during actual pretraining remains an open question, consistent with Section 6 Limitations."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper maintains clear organization with logical flow: motivation → concept definition (Section 3) → measurement across pretraining (Section 3.3) → continual learning experiments (Section 4) → resuscitation intervention (Section 4.3) → implications. Figures effectively communicate main findings with appropriate captions. Mathematical notation is generally clear (Equations 1-2 for knowledge entropy, Equations 4-5 for metrics). The main narrative is accessible to readers with LLM background. Critically, the paper clearly distinguishes between measured phenomena (continual learning setup with synthetic knowledge) and hypothesized mechanisms (pretraining-phase dynamics), avoiding overstatement. Appendices are comprehensive and well-organized. Section 6 Limitations appropriately acknowledges constraints. The rebuttal demonstrates that the authors have carefully considered the scope and limitations of their claims, which is reflected in the manuscript."
+              }
+            },
+            "summary_comment": "The rebuttal provides clarifications that improve understanding of the paper's contributions and limitations without requiring changes to substantive assessment. Key points: (1) The paper honestly reports that resuscitation only partially recovers performance, appropriately framing knowledge entropy as a 'contributing factor' rather than sole explanation—this transparency strengthens rather than weakens the work. (2) The gradient-flow justification in Appendix A.1, while not exhaustively mechanistic, is logically sound and explains why coefficient concentration affects parameter updates. (3) Robustness across datasets, model sizes, and entropy definitions (documented in Appendices) validates the core entropy-decline phenomenon despite OLMo-focused continual learning experiments. (4) The clear delineation between measured setup (continual learning) and hypothesized mechanisms (pretraining dynamics), with explicit acknowledgment of computational constraints, reflects responsible scientific communication rather than weakness. The authors appropriately identify root-cause analysis (why entropy declines) and multi-architecture validation as important future directions. Overall, the work makes a solid conceptual contribution—introducing knowledge entropy as a novel lens on LLM behavior during pretraining—supported by rigorous experiments within acknowledged constraints. The limitation that knowledge entropy is correlative rather than fully explanatory is honestly reported and does not undermine the primary contribution. This meets the standard for acceptance at a selective top-tier conference."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited mechanistic understanding of why knowledge entropy decreases during pretraining and its relationship to the plasticity-stability tradeoff\",\n        \"Memory vector resuscitation shows only partial effectiveness compared to naturally-occurring mid-stage models, suggesting knowledge entropy may be correlative rather than fully explanatory\",\n        \"Experimental scope restricted to OLMo models due to limited availability of intermediate checkpoints, limiting generalizability claims\",\n        \"Design choices in knowledge entropy definition (absolute values, dataset-level averaging) lack strong theoretical justification\",\n        \"Continual learning setup uses artificial synthetic knowledge, preventing validation of findings during actual pretraining\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"The gradient-scaling intuition for why low entropy impairs learning\",\n          \"location\": \"Section A.1 and Section 4.3\",\n          \"explanation\": \"Appendix A.1 provides a valid gradient analysis showing how concentration of coefficients leads to concentrated gradient updates: ∂L/∂v_i,j depends on c_i, so lower entropy (spikier distribution) means larger gradients on specific positions. Section 4.3 extends this by noting that fewer active memory vectors lead to more frequent overwrites when new knowledge is introduced.\"\n        },\n        {\n          \"concern\": \"Consistency of knowledge entropy decline across multiple conditions\",\n          \"location\": \"Figures 2, 6, 7, 8, 9 and Section 3.3-3.4\",\n          \"explanation\": \"Figure 2 shows entropy decline in 1B and 7B OLMo models. Figure 6 (Appendix A.2) confirms trend in Pythia 1.4B. Figure 7 shows robustness to dataset choice (Dolma, PubMed, C4). Figure 9 shows trend persists with alternative activation functions (ReLU). Figure 8 shows layer-wise consistency with largest decline in final layer.\"\n        },\n        {\n          \"concern\": \"Correlation between knowledge entropy and knowledge acquisition/forgetting\",\n          \"location\": \"Figure 4a and Section 4.2\",\n          \"explanation\": \"Figure 4a directly plots entropy decline (implicit from Figure 2) against acquisition A(θ) and forgetting F(θ). Both metrics show consistent degradation matching the entropy trajectory across pretraining stages for both 1B and 7B models.\"\n        },\n        {\n          \"concern\": \"Complementary entropy trends (attention and next-token prediction)\",\n          \"location\": \"Section 3.4 and Figure 3\",\n          \"explanation\": \"Figure 3 shows that attention entropy and next-token prediction entropy also decline during pretraining, suggesting the entropy decline phenomenon is not artifact of the specific knowledge entropy definition but reflects broader model behavior patterns.\"\n        },\n        {\n          \"concern\": \"Robustness across hyperparameter settings\",\n          \"location\": \"Section B.4 and Appendix B.4.1-B.4.2\",\n          \"explanation\": \"Section B.4 explicitly states 'We consistently observe this pattern of later-stage models underperforming compared to earlier-stage models across various hyperparameter settings, including batch size, learning rate, training corpus, and the number of epochs.' Figure 12 shows results with different batch sizes, and Figures 13a shows results with different training datasets (PubMed vs C4).\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Limited mechanistic understanding beyond gradient-scaling argument\",\n          \"proposed_change\": \"Expand Section A.1 or add new analysis examining: (1) Why does entropy decrease occur during pretraining? Is this an inevitable consequence of model convergence or optimization dynamics? (2) Provide formal analysis or empirical investigation of how specific layer updates differ between high and low entropy regimes. (3) Explicitly characterize the relationship between knowledge entropy decline and plasticity-stability tradeoff using existing plasticity metrics if available.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Resuscitation method only partially recovers performance\",\n          \"proposed_change\": \"Investigate why linear scaling of K matrix weights is insufficient. Consider: (1) Analyzing which other model components beyond the up-projection matrix require modification, (2) Testing multi-layer or cross-layer resuscitation strategies beyond the current single-layer approach, (3) Examining whether the issue is fundamental (middle stages inherently develop other beneficial properties beyond high entropy) or technical (better optimization method needed). Discuss these findings in Section 4.3.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Restriction to OLMo models limits generalizability\",\n          \"proposed_change\": \"While acknowledging computational constraints, consider whether smaller-scale experiments on other architectures are feasible. For example: (1) Measure knowledge entropy on other available models with intermediate checkpoints (e.g., Llama checkpoints if available), (2) Test whether knowledge entropy trends generalize to different model families even if continual learning experiments cannot be conducted, (3) Add discussion of whether architectural differences (attention mechanisms, FFN design, normalization) might affect entropy dynamics.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Design choices in knowledge entropy definition lack strong justification\",\n          \"proposed_change\": \"In Section 3.2, provide more rigorous justification for: (1) Why absolute value of SwiGLU activations is the correct choice (beyond 'magnitude determines contribution'). Compare to alternative coefficient definitions: raw SwiGLU outputs with ReLU(gate) * up() directly, squared values, or other combinations. (2) Why dataset-level averaging (Equation 2) is preferred over sequence-level or batch-level entropy, with empirical comparison. (3) Whether the entropy formula (Shannon entropy of normalized coefficients) is optimal or if alternative entropy definitions would be more informative.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Continual learning setup is artificial and separate from pretraining phase\",\n          \"proposed_change\": \"Acknowledge that testing conclusions during actual pretraining remains a critical open question. In Section 6 Limitations, expand discussion: (1) Hypothesize what pretraining-phase analysis might reveal differently from continual learning setup, (2) Discuss whether findings about knowledge acquisition with synthetic fictional knowledge necessarily transfer to natural pretraining dynamics, (3) If feasible with computational budget, conduct preliminary analysis on smaller model scales or shorter pretraining runs to assess whether knowledge entropy dynamics during continual learning reflect pretraining-phase phenomena.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"Thank you for the comprehensive and constructive review. We appreciate the detailed assessment of our work's strengths and the identification of important limitations. We address your key concerns below.\\n\\n**On mechanistic understanding:** You correctly identify that Section A.1's gradient-scaling argument, while logically sound, represents a relatively straightforward application of backpropagation mechanics. The reviewer notes that we do not explain *why* pretraining inherently drives entropy down. This is a fair critique. Our current explanation focuses on the consequence of low entropy (concentrated updates) rather than the cause of entropy decline. We acknowledge this is an important open question. The paper hypothesizes that as models converge during pretraining, optimization naturally concentrates on fewer, more predictive memory vectors—but we do not rigorously prove this. The relationship to plasticity-stability remains descriptive rather than deeply mechanistic. We recognize this limits the explanatory power of our framework.\\n\\n**On resuscitation effectiveness:** The partial success of our resuscitation method (Section 4.3) is indeed a significant finding—one that we believe the paper honestly reports. Figure 5 and the detailed analysis in Appendix B.7 clearly show that final-stage models with resuscitated inactive vectors improve over unmodified final-stage models but remain substantially below mid-stage checkpoints with similar entropy. This gap is important. It indicates that knowledge entropy, while correlative with knowledge acquisition ability, does not fully explain the phenomenon. We explicitly state: \\\"applying linear scaling to a subset of specific layers alone is insufficient to induce fundamental behavioral changes in the model.\\\" This suggests that models in different pretraining stages develop additional structural or optimization properties beyond entropy differences. We interpret this as *supporting* rather than undermining our core claim: entropy decline is *a contributing factor* to late-stage degradation, but not the sole factor. We include this nuance in the conclusion and believe it reflects scientific honesty rather than weakness.\\n\\n**On model scope:** The restriction to OLMo is indeed a limitation imposed by data availability, not by choice. As Section 3.2 states, OLMo is \\\"the only model that publicly provides intermediate pretraining checkpoints\\\" at the time of submission. We do provide Pythia 1.4B experiments in Appendix A.2 confirming the knowledge entropy trend, which offers some evidence of generalizability to other architectures. We acknowledge in Section 6 that \\\"extending this investigation to other models would be a valuable direction for further research.\\\" We agree this would strengthen the work if feasible.\\n\\n**On definition choices:** The design choices in knowledge entropy (absolute values, dataset-level averaging) are pragmatic rather than theoretically optimized, as the reviewer notes. Appendix A.2 provides empirical validation that trends persist under alternative definitions (ReLU instead of absolute value, different datasets). While we could strengthen justification in Section 3.2, the core finding—entropy decline during pretraining—appears robust across variations. We note that Figure 3 also shows complementary entropy trends (attention entropy, next-token prediction entropy), suggesting the decline is a broader phenomenon beyond our specific definition.\\n\\n**On continual learning setup:** The reviewer correctly highlights that our experiments measure knowledge acquisition in a continual learning regime with synthetic knowledge, not during actual pretraining. Section 6 explicitly acknowledges this limitation: \\\"Due to computational constraints, our study measures knowledge acquisition and forgetting in a continual learning setup. Future work could explore whether these behaviors also manifest during the pretraining phase.\\\" This is a genuine constraint, not an oversight. We are careful not to overstate claims—we measure how knowledge entropy relates to *new knowledge acquisition* in a continual learning setup starting from different pretraining stages. We do not claim this directly reflects pretraining-phase mechanisms, though we hypothesize the underlying principle (parameter overwriting due to concentrated updates) may be relevant. We appreciate the reviewer's note that this undermines some generalizability claims and have acknowledged this in limitations.\\n\\n**Summary:** Your review correctly identifies that our work makes a solid conceptual contribution—proposing knowledge entropy as a novel lens on LLM behavior—but that several important questions remain open. We believe the paper's honest reporting of partial resuscitation effectiveness, acknowledgment of limited mechanistic understanding, and clear delineation of what we test (continual learning) versus what we hypothesize (pretraining dynamics) reflects responsible scientific communication. The consistent trends across multiple datasets, model sizes, and entropy definitions, combined with the correlation-and-intervention evidence structure, provide reasonable support for the core claim that knowledge entropy decline is *associated with* and *contributes to* degraded knowledge acquisition in later-stage models, even if it does not fully explain the phenomenon.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel concept and first comprehensive analysis: The paper introduces 'knowledge entropy' as a new metric to quantify how broadly language models integrate their parametric knowledge across pretraining stages. This is framed as the first work to systematically analyze how model behavior in integrating memory vectors changes throughout pretraining and its effects on knowledge acquisition in continual learning.",
+              "Well-motivated hypothesis with supporting experiments and appropriately calibrated claims: The core finding that declining knowledge entropy correlates with degraded knowledge acquisition and retention is substantiated through multiple complementary experiments including: (1) direct measurement across pretraining stages, (2) continual learning experiments on new domains, and (3) targeted interventions (memory vector resuscitation) that test the causal hypothesis. Importantly, the paper honestly reports that resuscitation only partially recovers performance (Figure 5, Appendix B.7), transparently framing knowledge entropy as 'a contributing factor' rather than the sole explanation for learning degradation.",
+              "Comprehensive experimental evaluation with consistent trends across multiple conditions: The paper validates entropy decline across three datasets (PubMed, C4, Dolma), confirms trends on two model families (OLMo 1B/7B, Pythia 1.4B), explores hyperparameter sensitivity (batch size, learning rate, epochs—Section B.4), and tests multiple entropy definitions (attention entropy, next-token prediction entropy—Figure 3). Section B.4 explicitly documents consistency 'across various hyperparameter settings, including batch size, learning rate, training corpus, and the number of epochs.'",
+              "Gradient-flow explanation and honest treatment of mechanistic limitations: Appendix A.1 provides valid gradient decomposition (∂L/∂v_{i,j} = (∂L/∂FFN(x)) · c_i) explaining why coefficient concentration concentrates updates on fewer vectors. The paper appropriately distinguishes between explaining the consequence of low entropy (concentrated updates) versus the root cause of entropy decline itself, identifying the latter as an open question rather than a resolved mechanism.",
+              "Appropriate scope calibration and clear experimental design: Section 4.1 and Section 6 Limitations clearly distinguish between measured phenomena (continual learning setup with synthetic knowledge starting from different pretraining stages) and hypothesized mechanisms (pretraining-phase dynamics). The paper explicitly acknowledges computational constraints preventing pretraining-phase validation and appropriately frames findings as actionable within the tested regime (mid-stage checkpoints for continual learning)."
+            ],
+            "weaknesses": [
+              "Root cause of entropy decline during pretraining remains unexplained: While the paper establishes that entropy declines and correlates with degraded learning, it does not explain why pretraining fundamentally causes entropy to decrease. The gradient-flow analysis explains consequences of low entropy but not its origin. The paper appropriately frames this as 'an important open question' rather than an unsolved gap, but the mechanistic understanding remains incomplete.",
+              "Knowledge entropy is identified as a contributing rather than complete explanation: The rebuttal confirms that resuscitation results show knowledge entropy 'is one contributing factor to late-stage learning degradation, not the sole factor.' This is appropriately reported and interpreted, but it means other properties developed during mid-stage pretraining remain uncharacterized. The gap between resuscitated and naturally mid-stage models (Figure 5b, Appendix B.7) indicates additional factors beyond entropy drive plasticity."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Root cause of entropy decline during pretraining remains unexplained",
+                "severity": "minor",
+                "evidence": "Section A.1 provides gradient analysis of consequences (why low entropy impairs updates) but not causes (why entropy declines). The rebuttal states: 'we agree this is an important open question that warrants future investigation... Understanding whether entropy decline is an inevitable consequence of optimization convergence, a by-product of dataset properties, or a specific outcome of the pretraining objective remains an important direction for future work.' This is properly framed as acknowledged limitation rather than unmet requirement.",
+                "affected_claim": "While mechanistic understanding is incomplete, the paper does not claim to explain entropy decline's root cause. The correlation and intervention evidence are sufficient to support the claim that entropy decline correlates with and contributes to learning degradation.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Knowledge entropy is identified as a contributing rather than complete explanation",
+                "severity": "minor",
+                "evidence": "Figure 5b and Appendix B.7 document resuscitated final-stage models improve over baseline but remain substantially below mid-stage checkpoints. The rebuttal states: 'entropy is *one* contributing factor to late-stage learning degradation, not the sole factor... By not overstating what the intervention achieves, we avoid false claims and instead offer a more nuanced understanding.' This honest reporting and appropriate framing is a strength, not a weakness, as it reflects accurate calibration of claims to evidence.",
+                "affected_claim": "The claim that entropy contributes to learning degradation is well-supported. The paper appropriately does not claim entropy is the sole factor, instead offering a more nuanced view of the plasticity-stability phenomenon.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical definitions and experimental methodology are sound. Appendix A.1 provides valid gradient analysis explaining consequences of entropy concentration. Knowledge entropy measurement (Equations 1-2) uses standard Shannon entropy on normalized coefficient distributions. Knowledge acquisition and forgetting metrics (Equations 4-5) follow established protocols from prior work (Chang et al., 2024; Jang et al., 2022). Robustness is demonstrated through consistent results across datasets (Figures 7, 10), model sizes (Figures 4a for both 1B and 7B), hyperparameter variations (Section B.4, Tables 1 and Figures 12-13), and alternative entropy definitions (Figures 3, 9). The rebuttal confirms appropriate framing of entropy as contributing factor rather than complete explanation, calibrated to partial resuscitation results. No major logical or methodological errors detected."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The concept of 'knowledge entropy' as a metric for FFN memory vector integration across pretraining stages is novel and distinct from prior entropy measures (attention entropy—Kumar & Sarawagi 2019; next-token prediction entropy—Malinin & Gales 2021; Yang 2024). The specific application to analyze memory integration behavior evolution during pretraining and effects on continual learning is presented and supported as first-of-its-kind. While the phenomenon (late-stage models struggle with knowledge acquisition) is known from prior work (Dohare et al., 2024; Jang et al., 2022; Chang et al., 2024), the rebuttal clarifies 'novelty lies in proposing knowledge entropy as an explanation mechanism, not the phenomenon itself.' This framing appropriately positions the contribution as introducing a new interpretable lens on known behavior."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work meaningfully advances understanding of LLM pretraining dynamics by introducing knowledge entropy as an interpretable, measurable metric and demonstrating its correlation with knowledge acquisition/retention abilities. The practical recommendation to use mid-stage checkpoints for continual learning is actionable. The insight that memory integration becomes sparse during pretraining provides a new perspective on the plasticity-stability tradeoff, with potential implications for continual learning research. Significance is appropriately graded as solid rather than top-tier due to: (1) partial resuscitation effectiveness indicating other factors contribute, (2) continual learning experiments restricted to OLMo, and (3) inability to validate during actual pretraining. These limitations are honestly reported in Section 6 and do not undermine the conceptual contribution, which meets the standard for a selective top-tier venue."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments comprehensively support main claims: (1) Knowledge entropy decline is consistently demonstrated across model sizes (1B, 7B OLMo; Pythia 1.4B in Appendix A.2), datasets (Figures 7; Dolma, PubMed, C4), and activation functions (Figure 9; SwiGLU, ReLU); (2) Correlation with knowledge acquisition/forgetting is shown in Figure 4 with robustness across hyperparameter settings documented in Section B.4 (batch size Figure 12; dataset choice Figure 13a); (3) Complementary entropy definitions (Figure 3; attention, next-token prediction) validate phenomenon generality; (4) Resuscitation intervention (Section 4.3, Algorithm 1) provides causal evidence with honest reporting of partial effectiveness (Appendix B.7). Metrics are appropriate and follow prior work. Section 6 Limitations appropriately identifies pretraining-phase validation as future work. Results are reproducible with released code."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper maintains clear organization with logical progression: motivation and related work (Sections 1-2) → knowledge entropy definition (Section 3.1) → measurement across pretraining (Section 3.3) → continual learning experiments (Section 4.1-4.2) → resuscitation intervention (Section 4.3) → limitations and conclusions (Section 6). Figures effectively communicate findings with appropriate labels. Mathematical notation is generally clear (Equations 1-2 for knowledge entropy, Equations 4-5 for metrics). Critically, the paper distinguishes between measured phenomena (continual learning on synthetic knowledge from different pretraining stages) and hypothesized mechanisms (pretraining-phase dynamics), explicitly acknowledging computational constraints in Section 6 Limitations. Appendices are comprehensive (A for entropy, B for acquisition/forgetting). The writing avoids overstating claims, maintaining appropriate intellectual humility about the scope of findings."
+              }
+            },
+            "summary_comment": "The second rebuttal does not introduce new evidence or arguments but confirms that the paper's framing is appropriate and its limitations are honestly acknowledged. The rebuttal's emphasis on 'responsible scientific practice' for honestly reporting partial resuscitation effectiveness and identifying entropy as a contributing rather than complete explanation reinforces rather than changes the technical assessment. The paper makes a solid conceptual contribution—introducing knowledge entropy as a novel, measurable lens on LLM pretraining behavior—supported by rigorous experiments within clearly acknowledged constraints. The finding that entropy decline correlates with and contributes to degraded knowledge acquisition in late-stage models is well-established through consistent measurements, intervention results, and robustness checks. Appropriate limitations (partial resuscitation effectiveness, OLMo-focused continual learning, lack of pretraining-phase validation) are honestly reported and identified as future directions. The root-cause analysis of entropy decline itself and characterization of additional factors driving mid-stage plasticity are appropriately framed as open questions. This meets the standard for acceptance at a selective top-tier conference: novel metric, sound methodology, comprehensive evaluation, appropriate scope calibration, and clear presentation."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Incomplete explanation for why knowledge entropy decreases during pretraining (acknowledged as an open question rather than a critical gap)\",\n        \"Resuscitation method's partial effectiveness indicates knowledge entropy is correlative rather than fully explanatory (appropriately framed as honest reporting of limitation)\",\n        \"Limited experimental scope restricted to OLMo models for continual learning, with only supplementary Pythia validation\",\n        \"Knowledge entropy definition design choices lack strong first-principles justification (acknowledged as pragmatic rather than theoretically optimal)\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Gradient-flow explanation for why low entropy impairs parameter updates\",\n          \"location\": \"Section A.1, Appendix\",\n          \"explanation\": \"Section A.1 provides valid gradient decomposition: ∂L/∂v_{i,j} = (∂L/∂FFN(x)) · c_i. Since ∂L/∂FFN(x) is constant across all memory vectors, relative magnitude of gradient updates depends on c_i. This explains why coefficient concentration (low entropy) concentrates parameter updates on fewer vectors.\"\n        },\n        {\n          \"concern\": \"Knowledge entropy decline is consistent across multiple validations\",\n          \"location\": \"Figures 2, 6, 7, 8, 9; Appendices A.2-A.3\",\n          \"explanation\": \"Figure 2 demonstrates entropy decline in 1B and 7B OLMo. Figure 6 (Appendix A.2) validates trend on Pythia 1.4B. Figure 7 confirms robustness across datasets (Dolma, PubMed, C4). Figure 9 shows persistence with alternative activation functions (ReLU). Figure 3 shows complementary entropy patterns (attention, next-token prediction).\"\n        },\n        {\n          \"concern\": \"Honest reporting of resuscitation effectiveness and acknowledgment of limitations\",\n          \"location\": \"Section 4.3, Figure 5, Appendix B.7\",\n          \"explanation\": \"Figure 5b and Appendix B.7 clearly document that resuscitated final-stage models improve over baseline but remain substantially below mid-stage checkpoints. Section 4.3 explicitly states: 'applying linear scaling to a subset of specific layers alone is insufficient to induce fundamental behavioral changes in the model,' acknowledging that entropy decline is a contributing rather than complete explanation.\"\n        },\n        {\n          \"concern\": \"Robustness of knowledge acquisition/forgetting results across hyperparameters\",\n          \"location\": \"Section B.4, Figures 12-13, Tables in Appendix B.4\",\n          \"explanation\": \"Section B.4 explicitly documents: 'We consistently observe this pattern of later-stage models underperforming compared to earlier-stage models across various hyperparameter settings, including batch size, learning rate, training corpus, and the number of epochs.' Figure 12 shows batch size sensitivity; Figure 13a compares PubMed vs C4; Table 1 explores batch size effects.\"\n        },\n        {\n          \"concern\": \"Clear distinction between measured phenomena and hypothesized mechanisms\",\n          \"location\": \"Section 4.1, Section 6 Limitations\",\n          \"explanation\": \"Section 4.1 clearly describes the continual learning experimental setup. Section 6 Limitations explicitly states: 'Due to computational constraints, our study measures knowledge acquisition and forgetting in a continual learning setup. Future work could explore whether these behaviors also manifest during the pretraining phase.' This appropriate framing avoids overstatement.\"\n        }\n      ],\n      \"proposed_future_revisions\": [],\n      \"response\": \"Thank you for this thorough and appreciative review. We are pleased that the paper's core contributions—introducing knowledge entropy as a novel metric and demonstrating its correlation with knowledge acquisition/retention across pretraining stages—are recognized as sound and well-executed within acknowledged constraints.\\n\\nWe particularly appreciate your emphasis on several points that we believe reflect responsible scientific practice:\\n\\n**On the completeness of mechanistic explanation:** You correctly note that the paper does not explain the root cause of entropy decline during pretraining itself—only why low entropy impairs learning once it occurs. We agree this is an important open question that warrants future investigation. The gradient-flow analysis in Appendix A.1 explains the *consequence* of entropy concentration (concentrated parameter updates) but not the *origin* of entropy decline. Understanding whether entropy decline is an inevitable consequence of optimization convergence, a by-product of dataset properties, or a specific outcome of the pretraining objective remains an important direction for future work.\\n\\n**On the partial effectiveness of resuscitation:** Your observation that we \\\"honestly report\\\" the partial effectiveness is precisely the point. The gap between resuscitated final-stage models and naturally-occurring mid-stage checkpoints (Figure 5b, Appendix B.7) is empirically significant and theoretically informative. It reveals that knowledge entropy is *one* contributing factor to late-stage learning degradation, not the sole factor. We believe this honest reporting strengthens the paper's credibility. By not overstating what the intervention achieves, we avoid false claims and instead offer a more nuanced understanding of the plasticity-stability phenomenon. The fact that linear parameter scaling alone cannot fully restore learning capacity suggests that models develop additional beneficial properties during mid-stage pretraining beyond simply maintaining high entropy—an important insight.\\n\\n**On generalizability and data constraints:** We appreciate your acknowledgment that the OLMo restriction reflects data availability constraints rather than methodological choices. While we validate entropy decline on Pythia 1.4B (Appendix A.2), extending continual learning experiments to other architectures would indeed strengthen the work. We have identified this as a valuable future direction in Section 6 and believe it is appropriately framed as a boundary condition rather than a flaw in the current work.\\n\\n**On definition design choices:** Your characterization of our approach as \\\"pragmatically rather than theoretically optimized\\\" fairly captures our methodology. We chose to demonstrate robustness empirically (testing alternative activation functions in Figure 9, alternative datasets in Figure 7) rather than derive the definition from first principles. While future work could strengthen theoretical justification, the demonstrated consistency of entropy decline across these variations supports the robustness of the core phenomenon.\\n\\n**Summary:** Your review concludes that the paper \\\"makes a solid conceptual contribution—introducing knowledge entropy as a novel lens on LLM behavior during pretraining—supported by rigorous experiments within acknowledged constraints,\\\" and appropriately identifies root-cause analysis and multi-architecture validation as future directions. We believe this assessment accurately reflects the scope and limitations of our work. The contribution is novel and significant—proposing a new interpretable metric and demonstrating actionable insights (mid-stage checkpoint recommendation)—while remaining appropriately calibrated to the evidence. We are grateful for a review that recognizes both the strengths of the work and the importance of honestly acknowledging its boundaries.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_73dc708f090b",
+    "conference": "ICLR",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/iclr_accept_2025_005_knowledge_entropy_decay_during_language_model_pretraining_hinders_new_knowledge_.md",
+    "target_paper_summary": {
+      "paper_id": "paper_73dc708f090b",
+      "title": "Knowledge Entropy Decay During Language Model Pretraining Hinders New Knowledge Acquisition",
+      "abstract": "In this work, we investigate how a model's tendency to broadly integrate its parametric knowledge evolves throughout pretraining and how this behavior affects overall performance, particularly in terms of knowledge acquisition and forgetting. We introduce the concept of *knowledge entropy*, which quantifies the range of memory sources the model engages with; high knowledge entropy indicates that the model utilizes a wide range of memory sources, while low knowledge entropy suggests reliance on specific sources with greater certainty. Our analysis reveals a consistent decline in knowledge entropy as pretraining advances. We also find that the decline is closely associated with a reduction in the model's ability to acquire and retain knowledge, leading us to conclude that diminishing knowledge entropy (smaller number of active memory sources) impairs the model's knowledge acquisition and retention capabilities. We find further support for this by demonstrating that increasing the activity of inactive memory sources enhances the model's capacity for knowledge acquisition and retention.1",
+      "topic": "",
+      "claims": [
+        "We introduce the concept of *knowledge entropy*, which quantifies the range of memory sources the model engages with; high knowledge entropy indicates that the model utilizes a wide range of memory sources, while low knowledge entropy suggests reliance on specific sources with greater certainty."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_2d988fff5",
+        "title": "A Survey on Hallucination in Large Language Models: Principles, Taxonomy, Challenges, and Open Questions",
+        "authors": [
+          "Lei Huang",
+          "Weijiang Yu",
+          "Weitao Ma",
+          "Wei‐Hong Zhong",
+          "Zhangyin Feng",
+          "Haotian Wang",
+          "Qianglong Chen",
+          "Weihua Peng",
+          "Xiaocheng Feng",
+          "Bing Qin",
+          "Ting Liu"
+        ],
+        "year": 2023,
+        "publication_date": "2023-11-09",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "The emergence of large language models (LLMs) has marked a significant breakthrough in natural language processing (NLP), fueling a paradigm shift in information acquisition. Nevertheless, LLMs are prone to hallucination, generating plausible yet nonfactual content. This phenomenon raises significant concerns over the reliability of LLMs in real-world information retrieval (IR) systems and has attracted intensive research to detect and mitigate such hallucinations. Given the open-ended general-purpose attributes inherent to LLMs, LLM hallucinations present distinct challenges that diverge from prior task-specific models. This divergence highlights the urgency for a nuanced understanding and comprehensive overview of recent advances in LLM hallucinations. In this survey, we begin with an innovative taxonomy of hallucination in the era of LLM and then delve into the factors contributing to hallucinations. Subsequently, we present a thorough overview of hallucination detection methods and benchmarks. Our discussion then transfers to representative methodologies for mitigating LLM hallucinations. Additionally, we delve into the current limitations faced by retrieval-augmented LLMs in combating hallucinations, offering insights for developing more robust IR systems. Finally, we highlight the promising research directions on LLM hallucinations, including hallucination in large vision-language models and understanding of knowledge boundaries in LLM hallucinations.",
+        "url": "http://arxiv.org/abs/2311.05232",
+        "doi": "https://doi.org/10.48550/arxiv.2311.05232",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4388585881"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 218
+      },
+      {
+        "paper_id": "rw_002_03cd0628b",
+        "title": "Knowledge Entropy Decay during Language Model Pretraining Hinders New Knowledge Acquisition",
+        "authors": [
+          "Kim, Jiyeon",
+          "Lee, Hyunji",
+          "Hyowon Cho",
+          "Joel Jang",
+          "Hwang, Hyeonbin",
+          "Seungpil Won",
+          "Youbin Ahn",
+          "Dohaeng Lee",
+          "Minjoon Seo"
+        ],
+        "year": 2024,
+        "publication_date": "2024-10-02",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "In this work, we investigate how a model's tendency to broadly integrate its parametric knowledge evolves throughout pretraining, and how this behavior affects overall performance, particularly in terms of knowledge acquisition and forgetting. We introduce the concept of knowledge entropy, which quantifies the range of memory sources the model engages with; high knowledge entropy indicates that the model utilizes a wide range of memory sources, while low knowledge entropy suggests reliance on specific sources with greater certainty. Our analysis reveals a consistent decline in knowledge entropy as pretraining advances. We also find that the decline is closely associated with a reduction in the model's ability to acquire and retain knowledge, leading us to conclude that diminishing knowledge entropy (smaller number of active memory sources) impairs the model's knowledge acquisition and retention capabilities. We find further support for this by demonstrating that increasing the activity of inactive memory sources enhances the model's capacity for knowledge acquisition and retention.",
+        "url": "http://arxiv.org/abs/2410.01380",
+        "doi": "https://doi.org/10.48550/arxiv.2410.01380",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4403883792"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 0
+      },
+      {
+        "paper_id": "rw_003_bca232118",
+        "title": "Baichuan 2: Open Large-scale Language Models",
+        "authors": [
+          "Yang, Aiyuan",
+          "Bin Xiao",
+          "Bingning Wang",
+          "Borong Zhang",
+          "Ce Bian",
+          "Chao Yin",
+          "Chenxu Lv",
+          "Da Pan",
+          "Dian Wang",
+          "Yan Dong",
+          "Fan Yang",
+          "Fei Deng",
+          "Feng Wang",
+          "Liu Feng",
+          "Guangwei Ai",
+          "Guosheng Dong",
+          "Haizhou Zhao",
+          "Hang Xu",
+          "Haoze Sun",
+          "Hongda Zhang",
+          "Hui Liu",
+          "Jiaming Ji",
+          "Jian Xie",
+          "JunTao Dai",
+          "Kun Fang",
+          "Lei Su",
+          "Liang Song",
+          "Lifeng Liu",
+          "Liyun Ru",
+          "Luyao Ma",
+          "Mang Wang",
+          "Mickel Liu",
+          "MingAn Lin",
+          "Nuolan Nie",
+          "Peidong Guo",
+          "Ruiyang Sun",
+          "Tao Zhang",
+          "Tianpeng Li",
+          "Tianyu Li",
+          "Cheng Wei",
+          "Weipeng Chen",
+          "Xiangrong Zeng",
+          "Xiaochuan Wang",
+          "Xiaoxi Chen",
+          "Xin Men",
+          "Xin Yu",
+          "Xuehai Pan",
+          "Yanjun Shen",
+          "Yiding Wang",
+          "Yiyu Li",
+          "Youxin Jiang",
+          "Yuchen Gao",
+          "Yupeng Zhang",
+          "Zenan Zhou",
+          "Zhiying Wu"
+        ],
+        "year": 2023,
+        "publication_date": "2023-09-19",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large language models (LLMs) have demonstrated remarkable performance on a variety of natural language tasks based on just a few examples of natural language instructions, reducing the need for extensive feature engineering. However, most powerful LLMs are closed-source or limited in their capability for languages other than English. In this technical report, we present Baichuan 2, a series of large-scale multilingual language models containing 7 billion and 13 billion parameters, trained from scratch, on 2.6 trillion tokens. Baichuan 2 matches or outperforms other open-source models of similar size on public benchmarks like MMLU, CMMLU, GSM8K, and HumanEval. Furthermore, Baichuan 2 excels in vertical domains such as medicine and law. We will release all pre-training model checkpoints to benefit the research community in better understanding the training dynamics of Baichuan 2.",
+        "url": "http://arxiv.org/abs/2309.10305",
+        "doi": "https://doi.org/10.48550/arxiv.2309.10305",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4386942538"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 125
+      },
+      {
+        "paper_id": "rw_004_d9aab8bb4",
+        "title": "Extracting Sentence Embeddings from Pretrained Transformer Models",
+        "authors": [
+          "Lukas Stankevičius",
+          "Mantas Lukoševičius"
+        ],
+        "year": 2024,
+        "publication_date": "2024-10-02",
+        "venue": "Applied Sciences",
+        "abstract": "Pre-trained transformer models shine in many natural language processing tasks and therefore are expected to bear the representation of the input sentence or text meaning. These sentence-level embeddings are also important in retrieval-augmented generation. But do commonly used plain averaging or prompt templates sufficiently capture and represent the underlying meaning? After providing a comprehensive review of existing sentence embedding extraction and refinement methods, we thoroughly test different combinations and our original extensions of the most promising ones on pretrained models. Namely, given 110 M parameters, BERT’s hidden representations from multiple layers, and many tokens, we try diverse ways to extract optimal sentence embeddings. We test various token aggregation and representation post-processing techniques. We also test multiple ways of using a general Wikitext dataset to complement BERT’s sentence embeddings. All methods are tested on eight Semantic Textual Similarity (STS), six short text clustering, and twelve classification tasks. We also evaluate our representation-shaping techniques on other static models, including random token representations. Proposed representation extraction methods improve the performance on STS and clustering tasks for all models considered. Very high improvements for static token-based models, especially random embeddings for STS tasks, almost reach the performance of BERT-derived representations. Our work shows that the representation-shaping techniques significantly improve sentence embeddings extracted from BERT-based and simple baseline models.",
+        "url": "https://doi.org/10.3390/app14198887",
+        "doi": "https://doi.org/10.3390/app14198887",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4403048625"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 27
+      },
+      {
+        "paper_id": "rw_005_bbed3c44b",
+        "title": "LLMaAA: Making Large Language Models as Active Annotators",
+        "authors": [
+          "Ruoyu Zhang",
+          "Yanzeng Li",
+          "Yongliang Ma",
+          "Ming Zhou",
+          "Lei Zou"
+        ],
+        "year": 2023,
+        "publication_date": "2023-01-01",
+        "venue": "",
+        "abstract": "Prevalent supervised learning methods in natural language processing (NLP) are notoriously data-hungry, which demand large amounts of high-quality annotated data. In practice, acquiring such data is a costly endeavor. Recently, the superior few-shot performance of large language models (LLMs) has propelled the development of dataset generation, where the training data are solely synthesized from LLMs. However, such an approach usually suffers from low-quality issues, and requires orders of magnitude more labeled data to achieve satisfactory performance. To fully exploit the potential of LLMs and make use of massive unlabeled data, we propose LLMaAA, which takes LLMs as annotators and puts them into an active learning loop to determine what to annotate efficiently. To learn robustly with pseudo labels, we optimize both the annotation and training processes: (1) we draw k-NN examples from a small demonstration pool as in-context examples, and (2) we adopt the example reweighting technique to assign training samples with learnable weights. Compared with previous approaches, LLMaAA features both efficiency and reliability. We conduct experiments and analysis on two classic NLP tasks, named entity recognition and relation extraction. With LLMaAA, task-specific models trained from LLM-generated labels can outperform the teacher within only hundreds of annotated examples, which is much more cost-effective than other baselines.",
+        "url": "https://doi.org/10.18653/v1/2023.findings-emnlp.872",
+        "doi": "https://doi.org/10.18653/v1/2023.findings-emnlp.872",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4389518684"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 45
+      },
+      {
+        "paper_id": "rw_006_a98a112f2",
+        "title": "Large Language Model Alignment: A Survey",
+        "authors": [
+          "Tianhao Shen",
+          "Renren Jin",
+          "Yufei Huang",
+          "Chuang Liu",
+          "Weilong Dong",
+          "Zishan Guo",
+          "Xinwei Wu",
+          "Yan Liu",
+          "Deyi Xiong"
+        ],
+        "year": 2023,
+        "publication_date": "2023-09-26",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Recent years have witnessed remarkable progress made in large language models (LLMs). Such advancements, while garnering significant attention, have concurrently elicited various concerns. The potential of these models is undeniably vast; however, they may yield texts that are imprecise, misleading, or even detrimental. Consequently, it becomes paramount to employ alignment techniques to ensure these models to exhibit behaviors consistent with human values. This survey endeavors to furnish an extensive exploration of alignment methodologies designed for LLMs, in conjunction with the extant capability research in this domain. Adopting the lens of AI alignment, we categorize the prevailing methods and emergent proposals for the alignment of LLMs into outer and inner alignment. We also probe into salient issues including the models' interpretability, and potential vulnerabilities to adversarial attacks. To assess LLM alignment, we present a wide variety of benchmarks and evaluation methodologies. After discussing the state of alignment research for LLMs, we finally cast a vision toward the future, contemplating the promising avenues of research that lie ahead. Our aspiration for this survey extends beyond merely spurring research interests in this realm. We also envision bridging the gap between the AI alignment research community and the researchers engrossed in the capability exploration of LLMs for both capable and safe LLMs.",
+        "url": "http://arxiv.org/abs/2309.15025",
+        "doi": "https://doi.org/10.48550/arxiv.2309.15025",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4387156634"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 36
+      },
+      {
+        "paper_id": "rw_007_0cbcd7931",
+        "title": "Knowledge Graph Enhanced Large Language Model Editing",
+        "authors": [
+          "Mengqi Zhang",
+          "Xiaotian Ye",
+          "Qiang Liu",
+          "Pengjie Ren",
+          "Shu Wu",
+          "Zhumin Chen"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-01",
+        "venue": "",
+        "abstract": "Large language models (LLMs) are pivotal in advancing natural language processing (NLP) tasks, yet their efficacy is hampered by inaccuracies and outdated knowledge.Model editing emerges as a promising solution to address these challenges.However, existing editing methods struggle to track and incorporate changes in knowledge associated with edits, which limits the generalization ability of postedit LLMs in processing edited knowledge.To tackle these problems, we propose a novel model editing method that leverages knowledge graphs for enhancing LLM editing, namely GLAME.Specifically, we first utilize a knowledge graph augmentation module to uncover associated knowledge that has changed due to editing, obtaining its internal representations within LLMs.This approach allows knowledge alterations within LLMs to be reflected through an external graph structure.Subsequently, we design a graph-based knowledge edit module to integrate structured knowledge into the model editing.This ensures that the updated parameters reflect not only the modifications of the edited knowledge but also the changes in other associated knowledge resulting from the editing process.Comprehensive experiments conducted on GPT-J and GPT-2 XL demonstrate that GLAME significantly improves the generalization capabilities of post-edit LLMs in employing edited knowledge.",
+        "url": "https://doi.org/10.18653/v1/2024.emnlp-main.1261",
+        "doi": "https://doi.org/10.18653/v1/2024.emnlp-main.1261",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4404781891"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 8
+      },
+      {
+        "paper_id": "rw_008_ceeeb21a9",
+        "title": "A Comprehensive Survey of Small Language Models in the Era of Large Language Models: Techniques, Enhancements, Applications, Collaboration with LLMs, and Trustworthiness",
+        "authors": [
+          "Fali Wang",
+          "Zhiwei Zhang",
+          "Xianren Zhang",
+          "Zongyu Wu",
+          "Tzuhao Mo",
+          "Qiuhao Lu",
+          "Wanjing Wang",
+          "Rui Li",
+          "Junjie Xu",
+          "Xianfeng Tang",
+          "Qi He",
+          "Yao Ma",
+          "Mingzhi Huang",
+          "Suhang Wang"
+        ],
+        "year": 2024,
+        "publication_date": "2024-11-04",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large language models (LLMs) have demonstrated emergent abilities in text generation, question answering, and reasoning, facilitating various tasks and domains. Despite their proficiency in various tasks, LLMs like PaLM 540B and Llama-3.1 405B face limitations due to large parameter sizes and computational demands, often requiring cloud API use which raises privacy concerns, limits real-time applications on edge devices, and increases fine-tuning costs. Additionally, LLMs often underperform in specialized domains such as healthcare and law due to insufficient domain-specific knowledge, necessitating specialized models. Therefore, Small Language Models (SLMs) are increasingly favored for their low inference latency, cost-effectiveness, efficient development, and easy customization and adaptability. These models are particularly well-suited for resource-limited environments and domain knowledge acquisition, addressing LLMs' challenges and proving ideal for applications that require localized data handling for privacy, minimal inference latency for efficiency, and domain knowledge acquisition through lightweight fine-tuning. The rising demand for SLMs has spurred extensive research and development. However, a comprehensive survey investigating issues related to the definition, acquisition, application, enhancement, and reliability of SLM remains lacking, prompting us to conduct a detailed survey on these topics. The definition of SLMs varies widely, thus to standardize, we propose defining SLMs by their capability to perform specialized tasks and suitability for resource-constrained settings, setting boundaries based on the minimal size for emergent abilities and the maximum size sustainable under resource constraints. For other aspects, we provide a taxonomy of relevant models/methods and develop general frameworks for each category to enhance and utilize SLMs effectively.",
+        "url": "http://arxiv.org/abs/2411.03350",
+        "doi": "https://doi.org/10.48550/arxiv.2411.03350",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4404354530"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 18
+      },
+      {
+        "paper_id": "rw_009_aa6df63d0",
+        "title": "Bayesian Active Learning with Pretrained Language Models.",
+        "authors": [
+          "Katerina Margatina",
+          "Loïc Barrault",
+          "Νικόλαος Αλέτρας"
+        ],
+        "year": 2021,
+        "publication_date": "2021-04-16",
+        "venue": "White Rose Research Online (University of Leeds, The University of Sheffield, University of York)",
+        "abstract": "Active Learning (AL) is a method to iteratively select data for annotation from a pool of unlabeled data, aiming to achieve better model performance than random selection. Previous AL approaches in Natural Language Processing (NLP) have been limited to either task-specific models that are trained from scratch at each iteration using only the labeled data at hand or using off-the-shelf pretrained language models (LMs) that are not adapted effectively to the downstream task. In this paper, we address these limitations by introducing BALM; Bayesian Active Learning with pretrained language Models. We first propose to adapt the pretrained LM to the downstream task by continuing training with all the available unlabeled data and then use it for AL. We also suggest a simple yet effective fine-tuning method to ensure that the adapted LM is properly trained in both low and high resource scenarios during AL. We finally apply Monte Carlo dropout to the downstream model to obtain well-calibrated confidence scores for data selection with uncertainty sampling. Our experiments in five standard natural language understanding tasks demonstrate that BALM provides substantial data efficiency improvements compared to various combinations of acquisition functions, models and fine-tuning methods proposed in recent AL literature.",
+        "url": "https://openalex.org/W3156501750",
+        "doi": "",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3156501750"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 5
+      },
+      {
+        "paper_id": "rw_010_e82974a92",
+        "title": "UNI-RNA: UNIVERSAL PRE-TRAINED MODELS REVOLUTIONIZE RNA RESEARCH",
+        "authors": [
+          "Xi Wang",
+          "Ruichu Gu",
+          "Zhiyuan Chen",
+          "Yongge Li",
+          "Xiao-Hong Ji",
+          "Guolin Ke",
+          "Han Wen"
+        ],
+        "year": 2023,
+        "publication_date": "2023-07-12",
+        "venue": "bioRxiv (Cold Spring Harbor Laboratory)",
+        "abstract": "A bstract RNA molecules play a crucial role as intermediaries in diverse biological processes. Attaining a profound understanding of their function can substantially enhance our comprehension of life’s activities and facilitate drug development for numerous diseases. The advent of high-throughput sequencing technologies makes vast amounts of RNA sequence data accessible, which contains invaluable information and knowledge. However, deriving insights for further application from such an immense volume of data poses a significant challenge. Fortunately, recent advancements in pre-trained models have surfaced as a revolutionary solution for addressing such challenges owing to their exceptional ability to automatically mine and extract hidden knowledge from massive datasets. Inspired by the past successes, we developed a novel context-aware deep learning model named Uni-RNA that performs pre-training on the largest dataset of RNA sequences at the unprecedented scale to date. During this process, our model autonomously unraveled the obscured evolutionary and structural information embedded within the RNA sequences. As a result, through fine-tuning, our model achieved the state-of-the-art (SOTA) performances in a spectrum of downstream tasks, including both structural and functional predictions. Overall, Uni-RNA established a new research paradigm empowered by the large pre-trained model in the field of RNA, enabling the community to unlock the power of AI at a whole new level to significantly expedite the pace of research and foster groundbreaking discoveries.",
+        "url": "https://doi.org/10.1101/2023.07.11.548588",
+        "doi": "https://doi.org/10.1101/2023.07.11.548588",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4384405439"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 53
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_002_03cd0628b",
+        "relevance_score": 1.0,
+        "relevance_types": [
+          "same_problem",
+          "same_method",
+          "benchmark_baseline",
+          "novelty_competitor"
+        ],
+        "rationale": "Candidate metadata matches the target paper's title, authors, abstract, and publication year identically, indicating it is the same paper.",
+        "evidence_summary": "In 2024, Kim et al. published 'Knowledge Entropy Decay during Language Model Pretraining Hinders New Knowledge Acquisition', which introduced the concept of knowledge entropy to quantify the range of memory sources a model engages with during pretraining. Their analysis revealed a consistent decline in knowledge entropy as pretraining advances, which was associated with reduced knowledge acquisition and retention capabilities. They also demonstrated that increasing the activity of inactive memory sources enhances the model's capacity for knowledge acquisition and retention."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_006_a98a112f2",
+        "relevance_score": 0.78,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Paper discusses LLM limitations like imprecise knowledge and alignment, which relate to the target's focus on knowledge acquisition and retention issues.",
+        "evidence_summary": "In 2023, Shen et al. published 'Large Language Model Alignment: A Survey', which explored alignment techniques to ensure LLMs exhibit behaviors consistent with human values, addressing concerns about imprecise or misleading texts. The survey categorized methods into outer and inner alignment and probed issues like model interpretability and vulnerabilities to adversarial attacks. It also presented benchmarks and evaluation methodologies for assessing LLM alignment."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_005_bbed3c44b",
+        "relevance_score": 0.75,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Paper addresses knowledge acquisition and annotation efficiency using LLMs, relating to the target's focus on knowledge retention and acquisition mechanisms.",
+        "evidence_summary": "In 2023, Zhang et al. published 'LLMaAA: Making Large Language Models as Active Annotators', which proposed using LLMs as annotators in an active learning loop to efficiently determine what to annotate. The method included drawing k-NN examples from a demonstration pool as in-context examples and adopting example reweighting for robust learning with pseudo labels. Experiments on named entity recognition and relation extraction showed that task-specific models trained from LLM-generated labels could outperform the teacher with only hundreds of annotated examples."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_009_aa6df63d0",
+        "relevance_score": 0.72,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Paper discusses active learning with pretrained LMs and fine-tuning methods, relevant to the target's exploration of knowledge acquisition during pretraining.",
+        "evidence_summary": "In 2021, Margatina and Barrault published 'Bayesian Active Learning with Pretrained Language Models.', which introduced BALM, a method adapting pretrained LMs to downstream tasks by continuing training with unlabeled data and using Monte Carlo dropout for uncertainty sampling. The approach included a fine-tuning method for low and high resource scenarios during active learning. Experiments in five natural language understanding tasks demonstrated substantial data efficiency improvements compared to various acquisition functions and models."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_004_d9aab8bb4",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "Paper explores sentence embedding extraction from pretrained models, which relates to the target's focus on memory sources and knowledge representation.",
+        "evidence_summary": "In 2024, Stankeviius and Lukoeviius published 'Extracting Sentence Embeddings from Pretrained Transformer Models', which tested various token aggregation and representation post-processing techniques on BERT's hidden representations. The methods were evaluated on eight Semantic Textual Similarity tasks, six short text clustering tasks, and twelve classification tasks, showing performance improvements for all models considered. Representation-shaping techniques significantly improved sentence embeddings extracted from BERT-based models."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_007_0cbcd7931",
+        "relevance_score": 0.65,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Paper addresses LLM knowledge inaccuracies and editing methods, relevant to the target's focus on knowledge acquisition and retention.",
+        "evidence_summary": "In 2024, Zhang et al. published 'Knowledge Graph Enhanced Large Language Model Editing', which proposed GLAME, a method leveraging knowledge graphs to enhance LLM editing by uncovering associated knowledge changes and integrating structured knowledge. Experiments on GPT-J and GPT-2 XL demonstrated that GLAME improved the generalization capabilities of post-edit LLMs in employing edited knowledge. The approach addressed limitations in tracking and incorporating changes in knowledge associated with edits."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_001_2d988fff5",
+        "relevance_score": 0.58,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Paper surveys hallucination in LLMs, which relates to the target's focus on knowledge reliability and acquisition issues.",
+        "evidence_summary": "In 2023, Huang et al. published 'A Survey on Hallucination in Large Language Models: Principles, Taxonomy, Challenges, and Open Questions', which provided a taxonomy of hallucination and delved into factors contributing to hallucinations. The survey presented hallucination detection methods and benchmarks, and discussed mitigation methodologies and limitations faced by retrieval-augmented LLMs. It also highlighted promising research directions, including hallucination in large vision-language models and understanding of knowledge boundaries."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_008_ceeeb21a9",
+        "relevance_score": 0.52,
+        "relevance_types": [
+          "same_constraints",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Paper discusses SLMs and their advantages in resource-limited environments, which contrasts with the target's focus on LLM pretraining knowledge issues.",
+        "evidence_summary": "In 2024, Wang et al. published 'A Comprehensive Survey of Small Language Models in the Era of Large Language Models: Techniques, Enhancements, Applications, Collaboration with LLMs, and Trustworthiness', which proposed defining SLMs by their capability to perform specialized tasks and suitability for resource-constrained environments. The survey investigated issues related to the definition, acquisition, application, enhancement, and reliability of SLMs, addressing LLMs' challenges like privacy concerns and domain knowledge acquisition."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_003_bca232118",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "benchmark_baseline"
+        ],
+        "rationale": "Paper introduces Baichuan 2 LLMs and benchmarks, providing context on model performance but not directly addressing knowledge entropy.",
+        "evidence_summary": "In 2023, Yang et al. published 'Baichuan 2: Open Large-scale Language Models', which presented Baichuan 2, a series of large-scale multilingual language models trained on 2.6 trillion tokens. The models matched or outperformed other open-source models of similar size on benchmarks like MMLU, CMMLU, GSM8K, and HumanEval, and excelled in vertical domains such as medicine and law. Pre-training model checkpoints were released to benefit the research community."
+      },
+      {
+        "rank": 10,
+        "paper_id": "rw_010_e82974a92",
+        "relevance_score": 0.35,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Paper focuses on RNA pre-trained models, which is a different domain and not directly relevant to the target's language model knowledge entropy topic.",
+        "evidence_summary": "In 2023, Wang et al. published 'UNI-RNA: UNIVERSAL PRE-TRAINED MODELS REVOLUTIONIZE RNA RESEARCH', which developed Uni-RNA, a context-aware deep learning model pre-trained on a large dataset of RNA sequences to unravel evolutionary and structural information. The model achieved state-of-the-art performances in downstream tasks including structural and functional predictions through fine-tuning. It established a new research paradigm empowered by large pre-trained models in the field of RNA."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Kim et al. published 'Knowledge Entropy Decay during Language Model Pretraining Hinders New Knowledge Acquisition', introducing the concept of knowledge entropy and finding its decline impairs knowledge acquisition and retention, with support from reactivating memory sources. In 2023, Shen et al. published 'Large Language Model Alignment: A Survey', exploring alignment techniques and benchmarks to address LLM imprecision and misalignment. In 2023, Zhang et al. published 'LLMaAA: Making Large Language Models as Active Annotators', proposing an active learning method with LLMs that improved annotation efficiency in NLP tasks. In 2021, Margatina and Barrault published 'Bayesian Active Learning with Pretrained Language Models.', introducing BALM for data efficiency in natural language understanding tasks through adapted pretraining and uncertainty sampling. In 2024, Stankeviius and Lukoeviius published 'Extracting Sentence Embeddings from Pretrained Transformer Models', testing aggregation techniques on BERT and showing improvements on STS and clustering tasks. In 2024, Zhang et al. published 'Knowledge Graph Enhanced Large Language Model Editing', proposing GLAME to enhance LLM editing with knowledge graphs and improve generalization on GPT models.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 0,
+      "num_removed_undated": 0,
+      "num_used": 10,
+      "num_cutoff_valid": 10,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 0,
+    "num_removed_undated": 0,
+    "num_used": 10,
+    "num_cutoff_valid": 10,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

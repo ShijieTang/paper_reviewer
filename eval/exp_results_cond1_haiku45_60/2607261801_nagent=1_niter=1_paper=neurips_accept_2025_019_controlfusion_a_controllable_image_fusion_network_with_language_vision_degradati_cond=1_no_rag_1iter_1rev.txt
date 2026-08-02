@@ -1,0 +1,200 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Comprehensive problem formulation: The paper addresses a well-motivated problem by combining image restoration and fusion with controllability through language-vision prompts, tackling real-world composite degradations that existing methods struggle with.",
+        "Physics-driven degradation modeling: The development of a physics-based imaging model that incorporates Retinex theory and atmospheric scattering principles for both infrared and visible modalities is technically sound and helps bridge the gap between synthetic training data and real-world images.",
+        "Spatial-frequency collaborative visual adapter: The SFVA design that extracts degradation priors from frequency domain characteristics while maintaining semantic alignment with text embeddings is innovative and reduces reliance on manual prompt engineering.",
+        "Extensive experimental validation: The paper provides thorough experiments across multiple datasets (MSRS, LLVIP, RoadScene, FMB), degradation types, and scenarios, including ablation studies that convincingly demonstrate the contribution of each component.",
+        "Practical controllability: The method enables user-specific control over degradation handling through prompt-based guidance and demonstrates flexible degree sensitivity, which is valuable for real applications."
+      ],
+      "weaknesses": [
+        "Limited theoretical justification for prompt-modulation mechanism: While the prompt-modulated module (PMM) using MLPs to derive scaling and bias parameters is intuitive, the paper lacks theoretical analysis of why this particular design is optimal for degradation adaptation compared to alternatives.",
+        "Dependence on CLIP pre-training and potential generalization gaps: The method heavily relies on CLIP's semantic alignment, which may not generalize well to degradation types or scenarios outside CLIP's training distribution. The domain-specific nature of infrared-visible fusion is not deeply explored regarding CLIP's applicability.",
+        "Limited statistical analysis: The paper reports point estimates without error bars or confidence intervals, making it difficult to assess whether performance differences are statistically significant, particularly given the multiple metrics and datasets evaluated.",
+        "Hyperparameter sensitivity not thoroughly analyzed: While the paper specifies hyperparameter values, it does not provide sensitivity analysis for λ₁, λ₂, and the loss weight ratios (8:1:10:12), which could significantly impact performance.",
+        "Scalability concerns for non-infrared-visible fusion tasks: The authors acknowledge that their physics-driven model is specific to infrared-visible fusion and difficult to generalize. This limits the broader applicability of the approach to other fusion scenarios like medical image fusion."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited theoretical justification for prompt-modulation mechanism: While the prompt-modulated module (PMM) using MLPs to derive scaling and bias parameters is intuitive, the paper lacks theoretical analysis of why this particular design is optimal for degradation adaptation compared to alternatives.",
+          "severity": "minor",
+          "evidence": "Section 4.3.1 introduces the PMM as [γp, βp] = Φp(p) applied via Fˆf = (1 + γp) ⊙ Ff + βp, but no ablation or comparison justifies this specific parametrization over other adaptive normalization schemes.",
+          "affected_claim": "The claim that PMM enables 'robust feature enhancement' according to degradation patterns",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Dependence on CLIP pre-training and potential generalization gaps: The method heavily relies on CLIP's semantic alignment, which may not generalize well to degradation types or scenarios outside CLIP's training distribution. The domain-specific nature of infrared-visible fusion is not deeply explored regarding CLIP's applicability.",
+          "severity": "minor",
+          "evidence": "Section 4.2 uses CLIP text encoder Et directly without discussing potential limitations. Section 5.3 shows generalization to real weather (AWMM-100k) but no analysis of CLIP's degradation vocabulary coverage or failure modes.",
+          "affected_claim": "The claim that the method 'maintains semantic alignment' and generalizes to diverse degradation types",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Limited statistical analysis: The paper reports point estimates without error bars or confidence intervals, making it difficult to assess whether performance differences are statistically significant, particularly given the multiple metrics and datasets evaluated.",
+          "severity": "minor",
+          "evidence": "Tables 1, 2, 3 report single values per method/metric with no error bars or significance tests. Section 7 states 'Extensive experiments' but provides only single-run results.",
+          "affected_claim": "Claims of SOTA performance and superiority over competing methods",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Hyperparameter sensitivity not thoroughly analyzed: While the paper specifies hyperparameter values, it does not provide sensitivity analysis for λ₁, λ₂, and the loss weight ratios (8:1:10:12), which could significantly impact performance.",
+          "severity": "minor",
+          "evidence": "Section 5.1 states loss weights are set as '8:1:10:12' and λ ratios as '1:3' but provides no justification, ablation, or sensitivity curves for these choices.",
+          "affected_claim": "The robustness and generalizability of the training procedure",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Scalability concerns for non-infrared-visible fusion tasks: The authors acknowledge that their physics-driven model is specific to infrared-visible fusion and difficult to generalize. This limits the broader applicability of the approach to other fusion scenarios like medical image fusion.",
+          "severity": "major",
+          "evidence": "Discussion section states: 'the degradation imaging model is specifically designed for infrared and visible image fusion and is difficult to generalize to other fusion tasks, such as medical image fusion and multi-focus image fusion.'",
+          "affected_claim": "The versatility of ControlFusion as a 'versatile image restoration and fusion framework'",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The paper is technically sound. The physics-driven degradation model is grounded in established theory (Retinex, atmospheric scattering). The network architecture uses standard components (Transformers, attention mechanisms) appropriately. The two-stage optimization protocol is clearly defined. The loss functions (Equations 10-14) follow established fusion criteria. Minor concerns about PMM design justification do not undermine core technical validity."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper makes sufficient novel contributions: (1) A physics-driven dual-modality degradation model combining Retinex and atmospheric scattering (Equation 1-5) is novel for IR-VI fusion; (2) The spatial-frequency visual adapter (SFVA) combining frequency domain priors with CLIP alignment is innovative; (3) Prompt-modulated restoration-fusion coupling extends prior work like Text-IF. While individual components build on prior work, their integration for handling composite degradations in IR-VI fusion is sufficiently novel for a top venue."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper addresses a genuine problem: existing fusion methods struggle with composite real-world degradations and lack user control. The solution is practically relevant for applications in surveillance, autonomous driving, and scene understanding. Comprehensive experiments demonstrate superior performance on multiple benchmarks and real-world scenarios. The approach advances the field of degradation-aware fusion, though the contribution is somewhat incremental relative to recent works like Text-IF and Text-DiFuse."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Experiments are comprehensive: (1) Multiple datasets (MSRS, LLVIP, RoadScene, FMB) with appropriate evaluation metrics (EN, SD, VIF, Qabf, CLIP-IQA, MUSIQ, TReS); (2) Comparisons with 7 SOTA methods; (3) Single, composite, and real-world degradation scenarios; (4) Ablation studies (Figure 7, Table 6) validate component contributions; (5) Object detection evaluation (Table 5) demonstrates practical utility. Concerns: no statistical significance testing, no error bars, hyperparameter choices not justified. These are fixable but present limitations."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-written with clear motivation, logical organization, and informative figures. The problem formulation (Section 4.1) is clear. Method sections describe architecture and losses adequately. Experimental results are well-presented with extensive comparisons and visualizations. Minor issues: some notation inconsistencies (e.g., I_m used for both clear and degraded images in different contexts), and the prompt construction paradigm relegated to appendix could be in main text. These are minor presentation issues that do not significantly impede understanding."
+        }
+      },
+      "summary_comment": "ControlFusion presents a well-executed contribution to infrared-visible image fusion by combining physics-driven degradation modeling with prompt-guided restoration-fusion. The paper addresses practical limitations of existing methods (handling composite real-world degradations, user controllability, reducing manual effort) through technically sound innovations (SFVA, PMM, dual-modality physics model). Extensive experiments convincingly demonstrate SOTA performance across diverse scenarios. The work is significant for the fusion community and shows strong technical quality. Minor weaknesses include lack of statistical significance testing, limited theoretical justification for design choices, and acknowledged limited generalization beyond IR-VI fusion. These do not fundamentally undermine the contribution. The paper merits acceptance at a top-tier venue, representing a solid advance in degradation-robust multimodal fusion."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"The paper addresses image restoration and fusion, which are relevant application areas mentioned in ICML's scope of 'application-driven machine learning' and 'innovative techniques driven by end-user needs'\",\n      \"The physics-driven degradation model (Section 3) contributes to the 'theory of machine learning' by grounding the approach in established mathematical principles (Retinex theory, atmospheric scattering)\",\n      \"The prompt-modulated module and spatial-frequency visual adapter represent novel architectural contributions to deep learning that ICML values\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The paper is fundamentally an application paper focused on infrared-visible image fusion, not a core machine learning contribution. ICML prioritizes general-purpose ML methods with broad applicability, but this work is explicitly domain-specific ('specifically designed for infrared and visible image fusion and is difficult to generalize')\",\n      \"The core methodological components (Transformer-based encoders, cross-attention mechanisms, CLIP embeddings) are largely applications of existing techniques rather than novel ML algorithmic or theoretical contributions. The paper combines known techniques rather than advancing fundamental ML\",\n      \"The paper lacks focus on fundamental ML aspects that ICML emphasizes. There is no learning theory analysis, no optimization insights, no novel training methodology. The loss functions (Eq. 10-14) are standard fusion objectives, not ML contributions\",\n      \"The reviewers assigned only moderate scores (all 4/5 across novelty, soundness, significance, evaluation, clarity), with a noted weakness that 'individual components build on prior work.' This suggests the contribution is incremental for a general ML venue\",\n      \"ICML's emphasis on 'general machine learning' and 'broad applicability' conflicts with this work's acknowledged limitation: the physics-driven model does not generalize to medical image fusion or multi-focus image fusion\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"NeurIPS explicitly welcomes 'Computer vision' and 'AI/ML for physical sciences' applications, and this paper advances multimodal fusion for real-world scenarios (surveillance, autonomous driving)\",\n      \"The paper makes solid technical contributions in representation learning (spatial-frequency visual adapter with CLIP alignment) and architecture design (prompt-modulated restoration-fusion coupling), which align with NeurIPS's core focus on deep learning\",\n      \"The extensive experimental validation across multiple datasets, degradation types, and real-world scenarios (AWMM-100k, nighttime scenes) demonstrates the level of rigor NeurIPS values for empirical contributions\",\n      \"NeurIPS encourages 'in-depth analysis of existing methods that provide new insights' and 'interdisciplinary submissions that do not fit neatly into existing categories.' The physics-driven modeling of composite degradations for multimodal fusion fits this spirit\",\n      \"The paper's combination of language-vision models (CLIP), prompt engineering, and practical controllability aligns well with NeurIPS's recent emphasis on multimodal learning and human-in-the-loop systems\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"While the paper is technically solid, the reviewer noted only moderate novelty (score 4/5), with the observation that 'while individual components build on prior work, their integration... is sufficiently novel for a top venue' (emphasis on 'sufficiently'). This suggests borderline novelty for NeurIPS's high bar\",\n      \"The work is highly specialized to infrared-visible image fusion. NeurIPS values interdisciplinary contributions, but this paper's acknowledged limitation to IR-VI fusion (not generalizable to medical imaging or multi-focus fusion) limits its broader impact\",\n      \"The paper lacks significant theoretical contributions. The physics-driven model (Section 3) applies known principles (Retinex, atmospheric scattering) to data synthesis rather than advancing fundamental understanding. NeurIPS increasingly values theoretical insights or principled analysis\",\n      \"No statistical significance testing, error bars, or confidence intervals are provided (reviewer weakness). This is a methodological concern for NeurIPS, which has been strengthening standards for empirical rigor. The lack of multiple runs or significance tests weakens claims of 'SOTA performance'\",\n      \"The dependence on CLIP pre-training introduces potential generalization gaps not thoroughly explored. The reviewer flagged that 'the method heavily relies on CLIP's semantic alignment, which may not generalize well to degradation types or scenarios outside CLIP's training distribution'\",\n      \"Recent NeurIPS acceptance trends show preference for work with broader ML insights. This paper is primarily a strong application paper (image fusion with nice engineering) rather than advancing ML methodology in a way that transfers to other domains\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"ICLR explicitly lists 'representation learning' and 'applications to computer vision' as core topics. The spatial-frequency collaborative visual adapter and prompt-modulated feature enhancement directly address learned representations aligned with language-vision models\",\n      \"The integration of CLIP for semantic alignment and the two-stage optimization protocol (textual-visual prompt alignment + prompt-modulated restoration-fusion) represent methodologically sound contributions to representation learning with language supervision\",\n      \"ICLR values 'in-depth analysis of existing methods that provide new insights.' The comprehensive ablation studies (Figure 7, Table 6) and sensitivity analysis (Figure 6 showing degree sensitivity) demonstrate this\",\n      \"The paper addresses 'causality' and 'interpretability' aspects valued by ICLR: the physics-driven degradation model is interpretable (grounded in Retinex theory and atmospheric scattering), and the spatial-frequency adapter provides transparent degradation perception\",\n      \"ICLR has a strong track record of publishing deep learning architecture papers with strong empirical validation. The four-stage encoder-decoder with Transformer-based components, intra-domain fusion units, and prompt-modulated modules represent solid architectural contributions\",\n      \"The practical controllability through language prompts aligns with ICLR's growing interest in 'human interaction in AI systems' and interactive learning\",\n      \"ICLR's focus on 'datasets and benchmarks' is partially addressed: the paper constructs DDL-12 dataset with multi-level composite degradations (48K training, 4.8K test pairs) and demonstrates generalization to real-world data (AWMM-100k)\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"While the work is solid, novelty is moderate (reviewer score 4/5). The components—Transformers, CLIP integration, attention mechanisms—are largely applications of existing deep learning techniques rather than novel architectural or learning innovations specific to representation learning\",\n      \"The paper does not make significant contributions to learning theory or provide principled analysis of when/why the approach works. ICLR increasingly values papers that provide theoretical insights into learned representations, which this paper lacks\",\n      \"The generalization claims are limited. The physics-driven model is 'specifically designed for infrared and visible image fusion and is difficult to generalize to other fusion tasks.' This limits the relevance for ICLR's broad audience interested in representation learning across diverse domains\",\n      \"Missing statistical rigor: no error bars, confidence intervals, or significance tests, which ICLR reviewers have increasingly flagged in recent reviews as important for validating empirical claims\",\n      \"The dependence on CLIP raises questions about what is actually being learned by the model versus what is inherited from pre-training. The paper does not provide sufficient analysis of the learned representations or failure modes specific to this application\",\n      \"While the spatial-frequency visual adapter is innovative, it is relatively specialized. ICLR typically prefers contributions with broader applicability to representation learning beyond domain-specific image fusion\"\n    ]\n  }\n}\n```\n\n---\n\n## Reasoning Summary\n\n**Paper Classification:** This is an **image fusion and restoration paper** positioned at the intersection of computer vision and deep learning, not a core machine learning methodology paper.\n\n### Key Observations from Reviews:\n- **Novelty: 4/5** (moderate) – solid technical execution but incremental contributions\n- **Soundness: 4/5** – technically correct but lacks theoretical justification for design choices\n- **Significance: 4/5** – addresses a real problem but limited to one specific domain\n- **Evaluation: 4/5** – comprehensive but missing statistical rigor (no error bars, significance tests)\n- **Clarity: 4/5** – well-written but some presentation issues\n\n### Venue Fit Analysis:\n\n**ICML (Score: 5/10 – Weak Fit)**\n- ICML prioritizes general ML methods, optimization, theory, and scalable systems. This paper is domain-specific (IR-VI fusion only), uses existing techniques (Transformers, CLIP), and lacks fundamental ML insights. The reviewer noted it doesn't generalize beyond IR-VI fusion. ICML would likely reject as too application-focused without broader ML contributions.\n\n**NeurIPS (Score: 6/10 – Borderline/Risky)**\n- NeurIPS welcomes computer vision and multimodal learning applications, which this paper addresses. Strong empirical validation and comprehensive experiments are positives. However: (1) moderate novelty (4/5), (2) lacks statistical rigor, (3) highly specialized to IR-VI fusion, (4) missing theoretical insights or broader ML methodology contributions. The risk is borderline acceptance—it's a well-executed application paper but may not meet the novelty/impact bar consistently at NeurIPS.\n\n**ICLR (Score: 7/10 – Good Fit)**\n- ICLR is the best venue because: (1) it explicitly welcomes representation learning and vision applications, (2) the prompt-modulated module and spatial-frequency adapter are architecture/representation contributions relevant to ICLR's scope, (3) CLIP integration and language-vision alignment fit ICLR's recent trends, (4) solid experimental validation aligns with ICLR standards. Weaknesses: moderate novelty and limited theoretical insights prevent a higher score. However, ICLR's broader scope for deep learning applications and representation learning makes this a stronger fit than ICML or NeurIPS.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Comprehensive problem formulation: The paper addresses a well-motivated problem by combining image restoration and fusion with controllability through language-vision prompts, tackling real-world composite degradations that existing methods struggle with.",
+              "Physics-driven degradation modeling: The development of a physics-based imaging model that incorporates Retinex theory and atmospheric scattering principles for both infrared and visible modalities is technically sound and helps bridge the gap between synthetic training data and real-world images.",
+              "Spatial-frequency collaborative visual adapter: The SFVA design that extracts degradation priors from frequency domain characteristics while maintaining semantic alignment with text embeddings is innovative and reduces reliance on manual prompt engineering.",
+              "Extensive experimental validation: The paper provides thorough experiments across multiple datasets (MSRS, LLVIP, RoadScene, FMB), degradation types, and scenarios, including ablation studies that convincingly demonstrate the contribution of each component.",
+              "Practical controllability: The method enables user-specific control over degradation handling through prompt-based guidance and demonstrates flexible degree sensitivity, which is valuable for real applications."
+            ],
+            "weaknesses": [
+              "Limited theoretical justification for prompt-modulation mechanism: While the prompt-modulated module (PMM) using MLPs to derive scaling and bias parameters is intuitive, the paper lacks theoretical analysis of why this particular design is optimal for degradation adaptation compared to alternatives.",
+              "Dependence on CLIP pre-training and potential generalization gaps: The method heavily relies on CLIP's semantic alignment, which may not generalize well to degradation types or scenarios outside CLIP's training distribution. The domain-specific nature of infrared-visible fusion is not deeply explored regarding CLIP's applicability.",
+              "Limited statistical analysis: The paper reports point estimates without error bars or confidence intervals, making it difficult to assess whether performance differences are statistically significant, particularly given the multiple metrics and datasets evaluated.",
+              "Hyperparameter sensitivity not thoroughly analyzed: While the paper specifies hyperparameter values, it does not provide sensitivity analysis for λ₁, λ₂, and the loss weight ratios (8:1:10:12), which could significantly impact performance.",
+              "Scalability concerns for non-infrared-visible fusion tasks: The authors acknowledge that their physics-driven model is specific to infrared-visible fusion and difficult to generalize. This limits the broader applicability of the approach to other fusion scenarios like medical image fusion."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited theoretical justification for prompt-modulation mechanism: While the prompt-modulated module (PMM) using MLPs to derive scaling and bias parameters is intuitive, the paper lacks theoretical analysis of why this particular design is optimal for degradation adaptation compared to alternatives.",
+                "severity": "minor",
+                "evidence": "Section 4.3.1 introduces the PMM as [γp, βp] = Φp(p) applied via Fˆf = (1 + γp) ⊙ Ff + βp, but no ablation or comparison justifies this specific parametrization over other adaptive normalization schemes.",
+                "affected_claim": "The claim that PMM enables 'robust feature enhancement' according to degradation patterns",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Dependence on CLIP pre-training and potential generalization gaps: The method heavily relies on CLIP's semantic alignment, which may not generalize well to degradation types or scenarios outside CLIP's training distribution. The domain-specific nature of infrared-visible fusion is not deeply explored regarding CLIP's applicability.",
+                "severity": "minor",
+                "evidence": "Section 4.2 uses CLIP text encoder Et directly without discussing potential limitations. Section 5.3 shows generalization to real weather (AWMM-100k) but no analysis of CLIP's degradation vocabulary coverage or failure modes.",
+                "affected_claim": "The claim that the method 'maintains semantic alignment' and generalizes to diverse degradation types",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited statistical analysis: The paper reports point estimates without error bars or confidence intervals, making it difficult to assess whether performance differences are statistically significant, particularly given the multiple metrics and datasets evaluated.",
+                "severity": "minor",
+                "evidence": "Tables 1, 2, 3 report single values per method/metric with no error bars or significance tests. Section 7 states 'Extensive experiments' but provides only single-run results.",
+                "affected_claim": "Claims of SOTA performance and superiority over competing methods",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Hyperparameter sensitivity not thoroughly analyzed: While the paper specifies hyperparameter values, it does not provide sensitivity analysis for λ₁, λ₂, and the loss weight ratios (8:1:10:12), which could significantly impact performance.",
+                "severity": "minor",
+                "evidence": "Section 5.1 states loss weights are set as '8:1:10:12' and λ ratios as '1:3' but provides no justification, ablation, or sensitivity curves for these choices.",
+                "affected_claim": "The robustness and generalizability of the training procedure",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Scalability concerns for non-infrared-visible fusion tasks: The authors acknowledge that their physics-driven model is specific to infrared-visible fusion and difficult to generalize. This limits the broader applicability of the approach to other fusion scenarios like medical image fusion.",
+                "severity": "major",
+                "evidence": "Discussion section states: 'the degradation imaging model is specifically designed for infrared and visible image fusion and is difficult to generalize to other fusion tasks, such as medical image fusion and multi-focus image fusion.'",
+                "affected_claim": "The versatility of ControlFusion as a 'versatile image restoration and fusion framework'",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The paper is technically sound. The physics-driven degradation model is grounded in established theory (Retinex, atmospheric scattering). The network architecture uses standard components (Transformers, attention mechanisms) appropriately. The two-stage optimization protocol is clearly defined. The loss functions (Equations 10-14) follow established fusion criteria. Minor concerns about PMM design justification do not undermine core technical validity."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper makes sufficient novel contributions: (1) A physics-driven dual-modality degradation model combining Retinex and atmospheric scattering (Equation 1-5) is novel for IR-VI fusion; (2) The spatial-frequency visual adapter (SFVA) combining frequency domain priors with CLIP alignment is innovative; (3) Prompt-modulated restoration-fusion coupling extends prior work like Text-IF. While individual components build on prior work, their integration for handling composite degradations in IR-VI fusion is sufficiently novel for a top venue."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a genuine problem: existing fusion methods struggle with composite real-world degradations and lack user control. The solution is practically relevant for applications in surveillance, autonomous driving, and scene understanding. Comprehensive experiments demonstrate superior performance on multiple benchmarks and real-world scenarios. The approach advances the field of degradation-aware fusion, though the contribution is somewhat incremental relative to recent works like Text-IF and Text-DiFuse."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive: (1) Multiple datasets (MSRS, LLVIP, RoadScene, FMB) with appropriate evaluation metrics (EN, SD, VIF, Qabf, CLIP-IQA, MUSIQ, TReS); (2) Comparisons with 7 SOTA methods; (3) Single, composite, and real-world degradation scenarios; (4) Ablation studies (Figure 7, Table 6) validate component contributions; (5) Object detection evaluation (Table 5) demonstrates practical utility. Concerns: no statistical significance testing, no error bars, hyperparameter choices not justified. These are fixable but present limitations."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear motivation, logical organization, and informative figures. The problem formulation (Section 4.1) is clear. Method sections describe architecture and losses adequately. Experimental results are well-presented with extensive comparisons and visualizations. Minor issues: some notation inconsistencies (e.g., I_m used for both clear and degraded images in different contexts), and the prompt construction paradigm relegated to appendix could be in main text. These are minor presentation issues that do not significantly impede understanding."
+              }
+            },
+            "summary_comment": "ControlFusion presents a well-executed contribution to infrared-visible image fusion by combining physics-driven degradation modeling with prompt-guided restoration-fusion. The paper addresses practical limitations of existing methods (handling composite real-world degradations, user controllability, reducing manual effort) through technically sound innovations (SFVA, PMM, dual-modality physics model). Extensive experiments convincingly demonstrate SOTA performance across diverse scenarios. The work is significant for the fusion community and shows strong technical quality. Minor weaknesses include lack of statistical significance testing, limited theoretical justification for design choices, and acknowledged limited generalization beyond IR-VI fusion. These do not fundamentally undermine the contribution. The paper merits acceptance at a top-tier venue, representing a solid advance in degradation-robust multimodal fusion."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

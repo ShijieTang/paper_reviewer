@@ -1,0 +1,294 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 2,
+        "soundness": 2,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 2
+      },
+      "strengths": [
+        "The paper addresses a relevant clinical problem: early identification of neurodegenerative diseases through speech analysis is potentially valuable for medical diagnostics.",
+        "The use of CQCC features is reasonable and the geometric frequency binning of CQT could theoretically provide better resolution for speech analysis compared to linear MFCC scales.",
+        "The paper attempts to provide theoretical grounding through the form-invariance property of the Constant-Q Transform, which is mathematically interesting."
+      ],
+      "weaknesses": [
+        "The core novelty is extremely limited. CQCC was introduced by Todisco et al. (2017) for speaker verification and Patil et al. (2023) already applied CQCC to pathological classification (infant cry). The paper merely transfers an existing technique to a different disease classification problem without methodological innovation.",
+        "Critical experimental design flaws undermine all results: (1) Table 4 shows SVM with CQCC achieving 63.4% accuracy while RF achieves 99%, which is suspicious and suggests potential data leakage or improper train-test splitting; (2) No cross-validation reported; (3) Imbalance handling via SMOTE applied before train-test split violates standard practice and causes train-test leakage; (4) No statistical significance testing or confidence intervals provided.",
+        "The datasets are extremely small and imbalanced. Table 2 shows only 220-297 samples per class across two datasets. Table 3 shows only 6 young Parkinson's patients and 6 healthy young controls. These numbers are far too small for reliable deep learning or robust ML conclusions.",
+        "The form-invariance property discussion (Section 3.1.1) is convoluted and poorly explained. The connection between the mathematical property and why it helps neurodegenerative disease classification is never clearly articulated. The window function derivation appears incomplete and references an appendix not provided.",
+        "Results presentation is problematic and internally inconsistent. Table 4 shows RF+CQCC at 99% while Table 5 shows RF+CQCC at 90.3% on slightly different data splits without explaining why or discussing generalization. Table 6 shows different results again (86.1% SVM). No ablation studies explain which components of CQCC contribute to performance.",
+        "The paper lacks proper baselines and comparisons. No comparison with recent deep learning approaches for speech analysis. No comparison with other state-of-the-art neurodegenerative disease detection methods from the literature. The baseline features (Jitter, Shimmer) are acknowledged but the paper does not cite recent work using these features effectively.",
+        "LDA visualization (Figure 3) is presented qualitatively without metrics. Class separability should be quantified (e.g., silhouette score, Davies-Bouldin index) rather than described impressionistically. The claim of 'clearer separation' in CQCC vs MFCC is not statistically validated.",
+        "Spectrographic analysis (Section 5.1 and Figure 2) provides no quantitative analysis. The descriptions of ALS, Parkinson's, and healthy spectrograms are generic clinical observations that could apply to any acoustic feature, not evidence that CQCC specifically captures these patterns.",
+        "Multiple presentation and writing quality issues: spelling errors ('acsociation' instead of 'association', 'imabalce' instead of 'imbalance', 'nestimators' instead of 'n_estimators'), incomplete sentences, inconsistent notation, and poor figure quality diminish credibility.",
+        "The paper's main claim about the form-invariance property enabling robustness is never empirically validated. There are no experiments showing CQCC is more robust to pitch variations or other perturbations compared to MFCC on this specific task.",
+        "Missing critical experimental details: How many features were extracted per sample? How were variable-length utterances handled? What were the hyperparameter tuning procedures? Were nested cross-validation loops used? None of this information is provided.",
+        "The conclusion overstates the findings. Claims about CQCC being 'the most effective feature' and 'validation in new databases' are not supported by the weak experimental design and suspicious results."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The core novelty is extremely limited. CQCC was introduced by Todisco et al. (2017) for speaker verification and Patil et al. (2023) already applied CQCC to pathological classification (infant cry). The paper merely transfers an existing technique to a different disease classification problem without methodological innovation.",
+          "severity": "major",
+          "evidence": "The paper explicitly states that CQCC was 'Originally introduced in the context of antispoofing literature (Todisco et al., Bilbao, Spain, June 21-24, 2017)' and 'CQCC has also demonstrated strong performance in the classification of pathological infant cries (Patil et al., 2023).' Algorithm 1 is explicitly marked as 'Adapted from (Patil et al., 2023).' No new feature extraction method is proposed.",
+          "affected_claim": "The claim in lines 114-115 that 'this is the first study of it's kind on sustained vowel sounds for multi neurodegenerative disorder classification' is misleading; it's merely the first application to this specific dataset, not a novel methodological contribution.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Critical experimental design flaws undermine all results: (1) Table 4 shows SVM with CQCC achieving 63.4% accuracy while RF achieves 99%, which is suspicious and suggests potential data leakage or improper train-test splitting; (2) No cross-validation reported; (3) Imbalance handling via SMOTE applied before train-test split violates standard practice and causes train-test leakage; (4) No statistical significance testing or confidence intervals provided.",
+          "severity": "major",
+          "evidence": "Table 4 reports 99% accuracy for RF but only 63.4% for SVM on the same CQCC features with no explanation. The paper states 'The imabalce in dataset was handled using SMOTE' but does not specify when this was applied. Standard practice requires SMOTE only on training data after the train-test split. No cross-validation or confidence intervals are reported anywhere in the paper.",
+          "affected_claim": "The central claim that 'CQCC significantly outperform MFCC, achieving absolute improvements of 5.6 % and 7.7 %' relies on these flawed experimental procedures and cannot be trusted.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The datasets are extremely small and imbalanced. Table 2 shows only 220-297 samples per class across two datasets. Table 3 shows only 6 young Parkinson's patients and 6 healthy young controls. These numbers are far too small for reliable deep learning or robust ML conclusions.",
+          "severity": "major",
+          "evidence": "Table 2 explicitly shows dataset statistics: D1 has 220 healthy and 220 PD samples; D2 has 220 healthy, 220 PD, and 297 ALS samples; D3 has 100 and 77 samples. Table 3 shows age-wise distribution with extremely small subgroups (6 young Parkinson's patients, 6 young healthy controls). With 20% test split, this yields fewer than 50 test samples in some scenarios.",
+          "affected_claim": "Generalizable conclusions about CQCC effectiveness cannot be drawn from such small datasets. The 99% accuracy in Table 4 with such small data is not credible without cross-validation.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The form-invariance property discussion (Section 3.1.1) is convoluted and poorly explained. The connection between the mathematical property and why it helps neurodegenerative disease classification is never clearly articulated. The window function derivation appears incomplete and references an appendix not provided.",
+          "severity": "major",
+          "evidence": "Section 3.1.1 provides equations (8-13) and discusses form-invariance for the continuous Fourier Transform but never explains why this property matters for distinguishing ALS from Parkinson's disease. The paper states 'the effectiveness of CQCC is underpinned by the form-invariance property' but this is never empirically validated or even intuitively explained. Equations reference an appendix: 'Further technical details of this condition are provided in the Appendix' but the appendix is not included.",
+          "affected_claim": "The theoretical justification for why CQCC should work better than MFCC for this problem is incomplete and unsubstantiated.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Results presentation is problematic and internally inconsistent. Table 4 shows RF+CQCC at 99% while Table 5 shows RF+CQCC at 90.3% on slightly different data splits without explaining why or discussing generalization. Table 6 shows different results again (86.1% SVM). No ablation studies explain which components of CQCC contribute to performance.",
+          "severity": "major",
+          "evidence": "Table 4 (D2 dataset): RF+CQCC = 99.0%. Table 5 (D1+D3 datasets): RF+CQCC = 90.3%. Table 6 (ALS vs Parkinson only): SVM+CQCC = 86.1%, RF+CQCC = 80.5%. The paper provides no explanation for these large variations across different experimental setups or discussion of which result is more representative.",
+          "affected_claim": "Claims about the magnitude of improvement (e.g., '5.6 % and 7.7 %' improvements) are weakened when different experimental setups produce very different absolute accuracies.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The paper lacks proper baselines and comparisons. No comparison with recent deep learning approaches for speech analysis. No comparison with other state-of-the-art neurodegenerative disease detection methods from the literature. The baseline features (Jitter, Shimmer) are acknowledged but the paper does not cite recent work using these features effectively.",
+          "severity": "major",
+          "evidence": "Related work section (Section 2) cites Suhas et al. (2020) who used 'Mel-Spectrogram-based approach for distinguishing between Parkinson's Disease, ALS, and Healthy Controls' but this work is not compared against in the experiments. No baseline using end-to-end deep learning (CNNs, RNNs) is tested. The paper compares only against MFCC, Jitter, Shimmer, and Teager Energy.",
+          "affected_claim": "Without comparison to state-of-the-art methods, the claimed superiority of CQCC cannot be established.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "LDA visualization (Figure 3) is presented qualitatively without metrics. Class separability should be quantified (e.g., silhouette score, Davies-Bouldin index) rather than described impressionistically. The claim of 'clearer separation' in CQCC vs MFCC is not statistically validated.",
+          "severity": "minor",
+          "evidence": "Section 5.2.2 states 'the LDA plot of CQCC features exhibits a clearer separation' but provides no quantitative measure. Visual inspection of Figure 3 is subjective and two reviewers could reasonably disagree on which shows 'clearer' separation.",
+          "affected_claim": "The claim that LDA plots validate CQCC robustness relies on subjective visual inspection rather than quantitative metrics.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Spectrographic analysis (Section 5.1 and Figure 2) provides no quantitative analysis. The descriptions of ALS, Parkinson's, and healthy spectrograms are generic clinical observations that could apply to any acoustic feature, not evidence that CQCC specifically captures these patterns.",
+          "severity": "minor",
+          "evidence": "Section 5.1 describes ALS as having 'irregular and sporadic pitch contours' and Parkinson's as having 'relatively stable but low-pitched contour' and 'monotone' characteristics. These are standard clinical descriptions of these diseases but the analysis does not demonstrate that CQCC captures these patterns better than MFCC or other features.",
+          "affected_claim": "The spectrographic analysis is presented as motivation but does not provide evidence for the experimental results.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Multiple presentation and writing quality issues: spelling errors ('acsociation' instead of 'association', 'imabalce' instead of 'imbalance', 'nestimators' instead of 'n_estimators'), incomplete sentences, inconsistent notation, and poor figure quality diminish credibility.",
+          "severity": "minor",
+          "evidence": "Line 264: 'In this work, we use Italian Parkinson's Voice and Speech dataset, which was designed in acsociation with' (should be 'association'). Line 268: 'The imabalce in dataset was handled' (should be 'imbalance'). Section 4.2: 'RF classifier with 100 nestimators' (should be 'n_estimators'). Line 268: 'accosication' should be 'association'. Line 240: 'in the filter bank remains constant' - unclear phrasing.",
+          "affected_claim": "While these are presentation issues, they suggest the paper was not carefully proofread and may indicate other quality control issues.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The paper's main claim about the form-invariance property enabling robustness is never empirically validated. There are no experiments showing CQCC is more robust to pitch variations or other perturbations compared to MFCC on this specific task.",
+          "severity": "major",
+          "evidence": "The abstract claims 'The effectiveness of CQCC is underpinned by the form-invariance property of the Constant Q Transform (CQT), which ensures consistent feature representation across varying pitch and tonal conditions, thereby enhancing classification robustness.' However, no experiments test robustness to pitch variations or other perturbations. No comparison of feature stability under pitch shifts is provided.",
+          "affected_claim": "The central theoretical motivation (form-invariance leading to robustness) is never experimentally validated.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Missing critical experimental details: How many features were extracted per sample? How were variable-length utterances handled? What were the hyperparameter tuning procedures? Were nested cross-validation loops used? None of this information is provided.",
+          "severity": "major",
+          "evidence": "Section 4.3 states 'a total of 20 CQCC coefficients were extracted' but does not specify the temporal dimension or aggregation method. No mention of how variable-length sustained vowel recordings were normalized. RF is described as having '100 nestimators and random state of 42' with no mention of hyperparameter tuning or validation procedures. No mention of whether hyperparameters were tuned on the training set or through cross-validation.",
+          "affected_claim": "Without these details, the experiments cannot be reproduced or verified.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The experimental methodology has critical flaws that invalidate the results: (1) SMOTE applied before train-test split causes data leakage; (2) no cross-validation or significance testing; (3) suspicious 99% accuracy without explanation; (4) the form-invariance property is invoked but never empirically validated as a mechanism for improved performance; (5) missing crucial experimental details prevent reproduction."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "CQCC features were introduced by Todisco et al. (2017) and applied to pathological classification by Patil et al. (2023). Algorithm 1 is explicitly adapted from Patil et al. The paper merely applies an existing feature extraction method to a different classification problem without methodological innovation. No new algorithms, theoretical insights, or feature extraction approaches are proposed."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "Even if the results were valid, the contribution would be limited. Applying an existing feature extraction method to a new problem domain, when that feature already showed promise in related pathological classification tasks, represents an incremental contribution insufficient for a top-tier ML conference. The medical application is potentially significant but the ML contribution is not."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The experimental evaluation has multiple severe limitations: (1) datasets are extremely small (< 300 samples per class) with no cross-validation; (2) inconsistent results across tables (99%, 90.3%, 86.1%) without explanation; (3) suspicious accuracy values for small datasets; (4) no ablation studies; (5) no statistical significance testing; (6) missing comparisons to state-of-the-art methods; (7) LDA analysis is purely qualitative. These issues prevent fair evaluation of the approach."
+        },
+        "presentation": {
+          "result": "fail",
+          "justification": "The paper has multiple presentation issues: spelling errors, incomplete references (appendix mentioned but not provided), inconsistent notation, unclear connection between theory (form-invariance) and practice (disease classification), generic spectrographic analysis that doesn't specifically justify CQCC, and poor figure quality. More critically, the experimental setup is inadequately described, making reproduction impossible. The theoretical discussion in Section 3.1.1 is convoluted and its relevance to the problem is never clearly articulated."
+        }
+      },
+      "summary_comment": "This paper proposes using Constant Q Cepstral Coefficients (CQCC) for neurodegenerative disease classification, comparing them to MFCC and other acoustic features. While the application to speech-based disease detection is relevant, the paper suffers from fundamental weaknesses across all dimensions. The core novelty is severely limited—CQCC was introduced in 2017 and already applied to pathological classification in 2023; this work merely transfers the existing method to a different disease classification task. The experimental methodology is deeply flawed: SMOTE is applied before train-test splitting (causing leakage), there is no cross-validation or statistical significance testing, and datasets are extremely small (< 300 samples per class). Most critically, the results are suspicious and internally inconsistent—Table 4 reports 99% accuracy for RF+CQCC on a small dataset without cross-validation, while other tables show very different accuracies (90.3%, 86.1%) across different splits. The main theoretical claim about form-invariance properties ensuring robustness is never empirically validated. The paper lacks comparisons to state-of-the-art methods, provides missing experimental details that prevent reproduction, and contains numerous presentation issues. The work reads as a straightforward application of an existing feature extraction method to a new dataset rather than a methodological or theoretical contribution. For a top-tier ML conference, this falls well short of the required standard."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 2,\n    \"why_it_fits\": [\n      \"The paper addresses a machine learning application problem (classification of neurodegenerative disorders) which is within ICML's scope for application-driven machine learning.\",\n      \"Uses standard ML classifiers (Random Forest, SVM) that are fundamental to ICML's core audience.\",\n      \"Attempts to provide some theoretical grounding through discussion of the Constant-Q Transform's mathematical properties.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"CRITICAL: The novelty is non-existent by ICML standards. CQCC was introduced in 2017 and applied to pathological classification in 2023. This paper merely transfers an existing feature extraction method to a different disease classification problem without any methodological innovation.\",\n      \"CRITICAL: The experimental methodology has severe flaws that would be unacceptable at ICML: SMOTE applied before train-test split (causing data leakage), no cross-validation, no statistical significance testing, extremely small datasets (< 300 samples per class), and suspicious results (99% accuracy without cross-validation on tiny data).\",\n      \"CRITICAL: The theoretical contribution regarding form-invariance properties is incomplete, poorly explained, and never empirically validated as explaining the performance improvements. The appendix referenced is missing.\",\n      \"No contribution to machine learning methodology, systems, optimization, or theory. This is purely a feature engineering application study with flawed execution.\",\n      \"Results are internally inconsistent (99%, 90.3%, 86.1% across different tables) with no principled explanation, raising serious questions about validity.\",\n      \"Lacks comparison to state-of-the-art baselines and modern deep learning approaches for speech analysis, which would be expected at ICML.\",\n      \"The paper is application-focused but the application results are not credible due to methodological flaws, and there is no ML methodology contribution to offset this.\",\n      \"Multiple presentation issues, spelling errors, and missing experimental details (hyperparameter tuning procedures, how variable-length utterances are handled, feature aggregation methods) prevent reproduction.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 3,\n    \"why_it_fits\": [\n      \"NeurIPS explicitly welcomes interdisciplinary submissions and applications to healthcare/biotechnology, and this paper addresses pathological speech detection which falls within AI/ML for health and biotechnology.\",\n      \"NeurIPS is more permissive than ICML about application-driven work and encourages work on real-world problems with societal impact.\",\n      \"Speech analysis for neurodegenerative disease detection is a potentially high-impact application area that NeurIPS values.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"CRITICAL: Novelty is extremely limited. CQCC features were introduced in 2017 and already applied to pathological voice classification in 2023 (infant cries). This paper applies the same existing method to a different disease classification problem. Algorithm 1 is explicitly 'Adapted from (Patil et al., 2023).' No new algorithms, features, or methodologies are proposed.\",\n      \"CRITICAL: Experimental methodology is fundamentally flawed in ways that would be unacceptable even at a conference more permissive of applications: (1) SMOTE applied before train-test split violates standard practice and causes train-test leakage; (2) no cross-validation despite small datasets; (3) no statistical significance testing or confidence intervals; (4) datasets are extremely small (< 300 samples per class, Table 3 shows 6 young patients in some groups).\",\n      \"CRITICAL: Results are suspicious and internally inconsistent. Table 4 reports 99% RF accuracy on small data without cross-validation; Table 5 shows 90.3%; Table 6 shows 86.1% for SVM. These large variations are unexplained and raise questions about data leakage, arbitrary train-test splits, or parameter selection issues.\",\n      \"CRITICAL: The main theoretical motivation (form-invariance property of CQT leading to robustness) is never empirically validated. No experiments show CQCC is actually more robust to pitch variations or perturbations compared to MFCC.\",\n      \"Missing critical experimental details prevent reproduction and verification: How are variable-length utterances normalized? How many temporal features per sample? What hyperparameter tuning procedures were used? Were nested CV loops employed? This is unacceptable for a peer-reviewed venue.\",\n      \"No comparison to state-of-the-art methods in neurodegenerative disease detection or modern deep learning approaches for speech analysis. Baselines are limited to MFCC, Jitter, Shimmer, and Teager Energy.\",\n      \"The LDA visualization analysis (Figure 3) is purely qualitative without quantitative metrics (silhouette scores, Davies-Bouldin index). Claims about 'clearer separation' are subjective.\",\n      \"The form-invariance property discussion (Section 3.1.1) is convoluted, references a missing appendix, and its relevance to distinguishing ALS from Parkinson's is never clearly articulated or empirically demonstrated.\",\n      \"While the clinical motivation is valuable, the scientific contribution is insufficient: applying an existing feature extraction method from 2017 (and already applied to pathological classification in 2023) to a new dataset is too incremental even for an applications track.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 2,\n    \"why_it_fits\": [\n      \"ICLR's broad scope includes applications to healthcare and neural signal processing, and speech analysis for disease detection could fit within 'applications to neuroscience & cognitive science.'\",\n      \"The paper attempts to ground the approach in signal processing theory (Constant-Q Transform), which aligns with ICLR's interest in theoretically-motivated approaches.\",\n      \"The clinical application domain (neurodegenerative disease detection) is relevant to ICLR's interests in applications to health and biotechnology.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"CRITICAL: This paper does not propose deep learning or representation learning. It uses shallow classifiers (RF, SVM) with hand-crafted acoustic features. ICLR's primary focus is on deep learning and representation learning, not traditional machine learning on engineered features.\",\n      \"CRITICAL: Novelty is non-existent for ICLR standards. CQCC features were introduced in 2017 and already applied to pathological voice classification in 2023. No new architectures, learning methods, or representation learning approaches are proposed. Algorithm 1 is explicitly adapted from prior work.\",\n      \"CRITICAL: The experimental methodology is fundamentally flawed: SMOTE before train-test split (data leakage), no cross-validation, no significance testing, extremely small datasets (< 300 samples per class), and suspicious results (99% accuracy without cross-validation).\",\n      \"CRITICAL: The theoretical contribution about form-invariance is incomplete and never empirically validated. The paper invokes it as a motivation but never shows that this property actually explains the performance improvements or provides robustness benefits.\",\n      \"No comparison to representation learning approaches (e.g., self-supervised learning on speech, pretrained models like wav2vec, HuBERT) that would be standard baselines for ICLR.\",\n      \"The work does not advance understanding of representation learning, deep learning, or learning theory. It is a straightforward application of an existing feature extraction method.\",\n      \"Results are internally inconsistent (99%, 90.3%, 86.1%) without explanation, and the small dataset sizes make the reported accuracies implausible without cross-validation.\",\n      \"Missing experimental details (hyperparameter tuning, feature aggregation, handling of variable-length sequences) and presentation issues (spelling errors, incomplete references to appendices) suggest insufficient rigor for ICLR.\",\n      \"The paper would be better suited to a domain-specific venue (e.g., speech processing, biomedical engineering) rather than a deep learning conference.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\n**Overall Assessment:** This paper presents an application of Constant Q Cepstral Coefficients (CQCC) for neurodegenerative disease classification from speech, but it is **not suitable for submission to any of these three top-tier ML conferences** for the following reasons:\n\n### Core Issues:\n\n1. **No Novelty (Disqualifying):** CQCC was introduced in 2017 and already applied to pathological classification in 2023. This paper merely applies the existing method to a different disease classification task. Algorithm 1 is explicitly \"Adapted from (Patil et al., 2023).\" No new algorithms, features, or methodologies are proposed.\n\n2. **Severe Experimental Flaws (Disqualifying):** \n   - SMOTE applied before train-test split causes data leakage\n   - No cross-validation despite datasets < 300 samples per class\n   - No statistical significance testing or confidence intervals\n   - Suspicious results (99% accuracy without CV on tiny data)\n   - Missing critical implementation details\n\n3. **Internally Inconsistent Results (Disqualifying):**\n   - Table 4: 99% RF accuracy\n   - Table 5: 90.3% RF accuracy\n   - Table 6: 86.1% SVM accuracy\n   - No principled explanation for these variations suggests potential methodology issues\n\n4. **Unvalidated Theoretical Claim:** The central claim about form-invariance properties ensuring robustness is never empirically demonstrated.\n\n### Venue-Specific Observations:\n\n- **ICML (Score: 2/10):** Rejects application work without methodological contribution. This paper has neither.\n- **NeurIPS (Score: 3/10):** More tolerant of applications, but the novelty is too limited and experimental flaws too severe even for an applications track.\n- **ICLR (Score: 2/10):** Focused on deep learning and representation learning. This paper uses shallow classifiers with hand-crafted features and proposes no learning methodology.\n\n**Recommendation:** The work requires fundamental redesign before it would be suitable for any top-tier ML venue. The authors should: (1) redesign experiments with proper cross-validation and statistical testing, (2) compare against state-of-the-art baselines, (3) empirically validate the form-invariance hypothesis, or (4) propose a novel methodological contribution beyond applying an existing feature extraction method.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 2,
+              "soundness": 2,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 2
+            },
+            "strengths": [
+              "The paper addresses a relevant clinical problem: early identification of neurodegenerative diseases through speech analysis is potentially valuable for medical diagnostics.",
+              "The use of CQCC features is reasonable and the geometric frequency binning of CQT could theoretically provide better resolution for speech analysis compared to linear MFCC scales.",
+              "The paper attempts to provide theoretical grounding through the form-invariance property of the Constant-Q Transform, which is mathematically interesting."
+            ],
+            "weaknesses": [
+              "The core novelty is extremely limited. CQCC was introduced by Todisco et al. (2017) for speaker verification and Patil et al. (2023) already applied CQCC to pathological classification (infant cry). The paper merely transfers an existing technique to a different disease classification problem without methodological innovation.",
+              "Critical experimental design flaws undermine all results: (1) Table 4 shows SVM with CQCC achieving 63.4% accuracy while RF achieves 99%, which is suspicious and suggests potential data leakage or improper train-test splitting; (2) No cross-validation reported; (3) Imbalance handling via SMOTE applied before train-test split violates standard practice and causes train-test leakage; (4) No statistical significance testing or confidence intervals provided.",
+              "The datasets are extremely small and imbalanced. Table 2 shows only 220-297 samples per class across two datasets. Table 3 shows only 6 young Parkinson's patients and 6 healthy young controls. These numbers are far too small for reliable deep learning or robust ML conclusions.",
+              "The form-invariance property discussion (Section 3.1.1) is convoluted and poorly explained. The connection between the mathematical property and why it helps neurodegenerative disease classification is never clearly articulated. The window function derivation appears incomplete and references an appendix not provided.",
+              "Results presentation is problematic and internally inconsistent. Table 4 shows RF+CQCC at 99% while Table 5 shows RF+CQCC at 90.3% on slightly different data splits without explaining why or discussing generalization. Table 6 shows different results again (86.1% SVM). No ablation studies explain which components of CQCC contribute to performance.",
+              "The paper lacks proper baselines and comparisons. No comparison with recent deep learning approaches for speech analysis. No comparison with other state-of-the-art neurodegenerative disease detection methods from the literature. The baseline features (Jitter, Shimmer) are acknowledged but the paper does not cite recent work using these features effectively.",
+              "LDA visualization (Figure 3) is presented qualitatively without metrics. Class separability should be quantified (e.g., silhouette score, Davies-Bouldin index) rather than described impressionistically. The claim of 'clearer separation' in CQCC vs MFCC is not statistically validated.",
+              "Spectrographic analysis (Section 5.1 and Figure 2) provides no quantitative analysis. The descriptions of ALS, Parkinson's, and healthy spectrograms are generic clinical observations that could apply to any acoustic feature, not evidence that CQCC specifically captures these patterns.",
+              "Multiple presentation and writing quality issues: spelling errors ('acsociation' instead of 'association', 'imabalce' instead of 'imbalance', 'nestimators' instead of 'n_estimators'), incomplete sentences, inconsistent notation, and poor figure quality diminish credibility.",
+              "The paper's main claim about the form-invariance property enabling robustness is never empirically validated. There are no experiments showing CQCC is more robust to pitch variations or other perturbations compared to MFCC on this specific task.",
+              "Missing critical experimental details: How many features were extracted per sample? How were variable-length utterances handled? What were the hyperparameter tuning procedures? Were nested cross-validation loops used? None of this information is provided.",
+              "The conclusion overstates the findings. Claims about CQCC being 'the most effective feature' and 'validation in new databases' are not supported by the weak experimental design and suspicious results."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The core novelty is extremely limited. CQCC was introduced by Todisco et al. (2017) for speaker verification and Patil et al. (2023) already applied CQCC to pathological classification (infant cry). The paper merely transfers an existing technique to a different disease classification problem without methodological innovation.",
+                "severity": "major",
+                "evidence": "The paper explicitly states that CQCC was 'Originally introduced in the context of antispoofing literature (Todisco et al., Bilbao, Spain, June 21-24, 2017)' and 'CQCC has also demonstrated strong performance in the classification of pathological infant cries (Patil et al., 2023).' Algorithm 1 is explicitly marked as 'Adapted from (Patil et al., 2023).' No new feature extraction method is proposed.",
+                "affected_claim": "The claim in lines 114-115 that 'this is the first study of it's kind on sustained vowel sounds for multi neurodegenerative disorder classification' is misleading; it's merely the first application to this specific dataset, not a novel methodological contribution.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical experimental design flaws undermine all results: (1) Table 4 shows SVM with CQCC achieving 63.4% accuracy while RF achieves 99%, which is suspicious and suggests potential data leakage or improper train-test splitting; (2) No cross-validation reported; (3) Imbalance handling via SMOTE applied before train-test split violates standard practice and causes train-test leakage; (4) No statistical significance testing or confidence intervals provided.",
+                "severity": "major",
+                "evidence": "Table 4 reports 99% accuracy for RF but only 63.4% for SVM on the same CQCC features with no explanation. The paper states 'The imabalce in dataset was handled using SMOTE' but does not specify when this was applied. Standard practice requires SMOTE only on training data after the train-test split. No cross-validation or confidence intervals are reported anywhere in the paper.",
+                "affected_claim": "The central claim that 'CQCC significantly outperform MFCC, achieving absolute improvements of 5.6 % and 7.7 %' relies on these flawed experimental procedures and cannot be trusted.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The datasets are extremely small and imbalanced. Table 2 shows only 220-297 samples per class across two datasets. Table 3 shows only 6 young Parkinson's patients and 6 healthy young controls. These numbers are far too small for reliable deep learning or robust ML conclusions.",
+                "severity": "major",
+                "evidence": "Table 2 explicitly shows dataset statistics: D1 has 220 healthy and 220 PD samples; D2 has 220 healthy, 220 PD, and 297 ALS samples; D3 has 100 and 77 samples. Table 3 shows age-wise distribution with extremely small subgroups (6 young Parkinson's patients, 6 young healthy controls). With 20% test split, this yields fewer than 50 test samples in some scenarios.",
+                "affected_claim": "Generalizable conclusions about CQCC effectiveness cannot be drawn from such small datasets. The 99% accuracy in Table 4 with such small data is not credible without cross-validation.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The form-invariance property discussion (Section 3.1.1) is convoluted and poorly explained. The connection between the mathematical property and why it helps neurodegenerative disease classification is never clearly articulated. The window function derivation appears incomplete and references an appendix not provided.",
+                "severity": "major",
+                "evidence": "Section 3.1.1 provides equations (8-13) and discusses form-invariance for the continuous Fourier Transform but never explains why this property matters for distinguishing ALS from Parkinson's disease. The paper states 'the effectiveness of CQCC is underpinned by the form-invariance property' but this is never empirically validated or even intuitively explained. Equations reference an appendix: 'Further technical details of this condition are provided in the Appendix' but the appendix is not included.",
+                "affected_claim": "The theoretical justification for why CQCC should work better than MFCC for this problem is incomplete and unsubstantiated.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Results presentation is problematic and internally inconsistent. Table 4 shows RF+CQCC at 99% while Table 5 shows RF+CQCC at 90.3% on slightly different data splits without explaining why or discussing generalization. Table 6 shows different results again (86.1% SVM). No ablation studies explain which components of CQCC contribute to performance.",
+                "severity": "major",
+                "evidence": "Table 4 (D2 dataset): RF+CQCC = 99.0%. Table 5 (D1+D3 datasets): RF+CQCC = 90.3%. Table 6 (ALS vs Parkinson only): SVM+CQCC = 86.1%, RF+CQCC = 80.5%. The paper provides no explanation for these large variations across different experimental setups or discussion of which result is more representative.",
+                "affected_claim": "Claims about the magnitude of improvement (e.g., '5.6 % and 7.7 %' improvements) are weakened when different experimental setups produce very different absolute accuracies.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The paper lacks proper baselines and comparisons. No comparison with recent deep learning approaches for speech analysis. No comparison with other state-of-the-art neurodegenerative disease detection methods from the literature. The baseline features (Jitter, Shimmer) are acknowledged but the paper does not cite recent work using these features effectively.",
+                "severity": "major",
+                "evidence": "Related work section (Section 2) cites Suhas et al. (2020) who used 'Mel-Spectrogram-based approach for distinguishing between Parkinson's Disease, ALS, and Healthy Controls' but this work is not compared against in the experiments. No baseline using end-to-end deep learning (CNNs, RNNs) is tested. The paper compares only against MFCC, Jitter, Shimmer, and Teager Energy.",
+                "affected_claim": "Without comparison to state-of-the-art methods, the claimed superiority of CQCC cannot be established.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "LDA visualization (Figure 3) is presented qualitatively without metrics. Class separability should be quantified (e.g., silhouette score, Davies-Bouldin index) rather than described impressionistically. The claim of 'clearer separation' in CQCC vs MFCC is not statistically validated.",
+                "severity": "minor",
+                "evidence": "Section 5.2.2 states 'the LDA plot of CQCC features exhibits a clearer separation' but provides no quantitative measure. Visual inspection of Figure 3 is subjective and two reviewers could reasonably disagree on which shows 'clearer' separation.",
+                "affected_claim": "The claim that LDA plots validate CQCC robustness relies on subjective visual inspection rather than quantitative metrics.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Spectrographic analysis (Section 5.1 and Figure 2) provides no quantitative analysis. The descriptions of ALS, Parkinson's, and healthy spectrograms are generic clinical observations that could apply to any acoustic feature, not evidence that CQCC specifically captures these patterns.",
+                "severity": "minor",
+                "evidence": "Section 5.1 describes ALS as having 'irregular and sporadic pitch contours' and Parkinson's as having 'relatively stable but low-pitched contour' and 'monotone' characteristics. These are standard clinical descriptions of these diseases but the analysis does not demonstrate that CQCC captures these patterns better than MFCC or other features.",
+                "affected_claim": "The spectrographic analysis is presented as motivation but does not provide evidence for the experimental results.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Multiple presentation and writing quality issues: spelling errors ('acsociation' instead of 'association', 'imabalce' instead of 'imbalance', 'nestimators' instead of 'n_estimators'), incomplete sentences, inconsistent notation, and poor figure quality diminish credibility.",
+                "severity": "minor",
+                "evidence": "Line 264: 'In this work, we use Italian Parkinson's Voice and Speech dataset, which was designed in acsociation with' (should be 'association'). Line 268: 'The imabalce in dataset was handled' (should be 'imbalance'). Section 4.2: 'RF classifier with 100 nestimators' (should be 'n_estimators'). Line 268: 'accosication' should be 'association'. Line 240: 'in the filter bank remains constant' - unclear phrasing.",
+                "affected_claim": "While these are presentation issues, they suggest the paper was not carefully proofread and may indicate other quality control issues.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The paper's main claim about the form-invariance property enabling robustness is never empirically validated. There are no experiments showing CQCC is more robust to pitch variations or other perturbations compared to MFCC on this specific task.",
+                "severity": "major",
+                "evidence": "The abstract claims 'The effectiveness of CQCC is underpinned by the form-invariance property of the Constant Q Transform (CQT), which ensures consistent feature representation across varying pitch and tonal conditions, thereby enhancing classification robustness.' However, no experiments test robustness to pitch variations or other perturbations. No comparison of feature stability under pitch shifts is provided.",
+                "affected_claim": "The central theoretical motivation (form-invariance leading to robustness) is never experimentally validated.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Missing critical experimental details: How many features were extracted per sample? How were variable-length utterances handled? What were the hyperparameter tuning procedures? Were nested cross-validation loops used? None of this information is provided.",
+                "severity": "major",
+                "evidence": "Section 4.3 states 'a total of 20 CQCC coefficients were extracted' but does not specify the temporal dimension or aggregation method. No mention of how variable-length sustained vowel recordings were normalized. RF is described as having '100 nestimators and random state of 42' with no mention of hyperparameter tuning or validation procedures. No mention of whether hyperparameters were tuned on the training set or through cross-validation.",
+                "affected_claim": "Without these details, the experiments cannot be reproduced or verified.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The experimental methodology has critical flaws that invalidate the results: (1) SMOTE applied before train-test split causes data leakage; (2) no cross-validation or significance testing; (3) suspicious 99% accuracy without explanation; (4) the form-invariance property is invoked but never empirically validated as a mechanism for improved performance; (5) missing crucial experimental details prevent reproduction."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "CQCC features were introduced by Todisco et al. (2017) and applied to pathological classification by Patil et al. (2023). Algorithm 1 is explicitly adapted from Patil et al. The paper merely applies an existing feature extraction method to a different classification problem without methodological innovation. No new algorithms, theoretical insights, or feature extraction approaches are proposed."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "Even if the results were valid, the contribution would be limited. Applying an existing feature extraction method to a new problem domain, when that feature already showed promise in related pathological classification tasks, represents an incremental contribution insufficient for a top-tier ML conference. The medical application is potentially significant but the ML contribution is not."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The experimental evaluation has multiple severe limitations: (1) datasets are extremely small (< 300 samples per class) with no cross-validation; (2) inconsistent results across tables (99%, 90.3%, 86.1%) without explanation; (3) suspicious accuracy values for small datasets; (4) no ablation studies; (5) no statistical significance testing; (6) missing comparisons to state-of-the-art methods; (7) LDA analysis is purely qualitative. These issues prevent fair evaluation of the approach."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "The paper has multiple presentation issues: spelling errors, incomplete references (appendix mentioned but not provided), inconsistent notation, unclear connection between theory (form-invariance) and practice (disease classification), generic spectrographic analysis that doesn't specifically justify CQCC, and poor figure quality. More critically, the experimental setup is inadequately described, making reproduction impossible. The theoretical discussion in Section 3.1.1 is convoluted and its relevance to the problem is never clearly articulated."
+              }
+            },
+            "summary_comment": "This paper proposes using Constant Q Cepstral Coefficients (CQCC) for neurodegenerative disease classification, comparing them to MFCC and other acoustic features. While the application to speech-based disease detection is relevant, the paper suffers from fundamental weaknesses across all dimensions. The core novelty is severely limited—CQCC was introduced in 2017 and already applied to pathological classification in 2023; this work merely transfers the existing method to a different disease classification task. The experimental methodology is deeply flawed: SMOTE is applied before train-test splitting (causing leakage), there is no cross-validation or statistical significance testing, and datasets are extremely small (< 300 samples per class). Most critically, the results are suspicious and internally inconsistent—Table 4 reports 99% accuracy for RF+CQCC on a small dataset without cross-validation, while other tables show very different accuracies (90.3%, 86.1%) across different splits. The main theoretical claim about form-invariance properties ensuring robustness is never empirically validated. The paper lacks comparisons to state-of-the-art methods, provides missing experimental details that prevent reproduction, and contains numerous presentation issues. The work reads as a straightforward application of an existing feature extraction method to a new dataset rather than a methodological or theoretical contribution. For a top-tier ML conference, this falls well short of the required standard."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

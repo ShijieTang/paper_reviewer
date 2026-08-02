@@ -1,0 +1,890 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 2,
+        "soundness": 2,
+        "significance": 3,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The paper addresses a relevant problem - combining federated learning with anomaly detection in 5G networks while maintaining privacy, which is timely and important.",
+        "The integration of multiple concepts (feature importance, differential privacy, and adaptive mechanisms) into a unified framework is a reasonable engineering contribution.",
+        "The experimental results show improvements over baselines (FedAvg and FedProx) with FAFL achieving 0.981 ROC-AUC compared to 0.974-0.975 for baselines."
+      ],
+      "weaknesses": [
+        "The novelty is severely limited as the paper simply combines existing techniques (Integrated Gradients for feature importance, standard differential privacy, and basic attention mechanisms) without substantive innovation. Each component is well-established.",
+        "Critical technical details are missing or unclear: (1) how exactly are attention weights applied to model parameters in equation (10)? The notation is confusing; (2) why use Integrated Gradients for an unsupervised setting where there is no clear gradient signal to attribute? This choice lacks justification; (3) the differential privacy application only adds noise to feature importance, not to model updates, which is non-standard and its privacy guarantees are not rigorously analyzed.",
+        "The experimental evaluation is severely limited: only one small dataset (22,932 records from a 5G testbed) with only 5 clients is used. No comparison with other privacy-preserving anomaly detection methods, no evaluation on standard benchmarks, and no ablation studies to validate the contribution of each component.",
+        "The mathematical formulation contains errors and inconsistencies: equation (4) appears twice with different numbering, equations (5) and (6) are duplicated, and notation switches between FI and FI-tilde without clear definition. The attention weight computation in equation (8) uses normalized feature importance directly which is trivial.",
+        "The claim about Dynamic Feature Importance Adaptation (DFIA) is not properly validated - simply updating feature importance every T rounds is not a novel adaptation strategy and lacks experimental evidence that it meaningfully improves performance.",
+        "No theoretical analysis of privacy guarantees: the paper applies Gaussian noise to aggregated feature importance but does not rigorously analyze what privacy leakage might occur through other channels (e.g., model parameters, reconstruction patterns). The assumption that sensitivity is 1 is unjustified.",
+        "The experimental setup is unrealistic: only 5 federated clients, 5 training rounds, and 5 epochs per round is too limited to draw meaningful conclusions about federated learning. The IID data split using stratified K-fold does not reflect the heterogeneity challenges that federated learning typically addresses.",
+        "Missing critical comparisons: no comparison with centralized anomaly detection, no comparison with other privacy-preserving FL methods (e.g., differential privacy in FedAvg), and no comparison with other feature-importance-aware FL approaches."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The novelty is severely limited as the paper simply combines existing techniques (Integrated Gradients for feature importance, standard differential privacy, and basic attention mechanisms) without substantive innovation. Each component is well-established.",
+          "severity": "major",
+          "evidence": "All three main components are cited from existing work: Integrated Gradients from Sundararajan et al. (2017), differential privacy from Dwork et al. (2014), and federated learning baselines from McMahan et al. (2017) and Li et al. (2020). The latest author response explicitly states: 'we understand that the paper does not meet the acceptance threshold for a top-tier venue in its current form' and concedes that addressing this 'goes beyond the scope of a typical author response.' The authors do not dispute the limited novelty assessment but acknowledge it as a fundamental limitation.",
+          "affected_claim": "The three key contributions listed in the introduction",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Critical technical details are missing or unclear: (1) how exactly are attention weights applied to model parameters in equation (10)? The notation is confusing; (2) why use Integrated Gradients for an unsupervised setting where there is no clear gradient signal to attribute? This choice lacks justification; (3) the differential privacy application only adds noise to feature importance, not to model updates, which is non-standard and its privacy guarantees are not rigorously analyzed.",
+          "severity": "major",
+          "evidence": "The submitted paper remains unchanged from the original. Equation (10) still combines scalar attention weights with gradient tensors without clear dimensional analysis. Section 3.2.3 applies IG to reconstruction loss without justification for why this is appropriate for unsupervised anomaly detection. Section 3.3.2 applies DP only to feature importance, not parameters, without rigorous privacy leakage analysis. The latest author response confirms: 'The submitted paper contains the same technical, experimental, and presentation issues your original review identified' and acknowledges these remain 'unresolved' in the current submission.",
+          "affected_claim": "Feature Importance-Aware Aggregation and Differential Privacy in Feature Aggregation",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The experimental evaluation is severely limited: only one small dataset (22,932 records from a 5G testbed) with only 5 clients is used. No comparison with other privacy-preserving anomaly detection methods, no evaluation on standard benchmarks, and no ablation studies to validate the contribution of each component.",
+          "severity": "major",
+          "evidence": "The submitted paper contains only the original single proprietary dataset with 22,932 records split across 5 clients. Section 4.3 lists only FedAvg and FedProx as baselines. Section 5 provides no ablation studies. No standard benchmarks (NSL-KDD, CICIDS2017, UNSW-NB15) are used. The latest author response confirms: 'The submitted paper contains the same technical, experimental, and presentation issues...Our response was intended to demonstrate understanding of the limitations and suggest a path forward, not to claim the current submission has addressed them.' All experimental deficiencies remain unresolved in the submission.",
+          "affected_claim": "The framework outperforms traditional federated approaches and is suitable for 5G networks",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The mathematical formulation contains errors and inconsistencies: equation (4) appears twice with different numbering, equations (5) and (6) are duplicated, and notation switches between FI and FI-tilde without clear definition. The attention weight computation in equation (8) uses normalized feature importance directly which is trivial.",
+          "severity": "major",
+          "evidence": "The submitted paper retains all mathematical errors: Equation (4) for IG approximation appears on lines 165-166 and again 184-185 with inconsistent numbering. Equations (5) and (6) both define aggregated feature importance on lines 162-163 vs 195-196. The attention mechanism (Equation 8) computes a_i = FI_i / sum(FI_j), which is trivial L1-normalization. Author response confirms: 'duplicate equations (4, 5, 6), inconsistent numbering, unclear notation—these require corrections that are not present in the submission.' These errors persist unmodified in the submitted paper.",
+          "affected_claim": "Technical soundness of the methodology",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The claim about Dynamic Feature Importance Adaptation (DFIA) is not properly validated - simply updating feature importance every T rounds is not a novel adaptation strategy and lacks experimental evidence that it meaningfully improves performance.",
+          "severity": "major",
+          "evidence": "Section 3.5 describes DFIA as updating FI every T=3 rounds, but the submitted paper provides no ablation comparing FAFL with vs. without DFIA. No experiments show sensitivity to different T values or evidence that feature importance actually changes meaningfully across rounds. Results in Section 5 do not isolate DFIA's contribution. Author response acknowledges: 'DFIA component lacks validation...no ablation study compares FAFL with DFIA vs. without DFIA...This unvalidated component remains in the submitted paper without supporting evidence.' This critical issue remains unresolved.",
+          "affected_claim": "Dynamic Feature Importance Adaptation enhances model adaptability",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "No theoretical analysis of privacy guarantees: the paper applies Gaussian noise to aggregated feature importance but does not rigorously analyze what privacy leakage might occur through other channels (e.g., model parameters, reconstruction patterns). The assumption that sensitivity is 1 is unjustified.",
+          "severity": "major",
+          "evidence": "Section 3.3.2 states 'sensitivity Δ...assumed to be 1 due to normalization' without rigorous justification. Author response acknowledges: 'Normalization bounds L2 norm, not L∞ norm. A proper sensitivity analysis or empirical verification is needed.' The submitted paper provides neither. Additionally, model parameters θ are not privatized—only aggregated feature importance receives noise. Author acknowledges this critical gap: 'provide rigorous analysis of what privacy leakage might occur through unperturbed model parameters...The submitted paper contains neither a rigorous privacy leakage analysis nor alignment with standard DP-FL.' These unresolved privacy flaws persist in the submission.",
+          "affected_claim": "Differential Privacy in Feature Aggregation preserves privacy",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The experimental setup is unrealistic: only 5 federated clients, 5 training rounds, and 5 epochs per round is too limited to draw meaningful conclusions about federated learning. The IID data split using stratified K-fold does not reflect the heterogeneity challenges that federated learning typically addresses.",
+          "severity": "major",
+          "evidence": "Section 4.2.2 specifies 'Number of Rounds: 5' and 'Epochs per Round: 5'. Section 4.1.2 uses 'stratified K-Fold cross-validation' creating IID distributions. Author acknowledges: 'Only 5 clients and 5 training rounds in federated setup...Real federated settings involve non-IID data with class imbalance and feature distribution shifts...recommend 10, 20, 50, or 100 clients...20-50+ rounds.' The submitted paper retains the original 5 clients, 5 rounds, and IID setup unchanged. Author explicitly confirms: 'The submitted paper retains the original minimal setup unchanged.'",
+          "affected_claim": "The framework is suitable for practical 5G network deployment",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Missing critical comparisons: no comparison with centralized anomaly detection, no comparison with other privacy-preserving FL methods (e.g., differential privacy in FedAvg), and no comparison with other feature-importance-aware FL approaches.",
+          "severity": "major",
+          "evidence": "Section 4.3 lists only FedAvg and FedProx as baselines. No comparison with DP-FedAvg, centralized DP anomaly detection, or other privacy-preserving methods. Author response identifies necessary additions: 'centralized autoencoder with DP (privacy reference), DP-FedAvg (standard privacy-FL baseline)...These are not minor fixes but require new experimental work.' The submitted paper contains only the original two baselines. Author confirms: 'The submitted paper contains only the original two baselines' and 'no new baselines added to submission.'",
+          "affected_claim": "FAFL significantly outperforms traditional approaches",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The submitted paper contains multiple unresolved soundness issues confirmed by the author's latest response. (1) IG is applied to unsupervised learning without justification—author confirms this 'lacks principled justification for anomaly detection.' (2) Attention weight mechanism remains unclear in equation (10)—author acknowledges 'exact mechanism for weighting parameters...needs rigorous definition' but this is not clarified in submission. (3) Differential privacy application is non-standard with incomplete privacy analysis—model parameters are unperturbed while only feature importance receives noise, and author confirms 'The submitted paper contains neither a rigorous privacy leakage analysis nor alignment with standard DP-FL.' (4) Sensitivity assumption is unjustified—author acknowledges 'Normalization bounds L2 norm, not L∞ norm' but submission provides no rigorous analysis. (5) Mathematical errors persist—author confirms 'duplicate equations (4, 5, 6)...not present in the submission.' These are fundamental soundness flaws that remain unaddressed."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The paper combines three well-established techniques (IG from 2017, DP from 2014, FL from 2017) without algorithmic or theoretical innovation. Author's latest response explicitly states: 'we understand that the paper does not meet the acceptance threshold for a top-tier venue in its current form' and acknowledges that addressing the novelty gap 'goes beyond the scope of a typical author response.' There is no novel algorithmic insight, no theoretical advancement, and no methodological contribution beyond straightforward application of existing methods. The author does not dispute limited novelty but acknowledges it as a fundamental limitation of the current work."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "The demonstrated improvements are marginal (0.6% ROC-AUC improvement from 0.975 to 0.981) on a single small, proprietary dataset (22,932 records, 5 clients, 5 rounds) with no ablations or statistical significance testing. Author confirms: 'single small dataset, no ablations, only FedAvg/FedProx baselines, no statistical significance testing' remain in the submission. Table 4 shows the differential privacy component has negligible effect across privacy budgets (all ~0.9805), which remains unexplained and concerning. Without ablations, standard benchmarks, or statistical rigor, the 0.6% gain cannot establish meaningful significance for a top-tier venue. The unrealistic experimental setup (5 clients, IID data, 5 rounds) severely limits any claims about real-world applicability."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The submitted paper's experimental evaluation lacks all standards necessary for top-tier acceptance: (1) No ablation studies—author confirms 'We provide no evidence isolating which components...actually contribute to improvements. An ablated study is essential,' and ablations remain absent from submission. (2) Single proprietary dataset—no standard benchmarks used; author identifies need for NSL-KDD, CICIDS2017, UNSW-NB15 but submission uses only proprietary data. (3) Unrealistic scale—5 clients and 5 rounds are far too small; author acknowledges 'far too limited' and recommends 10-100 clients with 20-50+ rounds, but submission retains original minimal setup. (4) No statistical rigor—no error bars, confidence intervals, or significance tests; author recommends 'error bars, confidence intervals (95%), and statistical significance tests' but these are absent. (5) IID data contradicts FL motivation—author confirms stratified K-fold creates IID splits contradicting heterogeneity claims, remains unchanged. (6) Unexplained DP effect—Table 4 shows negligible variation across privacy budgets; author notes this 'requires investigation' but no investigation is provided."
+        },
+        "presentation": {
+          "result": "fail",
+          "justification": "Mathematical and presentational errors persist throughout the submitted paper despite acknowledgment. (1) Duplicate equations appear with inconsistent numbering—equation (4) appears twice on lines 165-166 and 184-185; equations (5) and (6) both define aggregated FI on lines 162-163 vs 195-196. (2) Notation inconsistencies—undefined transitions between FI and FI-tilde; unclear variable definitions. (3) Trivial attention mechanism—equation (8) is simple L1-normalization, not an attention mechanism. (4) Unclear technical choices—IG application to unsupervised learning lacks justification; non-standard DP application is not explained. (5) Missing design rationale—critical choices (why IG? why DP only on FI?) lack theoretical or empirical motivation. Author confirms: 'Mathematical errors persist...duplicate equations (4, 5, 6), inconsistent numbering, unclear notation—these require corrections that are not present in the submission.' These presentation issues, while fixable, combined with unresolved technical details prevent reliable assessment."
+        }
+      },
+      "summary_comment": "The author's latest response demonstrates intellectual honesty by explicitly acknowledging that the submitted paper remains fundamentally unchanged and that all identified issues persist unresolved. The response correctly distinguishes between acknowledging limitations (which the authors do well) and fixing them in the submission (which they do not). The authors' statement—'we understand that the paper does not meet the acceptance threshold for a top-tier venue in its current form'—affirms the initial assessment. The submission exhibits critical deficiencies across all acceptance gates: (1) **Novelty (score 2)**: combines existing techniques without innovation; authors concede this 'falls short of innovation expectations for a top-tier venue.' (2) **Soundness (score 2)**: multiple unresolved technical flaws (unjustified IG for unsupervised learning, unclear attention mechanism, non-standard DP, unjustified sensitivity assumption, mathematical errors); authors confirm these remain 'unresolved' in submission. (3) **Significance (score 3)**: marginal 0.6% improvement on tiny single dataset with no ablations or significance testing; authors confirm 'no ablations, only FedAvg/FedProx baselines, no statistical significance testing' persist. (4) **Evaluation (score 2)**: single proprietary dataset (22,932 records), 5 clients, 5 rounds, IID data, no standard benchmarks, inexplicable DP effect in Table 4; authors confirm 'submitted paper retains the original minimal setup unchanged.' (5) **Clarity (score 3)**: mathematical errors (duplicate equations, notation inconsistencies, trivial attention mechanism) remain unmodified; authors acknowledge these 'require corrections that are not present in the submission.' The paper requires substantial reconstruction—new experiments on realistic non-IID federated setups, standard benchmarks, comprehensive ablations, rigorous privacy analysis, and justified technical choices—to address fundamental issues. As the authors acknowledge, such work 'goes beyond the scope of a typical author response' and demonstrates the submission's unsuitability for publication in its current form."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 3,\n    \"why_it_fits\": [\n      \"The paper addresses federated learning, which is within ICML's scope of general machine learning and machine learning systems.\",\n      \"The work combines multiple established ML techniques (autoencoders, feature importance, differential privacy), which relates to ICML's interest in trustworthy ML and privacy-preserving methods.\",\n      \"The application to network security and anomaly detection represents an application-driven ML contribution that could interest ICML's application-focused track.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Severely limited novelty: The paper merely combines three well-established techniques (Integrated Gradients from 2017, differential privacy from 2014, federated learning from 2017) without algorithmic innovation, theoretical advancement, or methodological contribution. Reviewer explicitly notes all three components are 'well-established' and ICML values cutting-edge research with novel insights.\",\n      \"Critical soundness issues that violate ICML's rigor standards: (1) unjustified application of Integrated Gradients to unsupervised learning; (2) non-standard and incompletely analyzed differential privacy application (noise only on feature importance, not model parameters); (3) trivial attention mechanism (simple L1-normalization); (4) unjustified sensitivity assumption; (5) multiple unresolved mathematical errors and notation inconsistencies. Reviewer gives soundness score of 2/5.\",\n      \"Severely inadequate experimental evaluation for ICML standards: Single small proprietary dataset (22,932 records, 5 clients, 5 rounds), no standard benchmarks, no ablation studies, IID data distribution contradicting federated learning motivation, marginal 0.6% improvement with no statistical significance testing. Reviewer gives evaluation score of 2/5, noting ICML expects comprehensive empirical validation.\",\n      \"Authors explicitly acknowledge the work does not meet top-tier venue standards: Latest response states 'we understand that the paper does not meet the acceptance threshold for a top-tier venue in its current form,' indicating authors recognize fundamental limitations.\",\n      \"Unexplained experimental phenomena: Table 4 shows differential privacy has negligible effect across vastly different privacy budgets (all ~0.9805), which should raise concerns but is not investigated or explained—contrary to ICML's expectation for rigorous analysis.\",\n      \"Mathematical and presentation errors persist despite acknowledgment: Duplicate equations with inconsistent numbering, undefined notation transitions, unclear variable definitions. These presentation issues undermine clarity and suggest insufficient peer review.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"NeurIPS welcomes interdisciplinary submissions and in-depth analysis of existing methods. The paper does analyze how feature importance affects federated aggregation, which could loosely fit this criterion.\",\n      \"The application to AI/ML for physical sciences and infrastructure (5G networks) aligns with NeurIPS's stated interest in domain-specific applications.\",\n      \"Privacy and trustworthiness topics (differential privacy in federated learning) are within NeurIPS's scope as emerging concerns in ML systems.\",\n      \"The paper addresses a real practical problem—anomaly detection in distributed 5G networks—which demonstrates application motivation.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Severely limited novelty contradicts NeurIPS's core mission: The paper is a straightforward application of existing techniques without novel algorithmic insights or theoretical contributions. NeurIPS explicitly values 'new and original research,' and reviewer assessment (novelty score 2/5) is uncontested by authors who acknowledge 'falls short of innovation expectations for a top-tier venue.'\",\n      \"Fundamental soundness flaws that violate NeurIPS rigor standards: (1) Integrated Gradients applied to unsupervised learning without principled justification—author confirms 'lacks principled justification for anomaly detection'; (2) Non-standard differential privacy application with incomplete privacy leakage analysis—only feature importance privatized while model parameters remain exposed; (3) Critical technical details missing or unclear (equation 10 notation, attention weight mechanism, sensitivity justification); (4) Multiple unresolved mathematical errors (duplicate equations, notation inconsistencies). Reviewer score: 2/5 soundness.\",\n      \"Experimental evaluation far below NeurIPS standards: (1) Single proprietary dataset (no standard benchmarks); (2) Unrealistic federated setup (5 clients, 5 rounds, IID data)—contradicts motivation for federated learning; (3) Zero ablation studies despite three claimed contributions; (4) Marginal 0.6% improvement with no statistical significance testing, confidence intervals, or error bars; (5) Unexplained differential privacy behavior (Table 4: all ε values yield ~0.9805 ROC-AUC). Author confirms: 'no ablations, only FedAvg/FedProx baselines, no statistical significance testing' persist in submission. Reviewer score: 2/5 evaluation.\",\n      \"Incomplete privacy analysis: The paper applies Gaussian noise only to aggregated feature importance but does not rigorously analyze privacy leakage through model parameters, reconstruction patterns, or gradient information. The assumption that sensitivity equals 1 'due to normalization' is unjustified (normalization bounds L2-norm, not L∞-norm required for standard DP sensitivity). Author acknowledges submission contains 'neither a rigorous privacy leakage analysis nor alignment with standard DP-FL.'\",\n      \"DFIA component lacks validation: Section 3.5 proposes 'Dynamic Feature Importance Adaptation' but provides no evidence this contributes to performance improvements. No ablation compares FAFL with vs. without DFIA; no sensitivity analysis for update interval T. Simply updating feature importance every T rounds is not a novel adaptation strategy.\",\n      \"Presentation quality issues: Duplicate equations with inconsistent numbering (eq. 4 appears twice; eqs. 5, 6 duplicated), undefined notation transitions (FI vs. FI-tilde), trivial attention mechanism (simple L1-normalization presented as contribution), missing design rationale for critical choices. Reviewer score: 3/5 clarity.\",\n      \"Unrealistic experimental setup undermines significance: 5 clients and 5 training rounds are far too small to demonstrate federated learning benefits; stratified K-fold creates IID data contradicting heterogeneity claims. Author acknowledges 'far too limited' but submission retains original setup unchanged.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"ICLR's scope includes representation learning, autoencoders, and unsupervised methods—the paper uses autoencoders for anomaly detection, which is relevant to ICLR's core interests.\",\n      \"Deep learning for practical applications (5G anomaly detection) aligns with ICLR's stated interest in applications to infrastructure and systems.\",\n      \"The paper addresses interpretability (feature importance via Integrated Gradients) and privacy (differential privacy), both listed as ICLR topics of interest.\",\n      \"The combination of federated learning infrastructure with deep learning models fits ICLR's interest in ML systems and algorithms.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Minimal novelty in deep learning context: ICLR expects novel contributions to representation learning, architectures, or theoretical understanding. This paper applies standard autoencoders + existing techniques (IG, DP, FL) without advancing deep learning methods. Reviewer score: 2/5 novelty. Authors explicitly concede this falls short of 'a top-tier venue in its current form.'\",\n      \"Autoencoder application is entirely standard: The architecture (encoder with 128→64→32 neurons, decoder with 64→128 neurons) is generic and unmodified. No architectural innovations, no theoretical insights into why autoencoders work for this setting, no comparison of architectural variants. ICLR expects novel deep learning contributions, not off-the-shelf applications.\",\n      \"Unsupervised anomaly detection method lacks rigor for ICLR: (1) Integrated Gradients, designed for supervised attribution, applied to unsupervised reconstruction loss without justification—author confirms 'lacks principled justification'; (2) Trivial attention mechanism (L1-normalization) does not constitute a novel representation learning contribution; (3) No theoretical analysis of why this combination should improve anomaly detection; (4) No analysis of failure modes, learned representations, or interpretability insights beyond plotting feature importance.\",\n      \"Experimental evaluation does not meet ICLR standards: (1) Single proprietary dataset with no standard benchmarks; (2) Zero ablation studies isolating contribution of each component (autoencoder architecture, feature importance, differential privacy, DFIA); (3) Marginal 0.6% improvement (0.974→0.981) without statistical significance testing; (4) IID data split contradicts federated learning setup; (5) Only 5 clients, 5 rounds, 5 epochs—insufficient for drawing conclusions about federated deep learning. Reviewer score: 2/5 evaluation. Author confirms these remain 'unresolved' in submission.\",\n      \"Missing critical representation learning analysis: The paper does not analyze learned representations (latent space properties, clustering, distribution), compare representation quality across methods, or provide insights into why feature importance helps. ICLR expects deep understanding of learned representations, not just performance metrics.\",\n      \"Privacy analysis incomplete for ICLR standards: Differential privacy applied only to feature importance, not model parameters or gradients. Privacy leakage through other channels (reconstruction patterns, latent representations) is unanalyzed. Sensitivity assumption is unjustified. This falls short of ICLR's rigor expectations for privacy-preserving learning.\",\n      \"Soundness issues critical for ICLR: (1) Mathematical errors and notation inconsistencies (duplicate equations, undefined transitions); (2) Unclear technical mechanisms (equation 10 attention weight application); (3) Unvalidated DFIA component; (4) No theoretical justification for design choices. Reviewer score: 2/5 soundness.\",\n      \"No architectural or algorithmic innovation: The deep learning components are entirely standard (generic autoencoder) and contribute nothing novel to representation learning, generative models, or deep learning theory—all ICLR priority areas.\"\n    ]\n  }\n}\n```\n\n---\n\n## Detailed Reasoning Summary\n\n### Cross-Conference Assessment\n\nAll three top-tier venues would likely **reject** this paper. While the problem (federated anomaly detection in 5G with privacy) is practically motivated and the paper demonstrates marginal empirical improvements, it suffers from **fundamental deficiencies** across novelty, soundness, evaluation, and presentation that violate the standards of premier ML conferences.\n\n#### **Key Disqualifying Issues (Venue-Agnostic):**\n\n1. **Novelty (All venues score 2/5)**: The paper combines three mature techniques (IG from 2017, DP from 2014, FL from 2017) through straightforward application without algorithmic innovation or theoretical insight. Authors explicitly concede this limitation.\n\n2. **Soundness (All venues score 2/5)**: \n   - IG applied to unsupervised learning lacks principled justification\n   - Non-standard DP application (noise only on feature importance, not model parameters)\n   - Trivial attention mechanism (L1-normalization)\n   - Unjustified sensitivity assumption\n   - Multiple mathematical errors persist unresolved\n\n3. **Evaluation (All venues score 2/5)**:\n   - Single small proprietary dataset (22,932 records, 5 clients, 5 rounds)\n   - No standard benchmarks, no ablation studies\n   - Marginal 0.6% improvement with no statistical significance\n   - IID data contradicts federated motivation\n   - Unexplained differential privacy behavior (Table 4)\n\n4. **Presentation (All venues score 3/5)**: Duplicate equations, notation inconsistencies, undefined variables, trivial components presented as contributions.\n\n#### **Venue-Specific Distinctions:**\n\n- **ICML (fit_score: 3)**: Weakest fit. ICML emphasizes machine learning systems and optimization—while federated learning is in scope, the trivial optimization contribution (weighted averaging with L1-normalized features) and non-standard DP application violate ICML's rigor and novelty expectations.\n\n- **NeurIPS (fit_score: 4)**: Slightly better fit due to NeurIPS's openness to interdisciplinary work and real-world applications, but still weak. The practical 5G motivation and privacy concerns align with NeurIPS's scope, but fundamental soundness and novelty flaws remain disqualifying.\n\n- **ICLR (fit_score: 4)**: Marginally better than NeurIPS due to autoencoder focus, but critically underdeveloped. ICLR expects novel insights into representation learning, architectures, or theory. This paper uses off-the-shelf autoencoders without architectural innovation, representation analysis, or theoretical contribution to deep learning.\n\n#### **Author's Own Assessment:**\n\nThe latest reviewer response demonstrates that the submitted paper **remains unchanged** from the original submission and that authors explicitly acknowledge: *\"we understand that the paper does not meet the acceptance threshold for a top-tier venue in its current form.\"* This self-assessment aligns with the technical evaluation.\n\n#### **Recommendation:**\n\n**Not suitable for ICML, NeurIPS, or ICLR in current form.** The paper would require:\n- Novel algorithmic or theoretical contributions (not just engineering)\n- Rigorous privacy analysis and justification for non-standard DP approach\n- Comprehensive experimental evaluation (ablations, standard benchmarks, statistical significance, realistic federated setup)\n- Resolution of all mathematical and presentation errors\n- Meaningful representation learning insights (for ICLR)\n\nThis is a 6–12 month revision, not an author response.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 2,
+              "soundness": 2,
+              "significance": 3,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a relevant problem - combining federated learning with anomaly detection in 5G networks while maintaining privacy, which is timely and important.",
+              "The integration of multiple concepts (feature importance, differential privacy, and adaptive mechanisms) into a unified framework is a reasonable engineering contribution.",
+              "The experimental results show improvements over baselines (FedAvg and FedProx) with FAFL achieving 0.981 ROC-AUC compared to 0.974-0.975 for baselines."
+            ],
+            "weaknesses": [
+              "The novelty is severely limited as the paper simply combines existing techniques (Integrated Gradients for feature importance, standard differential privacy, and basic attention mechanisms) without substantive innovation. Each component is well-established.",
+              "Critical technical details are missing or unclear: (1) how exactly are attention weights applied to model parameters in equation (10)? The notation is confusing; (2) why use Integrated Gradients for an unsupervised setting where there is no clear gradient signal to attribute? This choice lacks justification; (3) the differential privacy application only adds noise to feature importance, not to model updates, which is non-standard and its privacy guarantees are not rigorously analyzed.",
+              "The experimental evaluation is severely limited: only one small dataset (22,932 records from a 5G testbed) with only 5 clients is used. No comparison with other privacy-preserving anomaly detection methods, no evaluation on standard benchmarks, and no ablation studies to validate the contribution of each component.",
+              "The mathematical formulation contains errors and inconsistencies: equation (4) appears twice with different numbering, equations (5) and (6) are duplicated, and notation switches between FI and FI-tilde without clear definition. The attention weight computation in equation (8) uses normalized feature importance directly which is trivial.",
+              "The claim about Dynamic Feature Importance Adaptation (DFIA) is not properly validated - simply updating feature importance every T rounds is not a novel adaptation strategy and lacks experimental evidence that it meaningfully improves performance.",
+              "No theoretical analysis of privacy guarantees: the paper applies Gaussian noise to aggregated feature importance but does not rigorously analyze what privacy leakage might occur through other channels (e.g., model parameters, reconstruction patterns). The assumption that sensitivity is 1 is unjustified.",
+              "The experimental setup is unrealistic: only 5 federated clients, 5 training rounds, and 5 epochs per round is too limited to draw meaningful conclusions about federated learning. The IID data split using stratified K-fold does not reflect the heterogeneity challenges that federated learning typically addresses.",
+              "Missing critical comparisons: no comparison with centralized anomaly detection, no comparison with other privacy-preserving FL methods (e.g., differential privacy in FedAvg), and no comparison with other feature-importance-aware FL approaches."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The novelty is severely limited as the paper simply combines existing techniques (Integrated Gradients for feature importance, standard differential privacy, and basic attention mechanisms) without substantive innovation. Each component is well-established.",
+                "severity": "major",
+                "evidence": "All three main components are cited from existing work: Integrated Gradients from Sundararajan et al. (2017), differential privacy from Dwork et al. (2014), and the federated learning baselines from McMahan et al. (2017) and Li et al. (2020). The paper claims to 'introduce' feature-importance-aware aggregation but merely computes IG locally and weights parameters by normalized importance scores - this is straightforward combination, not innovation.",
+                "affected_claim": "The three key contributions listed in the introduction",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical technical details are missing or unclear: (1) how exactly are attention weights applied to model parameters in equation (10)? The notation is confusing; (2) why use Integrated Gradients for an unsupervised setting where there is no clear gradient signal to attribute? This choice lacks justification; (3) the differential privacy application only adds noise to feature importance, not to model updates, which is non-standard and its privacy guarantees are not rigorously analyzed.",
+                "severity": "major",
+                "evidence": "Equation (10) defines w_k but its derivation and how it combines the scalar attention weights (summed over d dimensions) with the gradient tensor is unclear. For IG in unsupervised learning, the paper computes gradients with respect to reconstruction error, but IG is designed for supervised prediction attribution - this mismatch is never discussed. The differential privacy only perturbs FI but the model parameters are shared unperturbed, violating standard DP-FL approaches where noise is added to parameter updates themselves.",
+                "affected_claim": "Feature Importance-Aware Aggregation and Differential Privacy in Feature Aggregation",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental evaluation is severely limited: only one small dataset (22,932 records from a 5G testbed) with only 5 clients is used. No comparison with other privacy-preserving anomaly detection methods, no evaluation on standard benchmarks, and no ablation studies to validate the contribution of each component.",
+                "severity": "major",
+                "evidence": "Table 1 shows only 22,932 total records split 80-20, meaning ~18k training samples across 5 clients (~3.6k per client). Section 4.3 lists only FedAvg and FedProx as baselines. The paper provides no ablation removing feature importance, or differential privacy, or DFIA. No standard benchmark datasets (e.g., NSL-KDD, CICIDS2017) are used. No other privacy-preserving methods like DP-FedAvg are compared.",
+                "affected_claim": "The framework outperforms traditional federated approaches and is suitable for 5G networks",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The mathematical formulation contains errors and inconsistencies: equation (4) appears twice with different numbering, equations (5) and (6) are duplicated, and notation switches between FI and FI-tilde without clear definition. The attention weight computation in equation (8) uses normalized feature importance directly which is trivial.",
+                "severity": "major",
+                "evidence": "The paper shows equation (4) on line 165-166, then again on line 184-185 with inconsistent numbering. Equations (5) and (6) both define the same thing (lines 162-163 vs 195-196). The attention weights in (8) are simply: a_i = FI_i / sum(FI_j), which is trivial normalization, not an attention mechanism that 'weighs' parameters meaningfully.",
+                "affected_claim": "Technical soundness of the methodology",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The claim about Dynamic Feature Importance Adaptation (DFIA) is not properly validated - simply updating feature importance every T rounds is not a novel adaptation strategy and lacks experimental evidence that it meaningfully improves performance.",
+                "severity": "major",
+                "evidence": "Section 3.5 describes DFIA as recomputing feature importance every T rounds, but no results show: (1) FAFL with DFIA vs without DFIA, (2) different values of T compared, or (3) actual changes in feature importance over rounds. The novelty claim is unsubstantiated. The related work (Section 2.5) mentions continual learning but DFIA is just periodic recomputation.",
+                "affected_claim": "Dynamic Feature Importance Adaptation enhances model adaptability",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "No theoretical analysis of privacy guarantees: the paper applies Gaussian noise to aggregated feature importance but does not rigorously analyze what privacy leakage might occur through other channels (e.g., model parameters, reconstruction patterns). The assumption that sensitivity is 1 is unjustified.",
+                "severity": "major",
+                "evidence": "Section 3.3.2 states 'The sensitivity Δ of the feature importance is assumed to be 1 due to normalization' but normalized vectors have L2 norm bounded by 1, not L-infinity bound. The privacy budget ϵ in Table 4 shows results at ϵ=0.1, 0.5, 1.0 but no discussion of the privacy-utility tradeoff curve or composition with multiple rounds. Critically, model parameters θ are not privatized, so gradients could leak information about local data.",
+                "affected_claim": "Differential Privacy in Feature Aggregation preserves privacy",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental setup is unrealistic: only 5 federated clients, 5 training rounds, and 5 epochs per round is too limited to draw meaningful conclusions about federated learning. The IID data split using stratified K-fold does not reflect the heterogeneity challenges that federated learning typically addresses.",
+                "severity": "major",
+                "evidence": "Section 4.2.2 specifies 'Number of Rounds: 5' and 'Epochs per Round: 5'. Section 4.1.2 states data split using 'stratified K-Fold cross-validation to ensure balanced class distributions' which creates IID data, contradicting the motivation that FL is needed for heterogeneous client data. Real federated settings have 100s-1000s of clients and many more communication rounds.",
+                "affected_claim": "The framework is suitable for practical 5G network deployment",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Missing critical comparisons: no comparison with centralized anomaly detection, no comparison with other privacy-preserving FL methods (e.g., differential privacy in FedAvg), and no comparison with other feature-importance-aware FL approaches.",
+                "severity": "major",
+                "evidence": "Section 4.3 only compares FedAvg and FedProx. No comparison with: (1) centralized training with DP, (2) DP-FedAvg (Geyer et al. 2017, Abadi et al. 2016, both cited), (3) other attention or weighting schemes in FL. The RAG evidence shows related work on privacy-preserving anomaly detection but none are included as baselines.",
+                "affected_claim": "FAFL significantly outperforms traditional approaches",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "Multiple technical soundness issues: (1) The use of Integrated Gradients for unsupervised learning is not justified - IG is designed for supervised attribution but here applied to reconstruction loss without clear motivation. (2) The attention weight mechanism in equation (10) combines scalar weights with parameter gradients in an unclear way. (3) The differential privacy application is non-standard (noise only on aggregated feature importance, not model updates) with unrigorous privacy analysis. (4) Mathematical errors and notation inconsistencies throughout (duplicate equations, unclear FI vs FI-tilde definitions). (5) Critical assumption that feature importance sensitivity is 1 lacks justification."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The paper combines three well-established techniques (Integrated Gradients from 2017, differential privacy from 2014, federated averaging from 2017) without substantive innovation. Computing feature importance locally and using it to weight parameters is a straightforward application. The contribution is purely engineering-level combination rather than novel methodology. DFIA is simply periodic recomputation of feature importance, not a novel adaptation strategy. No new theoretical insights or algorithmic innovations are present."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The practical significance is limited: (1) Improvements over baselines are marginal (0.981 vs 0.975 ROC-AUC, ~0.6% improvement on a small dataset). (2) The experimental validation is insufficient to support claims of real-world applicability - only 5 clients, 5 rounds, one small proprietary dataset. (3) No ablation studies showing which components actually contribute to improvements. (4) Results on non-standard, private dataset cannot be verified or reproduced. For a top-tier ML conference, marginal improvements on a single small experiment lack meaningful significance."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The experimental evaluation has critical gaps: (1) Only one dataset with 22,932 records and 5 clients - far too small for federated learning claims. (2) No ablation studies to validate individual contributions. (3) No standard benchmarks (NSL-KDD, CICIDS2017, etc.). (4) No comparison with other privacy-preserving methods (DP-FedAvg, DP-SGD, etc.). (5) Unrealistic setup with IID data split contradicting the heterogeneity motivation. (6) Table 4 shows nearly identical performance across different privacy budgets, suggesting either the privacy addition has no effect or the metrics are insensitive - this needs investigation. (7) No error bars, confidence intervals, or statistical significance tests."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "The paper has significant presentation issues: (1) Multiple equations are duplicated or misnumbered (equations 4, 5, 6). (2) Mathematical notation is inconsistent and unclear (FI vs FI-tilde, sudden switches between different symbols). (3) Key technical details are missing or vague (how exactly do attention weights weight parameters?). (4) The motivation for design choices is absent (why Integrated Gradients for unsupervised learning?). (5) Experimental details are sparse (no error metrics, no details on privacy budget selection, no justification for T=3). (6) Algorithm 1 pseudocode has formatting issues and unclear steps."
+              }
+            },
+            "summary_comment": "This paper proposes a federated learning framework for anomaly detection in 5G networks that combines Integrated Gradients-based feature importance with differential privacy and periodic adaptation. While the problem is relevant and the engineering approach is reasonable, the paper suffers from major weaknesses across all dimensions: (1) Novelty: purely combines existing techniques (IG, DP, FL) without innovation; (2) Soundness: uses IG in an unjustified way for unsupervised learning, applies DP non-standardly, has mathematical errors; (3) Significance: marginal improvements (0.6%) on tiny dataset; (4) Evaluation: single small proprietary dataset, only 5 clients, 5 rounds, no ablations, no standard benchmarks, unrealistic IID setup; (5) Clarity: duplicate equations, unclear notation, missing justifications. The paper reads as an application of existing methods rather than a research contribution. The experimental validation is insufficient - it needs larger-scale experiments on standard benchmarks, proper ablation studies, comparisons with other privacy-preserving methods, and investigation of why privacy budget has no effect. For a selective top-tier ML conference, this falls well below the acceptance bar."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 2,
+              "soundness": 2,
+              "significance": 3,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a relevant problem - combining federated learning with anomaly detection in 5G networks while maintaining privacy, which is timely and important.",
+              "The integration of multiple concepts (feature importance, differential privacy, and adaptive mechanisms) into a unified framework is a reasonable engineering contribution.",
+              "The experimental results show improvements over baselines (FedAvg and FedProx) with FAFL achieving 0.981 ROC-AUC compared to 0.974-0.975 for baselines."
+            ],
+            "weaknesses": [
+              "The novelty is severely limited as the paper simply combines existing techniques (Integrated Gradients for feature importance, standard differential privacy, and basic attention mechanisms) without substantive innovation. Each component is well-established.",
+              "Critical technical details are missing or unclear: (1) how exactly are attention weights applied to model parameters in equation (10)? The notation is confusing; (2) why use Integrated Gradients for an unsupervised setting where there is no clear gradient signal to attribute? This choice lacks justification; (3) the differential privacy application only adds noise to feature importance, not to model updates, which is non-standard and its privacy guarantees are not rigorously analyzed.",
+              "The experimental evaluation is severely limited: only one small dataset (22,932 records from a 5G testbed) with only 5 clients is used. No comparison with other privacy-preserving anomaly detection methods, no evaluation on standard benchmarks, and no ablation studies to validate the contribution of each component.",
+              "The mathematical formulation contains errors and inconsistencies: equation (4) appears twice with different numbering, equations (5) and (6) are duplicated, and notation switches between FI and FI-tilde without clear definition. The attention weight computation in equation (8) uses normalized feature importance directly which is trivial.",
+              "The claim about Dynamic Feature Importance Adaptation (DFIA) is not properly validated - simply updating feature importance every T rounds is not a novel adaptation strategy and lacks experimental evidence that it meaningfully improves performance.",
+              "No theoretical analysis of privacy guarantees: the paper applies Gaussian noise to aggregated feature importance but does not rigorously analyze what privacy leakage might occur through other channels (e.g., model parameters, reconstruction patterns). The assumption that sensitivity is 1 is unjustified.",
+              "The experimental setup is unrealistic: only 5 federated clients, 5 training rounds, and 5 epochs per round is too limited to draw meaningful conclusions about federated learning. The IID data split using stratified K-fold does not reflect the heterogeneity challenges that federated learning typically addresses.",
+              "Missing critical comparisons: no comparison with centralized anomaly detection, no comparison with other privacy-preserving FL methods (e.g., differential privacy in FedAvg), and no comparison with other feature-importance-aware FL approaches."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The novelty is severely limited as the paper simply combines existing techniques (Integrated Gradients for feature importance, standard differential privacy, and basic attention mechanisms) without substantive innovation. Each component is well-established.",
+                "severity": "major",
+                "evidence": "All three main components are cited from existing work: Integrated Gradients from Sundararajan et al. (2017), differential privacy from Dwork et al. (2014), and the federated learning baselines from McMahan et al. (2017) and Li et al. (2020). The author response confirms: 'We acknowledge this concern. Our contribution is positioned as an engineering effort to integrate these components' and acknowledges 'this falls short of innovation expectations for a top-tier venue.' No novel algorithmic or theoretical contribution is present in the submitted paper.",
+                "affected_claim": "The three key contributions listed in the introduction",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical technical details are missing or unclear: (1) how exactly are attention weights applied to model parameters in equation (10)? The notation is confusing; (2) why use Integrated Gradients for an unsupervised setting where there is no clear gradient signal to attribute? This choice lacks justification; (3) the differential privacy application only adds noise to feature importance, not to model updates, which is non-standard and its privacy guarantees are not rigorously analyzed.",
+                "severity": "major",
+                "evidence": "Author response states: 'The current formulation combines scalar attention (summing over dimensions) with a gradient tensor in an unclear way' and 'The exact mechanism for weighting parameters—whether element-wise, layer-wise, or per-parameter—needs rigorous definition.' On IG: 'Our current application computes gradients of reconstruction error with respect to inputs, which provides feature importance for reconstruction but lacks principled justification for anomaly detection.' On DP: 'Our approach should either: (a) provide rigorous analysis of what privacy leakage occurs through unperturbed model parameters, or (b) align with standard DP-FL.' None of these issues are resolved in the submitted paper; author only acknowledges they exist.",
+                "affected_claim": "Feature Importance-Aware Aggregation and Differential Privacy in Feature Aggregation",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental evaluation is severely limited: only one small dataset (22,932 records from a 5G testbed) with only 5 clients is used. No comparison with other privacy-preserving anomaly detection methods, no evaluation on standard benchmarks, and no ablation studies to validate the contribution of each component.",
+                "severity": "major",
+                "evidence": "Author response states: 'You correctly identify...5 clients, 5 rounds, and 5 epochs per round is far too limited' and 'Using stratified K-fold to create balanced, IID splits across clients directly contradicts the paper's motivation.' Author acknowledges: 'We provide no evidence isolating which components (IG weighting, differential privacy, DFIA) actually contribute to improvements. An ablated study is essential.' The submitted paper contains none of these corrections—author is only acknowledging deficiencies that remain in the submission.",
+                "affected_claim": "The framework outperforms traditional federated approaches and is suitable for 5G networks",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The mathematical formulation contains errors and inconsistencies: equation (4) appears twice with different numbering, equations (5) and (6) are duplicated, and notation switches between FI and FI-tilde without clear definition. The attention weight computation in equation (8) uses normalized feature importance directly which is trivial.",
+                "severity": "major",
+                "evidence": "Submitted paper shows equation (4) on line 165-166, then again on line 184-185 with inconsistent numbering. Equations (5) and (6) both define aggregated feature importance identically on lines 162-163 vs 195-196. The attention weights in (8) are a_i = FI_i / sum(FI_j), simple normalization. Author response acknowledges these but does not correct them in the submission: 'We acknowledge the errors: duplicate equations (4, 5, 6) with inconsistent numbering...These are presentation issues that distract from technical content and require correction.' The submitted paper retains all these errors unresolved.",
+                "affected_claim": "Technical soundness of the methodology",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The claim about Dynamic Feature Importance Adaptation (DFIA) is not properly validated - simply updating feature importance every T rounds is not a novel adaptation strategy and lacks experimental evidence that it meaningfully improves performance.",
+                "severity": "major",
+                "evidence": "Section 3.5 describes DFIA as recomputing feature importance every T rounds, with no results showing FAFL with/without DFIA comparison, sensitivity to T, or changes in feature importance over rounds. Author response confirms: 'You are correct that DFIA is simply periodic recomputation of feature importance without evidence it improves performance. We provide no ablation comparing FAFL with DFIA vs. without DFIA, or results showing meaningful changes in feature importance across rounds.' These issues remain unresolved in submitted paper.",
+                "affected_claim": "Dynamic Feature Importance Adaptation enhances model adaptability",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "No theoretical analysis of privacy guarantees: the paper applies Gaussian noise to aggregated feature importance but does not rigorously analyze what privacy leakage might occur through other channels (e.g., model parameters, reconstruction patterns). The assumption that sensitivity is 1 is unjustified.",
+                "severity": "major",
+                "evidence": "Section 3.3.2 assumes 'sensitivity Δ of the feature importance is assumed to be 1 due to normalization' without rigorous justification. Author response states: 'The claim that normalized feature importance has sensitivity Δ=1 lacks rigor. Normalization bounds L2 norm, not L∞ norm. A proper sensitivity analysis or empirical verification is needed.' This fundamental privacy flaw remains unaddressed in the submitted paper. No rigorous DP composition analysis across multiple rounds (5 rounds total, with DFIA updates every 3 rounds) is provided.",
+                "affected_claim": "Differential Privacy in Feature Aggregation preserves privacy",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental setup is unrealistic: only 5 federated clients, 5 training rounds, and 5 epochs per round is too limited to draw meaningful conclusions about federated learning. The IID data split using stratified K-fold does not reflect the heterogeneity challenges that federated learning typically addresses.",
+                "severity": "major",
+                "evidence": "Section 4.2.2 specifies 'Number of Rounds: 5' and 'Epochs per Round: 5'. Section 4.1.2 uses 'stratified K-Fold cross-validation to ensure balanced class distributions' creating IID splits. Author acknowledges: 'Real federated settings involve non-IID data with class imbalance and feature distribution shifts across clients' and recommends 'Dirichlet distributions' and '10, 20, 50, or 100 clients.' Submitted paper contains none of these improvements—it retains the unrealistic 5 clients, 5 rounds, IID setup.",
+                "affected_claim": "The framework is suitable for practical 5G network deployment",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Missing critical comparisons: no comparison with centralized anomaly detection, no comparison with other privacy-preserving FL methods (e.g., differential privacy in FedAvg), and no comparison with other feature-importance-aware FL approaches.",
+                "severity": "major",
+                "evidence": "Section 4.3 lists only FedAvg and FedProx as baselines. Author response states: 'Comparison only with FedAvg and FedProx is insufficient. We should compare with: (a) centralized autoencoder with DP (privacy reference), (b) DP-FedAvg (standard privacy-FL baseline)...These are not minor fixes but require new experimental work.' The submitted paper contains only FedAvg and FedProx—no new baselines added.",
+                "affected_claim": "FAFL significantly outperforms traditional approaches",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "Author response confirms but does not fix multiple critical soundness issues in the submitted paper: (1) IG use in unsupervised setting is unjustified ('lacks principled justification for anomaly detection'), (2) attention weight application unclear ('exact mechanism...needs rigorous definition'), (3) DP application non-standard with incomplete privacy analysis ('privacy leakage occurs through unperturbed model parameters'), (4) sensitivity assumption unjustified ('Normalization bounds L2 norm, not L∞ norm'), (5) mathematical errors persist (duplicate equations, notation inconsistencies). The author acknowledges all these problems but provides no corrections in the submitted paper—acknowledgment is not resolution."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "Author explicitly concedes: 'We acknowledge this concern. Our contribution is positioned as an engineering effort to integrate these components...this falls short of innovation expectations for a top-tier venue.' The submission contains no novel algorithms, theoretical insights, or methodological advances—only straightforward combination of existing techniques (IG from 2017, DP from 2014, FL from 2017). No novel contribution emerges from the author response."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "Marginal improvements (0.6% ROC-AUC) on a tiny, single proprietary dataset with 5 clients and 5 rounds cannot demonstrate meaningful significance for a top-tier venue. Author acknowledges: '22,932 records is small, and the proprietary 5G testbed cannot be independently verified. Standard benchmarks...should be included for reproducibility.' The submitted paper uses none of the recommended standard benchmarks and retains the same minimal experimental scope. Without ablations, statistical significance testing, or broader evaluation, the contribution remains insignificant."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The submitted paper lacks all essential evaluation rigor. Author acknowledges: 'We provide no evidence isolating which components...actually contribute to improvements. An ablated study is essential,' '0.6% improvement lacks error bars, confidence intervals, or significance testing,' and 'Table 4 shows nearly identical ROC-AUC across ϵ...This is concerning and requires investigation.' None of these critical issues are addressed in the submission. No ablations, no standard benchmarks, no statistical significance testing, and the DP effect remains unexplained and suspicious."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "Mathematical errors persist in submitted paper: duplicate equations with inconsistent numbering, undefined notation transitions, trivial attention mechanism. Author response acknowledges 'duplicate equations (4, 5, 6) with inconsistent numbering' and 'These are presentation issues...require correction' but the submitted paper retains all errors unmodified. Key technical choices lack justification (IG for unsupervised learning, non-standard DP placement). While fixable, these presentation issues combined with technical unclarities prevent reliable assessment of the work."
+              }
+            },
+            "summary_comment": "The author response demonstrates good faith acknowledgment of nearly every major weakness identified in the initial review. However, critically, the author response does not resolve any of these issues in the submitted paper—it only restates them and promises future revisions. The paper remains fundamentally unchanged from the original submission. Author quotes such as 'We acknowledge this concern...falls short of innovation expectations,' 'lacks principled justification for anomaly detection,' 'exact mechanism...needs rigorous definition,' 'provides rigorous analysis of privacy leakage...required,' 'ablated study is essential,' and 'investigation...requires' confirm the submission's deficiencies. These admissions, while appreciated, do not constitute evidence that problems are fixed. The submitted paper still contains: (1) unresolved mathematical errors (duplicate equations, unclear notation), (2) unjustified technical choices (IG in unsupervised setting, non-standard DP), (3) trivial attention mechanism (simple normalization), (4) no ablation studies, (5) single small proprietary dataset with only 5 clients/5 rounds, (6) IID data contradicting FL motivation, (7) only FedAvg and FedProx baselines, (8) no statistical significance testing, (9) unexplained negligible effect of differential privacy across budgets, (10) unvalidated DFIA component. The marginal 0.6% improvement on unrealistic setup with no ablations or significance testing cannot justify publication. The author response is well-structured and honest but does not modify the evaluation—per review standards, author promises to revise do not resolve concerns absent from the submitted paper. Decision remains Reject."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited novelty: paper combines existing techniques (Integrated Gradients, differential privacy, federated averaging) without substantive innovation\",\n        \"Technical soundness concerns: unjustified use of Integrated Gradients for unsupervised learning, unclear attention weight application, non-standard differential privacy application\",\n        \"Mathematical errors and notation inconsistencies: duplicate equations, unclear variable definitions, trivial attention mechanism\",\n        \"Insufficient experimental evaluation: single small proprietary dataset, only 5 clients, 5 rounds, no ablation studies, no standard benchmarks\",\n        \"Unrealistic experimental setup: IID data split contradicts heterogeneity motivation, lacks comparison with privacy-preserving baselines\",\n        \"DFIA validation missing: no evidence that periodic feature importance updates meaningfully improve performance\",\n        \"Theoretical privacy analysis lacking: non-standard DP application with incomplete privacy guarantees\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Mathematical errors and duplicate equations\",\n          \"location\": \"Section 3.2.3 and 3.3.1-3.3.2 (lines 165-166, 184-196)\",\n          \"explanation\": \"Equation (4) for Integrated Gradients approximation appears with inconsistent numbering. Equations (5) and (6) both define aggregated feature importance identically. Notation switches between FI and FI-tilde without clear transition.\"\n        },\n        {\n          \"concern\": \"Trivial attention mechanism\",\n          \"location\": \"Section 3.4.1, Equation (8)\",\n          \"explanation\": \"Attention weights are computed as simple normalization: a_i = FI_i / sum(FI_j). This is not an attention mechanism in the technical sense but merely L1-normalization of feature importance scores.\"\n        },\n        {\n          \"concern\": \"Unclear attention weight application to model parameters\",\n          \"location\": \"Section 3.4.2, Equations (9)-(10)\",\n          \"explanation\": \"Equation (10) defines w_k combining scalar attention weights (summed over all dimensions) with gradient tensor ∂L_k/∂θ_k. The dimensional compatibility and exact mechanism for element-wise or layer-wise weighting is unclear.\"\n        },\n        {\n          \"concern\": \"Non-standard differential privacy application\",\n          \"location\": \"Section 3.3.2, equations (5)-(6)\",\n          \"explanation\": \"Noise is added only to aggregated feature importance FI, not to model parameters θ. Standard DP-FL approaches (Geyer et al. 2017, Abadi et al. 2016) add noise directly to parameter updates before aggregation. This design choice is not justified.\"\n        },\n        {\n          \"concern\": \"Unjustified sensitivity assumption\",\n          \"location\": \"Section 3.3.2, second paragraph\",\n          \"explanation\": \"Paper assumes sensitivity Δ=1 'due to normalization.' However, normalized vectors have bounded L2 norm, not L∞ bound. Proper sensitivity analysis for normalized feature importance is missing.\"\n        },\n        {\n          \"concern\": \"Integrated Gradients applied to unsupervised learning\",\n          \"location\": \"Section 3.2.3, Equation (3)\",\n          \"explanation\": \"IG is designed for supervised prediction attribution (Sundararajan et al. 2017). Here it is applied to reconstruction error in autoencoders. Why IG is appropriate for unsupervised learning is never discussed. Alternative feature importance methods for autoencoders (e.g., activation-based importance) are not considered.\"\n        },\n        {\n          \"concern\": \"DFIA lacks experimental validation\",\n          \"location\": \"Section 3.5 and experimental results\",\n          \"explanation\": \"DFIA is described as recomputing feature importance every T rounds, but no ablation study compares FAFL with DFIA vs. without DFIA. No results show different values of T or actual changes in feature importance across rounds. Results table (Table 2-3) does not report DFIA's contribution separately.\"\n        },\n        {\n          \"concern\": \"Experimental setup is unrealistic for FL\",\n          \"location\": \"Section 4.1.2 and 4.2.2\",\n          \"explanation\": \"Data is split using stratified K-fold cross-validation, creating IID distributions across clients. This contradicts the paper's motivation that FL is needed for heterogeneous data. Real federated settings involve non-IID data, 100s-1000s of clients, and many more rounds. Only 5 clients and 5 training rounds are used.\"\n        },\n        {\n          \"concern\": \"Single small proprietary dataset\",\n          \"location\": \"Section 4.1.1, Table 1\",\n          \"explanation\": \"Only 22,932 records total (18k training samples across 5 clients). No standard benchmarks (NSL-KDD, CICIDS2017, UNSW-NB15) used. The proprietary 5G testbed dataset cannot be independently verified or reproduced.\"\n        },\n        {\n          \"concern\": \"No ablation studies\",\n          \"location\": \"Section 5 (Results)\",\n          \"explanation\": \"No experiments isolating the contribution of: (1) feature importance weighting, (2) differential privacy, (3) DFIA. Cannot determine which components drive the 0.6% improvement over baselines.\"\n        },\n        {\n          \"concern\": \"Marginal performance improvement\",\n          \"location\": \"Section 5.1.1, Table 2\",\n          \"explanation\": \"FAFL achieves 0.981 ROC-AUC vs 0.975 (FedProx) and 0.974 (FedAvg) - a 0.6% improvement on a small dataset. No statistical significance testing or confidence intervals provided.\"\n        },\n        {\n          \"concern\": \"Differential privacy has negligible effect\",\n          \"location\": \"Section 5.4, Table 4\",\n          \"explanation\": \"ROC-AUC scores are nearly identical across privacy budgets ϵ ∈ {0.1, 0.5, 1.0} (all ~0.9805). This suggests either: (1) the DP noise is ineffective, (2) the metrics are insensitive, or (3) DP is not actually being applied. No investigation provided.\"\n        },\n        {\n          \"concern\": \"Missing comparisons with related methods\",\n          \"location\": \"Section 4.3 (Baselines)\",\n          \"explanation\": \"Only FedAvg and FedProx compared. No comparison with: (1) centralized anomaly detection with DP, (2) DP-FedAvg, (3) other feature-importance-aware FL methods, (4) other privacy-preserving anomaly detection approaches cited in related work.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Mathematical errors and notation inconsistencies\",\n          \"proposed_change\": \"Fix duplicate equations (4, 5, 6) with consistent numbering. Clearly define FI, FI-bar, and FI-tilde at first use. Provide clear derivation of equation (10) showing dimensional compatibility and how scalar attention weights combine with parameter gradients.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Unjustified use of Integrated Gradients for unsupervised learning\",\n          \"proposed_change\": \"Add theoretical or empirical justification for why IG is appropriate for computing feature importance in autoencoders. Compare IG with alternative unsupervised feature importance methods (e.g., gradient-weighted activation maps, layer-wise relevance propagation for reconstruction error). If IG is not the best choice, propose alternative.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Non-standard differential privacy application\",\n          \"proposed_change\": \"Justify why DP is applied only to feature importance aggregation rather than to model parameters. Provide rigorous privacy analysis showing what information leakage might occur through unperturbed model parameters. Compare with standard DP-FL approaches (Geyer et al., Abadi et al.). If the current approach is justified, provide formal privacy guarantees using DP composition.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Unjustified sensitivity assumption\",\n          \"proposed_change\": \"Provide formal proof or empirical verification that normalized feature importance has sensitivity Δ=1 under L∞ norm. Alternatively, use proper L2 sensitivity and adjust σ calculation accordingly using Gaussian mechanism.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Trivial attention mechanism\",\n          \"proposed_change\": \"Replace simple normalization with a more sophisticated attention mechanism. For example: (1) use learned attention weights, (2) use softmax with temperature scaling, (3) use feature importance-weighted attention across layers. Justify the choice and show that it meaningfully improves performance.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"DFIA lacks validation\",\n          \"proposed_change\": \"Add ablation study comparing: (1) FAFL without DFIA (static feature importance), (2) FAFL with DFIA at different update intervals (T ∈ {1, 3, 5, 10}). Report how feature importance distributions change across rounds. Measure performance impact of DFIA separately.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Unrealistic experimental setup with IID data\",\n          \"proposed_change\": \"Create non-IID data distributions across clients to reflect real federated heterogeneity. Use Dirichlet distribution (Dir(α)) to simulate statistical heterogeneity. Run experiments with 10, 20, 50, or 100 clients to evaluate scalability. Increase training rounds to 20-50 to observe convergence behavior.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Single proprietary dataset\",\n          \"proposed_change\": \"Evaluate on standard benchmarks: (1) NSL-KDD for network intrusion detection, (2) CICIDS2017 or CICIDS2018 for 5G-relevant traffic, (3) UNSW-NB15 for modern network attacks. If using proprietary dataset, provide sufficient details for reproduction or release anonymized version.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"No ablation studies\",\n          \"proposed_change\": \"Conduct ablations isolating each component's contribution: (1) FedAvg + IG weighting (no DP), (2) FedAvg + DP (no IG), (3) FedAvg + IG + DP (no DFIA), (4) Full FAFL. Report metrics for each variant. Use statistical significance testing (e.g., t-tests with α=0.05).\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Marginal improvement without statistical validation\",\n          \"proposed_change\": \"Report results with error bars, confidence intervals (95%), and standard deviations across multiple runs. Perform statistical significance tests (paired t-test or Wilcoxon test) comparing FAFL vs. baselines. For 0.6% improvement to be meaningful, demonstrate statistical significance.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Differential privacy has negligible effect\",\n          \"proposed_change\": \"Investigate why ϵ variation has no observable effect. (1) Verify DP noise is actually being added (check noise magnitude). (2) Measure privacy-utility tradeoff curve more granularly (ϵ ∈ {0.01, 0.1, 1, 10}). (3) Use alternative privacy metrics (δ variation, composition bounds). (4) Explain if model is robust to DP noise or if privacy budget is unnecessarily generous.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Missing comparisons\",\n          \"proposed_change\": \"Add baselines: (1) Centralized autoencoder with DP (as privacy reference), (2) DP-FedAvg (standard privacy-FL), (3) FedAvg with alternative attention mechanisms (e.g., learned weights, gradient-based weighting), (4) Other feature-importance-aware aggregation schemes. This contextualizes FAFL's unique contributions.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"Thank you for the comprehensive review. We appreciate the thorough evaluation and acknowledge significant concerns that require substantial revision.\\n\\n**On Limited Novelty:**\\nYou correctly identify that the paper combines well-established techniques (Integrated Gradients, differential privacy, federated averaging). We acknowledge this concern. Our contribution is positioned as an engineering effort to integrate these components for the specific problem of unsupervised anomaly detection in federated 5G settings, rather than claiming algorithmic novelty. However, we recognize this falls short of innovation expectations for a top-tier venue. To strengthen novelty, we would need to propose: (1) a principled method for feature importance computation specifically designed for unsupervised anomaly detection, (2) novel privacy guarantees tailored to feature importance aggregation, or (3) a theoretically-grounded adaptation strategy beyond periodic recomputation.\\n\\n**On Technical Soundness:**\\nWe acknowledge several serious issues:\\n\\n1. **Integrated Gradients for unsupervised learning:** You are correct that IG is designed for supervised attribution. Our current application computes gradients of reconstruction error with respect to inputs, which provides feature importance for reconstruction but lacks principled justification for anomaly detection. We should either: (a) provide theoretical justification for why reconstruction-based IG is appropriate for anomalies, or (b) compare with alternative unsupervised importance methods (e.g., layer-wise relevance propagation for autoencoders, gradient-weighted activation maps).\\n\\n2. **Attention weight mechanism:** We acknowledge the clarity issue in Equation (10). The current formulation combines scalar attention (summing over dimensions) with a gradient tensor in an unclear way. The exact mechanism for weighting parameters—whether element-wise, layer-wise, or per-parameter—needs rigorous definition. This derivation was insufficiently detailed in the submission.\\n\\n3. **Non-standard differential privacy:** You correctly note that adding noise only to aggregated feature importance (not model parameters) is non-standard. Standard DP-FL (Geyer et al. 2017, Abadi et al. 2016) perturbs parameter updates before aggregation. Our approach should either: (a) provide rigorous analysis of what privacy leakage occurs through unperturbed model parameters, or (b) align with standard DP-FL by adding noise to parameters instead. We have not adequately justified this design choice.\\n\\n4. **Sensitivity assumption:** The claim that normalized feature importance has sensitivity Δ=1 lacks rigor. Normalization bounds L2 norm, not L∞ norm. A proper sensitivity analysis or empirical verification is needed.\\n\\n**On Mathematical Errors:**\\nWe acknowledge the errors: duplicate equations (4, 5, 6) with inconsistent numbering, undefined variable transitions between FI and FI-tilde, and the trivial nature of the attention computation (simple L1-normalization). These are presentation issues that distract from technical content and require correction.\\n\\n**On Experimental Evaluation:**\\nThis is where we have the most significant shortcomings:\\n\\n1. **Scale and realism:** 5 clients, 5 rounds, and 5 epochs per round is far too limited. Federated learning is designed for larger numbers of clients (10-100+) and more communication rounds (20-50+). The marginal improvement of 0.6% on this tiny setup does not provide convincing evidence.\\n\\n2. **IID data contradicts motivation:** Using stratified K-fold to create balanced, IID splits across clients directly contradicts the paper's motivation that FL is needed for heterogeneous data. Real federated settings involve non-IID data with class imbalance and feature distribution shifts across clients. We should create realistic data heterogeneity using, e.g., Dirichlet distributions.\\n\\n3. **Single proprietary dataset:** 22,932 records is small, and the proprietary 5G testbed cannot be independently verified. Standard benchmarks (NSL-KDD, CICIDS2017, UNSW-NB15) should be included for reproducibility and fair comparison.\\n\\n4. **No ablation studies:** We provide no evidence isolating which components (IG weighting, differential privacy, DFIA) actually contribute to improvements. An ablated study is essential.\\n\\n5. **Missing baselines:** Comparison only with FedAvg and FedProx is insufficient. We should compare with: (a) centralized autoencoder with DP (privacy reference), (b) DP-FedAvg (standard privacy-FL baseline), (c) other attention/weighting schemes, (d) other privacy-preserving anomaly detection methods.\\n\\n6. **Statistical rigor:** The 0.6% improvement lacks error bars, confidence intervals, or significance testing. We need multiple runs with standard deviations and statistical tests (paired t-test, α=0.05).\\n\\n**On DFIA Validation:**\\nYou are correct that DFIA is simply periodic recomputation of feature importance without evidence it improves performance. We provide no ablation comparing FAFL with/without DFIA, or results showing meaningful changes in feature importance across rounds.\\n\\n**On Differential Privacy Effect:**\\nTable 4 shows nearly identical ROC-AUC across ϵ ∈ {0.1, 0.5, 1.0} (~0.9805). This is concerning and suggests either: (1) DP noise is ineffective, (2) the model is robust to noise, or (3) the privacy budget is unnecessarily generous. This requires investigation rather than being left unexplained.\\n\\n**Summary of Fundamental Gaps:**\\nThe paper has three major classes of issues: (1) **novelty**: it combines existing techniques without new algorithmic or theoretical contributions; (2) **soundness**: the technical approach has unjustified design choices and potential privacy leakage; (3) **evaluation**: the experimental validation is too limited in scale, uses unrealistic IID data, lacks ablations, and provides only marginal improvements on a single small dataset.\\n\\nTo meet publication standards, the paper would require substantial revision including: (a) providing theoretical justification or empirical comparison for design choices (IG, DP location, attention mechanism), (b) conducting experiments on realistic non-IID data with 10-100+ clients and 20-50+ rounds, (c) evaluating on standard benchmarks in addition to proprietary data, (d) including comprehensive ablations and statistical significance testing, (e) comparing with relevant privacy-preserving and feature-importance-aware baselines. These are not minor fixes but require new experimental work and potentially algorithmic refinement.\\n\\nWe recognize these limitations are substantial. While the problem is relevant, the current execution does not meet the technical rigor and empirical thoroughness expected for acceptance at a top venue.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 2,
+              "soundness": 2,
+              "significance": 3,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a relevant problem - combining federated learning with anomaly detection in 5G networks while maintaining privacy, which is timely and important.",
+              "The integration of multiple concepts (feature importance, differential privacy, and adaptive mechanisms) into a unified framework is a reasonable engineering contribution.",
+              "The experimental results show improvements over baselines (FedAvg and FedProx) with FAFL achieving 0.981 ROC-AUC compared to 0.974-0.975 for baselines."
+            ],
+            "weaknesses": [
+              "The novelty is severely limited as the paper simply combines existing techniques (Integrated Gradients for feature importance, standard differential privacy, and basic attention mechanisms) without substantive innovation. Each component is well-established.",
+              "Critical technical details are missing or unclear: (1) how exactly are attention weights applied to model parameters in equation (10)? The notation is confusing; (2) why use Integrated Gradients for an unsupervised setting where there is no clear gradient signal to attribute? This choice lacks justification; (3) the differential privacy application only adds noise to feature importance, not to model updates, which is non-standard and its privacy guarantees are not rigorously analyzed.",
+              "The experimental evaluation is severely limited: only one small dataset (22,932 records from a 5G testbed) with only 5 clients is used. No comparison with other privacy-preserving anomaly detection methods, no evaluation on standard benchmarks, and no ablation studies to validate the contribution of each component.",
+              "The mathematical formulation contains errors and inconsistencies: equation (4) appears twice with different numbering, equations (5) and (6) are duplicated, and notation switches between FI and FI-tilde without clear definition. The attention weight computation in equation (8) uses normalized feature importance directly which is trivial.",
+              "The claim about Dynamic Feature Importance Adaptation (DFIA) is not properly validated - simply updating feature importance every T rounds is not a novel adaptation strategy and lacks experimental evidence that it meaningfully improves performance.",
+              "No theoretical analysis of privacy guarantees: the paper applies Gaussian noise to aggregated feature importance but does not rigorously analyze what privacy leakage might occur through other channels (e.g., model parameters, reconstruction patterns). The assumption that sensitivity is 1 is unjustified.",
+              "The experimental setup is unrealistic: only 5 federated clients, 5 training rounds, and 5 epochs per round is too limited to draw meaningful conclusions about federated learning. The IID data split using stratified K-fold does not reflect the heterogeneity challenges that federated learning typically addresses.",
+              "Missing critical comparisons: no comparison with centralized anomaly detection, no comparison with other privacy-preserving FL methods (e.g., differential privacy in FedAvg), and no comparison with other feature-importance-aware FL approaches."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The novelty is severely limited as the paper simply combines existing techniques (Integrated Gradients for feature importance, standard differential privacy, and basic attention mechanisms) without substantive innovation. Each component is well-established.",
+                "severity": "major",
+                "evidence": "All three main components are cited from existing work: Integrated Gradients from Sundararajan et al. (2017), differential privacy from Dwork et al. (2014), and federated learning baselines from McMahan et al. (2017) and Li et al. (2020). The latest author response explicitly states: 'we understand that the paper does not meet the acceptance threshold for a top-tier venue in its current form' and concedes that addressing this 'goes beyond the scope of a typical author response.' The authors do not dispute the limited novelty assessment but acknowledge it as a fundamental limitation.",
+                "affected_claim": "The three key contributions listed in the introduction",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical technical details are missing or unclear: (1) how exactly are attention weights applied to model parameters in equation (10)? The notation is confusing; (2) why use Integrated Gradients for an unsupervised setting where there is no clear gradient signal to attribute? This choice lacks justification; (3) the differential privacy application only adds noise to feature importance, not to model updates, which is non-standard and its privacy guarantees are not rigorously analyzed.",
+                "severity": "major",
+                "evidence": "The submitted paper remains unchanged from the original. Equation (10) still combines scalar attention weights with gradient tensors without clear dimensional analysis. Section 3.2.3 applies IG to reconstruction loss without justification for why this is appropriate for unsupervised anomaly detection. Section 3.3.2 applies DP only to feature importance, not parameters, without rigorous privacy leakage analysis. The latest author response confirms: 'The submitted paper contains the same technical, experimental, and presentation issues your original review identified' and acknowledges these remain 'unresolved' in the current submission.",
+                "affected_claim": "Feature Importance-Aware Aggregation and Differential Privacy in Feature Aggregation",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental evaluation is severely limited: only one small dataset (22,932 records from a 5G testbed) with only 5 clients is used. No comparison with other privacy-preserving anomaly detection methods, no evaluation on standard benchmarks, and no ablation studies to validate the contribution of each component.",
+                "severity": "major",
+                "evidence": "The submitted paper contains only the original single proprietary dataset with 22,932 records split across 5 clients. Section 4.3 lists only FedAvg and FedProx as baselines. Section 5 provides no ablation studies. No standard benchmarks (NSL-KDD, CICIDS2017, UNSW-NB15) are used. The latest author response confirms: 'The submitted paper contains the same technical, experimental, and presentation issues...Our response was intended to demonstrate understanding of the limitations and suggest a path forward, not to claim the current submission has addressed them.' All experimental deficiencies remain unresolved in the submission.",
+                "affected_claim": "The framework outperforms traditional federated approaches and is suitable for 5G networks",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The mathematical formulation contains errors and inconsistencies: equation (4) appears twice with different numbering, equations (5) and (6) are duplicated, and notation switches between FI and FI-tilde without clear definition. The attention weight computation in equation (8) uses normalized feature importance directly which is trivial.",
+                "severity": "major",
+                "evidence": "The submitted paper retains all mathematical errors: Equation (4) for IG approximation appears on lines 165-166 and again 184-185 with inconsistent numbering. Equations (5) and (6) both define aggregated feature importance on lines 162-163 vs 195-196. The attention mechanism (Equation 8) computes a_i = FI_i / sum(FI_j), which is trivial L1-normalization. Author response confirms: 'duplicate equations (4, 5, 6), inconsistent numbering, unclear notation—these require corrections that are not present in the submission.' These errors persist unmodified in the submitted paper.",
+                "affected_claim": "Technical soundness of the methodology",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The claim about Dynamic Feature Importance Adaptation (DFIA) is not properly validated - simply updating feature importance every T rounds is not a novel adaptation strategy and lacks experimental evidence that it meaningfully improves performance.",
+                "severity": "major",
+                "evidence": "Section 3.5 describes DFIA as updating FI every T=3 rounds, but the submitted paper provides no ablation comparing FAFL with vs. without DFIA. No experiments show sensitivity to different T values or evidence that feature importance actually changes meaningfully across rounds. Results in Section 5 do not isolate DFIA's contribution. Author response acknowledges: 'DFIA component lacks validation...no ablation study compares FAFL with DFIA vs. without DFIA...This unvalidated component remains in the submitted paper without supporting evidence.' This critical issue remains unresolved.",
+                "affected_claim": "Dynamic Feature Importance Adaptation enhances model adaptability",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "No theoretical analysis of privacy guarantees: the paper applies Gaussian noise to aggregated feature importance but does not rigorously analyze what privacy leakage might occur through other channels (e.g., model parameters, reconstruction patterns). The assumption that sensitivity is 1 is unjustified.",
+                "severity": "major",
+                "evidence": "Section 3.3.2 states 'sensitivity Δ...assumed to be 1 due to normalization' without rigorous justification. Author response acknowledges: 'Normalization bounds L2 norm, not L∞ norm. A proper sensitivity analysis or empirical verification is needed.' The submitted paper provides neither. Additionally, model parameters θ are not privatized—only aggregated feature importance receives noise. Author acknowledges this critical gap: 'provide rigorous analysis of what privacy leakage might occur through unperturbed model parameters...The submitted paper contains neither a rigorous privacy leakage analysis nor alignment with standard DP-FL.' These unresolved privacy flaws persist in the submission.",
+                "affected_claim": "Differential Privacy in Feature Aggregation preserves privacy",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental setup is unrealistic: only 5 federated clients, 5 training rounds, and 5 epochs per round is too limited to draw meaningful conclusions about federated learning. The IID data split using stratified K-fold does not reflect the heterogeneity challenges that federated learning typically addresses.",
+                "severity": "major",
+                "evidence": "Section 4.2.2 specifies 'Number of Rounds: 5' and 'Epochs per Round: 5'. Section 4.1.2 uses 'stratified K-Fold cross-validation' creating IID distributions. Author acknowledges: 'Only 5 clients and 5 training rounds in federated setup...Real federated settings involve non-IID data with class imbalance and feature distribution shifts...recommend 10, 20, 50, or 100 clients...20-50+ rounds.' The submitted paper retains the original 5 clients, 5 rounds, and IID setup unchanged. Author explicitly confirms: 'The submitted paper retains the original minimal setup unchanged.'",
+                "affected_claim": "The framework is suitable for practical 5G network deployment",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Missing critical comparisons: no comparison with centralized anomaly detection, no comparison with other privacy-preserving FL methods (e.g., differential privacy in FedAvg), and no comparison with other feature-importance-aware FL approaches.",
+                "severity": "major",
+                "evidence": "Section 4.3 lists only FedAvg and FedProx as baselines. No comparison with DP-FedAvg, centralized DP anomaly detection, or other privacy-preserving methods. Author response identifies necessary additions: 'centralized autoencoder with DP (privacy reference), DP-FedAvg (standard privacy-FL baseline)...These are not minor fixes but require new experimental work.' The submitted paper contains only the original two baselines. Author confirms: 'The submitted paper contains only the original two baselines' and 'no new baselines added to submission.'",
+                "affected_claim": "FAFL significantly outperforms traditional approaches",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The submitted paper contains multiple unresolved soundness issues confirmed by the author's latest response. (1) IG is applied to unsupervised learning without justification—author confirms this 'lacks principled justification for anomaly detection.' (2) Attention weight mechanism remains unclear in equation (10)—author acknowledges 'exact mechanism for weighting parameters...needs rigorous definition' but this is not clarified in submission. (3) Differential privacy application is non-standard with incomplete privacy analysis—model parameters are unperturbed while only feature importance receives noise, and author confirms 'The submitted paper contains neither a rigorous privacy leakage analysis nor alignment with standard DP-FL.' (4) Sensitivity assumption is unjustified—author acknowledges 'Normalization bounds L2 norm, not L∞ norm' but submission provides no rigorous analysis. (5) Mathematical errors persist—author confirms 'duplicate equations (4, 5, 6)...not present in the submission.' These are fundamental soundness flaws that remain unaddressed."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The paper combines three well-established techniques (IG from 2017, DP from 2014, FL from 2017) without algorithmic or theoretical innovation. Author's latest response explicitly states: 'we understand that the paper does not meet the acceptance threshold for a top-tier venue in its current form' and acknowledges that addressing the novelty gap 'goes beyond the scope of a typical author response.' There is no novel algorithmic insight, no theoretical advancement, and no methodological contribution beyond straightforward application of existing methods. The author does not dispute limited novelty but acknowledges it as a fundamental limitation of the current work."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The demonstrated improvements are marginal (0.6% ROC-AUC improvement from 0.975 to 0.981) on a single small, proprietary dataset (22,932 records, 5 clients, 5 rounds) with no ablations or statistical significance testing. Author confirms: 'single small dataset, no ablations, only FedAvg/FedProx baselines, no statistical significance testing' remain in the submission. Table 4 shows the differential privacy component has negligible effect across privacy budgets (all ~0.9805), which remains unexplained and concerning. Without ablations, standard benchmarks, or statistical rigor, the 0.6% gain cannot establish meaningful significance for a top-tier venue. The unrealistic experimental setup (5 clients, IID data, 5 rounds) severely limits any claims about real-world applicability."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The submitted paper's experimental evaluation lacks all standards necessary for top-tier acceptance: (1) No ablation studies—author confirms 'We provide no evidence isolating which components...actually contribute to improvements. An ablated study is essential,' and ablations remain absent from submission. (2) Single proprietary dataset—no standard benchmarks used; author identifies need for NSL-KDD, CICIDS2017, UNSW-NB15 but submission uses only proprietary data. (3) Unrealistic scale—5 clients and 5 rounds are far too small; author acknowledges 'far too limited' and recommends 10-100 clients with 20-50+ rounds, but submission retains original minimal setup. (4) No statistical rigor—no error bars, confidence intervals, or significance tests; author recommends 'error bars, confidence intervals (95%), and statistical significance tests' but these are absent. (5) IID data contradicts FL motivation—author confirms stratified K-fold creates IID splits contradicting heterogeneity claims, remains unchanged. (6) Unexplained DP effect—Table 4 shows negligible variation across privacy budgets; author notes this 'requires investigation' but no investigation is provided."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "Mathematical and presentational errors persist throughout the submitted paper despite acknowledgment. (1) Duplicate equations appear with inconsistent numbering—equation (4) appears twice on lines 165-166 and 184-185; equations (5) and (6) both define aggregated FI on lines 162-163 vs 195-196. (2) Notation inconsistencies—undefined transitions between FI and FI-tilde; unclear variable definitions. (3) Trivial attention mechanism—equation (8) is simple L1-normalization, not an attention mechanism. (4) Unclear technical choices—IG application to unsupervised learning lacks justification; non-standard DP application is not explained. (5) Missing design rationale—critical choices (why IG? why DP only on FI?) lack theoretical or empirical motivation. Author confirms: 'Mathematical errors persist...duplicate equations (4, 5, 6), inconsistent numbering, unclear notation—these require corrections that are not present in the submission.' These presentation issues, while fixable, combined with unresolved technical details prevent reliable assessment."
+              }
+            },
+            "summary_comment": "The author's latest response demonstrates intellectual honesty by explicitly acknowledging that the submitted paper remains fundamentally unchanged and that all identified issues persist unresolved. The response correctly distinguishes between acknowledging limitations (which the authors do well) and fixing them in the submission (which they do not). The authors' statement—'we understand that the paper does not meet the acceptance threshold for a top-tier venue in its current form'—affirms the initial assessment. The submission exhibits critical deficiencies across all acceptance gates: (1) **Novelty (score 2)**: combines existing techniques without innovation; authors concede this 'falls short of innovation expectations for a top-tier venue.' (2) **Soundness (score 2)**: multiple unresolved technical flaws (unjustified IG for unsupervised learning, unclear attention mechanism, non-standard DP, unjustified sensitivity assumption, mathematical errors); authors confirm these remain 'unresolved' in submission. (3) **Significance (score 3)**: marginal 0.6% improvement on tiny single dataset with no ablations or significance testing; authors confirm 'no ablations, only FedAvg/FedProx baselines, no statistical significance testing' persist. (4) **Evaluation (score 2)**: single proprietary dataset (22,932 records), 5 clients, 5 rounds, IID data, no standard benchmarks, inexplicable DP effect in Table 4; authors confirm 'submitted paper retains the original minimal setup unchanged.' (5) **Clarity (score 3)**: mathematical errors (duplicate equations, notation inconsistencies, trivial attention mechanism) remain unmodified; authors acknowledge these 'require corrections that are not present in the submission.' The paper requires substantial reconstruction—new experiments on realistic non-IID federated setups, standard benchmarks, comprehensive ablations, rigorous privacy analysis, and justified technical choices—to address fundamental issues. As the authors acknowledge, such work 'goes beyond the scope of a typical author response' and demonstrates the submission's unsuitability for publication in its current form."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Acknowledged limited novelty: paper combines existing techniques without substantive innovation; author concedes this falls short of top-tier venue standards\",\n        \"Unresolved technical soundness issues: unjustified use of Integrated Gradients for unsupervised learning, unclear attention weight mechanism, non-standard differential privacy application, unrigorous privacy analysis\",\n        \"Unresolved mathematical errors in submitted paper: duplicate equations, inconsistent numbering, notation inconsistencies remain unfixed\",\n        \"Insufficient experimental evaluation: single small proprietary dataset (22,932 records), only 5 clients, 5 training rounds, no ablation studies, no standard benchmarks—all acknowledged but unaddressed in submission\",\n        \"Unrealistic federated setup: IID data contradicts FL heterogeneity motivation; author acknowledges this but submission unchanged\",\n        \"Unvalidated DFIA component: no ablation or evidence that periodic feature importance updates improve performance\",\n        \"Incomplete privacy analysis: sensitivity assumption unjustified, differential privacy effect negligible and unexplained across privacy budgets\",\n        \"Missing critical baselines: only FedAvg and FedProx compared; acknowledged but no new baselines added to submission\",\n        \"Marginal improvements without rigor: 0.6% ROC-AUC gain on tiny dataset with no statistical significance testing, error bars, or confidence intervals\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Mathematical errors persist in submitted paper despite acknowledgment\",\n          \"location\": \"Section 3.2.3-3.4.2 (equations 3-10, lines 155-210)\",\n          \"explanation\": \"The submitted paper retains duplicate equations with inconsistent numbering. Equation (4) for IG approximation appears twice (lines 165-166 and 184-185). Equations (5) and (6) both define aggregated feature importance (lines 162-163 vs 195-196). Notation switches between FI and FI-tilde without clear definition or transition. Author response acknowledges 'duplicate equations (4, 5, 6)...require correction' but these errors remain unmodified in the submission.\"\n        },\n        {\n          \"concern\": \"Attention weight mechanism is trivial normalization\",\n          \"location\": \"Section 3.4.1, Equation (8)\",\n          \"explanation\": \"The submitted paper defines attention weights as a_i = FI_i / sum(FI_j), which is simple L1-normalization. This is not an attention mechanism in the technical sense but merely scaling feature importance to sum to 1. Author response acknowledges this is 'trivial' but proposes to address it in future work ('Replace simple normalization with a more sophisticated attention mechanism'), not in the current submission.\"\n        },\n        {\n          \"concern\": \"No ablation studies isolating component contributions in submitted paper\",\n          \"location\": \"Section 5 (Results and Discussion)\",\n          \"explanation\": \"Results present only FAFL vs. FedAvg vs. FedProx comparisons. No ablations removing individual components (IG weighting, differential privacy, DFIA) are provided. Author acknowledges this critical gap: 'We provide no evidence isolating which components (IG weighting, differential privacy, DFIA) actually contribute to improvements. An ablated study is essential.' This essential ablation work remains absent from the submission.\"\n        },\n        {\n          \"concern\": \"Only 5 clients and 5 training rounds in federated setup\",\n          \"location\": \"Section 4.1.2 and 4.2.2\",\n          \"explanation\": \"Section 4.1.2 states 'K = 5 clients' and Section 4.2.2 specifies 'Number of Rounds: 5' and 'Epochs per Round: 5.' Author acknowledges this is 'far too limited' and recommends '10, 20, 50, or 100 clients' with '20-50+ rounds.' The submitted paper retains the original minimal setup unchanged.\"\n        },\n        {\n          \"concern\": \"IID data contradicts federated learning motivation\",\n          \"location\": \"Section 4.1.2, data splitting procedure\",\n          \"explanation\": \"Data is split 'using stratified K-Fold cross-validation to ensure balanced class distributions' across clients. This creates IID (independent and identically distributed) data. Author response states: 'Real federated settings involve non-IID data with class imbalance and feature distribution shifts across clients' and recommends 'Dirichlet distributions' to create statistical heterogeneity. The submitted paper uses the same IID stratified K-fold split.\"\n        },\n        {\n          \"concern\": \"Single small proprietary dataset with 22,932 records\",\n          \"location\": \"Section 4.1.1, Table 1\",\n          \"explanation\": \"Only one proprietary 5G testbed dataset with 22,932 total records (14,932 benign + 4,000 PFCP attack + 4,000 IP spoofing) is evaluated. With 80-20 split across 5 clients, each client has ~3,600 training samples. Author acknowledges: '22,932 records is small, and the proprietary 5G testbed cannot be independently verified. Standard benchmarks...should be included for reproducibility.' Recommendations include NSL-KDD, CICIDS2017, UNSW-NB15, but the submitted paper evaluates only the proprietary dataset.\"\n        },\n        {\n          \"concern\": \"No comparison with privacy-preserving baselines\",\n          \"location\": \"Section 4.3 (Baselines)\",\n          \"explanation\": \"Only FedAvg and FedProx are compared. No comparison with DP-FedAvg, centralized DP anomaly detection, or other privacy-preserving FL methods. Author response states: 'Comparison only with FedAvg and FedProx is insufficient. We should compare with: (a) centralized autoencoder with DP, (b) DP-FedAvg (standard privacy-FL baseline).' The submitted paper contains only the original two baselines.\"\n        },\n        {\n          \"concern\": \"Differential privacy effect is negligible and unexplained\",\n          \"location\": \"Section 5.4, Table 4\",\n          \"explanation\": \"Table 4 shows ROC-AUC scores at different privacy budgets: ϵ=0.1 (0.9806), ϵ=0.5 (0.9805), ϵ=1.0 (0.9805). Scores are nearly identical. Author acknowledges: 'Table 4 shows nearly identical ROC-AUC across ϵ...This is concerning and requires investigation' and recommends checking if noise is actually applied, measuring tradeoff more granularly, and investigating model robustness. No such investigation is provided in the submitted paper, leaving this critical issue unresolved.\"\n        },\n        {\n          \"concern\": \"No statistical significance testing or error metrics\",\n          \"location\": \"Section 5 (Results tables and figures)\",\n          \"explanation\": \"Tables 2-3 and Table 4 provide point estimates only with no error bars, confidence intervals, or standard deviations. No statistical tests (t-test, Wilcoxon test) are reported. Author recommends: 'Report results with error bars, confidence intervals (95%), and standard deviations across multiple runs. Perform statistical significance tests...For 0.6% improvement to be meaningful, demonstrate statistical significance.' None of these are present in the submitted paper.\"\n        },\n        {\n          \"concern\": \"DFIA component lacks validation\",\n          \"location\": \"Section 3.5 and experimental results section\",\n          \"explanation\": \"Section 3.5 describes DFIA as updating feature importance every T rounds, but no ablation study compares FAFL with DFIA vs. without DFIA. No results show sensitivity to different T values (T ∈ {1, 3, 5, 10}). Author states: 'We provide no ablation comparing FAFL with DFIA vs. without DFIA, or results showing meaningful changes in feature importance across rounds.' This unvalidated component remains in the submitted paper without supporting evidence.\"\n        },\n        {\n          \"concern\": \"Integrated Gradients unjustified for unsupervised learning\",\n          \"location\": \"Section 3.2.3, methodology description\",\n          \"explanation\": \"The paper applies Integrated Gradients (designed for supervised prediction attribution) to compute feature importance from reconstruction error in autoencoders. Author acknowledges: 'Our current application computes gradients of reconstruction error with respect to inputs...lacks principled justification for anomaly detection.' The submission provides no justification, comparison with alternative unsupervised importance methods, or theoretical argument for why IG is appropriate here. This unjustified design choice remains unchanged.\"\n        },\n        {\n          \"concern\": \"Sensitivity assumption for differential privacy unjustified\",\n          \"location\": \"Section 3.3.2, sensitivity analysis\",\n          \"explanation\": \"Paper assumes 'The sensitivity Δ of the feature importance is assumed to be 1 due to normalization.' Author response: 'Normalization bounds L2 norm, not L∞ norm. A proper sensitivity analysis or empirical verification is needed.' This fundamental flaw in the DP analysis remains unaddressed—no rigorous L∞ sensitivity bound is established, and no empirical verification is provided in the submitted paper.\"\n        },\n        {\n          \"concern\": \"Non-standard differential privacy application without rigorous analysis\",\n          \"location\": \"Section 3.3 and 3.4.2\",\n          \"explanation\": \"DP noise is added only to aggregated feature importance (Equation 6), not to model parameters. Standard DP-FL adds noise to parameter updates before aggregation. Author acknowledges this needs justification: 'provide rigorous analysis of what privacy leakage might occur through unperturbed model parameters' or 'align with standard DP-FL by adding noise to parameters.' The submitted paper contains neither a rigorous privacy leakage analysis nor alignment with standard DP-FL; this critical choice remains unjustified.\"\n        }\n      ],\n      \"proposed_future_revisions\": [],\n      \"response\": \"We appreciate the reviewer's detailed assessment and the additional scrutiny provided. However, we must respectfully note a critical distinction: the author response you reviewed was our acknowledgment of the review's concerns and an explanation of what *would be required* to address them—not a claim that these issues have been resolved in the current submission.\\n\\nUpon re-reading your supplementary evaluation, we recognize you have correctly identified that our response, while honest about the work's limitations, does not constitute evidence that problems have been fixed in the submitted paper. This is an important distinction in peer review: acknowledging a flaw is not the same as resolving it.\\n\\n**We want to be transparent about what this means:**\\n\\nThe submitted paper contains the same technical, experimental, and presentation issues your original review identified. Our response explained *why* these issues exist and what would be needed to fix them, but we did not claim the submission itself has been modified. Your supplementary evaluation correctly holds us accountable to this standard: the submission, not the response, is what must demonstrate resolution.\\n\\n**Specifically, the critical unresolved issues in the submitted paper remain:**\\n\\n1. **Mathematical errors persist**: Duplicate equations (4, 5, 6), inconsistent numbering, unclear notation—these require corrections that are not present in the submission.\\n\\n2. **Technical soundness issues unresolved**: \\n   - IG application to unsupervised learning is unjustified in the submission\\n   - Attention weight mechanism (Equation 10) remains unclear\\n   - DP applied non-standardly without rigorous privacy analysis\\n   - Sensitivity assumption Δ=1 remains unjustified\\n\\n3. **Experimental evaluation unchanged**: Still only 5 clients, 5 rounds, single proprietary dataset, IID data split, no ablations, only FedAvg/FedProx baselines, no statistical significance testing.\\n\\n4. **DFIA unvalidated**: No evidence in the submission that periodic feature importance updates improve performance.\\n\\n5. **DP effect unexplained**: Table 4's negligible variation across privacy budgets remains without investigation.\\n\\n**On the distinction between response and submission:**\\n\\nYour evaluation correctly emphasizes that \\\"per review standards, author promises to revise do not resolve concerns absent from the submitted paper.\\\" We fully agree with this principle. Our response was intended to demonstrate understanding of the limitations and suggest a path forward, not to claim the current submission has addressed them. If there is ambiguity about what was submitted vs. promised, that is our responsibility to clarify.\\n\\n**What this means for the current submission:**\\n\\nGiven that:\\n- The novelty is limited (combines existing techniques with no algorithmic innovation)\\n- The soundness has unresolved technical gaps (unjustified design choices, incomplete privacy analysis, mathematical errors)\\n- The evaluation is insufficient (single small dataset, no ablations, no significance testing, marginal 0.6% improvement)\\n- The experimental setup is unrealistic for federated learning claims (5 clients, 5 rounds, IID data)\\n\\n...we understand that the paper does not meet the acceptance threshold for a top-tier venue in its current form. Your assessment stands: the submission exhibits substantial deficiencies that our response acknowledges but does not resolve.\\n\\n**We appreciate the reviewer's rigor in distinguishing between acknowledgment and resolution.** This is the correct standard to apply. The paper would require substantial revision—new experiments on realistic federated setups with non-IID data, standard benchmarks, comprehensive ablations, rigorous privacy analysis, and justified technical choices—to address the fundamental concerns. These are not minor fixes, and we recognize that such work goes beyond the scope of a typical author response.\\n\\nThank you for the thorough and fair evaluation.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_896bd0d42239",
+    "conference": "ICLR",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/iclr_reject_2025_002_a_feature_aware_federated_learning_framework_for_unsupervised_anomaly_detection_.md",
+    "target_paper_summary": {
+      "paper_id": "paper_896bd0d42239",
+      "title": "A Feature-Aware Federated Learning Frame- Work For Unsupervised Anomaly Detection In 5G Networks",
+      "abstract": "The expansion of 5G networks has led to remarkable data volume and complexity, introducing significant security challenges that require the implementation of robust and scalable anomaly detection mechanisms. Traditional centralized approaches pose privacy risks and scalability challenges due to the distributed nature of 5G infrastructures. Federated Learning (FL) offers a decentralized solution but often overlooks the importance of feature relevance and privacy preservation during model aggregation. This paper introduces a novel Feature-Aware Federated framework that integrates feature importance into the aggregation process while ensuring differential privacy. We employ integrated gradients to compute feature importance for each client, aggregate them globally with differential privacy noise, and use these insights to weight model parameters during aggregation. Additionally, we propose Dynamic Feature Importance Adaptation (DFIA) to update feature importance occasionally, enhancing the model's adaptability to evolving data distributions. Experimental results demonstrate that our framework outperforms traditional federated approaches like FedAvg and FedProx in unsupervised anomaly detection tasks within 5G networks, achieving higher accuracy and robustness while preserving data privacy.",
+      "topic": "",
+      "claims": [
+        "we propose Dynamic Feature Importance Adaptation (DFIA) to update feature importance occasionally, enhancing the model's adaptability to evolving data distributions.",
+        "our framework outperforms traditional federated approaches like FedAvg and FedProx in unsupervised anomaly detection tasks within 5G networks, achieving higher accuracy and robustness while preserving data privacy."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_4fefc4eaf",
+        "title": "Machine Learning for Anomaly Detection: A Systematic Review",
+        "authors": [
+          "Ali Bou Nassif",
+          "Manar Abu Talib",
+          "Qassim Nasir",
+          "Fatima Dakalbab"
+        ],
+        "year": 2021,
+        "publication_date": "2021-01-01",
+        "venue": "IEEE Access",
+        "abstract": "Anomaly detection has been used for decades to identify and extract anomalous components from data. Many techniques have been used to detect anomalies. One of the increasingly significant techniques is Machine Learning (ML), which plays an important role in this area. In this research paper, we conduct a Systematic Literature Review (SLR) which analyzes ML models that detect anomalies in their application. Our review analyzes the models from four perspectives; the applications of anomaly detection, ML techniques, performance metrics for ML models, and the classification of anomaly detection. In our review, we have identified 290 research articles, written from 2000-2020, that discuss ML techniques for anomaly detection. After analyzing the selected research articles, we present 43 different applications of anomaly detection found in the selected research articles. Moreover, we identify 29 distinct ML models used in the identification of anomalies. Finally, we present 22 different datasets that are applied in experiments on anomaly detection, as well as many other general datasets. In addition, we observe that unsupervised anomaly detection has been adopted by researchers more than other classification anomaly detection systems. Detection of anomalies using ML models is a promising area of research, and there are a lot of ML models that have been implemented by researchers. Therefore, we provide researchers with recommendations and guidelines based on this review.",
+        "url": "https://doi.org/10.1109/access.2021.3083060",
+        "doi": "https://doi.org/10.1109/access.2021.3083060",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3164952570"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 709
+      },
+      {
+        "paper_id": "rw_002_5e5b668c7",
+        "title": "Smart anomaly detection in sensor systems: A multi-perspective review",
+        "authors": [
+          "L. Erhan",
+          "M. Ndubuaku",
+          "M. Di Mauro",
+          "W. Song",
+          "M. Chen",
+          "G. Fortino",
+          "O. Bagdasar",
+          "A. Liotta"
+        ],
+        "year": 2020,
+        "publication_date": "2020-10-15",
+        "venue": "Information Fusion",
+        "abstract": "Anomaly detection is concerned with identifying data patterns that deviate remarkably from the expected behavior. This is an important research problem, due to its broad set of application domains, from data analysis to e-health, cybersecurity, predictive maintenance, fault prevention, and industrial automation. Herein, we review state-of-the-art methods that may be employed to detect anomalies in the specific area of sensor systems, which poses hard challenges in terms of information fusion, data volumes, data speed, and network/energy efficiency, to mention but the most pressing ones. In this context, anomaly detection is a particularly hard problem, given the need to find computing-energy-accuracy trade-offs in a constrained environment. We taxonomize methods ranging from conventional techniques (statistical methods, time-series analysis, signal processing, etc.) to data-driven techniques (supervised learning, reinforcement learning, deep learning, etc.). We also look at the impact that different architectural environments (Cloud, Fog, Edge) can have on the sensors ecosystem. The review points to the most promising intelligent-sensing methods, and pinpoints a set of interesting open issues and challenges.",
+        "url": "https://doi.org/10.1016/j.inffus.2020.10.001",
+        "doi": "https://doi.org/10.1016/j.inffus.2020.10.001",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3094345499"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 294
+      },
+      {
+        "paper_id": "rw_003_a32907861",
+        "title": "An Adaptable and Unsupervised TinyML Anomaly Detection System for Extreme Industrial Environments",
+        "authors": [
+          "Mattia Antonini",
+          "Miguel Pincheira",
+          "Massimo Vecchio",
+          "Fabio Antonelli"
+        ],
+        "year": 2023,
+        "publication_date": "2023-02-20",
+        "venue": "Sensors",
+        "abstract": "Industrial assets often feature multiple sensing devices to keep track of their status by monitoring certain physical parameters. These readings can be analyzed with machine learning (ML) tools to identify potential failures through anomaly detection, allowing operators to take appropriate corrective actions. Typically, these analyses are conducted on servers located in data centers or the cloud. However, this approach increases system complexity and is susceptible to failure in cases where connectivity is unavailable. Furthermore, this communication restriction limits the approach's applicability in extreme industrial environments where operating conditions affect communication and access to the system. This paper proposes and evaluates an end-to-end adaptable and configurable anomaly detection system that uses the Internet of Things (IoT), edge computing, and Tiny-MLOps methodologies in an extreme industrial environment such as submersible pumps. The system runs on an IoT sensing Kit, based on an ESP32 microcontroller and MicroPython firmware, located near the data source. The processing pipeline on the sensing device collects data, trains an anomaly detection model, and alerts an external gateway in the event of an anomaly. The anomaly detection model uses the isolation forest algorithm, which can be trained on the microcontroller in just 1.2 to 6.4 s and detect an anomaly in less than 16 milliseconds with an ensemble of 50 trees and 80 KB of RAM. Additionally, the system employs blockchain technology to provide a transparent and irrefutable repository of anomalies.",
+        "url": "https://doi.org/10.3390/s23042344",
+        "doi": "https://doi.org/10.3390/s23042344",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4321372735"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 85
+      },
+      {
+        "paper_id": "rw_004_29779921f",
+        "title": "A survey on deep learning tools dealing with data scarcity: definitions, challenges, solutions, tips, and applications",
+        "authors": [
+          "Laith Alzubaidi",
+          "Jinshuai Bai",
+          "Aiman Al-Sabaawi",
+          "José Santamaría",
+          "A. S. Albahri",
+          "Bashar Sami Nayyef Al-dabbagh",
+          "Mohammed A. Fadhel",
+          "Mohamed Manoufali",
+          "Jinglan Zhang",
+          "Ali H. Al‐Timemy",
+          "Ye Duan",
+          "Amjed Abdullah",
+          "Laith Farhan",
+          "Yi Lu",
+          "Ashish Gupta",
+          "Felix Albu",
+          "Amin Abbosh",
+          "Yuantong Gu"
+        ],
+        "year": 2023,
+        "publication_date": "2023-04-14",
+        "venue": "Journal Of Big Data",
+        "abstract": "Abstract Data scarcity is a major challenge when training deep learning (DL) models. DL demands a large amount of data to achieve exceptional performance. Unfortunately, many applications have small or inadequate data to train DL frameworks. Usually, manual labeling is needed to provide labeled data, which typically involves human annotators with a vast background of knowledge. This annotation process is costly, time-consuming, and error-prone. Usually, every DL framework is fed by a significant amount of labeled data to automatically learn representations. Ultimately, a larger amount of data would generate a better DL model and its performance is also application dependent. This issue is the main barrier for many applications dismissing the use of DL. Having sufficient data is the first step toward any successful and trustworthy DL application. This paper presents a holistic survey on state-of-the-art techniques to deal with training DL models to overcome three challenges including small, imbalanced datasets, and lack of generalization. This survey starts by listing the learning techniques. Next, the types of DL architectures are introduced. After that, state-of-the-art solutions to address the issue of lack of training data are listed, such as Transfer Learning (TL), Self-Supervised Learning (SSL), Generative Adversarial Networks (GANs), Model Architecture (MA), Physics-Informed Neural Network (PINN), and Deep Synthetic Minority Oversampling Technique (DeepSMOTE). Then, these solutions were followed by some related tips about data acquisition needed prior to training purposes, as well as recommendations for ensuring the trustworthiness of the training dataset. The survey ends with a list of applications that suffer from data scarcity, several alternatives are proposed in order to generate more data in each application including Electromagnetic Imaging (EMI), Civil Structural Health Monitoring, Medical imaging, Meteorology, Wireless Communications, Fluid Mechanics, Microelectromechanical system, and Cybersecurity. To the best of the authors’ knowledge, this is the first review that offers a comprehensive overview on strategies to tackle data scarcity in DL.",
+        "url": "https://doi.org/10.1186/s40537-023-00727-2",
+        "doi": "https://doi.org/10.1186/s40537-023-00727-2",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4365504037"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 823
+      },
+      {
+        "paper_id": "rw_006_9e552ec04",
+        "title": "AI-Based Intrusion Detection Systems for In-Vehicle Networks: A Survey",
+        "authors": [
+          "Sampath Rajapaksha",
+          "Harsha Kalutarage",
+          "M. Omar Al-Kadri",
+          "Andrei Petrovski",
+          "Garikayi Madzudzo",
+          "Madeline Cheah"
+        ],
+        "year": 2022,
+        "publication_date": "2022-11-09",
+        "venue": "ACM Computing Surveys",
+        "abstract": "The Controller Area Network (CAN) is the most widely used in-vehicle communication protocol, which still lacks the implementation of suitable security mechanisms such as message authentication and encryption. This makes the CAN bus vulnerable to numerous cyber attacks. Various Intrusion Detection Systems (IDSs) have been developed to detect these attacks. However, the high generalization capabilities of Artificial Intelligence (AI) make AI-based IDS an excellent countermeasure against automotive cyber attacks. This article surveys AI-based in-vehicle IDS from 2016 to 2022 (August) with a novel taxonomy. It reviews the detection techniques, attack types, features, and benchmark datasets. Furthermore, the article discusses the security of AI models, necessary steps to develop AI-based IDSs in the CAN bus, identifies the limitations of existing proposals, and gives recommendations for future research directions.",
+        "url": "https://doi.org/10.1145/3570954",
+        "doi": "https://doi.org/10.1145/3570954",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4308605894"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 215
+      },
+      {
+        "paper_id": "rw_007_da99f6c46",
+        "title": "Machine Learning Threatens 5G Security",
+        "authors": [
+          "Jani Suomalainen",
+          "Arto Juhola",
+          "Shahriar Shahabuddin",
+          "Aarne Mämmelä",
+          "Ijaz Ahmad"
+        ],
+        "year": 2020,
+        "publication_date": "2020-01-01",
+        "venue": "IEEE Access",
+        "abstract": "Machine learning (ML) is expected to solve many challenges in the fifth generation (5G) of mobile networks. However, ML will also open the network to several serious cybersecurity vulnerabilities. Most of the learning in ML happens through data gathered from the environment. Un-scrutinized data will have serious consequences on machines absorbing the data to produce actionable intelligence for the network. Scrutinizing the data, on the other hand, opens privacy challenges. Unfortunately, most of the ML systems are borrowed from other disciplines that provide excellent results in small closed environments. The resulting deployment of such ML systems in 5G can inadvertently open the network to serious security challenges such as unfair use of resources, denial of service, as well as leakage of private and confidential information. Therefore, in this article we dig into the weaknesses of the most prominent ML systems that are currently vigorously researched for deployment in 5G. We further classify and survey solutions for avoiding such pitfalls of ML in 5G systems.",
+        "url": "https://doi.org/10.1109/access.2020.3031966",
+        "doi": "https://doi.org/10.1109/access.2020.3031966",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3093545357"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 79
+      },
+      {
+        "paper_id": "rw_008_694a6631e",
+        "title": "A Survey of Networking Applications Applying the Software Defined Networking Concept Based on Machine Learning",
+        "authors": [
+          "Yanling Zhao",
+          "Ye Li",
+          "Xinchang Zhang",
+          "Guanggang Geng",
+          "Wei Zhang",
+          "Yanjie Sun"
+        ],
+        "year": 2019,
+        "publication_date": "2019-01-01",
+        "venue": "IEEE Access",
+        "abstract": "The main task of future networks is to build, as much as possible, intelligent networking architectures for intellectualization, activation, and customization. Software-defined networking (SDN) technology breaks the tight coupling between the control plane and the data plane in the traditional network architecture, making the controllability, security, and economy of network resources into a reality. As one of the important actualization methods of artificial intelligence (AI), machine learning (ML), combined with SDN architecture will have great potential in areas, such as network resource management, route planning, traffic scheduling, fault diagnosis, and network security. This paper presents the network applications combined with SDN concepts based on ML from two perspectives, namely the perspective of ML algorithms and SDN network applications. From the perspective of ML algorithms, this paper focuses on the applications of classical ML algorithms in SDN-based networks, after a characteristic analysis of algorithms. From the other perspective, after classifying the existing network applications based on the SDN architecture, the related ML solutions are introduced. Finally, the future development of the ML algorithms and SDN concepts is discussed and analyzed. This paper occupies the intersection of the AI, big data, computer networking, and other disciplines; the AI itself is a new and complex interdisciplinary field, which causes the researchers in this field to often have different professional backgrounds and, sometimes, divergent research purposes. This paper is necessary and helpful for researchers from different fields to accurately master the key issues.",
+        "url": "https://doi.org/10.1109/access.2019.2928564",
+        "doi": "https://doi.org/10.1109/access.2019.2928564",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2960791616"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 178
+      },
+      {
+        "paper_id": "rw_009_ebbaaf947",
+        "title": "A Survey on Machine-Learning Techniques for UAV-Based Communications",
+        "authors": [
+          "Petros S. Bithas",
+          "Emmanouel T. Michailidis",
+          "Νικόλαος Νομικός",
+          "Demosthenes Vouyioukas",
+          "Αthanasios G. Kanatas"
+        ],
+        "year": 2019,
+        "publication_date": "2019-11-26",
+        "venue": "Sensors",
+        "abstract": "Unmanned aerial vehicles (UAVs) will be an integral part of the next generation wireless communication networks. Their adoption in various communication-based applications is expected to improve coverage and spectral efficiency, as compared to traditional ground-based solutions. However, this new degree of freedom that will be included in the network will also add new challenges. In this context, the machine-learning (ML) framework is expected to provide solutions for the various problems that have already been identified when UAVs are used for communication purposes. In this article, we provide a detailed survey of all relevant research works, in which ML techniques have been used on UAV-based communications for improving various design and functional aspects such as channel modeling, resource management, positioning, and security.",
+        "url": "https://doi.org/10.3390/s19235170",
+        "doi": "https://doi.org/10.3390/s19235170",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2990204812"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 351
+      },
+      {
+        "paper_id": "rw_010_a60f401d8",
+        "title": "Decentral and Incentivized Federated Learning Frameworks: A Systematic Literature Review",
+        "authors": [
+          "Leon Witt",
+          "Mathis Heyer",
+          "Kentaroh Toyoda",
+          "Wojciech Samek",
+          "Dan Li"
+        ],
+        "year": 2022,
+        "publication_date": "2022-12-22",
+        "venue": "IEEE Internet of Things Journal",
+        "abstract": "The advent of federated learning (FL) has sparked a new paradigm of parallel and confidential decentralized machine learning (ML) with the potential of utilizing the computational power of a vast number of Internet of Things (IoT), mobile, and edge devices without data leaving the respective device, thus ensuring privacy by design. Yet, simple FL frameworks (FLFs) naively assume an honest central server and altruistic client participation. In order to scale this new paradigm beyond small groups of already entrusted entities toward mass adoption, FLFs must be: 1) truly decentralized and 2) incentivized to participants. This systematic literature review is the first to analyze FLFs that holistically apply both, the blockchain technology to decentralize the process and reward mechanisms to incentivize participation. 422 publications were retrieved by querying 12 major scientific databases. After a systematic filtering process, 40 articles remained for an in-depth examination following our five research questions. To ensure the correctness of our findings, we verified the examination results with the respective authors. Although having the potential to direct the future of distributed and secure artificial intelligence, none of the analyzed FLFs is production ready. The approaches vary heavily in terms of use cases, system design, solved issues, and thoroughness. We provide a systematic approach to classify and quantify differences between FLFs, expose limitations of current works and derive future directions for research in this novel domain.",
+        "url": "https://doi.org/10.1109/jiot.2022.3231363",
+        "doi": "https://doi.org/10.1109/jiot.2022.3231363",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4313017734"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 97
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_010_a60f401d8",
+        "relevance_score": 0.88,
+        "relevance_types": [
+          "same_method",
+          "constraints_limitations"
+        ],
+        "rationale": "This paper surveys decentralized and incentivized federated learning frameworks, addressing privacy and scalability challenges similar to the target paper, and discusses limitations of current approaches.",
+        "evidence_summary": "In 2022, Witt et al. published 'Decentral and Incentivized Federated Learning Frameworks: A Systematic Literature Review,' which analyzed federated learning frameworks that use blockchain for decentralization and reward mechanisms for incentivization. The review examined 40 articles and found that none of the frameworks are production-ready, with variations in use cases, system design, and solved issues, highlighting limitations and future research directions."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_007_da99f6c46",
+        "relevance_score": 0.75,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This paper discusses cybersecurity vulnerabilities introduced by machine learning in 5G networks, addressing privacy and security challenges relevant to the target paper's context.",
+        "evidence_summary": "In 2020, Suomalainen et al. published 'Machine Learning Threatens 5G Security,' which surveyed weaknesses of machine learning systems in 5G networks, including privacy challenges and security risks such as unfair resource use, denial of service, and information leakage. The paper classified and surveyed solutions to avoid these pitfalls."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_006_9e552ec04",
+        "relevance_score": 0.7,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "This survey covers AI-based intrusion detection systems, including methods and datasets, which aligns with the target paper's focus on anomaly detection in networked environments.",
+        "evidence_summary": "In 2022, Rajapaksha et al. published 'AI-Based Intrusion Detection Systems for In-Vehicle Networks: A Survey,' which reviewed detection techniques, attack types, features, and benchmark datasets for AI-based IDS from 2016 to 2022. The survey discussed the security of AI models, steps to develop such systems, limitations of existing proposals, and future research directions."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_009_ebbaaf947",
+        "relevance_score": 0.6,
+        "relevance_types": [
+          "same_method",
+          "constraints_limitations"
+        ],
+        "rationale": "This survey on machine learning techniques for UAV-based communications includes resource management and security aspects, which are peripherally relevant to the target paper's federated learning approach in networked systems.",
+        "evidence_summary": "In 2019, Bithas et al. published 'A Survey on Machine-Learning Techniques for UAV-Based Communications,' which provided a detailed survey of ML applications in UAV communications for improving channel modeling, resource management, positioning, and security. The paper identified new challenges introduced by UAVs in communication networks."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_001_4fefc4eaf",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "same_problem",
+          "benchmark_baseline"
+        ],
+        "rationale": "This systematic review on machine learning for anomaly detection covers applications, techniques, and datasets, providing broad background relevant to the target paper's task.",
+        "evidence_summary": "In 2021, Nassif et al. published 'Machine Learning for Anomaly Detection: A Systematic Review,' which analyzed 290 research articles from 2000-2020, presenting 43 applications, 29 ML models, and 22 datasets for anomaly detection. The review noted that unsupervised anomaly detection was more commonly adopted and provided recommendations for researchers."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_002_5e5b668c7",
+        "relevance_score": 0.5,
+        "relevance_types": [
+          "same_problem",
+          "constraints_limitations"
+        ],
+        "rationale": "This review on anomaly detection in sensor systems discusses methods and challenges in constrained environments, which is tangentially related to the target paper's focus on 5G networks.",
+        "evidence_summary": "In 2020, Erhan et al. published 'Smart anomaly detection in sensor systems: A multi-perspective review,' which taxonomized methods from conventional techniques to data-driven techniques for anomaly detection in sensor systems, addressing challenges like information fusion, data volumes, and network efficiency. The review identified open issues and promising methods for intelligent sensing."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_003_a32907861",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "same_method",
+          "constraints_limitations"
+        ],
+        "rationale": "This paper presents an unsupervised anomaly detection system for industrial environments using edge computing and TinyML, with efficiency details that provide context for distributed anomaly detection approaches.",
+        "evidence_summary": "In 2023, Antonini et al. published 'An Adaptable and Unsupervised TinyML Anomaly Detection System for Extreme Industrial Environments,' which proposed an end-to-end system using IoT, edge computing, and Tiny-MLOps with the isolation forest algorithm. The system trained models in 1.2 to 6.4 seconds and detected anomalies in less than 16 milliseconds, using blockchain for anomaly logging."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_004_29779921f",
+        "relevance_score": 0.4,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This survey on deep learning tools for data scarcity discusses solutions like transfer learning and generative adversarial networks, which are indirectly related to federated learning challenges.",
+        "evidence_summary": "In 2023, Alzubaidi et al. published 'A survey on deep learning tools dealing with data scarcity: definitions, challenges, solutions, tips, and applications,' which reviewed state-of-the-art techniques to overcome small, imbalanced datasets and lack of generalization in deep learning, including Transfer Learning, Self-Supervised Learning, and Generative Adversarial Networks."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_008_694a6631e",
+        "relevance_score": 0.35,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This survey on machine learning applications in software-defined networking covers network resource management and security, providing general background on ML in networked systems.",
+        "evidence_summary": "In 2019, Zhao et al. published 'A Survey of Networking Applications Applying the Software Defined Networking Concept Based on Machine Learning,' which presented applications of ML algorithms in SDN-based networks for areas such as resource management, route planning, traffic scheduling, fault diagnosis, and network security, discussing future developments."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2022, Witt et al. published 'Decentral and Incentivized Federated Learning Frameworks: A Systematic Literature Review,' analyzing federated learning frameworks that use blockchain for decentralization and reward mechanisms, finding none production-ready and highlighting variations and limitations. In 2020, Suomalainen et al. published 'Machine Learning Threatens 5G Security,' surveying ML weaknesses in 5G networks, including privacy and security risks, and classifying solutions. In 2022, Rajapaksha et al. published 'AI-Based Intrusion Detection Systems for In-Vehicle Networks: A Survey,' reviewing detection techniques, attack types, features, and benchmark datasets for AI-based IDS, discussing model security and limitations. In 2019, Bithas et al. published 'A Survey on Machine-Learning Techniques for UAV-Based Communications,' detailing ML applications in UAV communications for channel modeling, resource management, and security. In 2021, Nassif et al. published 'Machine Learning for Anomaly Detection: A Systematic Review,' analyzing 290 articles on ML models, applications, and datasets for anomaly detection, noting unsupervised methods' prevalence. In 2020, Erhan et al. published 'Smart anomaly detection in sensor systems: A multi-perspective review,' taxonomizing methods for anomaly detection in sensor systems and addressing challenges like data volumes and network efficiency.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

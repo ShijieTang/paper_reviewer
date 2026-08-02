@@ -1,0 +1,786 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 3,
+        "clarity": 4
+      },
+      "strengths": [
+        "Novel problem formulation: The paper introduces the challenge of 'unsupervised categorical prior learning' in pose estimation, which is a well-motivated and clearly defined problem. The idea of learning pose priors from data without human annotations addresses a practical limitation of prior work.",
+        "Strong empirical results on standard benchmarks: PPL consistently outperforms competitive baselines across multiple datasets (Human3.6m, Taichi, CUB-200-2011). The finding that learned priors outperform manually designed ones (Table 4, comparison with STT achieving 3.31 vs. PPL's 2.56 on Human3.6m at 256×256 resolution) is noteworthy and challenges assumptions about the optimality of human-defined priors.",
+        "Comprehensive ablation studies: Table 4 provides valuable insights into which components matter, revealing that connectivity priors are more critical than keypoint priors and that randomly initialized learnable priors can achieve comparable performance to human-defined ones.",
+        "Practical iterative inference strategy: The iterative refinement approach for handling occluded scenes is well-motivated and demonstrated to progressively recover occluded poses by leveraging learned prototypical poses (Figure 4a, Figures A2-A3).",
+        "Interpretable visualizations and honest acknowledgment of limitations: Figure 4(b) shows how pose priors evolve during training, converging to meaningful human skeletons. The paper explicitly acknowledges fundamental limitations to 2D priors and degraded performance on morphologically diverse categories rather than hiding these constraints."
+      ],
+      "weaknesses": [
+        "Limited component-level novelty: While the problem formulation is novel, the method combines relatively standard techniques (affine transformations, link heatmaps from AutoLink, memory banks, image reconstruction). The hierarchical memory design is an incremental architectural modification of PCT with separate embedding spaces rather than a fundamental innovation.",
+        "Insufficient experimental rigor undermines reproducibility: All reported results are point estimates without error bars, standard deviations, confidence intervals, or statistical significance tests. Results are not averaged across multiple random seeds. This limits confidence in the reliability and reproducibility of reported improvements.",
+        "Ad-hoc design choices lacking principled justification: The choice of 34 memory banks is not ablated or justified. The number of vectors per bank (16) and dimension (512) are selected because performance plateaus in Appendix A3 ablations, not based on principled criteria. Reference image selection (video frames vs. masked images) varies across datasets without systematic justification or ablation study.",
+        "Training complexity with unexplored necessity of stabilization techniques: The method requires three separate gradient detachment strategies (VQ-VAE style, exponential moving average, gradient separation) to achieve convergence (Appendix A6). However, ablations removing individual techniques are not provided, and convergence guarantees or optimization landscape characterization is absent. The necessity and brittleness of these techniques remain unclear.",
+        "Fundamental limitations constraining practical applicability: The method explicitly learns 2D priors, limiting ability to handle 3D rotations and significant shape changes. Performance noticeably degrades on morphologically diverse categories (dogs), as acknowledged by authors. These are inherent constraints rather than fixable issues."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited component-level novelty: While the problem formulation is novel, the method combines relatively standard techniques (affine transformations, link heatmaps from AutoLink, memory banks, image reconstruction). The hierarchical memory design is an incremental architectural modification of PCT with separate embedding spaces rather than a fundamental innovation.",
+          "severity": "minor",
+          "evidence": "Section 3 describes standard techniques; Section 2 and page 6 acknowledge that hierarchical memory organizes vectors into separate embedding spaces compared to PCT's shared space, representing an architectural modification rather than methodological innovation. The paper explicitly states 'Unlike PCT where all vectors of a memory are within the same embedding space, we organize M into m memory banks.'",
+          "affected_claim": "Component-level novelty is limited, though problem formulation and integrated approach are novel.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Insufficient experimental rigor undermines reproducibility: All reported results are point estimates without error bars, standard deviations, confidence intervals, or statistical significance tests. Results are not averaged across multiple random seeds. This limits confidence in the reliability and reproducibility of reported improvements.",
+          "severity": "major",
+          "evidence": "Tables 1-4 and Figures A1-A3 report single values or lines without confidence intervals, error regions, or mention of multiple runs. No standard deviations are reported. The paper contains no reference to random seed selection or multiple experimental runs. This is a standard practice in machine learning that is notably absent.",
+          "affected_claim": "The statistical reliability and reproducibility of the reported improvements over baselines is uncertain.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Ad-hoc design choices lacking principled justification: The choice of 34 memory banks is not ablated or justified. The number of vectors per bank (16) and dimension (512) are selected because performance plateaus in Appendix A3 ablations, not based on principled criteria. Reference image selection (video frames vs. masked images) varies across datasets without systematic justification or ablation study.",
+          "severity": "major",
+          "evidence": "Appendix A1 specifies 34 banks with 16 vectors of dimension 512 'for all experiments' without justification or ablation. Appendix A3 shows ablations concluding 'we fixed 16 vectors per memory bank, each with a dimension of 512' because 'performance slightly improves with more vectors of higher dimensions.' Section 4 and Appendix A2 show reference image selection varies (video frames for temporal data, masked images for static data) without systematic justification or ablation demonstrating this choice's impact.",
+          "affected_claim": "The design choices appear arbitrary rather than principled, raising questions about whether alternatives might be equally or more effective.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Training complexity with unexplored necessity of stabilization techniques: The method requires three separate gradient detachment strategies (VQ-VAE style, exponential moving average, gradient separation) to achieve convergence (Appendix A6). However, ablations removing individual techniques are not provided, and convergence guarantees or optimization landscape characterization is absent. The necessity and brittleness of these techniques remain unclear.",
+          "severity": "major",
+          "evidence": "Appendix A6 lists three techniques introduced 'to ensure convergence and stability during the training of PPL' but provides no ablation removing individual techniques to demonstrate necessity. No convergence curves, loss trajectories, or analysis of what happens when techniques are removed are provided. The 'chicken-and-egg problem' is mentioned but not rigorously characterized.",
+          "affected_claim": "The method's optimization tractability, stability, and robustness are uncertain. Practitioners cannot assess whether this approach is reliable for new domains.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Fundamental limitations constraining practical applicability: The method explicitly learns 2D priors, limiting ability to handle 3D rotations and significant shape changes. Performance noticeably degrades on morphologically diverse categories (dogs), as acknowledged by authors. These are inherent constraints rather than fixable issues.",
+          "severity": "major",
+          "evidence": "Discussion (page 11): 'PPL learns 2D priors, which makes it difficult to capture real-world 3D postures. Thus, PPL struggles in scenarios where objects involve rotations or significant shape changes.' Visualization section (page 9): 'We found the quality of estimated poses of dogs is inferior to that of humans. This is primarily due to the significant morphological differences among various dog breeds... dogs often perform actions such as turning around, which can lead to significant changes in pose that are difficult to accurately capture by our priors in 2D space.'",
+          "affected_claim": "The generality and real-world applicability of PPL are substantially constrained by 2D design and reduced effectiveness on morphologically diverse categories.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The technical approach is sound. Mathematical formulation (Equations 1-6) correctly describes affine transformations, link heatmaps, and loss functions. The hierarchical memory retrieval mechanism using L2 distance and mean pooling for distillation is properly defined. Image reconstruction as supervision is principled. Gradient detachment techniques are valid practices from prior work (VQ-VAE, exponential moving average). No fundamental logical errors are detected. The rebuttal's acknowledgment that stabilization techniques are required reflects genuine optimization complexity but does not reveal unsoundness—the method still converges reliably with these techniques applied."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper introduces a novel problem formulation: unsupervised categorical prior learning for pose estimation. This is distinct from prior work that either assumes hand-crafted priors or operates without priors. The solution—using hierarchical memory to aggregate and distill prototypical poses into categorical priors—is a novel integration, though individual components are standard. The empirical finding that learned priors outperform human-defined ones (Table 4: STT 3.31 vs. PPL 2.56 on Human3.6m 256×256) is noteworthy. Component-level novelty is limited but problem formulation and integrated approach provide sufficient novelty for a top venue."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The work addresses a meaningful problem: acquiring pose priors without expensive manual annotation. Results demonstrate consistent improvements over strong baselines (AutoLink, STT) across multiple datasets. The counterintuitive finding that learned priors outperform predefined ones has scientific value for the pose estimation community. The iterative inference capability for occluded scenes is a practical contribution. However, fundamental 2D limitation and reduced effectiveness on morphologically diverse categories constrain broader impact. Significance is solid within pose estimation community but moderate for machine learning generally."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The paper provides quantitative results on three standard datasets (Human3.6m, Taichi, CUB-200-2011) with consistent improvements. Ablation studies (Table 4, Appendix A3) demonstrate component importance. Qualitative visualizations effectively show learned priors and pose estimates across categories. However, significant rigor gaps persist: (1) Results lack error bars or statistical testing—no multiple runs reported, (2) No ablation validates hierarchical vs. flat memory design despite claimed benefits, (3) Hyperparameter selection (34 banks, etc.) unjustified, (4) Reference image selection lacks ablation, (5) No computational cost analysis. The rebuttal promises to add these 'in revision if accepted,' but they are absent from the submitted paper. Evaluation is reasonably comprehensive for acceptance but has notable gaps limiting reproducibility confidence."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-written and clearly structured. Motivation is intuitive with good illustrations (Figure 1). Method is systematically described in Section 3 with clear mathematical notation. Figures 2, 3, 4, and A5 effectively convey approach and results. Appendices provide implementation details. Discussion honestly acknowledges limitations (2D design, morphological diversity). One minor issue: the necessity for three gradient detachment techniques could be better motivated earlier in the main paper. Overall presentation is clear and enables understanding."
+        }
+      },
+      "summary_comment": "This paper makes a solid contribution to unsupervised pose estimation by introducing and addressing the problem of learning categorical pose priors without human annotation. The core approach—storing prototypical poses in hierarchical memory, distilling them into a categorical prior, and using this prior to guide pose estimation—is sensible and well-executed. Empirical results are strong, showing consistent improvements over competitive baselines (including those with human-defined priors) on Human3.6m, Taichi, and CUB-200-2011. All acceptance gates pass. The work includes informative ablations and honest acknowledgment of limitations. However, the paper has notable weaknesses that limit confidence: (1) Results lack statistical rigor (no error bars, multiple runs, or significance tests), (2) Design choices (34 memory banks, 16 vectors, 512 dimension, reference image selection) appear ad-hoc without principled justification or ablation, (3) Training requires three gradient detachment techniques without ablation demonstrating individual necessity, (4) Fundamental 2D limitation and degraded performance on morphologically diverse categories substantially constrain practical applicability. The rebuttal acknowledges these weaknesses and proposes addressing them 'in revision if accepted,' but these improvements are absent from the submitted paper and thus cannot influence the current evaluation. The work represents good incremental progress suitable for a top-tier venue, advancing understanding of unsupervised prior learning while leaving room for improvement on experimental rigor and practical applicability. The evaluation rigor gap (missing error bars, statistical tests, computational costs) is the most significant fixable weakness, and the fundamental 2D limitation is the most significant inherent constraint."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Addresses unsupervised learning: The core contribution is learning categorical priors from unannotated data via self-supervision through image reconstruction, which aligns with ICML's strong interest in unsupervised and self-supervised learning methods.\",\n      \"Principled optimization approach: The paper formalizes pose prior learning as a joint optimization problem with four loss terms (image reconstruction, boundary, link regularization, keypoint configuration reconstruction), reflecting ICML's appreciation for theoretically grounded methods.\",\n      \"Comprehensive empirical evaluation: Provides quantitative results on multiple standard benchmarks (Human3.6m, Taichi, CUB-200-2011) with ablation studies demonstrating component importance, consistent with ICML's rigorous evaluation standards.\",\n      \"Application of general machine learning techniques: Uses widely recognized components (hierarchical memory, affine transformations, image reconstruction as supervision) that exemplify the kind of methodological contributions ICML values.\",\n      \"Ablation-driven insights: Table 4's findings that connectivity priors matter more than keypoint priors, and that randomly initialized learnable priors can match human-defined ones, provide actionable insights into prior learning mechanisms.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Primary application focus limits venue scope: The paper is fundamentally a computer vision application (pose estimation). While ICML publishes application-driven work, the contribution is application-specific rather than providing generalizable machine learning insights. The techniques (transformations, memory banks, reconstruction) are not novel at the component level and the problem formulation, while interesting, is narrowly scoped to pose estimation.\",\n      \"Insufficient experimental rigor for ICML standards: Reviewer 1 explicitly identifies critical gaps—no error bars, standard deviations, statistical significance tests, or multiple random seed runs. ICML expects rigorous quantitative evaluation with confidence intervals and reproducibility verification. Single point estimates are insufficient for a top ICML paper.\",\n      \"Ad-hoc hyperparameter selection without principled justification: The choice of 34 memory banks, 16 vectors per bank, and 512 dimensions lacks principled motivation (reviewer notes these are chosen because performance 'plateaus' in ablation, not from first principles). ICML values methodologically grounded design choices; arbitrary hyperparameters undermine the contribution's generalizability.\",\n      \"Training complexity insufficiently analyzed: The method requires three separate gradient detachment techniques (VQ-VAE style, exponential moving average, gradient separation) with no ablation demonstrating individual necessity. ICML would expect convergence analysis, optimization landscape characterization, or ablation validating these techniques' necessity.\",\n      \"Limited technical novelty: Hierarchical memory is an incremental modification of PCT (simply organizing vectors into separate embedding spaces rather than shared space). The integration is novel but component-level contributions are limited, and ICML increasingly emphasizes both strong empirical results AND conceptual/technical innovation.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Addresses computer vision at scale: Pose estimation from images is explicitly within NeurIPS scope ('Computer vision' is listed as a primary topic), and the paper demonstrates results across diverse visual categories (humans, animals, birds, flowers, hands).\",\n      \"Self-supervised learning contribution: Learning priors from unannotated visual data through image reconstruction aligns with NeurIPS's strong emphasis on self-supervised and unsupervised learning methods, which is increasingly a conference priority.\",\n      \"Handles real-world visual challenges: The iterative inference strategy for occluded scenes (Figures 4a, A2-A3) demonstrates robustness to practical challenges—occlusion is a fundamental problem in computer vision that NeurIPS considers significant.\",\n      \"Interpretability and explainability: Figure 4(b) showing how learned pose priors evolve during training and converge to meaningful skeletal structures provides interpretable visualizations. NeurIPS values methods offering insights into what learned representations capture.\",\n      \"Novel problem formulation in established domain: The challenge of 'unsupervised categorical prior learning' frames an understudied aspect of prior learning, and the finding that learned priors outperform human-defined ones (Table 4) is scientifically interesting and challenges existing assumptions.\",\n      \"Broad applicability across object categories: Demonstrations on humans, dogs, birds, hands, horses, and flowers show the method generalizes across diverse visual categories, suggesting broader applicability than single-domain solutions.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Experimental rigor gaps critical for NeurIPS standards: While NeurIPS may be slightly more application-tolerant than ICML, reviewer 1 identifies major issues—all results are point estimates without error bars, standard deviations, confidence intervals, or statistical significance tests. No mention of multiple random seeds. This lacks the reproducibility rigor NeurIPS increasingly demands, especially for empirical comparisons.\",\n      \"Limited conceptual novelty in methods: The approach combines standard techniques (affine transformations, link heatmaps from AutoLink, memory banks, image reconstruction). Hierarchical memory is an incremental architectural modification of PCT (separate embedding spaces instead of shared space). NeurIPS typically accepts strong empirical results with limited component novelty only when paired with exceptional experimental rigor—which is lacking here.\",\n      \"Fundamental 2D limitation substantially constrains impact: The explicit design choice to learn 2D priors (not 3D) severely limits applicability to real-world scenarios involving viewpoint changes and 3D rotations. The paper acknowledges this as a core limitation (Discussion: 'PPL learns 2D priors, which makes it difficult to capture real-world 3D postures'). NeurIPS values work with broad applicability; a 2D-only approach is a significant constraint.\",\n      \"Performance degradation on morphologically diverse categories: The acknowledged poor performance on dogs due to 'significant morphological differences among various dog breeds' and 'turning around' poses suggests the method's generalization is brittle. This limits the claimed generality across object categories.\",\n      \"Training stability concerns inadequately addressed: The method requires three separate gradient detachment techniques (Appendix A6) with no ablation demonstrating their individual necessity or exploring failure modes. NeurIPS values methods that are stable and reproducible; unexplained training complexity raises concerns.\",\n      \"Minimal theoretical insight into prior learning: While the problem formulation is novel, the paper provides little theoretical analysis of when/why learned priors outperform predefined ones, or what properties make priors effective. NeurIPS increasingly values papers combining empirical results with theoretical insights.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Deep learning representation learning contribution: PPL learns meaningful learned representations of object pose structure through a hierarchical memory architecture and image reconstruction, which is core to ICLR's focus on representation learning and learning theory.\",\n      \"Unsupervised representation learning via reconstruction: The use of image reconstruction as self-supervised learning signal to discover pose structure without annotations exemplifies the self-supervised learning approaches ICLR prioritizes ('unsupervised, self-supervised, semi-supervised... representation learning').\",\n      \"Memory-augmented neural networks: Hierarchical memory architecture storing compositional pose representations aligns with ICLR's interest in structured learning and compositional architectures ('learning on graphs and other geometries & topologies').\",\n      \"Computer vision applications of deep learning: Pose estimation from images is explicitly listed in ICLR scope ('applications to robotics, autonomy, planning'). The paper demonstrates applications to humans, animals, and objects, showing breadth.\",\n      \"Learning theory contributions: The empirical finding that learned priors outperform predefined ones (Table 4) provides insights into prior learning mechanisms and prior optimality—questions fundamental to learning theory and ICLR's interest in understanding what models learn.\",\n      \"Compositional learning: The hierarchical organization of memory into banks capturing different pose sub-structures aligns with ICLR's emphasis on compositional and structured representations, particularly how complex objects decompose into parts.\",\n      \"Interpretable visualizations: Figure 4(b) showing pose prior evolution during training and Appendix A5 visualizations of learned structure provide interpretability, which ICLR increasingly values ('visualization or interpretation of learned representations').\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Experimental rigor insufficient for ICLR standards: Reviewer 1 identifies critical gaps—no error bars, standard deviations, confidence intervals, or significance tests; no mention of multiple random seeds. All results are point estimates. ICLR, while more application-tolerant than ICML, still demands rigorous quantitative evaluation with reproducibility verification.\",\n      \"Limited deep learning novelty: The hierarchical memory is an incremental modification of PCT (organizing vectors into m separate embedding spaces rather than one shared space). Affine transformations and link heatmaps are borrowed from AutoLink. Image reconstruction as supervision is standard. For ICLR, which emphasizes novel deep learning architectures and methods, the component-level novelty is insufficient.\",\n      \"Ad-hoc architectural choices undermine generalizability: The selection of 34 memory banks, 16 vectors/bank, and 512 dimensions lacks principled justification and appears chosen because performance plateaus (Appendix A3), not from first principles. ICLR values architectures designed from principled understanding; arbitrary hyperparameters undermine claims about learned representations.\",\n      \"Training complexity inadequately analyzed for a learning theory venue: Three separate gradient detachment techniques (Appendix A6) without ablations demonstrating necessity. ICLR increasingly values understanding of learning dynamics and optimization—the unexplained need for multiple stabilization tricks suggests the method is complex but poorly understood.\",\n      \"Fundamental 2D limitation directly constrains representation learning scope: Learning only 2D priors is a core architectural limitation preventing learning of full 3D pose representations. While ICLR accepts 2D vision work, the explicit 2D design choice and acknowledged inability to handle 3D rotations limits the generality of the learned representations.\",\n      \"Missing ablation on core architectural claim: The paper claims hierarchical memory (multiple banks, compositional parts) is better than flat memory, but no direct ablation compares the proposed hierarchical design against a flat alternative. This is a critical validation gap for a representation learning venue.\",\n      \"No analysis of what representations are learned: While visualizations show pose priors converge to plausible shapes, there's limited analysis of what compositional structure the memory banks learn or whether the learned hierarchy actually captures meaningful pose sub-structures. ICLR values understanding of learned representations.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary for Authors\n\nYour paper introduces an interesting problem—**unsupervised categorical prior learning for pose estimation**—and proposes a reasonable solution using hierarchical memory to aggregate and distill prototypical poses. The empirical results are strong, showing improvements over competitive baselines across multiple datasets, and the finding that learned priors can outperform hand-crafted ones is noteworthy.\n\n### Key Strengths (Common Across Venues)\n- **Novel problem formulation** in pose estimation\n- **Strong empirical results** consistently outperforming AutoLink and other baselines\n- **Ablation studies** providing insights (e.g., connectivity priors matter more than keypoint priors)\n- **Practical iterative inference** for occluded scenes\n- **Honest limitation acknowledgment** (2D design, morphological diversity challenges)\n\n### Critical Gaps (All Three Venues)\n\n**1. Experimental Rigor (Major Issue)**\n- All results are **single point estimates** with no error bars, standard deviations, or confidence intervals\n- **No statistical significance testing**\n- **No mention of multiple random seeds**\n- This is the most fixable weakness and the most damaging to venue fit\n\n**2. Hyperparameter Justification (Major Issue)**\n- Why 34 memory banks? (Not ablated)\n- Why 16 vectors per bank and 512 dimension? (Selected because performance plateaus, not principled)\n- Why this reference image strategy? (Varies across datasets without systematic ablation)\n- These seem ad-hoc rather than design decisions from first principles\n\n**3. Training Stability Unexplained (Major Issue)**\n- Three gradient detachment techniques required (VQ-VAE style, EMA, gradient separation)\n- **No ablation** showing which are necessary\n- No convergence analysis or optimization landscape characterization\n- This complexity raises reproducibility concerns\n\n### Venue-Specific Guidance\n\n**ICLR (Best Fit, Score 7):** ICLR is most tolerant of application-focused work if it provides learning theory insights or novel representation learning contributions. Your hierarchical memory approach and finding about learned vs. predefined priors align well. However, you must:\n- Add error bars and statistical testing\n- Ablate hierarchical vs. flat memory architecture\n- Analyze what compositional structure memory banks actually learn\n- Address the 3D limitation more directly\n\n**NeurIPS (Borderline, Score 6):** NeurIPS values both strong empirical results AND broader impact. Your computer vision contribution is solid, but:\n- The experimental rigor gap is critical for NeurIPS standards\n- The 2D-only limitation substantially constrains real-world applicability\n- Limited conceptual novelty in methods (mostly integrating existing techniques)\n\n**ICML (Borderline, Score 6):** ICML prioritizes methodological innovation and experimental rigor above all. Your work:\n- Makes a solid unsupervised learning contribution but lacks technical novelty\n- Suffers most from experimental rigor gaps at ICML\n- The application specificity (pose estimation) is less valued than general ML insights\n\n### Most Critical Action Item\n\n**Add comprehensive statistical evaluation:**\n- Report mean ± std across ≥5 random seeds\n- Include confidence intervals (95% CI)\n- Run statistical significance tests (e.g., t-tests) vs. strongest baselines\n- This single addition would substantially improve venue fit across all three venues",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel problem formulation: The paper introduces the challenge of 'unsupervised categorical prior learning' in pose estimation, which is a well-motivated and clearly defined problem. The idea of learning pose priors from data without human annotations addresses a practical limitation of prior work.",
+              "Strong empirical results: PPL consistently outperforms competitive baselines across multiple benchmarks (Human3.6m, Taichi, CUB-200-2011), including methods that use human-defined priors. The finding that learned priors outperform manually designed ones is noteworthy and well-demonstrated.",
+              "Comprehensive experimental validation: The paper includes extensive experiments with multiple datasets, ablation studies, and qualitative visualizations. The ablation on prior variants (Table 4) is particularly insightful, revealing that connectivity priors are more critical than keypoint priors and that learned priors can match human-defined ones.",
+              "Practical iterative inference strategy: The iterative refinement approach for handling occluded scenes is intuitive and well-motivated. Results demonstrate that PPL can progressively reconstruct occluded poses by leveraging learned prototypical poses in hierarchical memory.",
+              "Interpretable visualizations: Figure 4(b) shows how pose priors evolve during training, converging to meaningful human skeletons. This provides good interpretability of what the model learns and increases trust in the learned representations."
+            ],
+            "weaknesses": [
+              "Limited novelty in individual components: While the overall framework is novel, individual components (affine transformations, link heatmaps, memory banks, image reconstruction) are relatively standard. The hierarchical memory with MLP-Mixer blocks and mean pooling is a straightforward extension of prior work (PCT). The primary novelty lies in the combination and application to unsupervised prior learning.",
+              "Significant computational complexity and training stability requirements: The method requires multiple gradient detachment techniques (VQ-VAE style, exponential moving average, separate gradient flows) to achieve convergence. This suggests the optimization landscape is complex and the method may be brittle. The paper does not thoroughly analyze computational costs or convergence guarantees.",
+              "Limited scope and scalability concerns: The method is restricted to 2D pose estimation and learns 2D priors, making it difficult to handle 3D rotations or significant shape changes. The paper acknowledges this limitation but offers no solutions. Additionally, performance degrades on morphologically diverse categories (e.g., different dog breeds), raising questions about scalability to high-variance object categories.",
+              "Incomplete experimental analysis: (a) The paper lacks statistical significance testing or error bars across multiple runs. (b) Hyperparameter choices (34 memory banks, 16 vectors per bank, dimension 512) appear arbitrary, with limited justification beyond showing robustness in ablations. (c) The choice of reference image (video frame vs. masked image) seems dataset-dependent without clear principled guidance. (d) Missing computational cost comparisons with baselines.",
+              "Weak theoretical justification for hierarchical memory design: The paper claims hierarchical memory helps with 'compositional parts' and 'addressing data bias,' but provides limited theoretical or empirical evidence. Why is hierarchical organization superior to a single flat memory? The comparison to non-hierarchical alternatives is missing."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited novelty in individual components: While the overall framework is novel, individual components (affine transformations, link heatmaps, memory banks, image reconstruction) are relatively standard. The hierarchical memory with MLP-Mixer blocks and mean pooling is a straightforward extension of prior work (PCT). The primary novelty lies in the combination and application to unsupervised prior learning.",
+                "severity": "minor",
+                "evidence": "Section 3 describes standard techniques: affine transformations (Eq. 1-2) follow typical spatial transformation pipelines; link heatmaps (Eq. 3) are similar to AutoLink (He et al., 2022a); hierarchical memory with MLP-Mixer blocks and mean pooling (Section 3.3, page 6) is acknowledged as an incremental improvement over PCT (Geng et al., 2023). The paper itself states 'Unlike PCT where all vectors of a memory are within the same embedding space, we organize M into m memory banks.'",
+                "affected_claim": "The contribution is 'novel' in the sense that it solves a new problem, but relies on established techniques combined in a relatively straightforward manner.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Significant computational complexity and training stability requirements: The method requires multiple gradient detachment techniques (VQ-VAE style, exponential moving average, separate gradient flows) to achieve convergence. This suggests the optimization landscape is complex and the method may be brittle. The paper does not thoroughly analyze computational costs or convergence guarantees.",
+                "severity": "major",
+                "evidence": "Appendix A6 describes three 'gradient dettachment techniques' including VQ-VAE approach, exponential moving average, and two separate gradient detachments to address a 'chicken-and-egg problem.' The paper states these are introduced 'to ensure convergence and stability,' indicating training is non-trivial. No convergence analysis, training time comparisons, or computational complexity discussion is provided. No ablation on these techniques is shown.",
+                "affected_claim": "The claim that PPL is a practical, stable, and efficient method for unsupervised prior learning is weakened by the reliance on multiple ad-hoc stabilization tricks without principled justification or analysis.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited scope and scalability concerns: The method is restricted to 2D pose estimation and learns 2D priors, making it difficult to handle 3D rotations or significant shape changes. The paper acknowledges this limitation but offers no solutions. Additionally, performance degrades on morphologically diverse categories (e.g., different dog breeds), raising questions about scalability to high-variance object categories.",
+                "severity": "major",
+                "evidence": "Discussion section (page 11) states: 'PPL learns 2D priors, which makes it difficult to capture real-world 3D postures. Thus, PPL struggles in scenarios where objects involve rotations or significant shape changes.' Visualizations show poor results for dogs: 'We found the quality of estimated poses of dogs is inferior to that of humans. This is primarily due to the significant morphological differences among various dog breeds.' (page 9). These are fundamental limitations rather than minor issues.",
+                "affected_claim": "The generality and applicability of PPL for diverse object categories and realistic scenarios is limited.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Incomplete experimental analysis: (a) The paper lacks statistical significance testing or error bars across multiple runs. (b) Hyperparameter choices (34 memory banks, 16 vectors per bank, dimension 512) appear arbitrary, with limited justification beyond showing robustness in ablations. (c) The choice of reference image (video frame vs. masked image) seems dataset-dependent without clear principled guidance. (d) Missing computational cost comparisons with baselines.",
+                "severity": "major",
+                "evidence": "All results in Tables 1-4 and Figures A1-A3 report single values without error bars or confidence intervals. Appendix A3 shows ablations on memory parameters but concludes 'PPL remains robust' without principled selection criteria. The paper uses video frames as reference for some datasets (Human3.6m, Taichi, YouTube dogs) and masked images for others (CUB, Flowers, Horses, Hands) with no systematic justification. No training time, inference speed, or memory requirements are reported.",
+                "affected_claim": "The reproducibility and reliability of results is undermined. Practical considerations for applying PPL to new domains remain unclear.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Weak theoretical justification for hierarchical memory design: The paper claims hierarchical memory helps with 'compositional parts' and 'addressing data bias,' enabling 'more accurate pose retrieval for occluded images,' but provides limited theoretical or empirical evidence. Why is hierarchical organization superior to a single flat memory? The comparison to non-hierarchical alternatives is missing.",
+                "severity": "minor",
+                "evidence": "Section 3.3 (page 6) lists advantages of hierarchical memory: '(1) the hierarchical memory increases the complexity of the embedding space with compositional parts... (2) the compositional nature of the hierarchical memory addresses data bias.' However, these claims lack supporting evidence. No ablation compares hierarchical memory with a flat memory baseline. The paper does not explain mechanistically how separate embedding spaces for compositional parts reduce bias.",
+                "affected_claim": "The design choice for hierarchical memory is not sufficiently justified or validated experimentally.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical approach is sound. The mathematical formulation (Equations 1-6) correctly describes affine transformations, link heatmaps, and loss functions. The hierarchical memory retrieval mechanism is properly defined. Training with gradient detachments is a valid (if somewhat ad-hoc) approach to handle non-differentiable operations. Experiments are conducted on standard benchmarks with established evaluation metrics. No fundamental logical errors are detected, though the optimization relies on multiple stabilization tricks suggesting the landscape is complex."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper introduces a novel problem formulation: unsupervised categorical prior learning for pose estimation. This is distinct from prior work that either assumes hand-crafted priors or learns without priors. The specific approach—using hierarchical memory to store and aggregate prototypical poses, then distilling these into a categorical prior—is a novel combination. While individual components (transformations, memory, image reconstruction) are established, their integration to solve this specific unsupervised prior learning problem is new. The finding that learned priors outperform human-defined ones provides additional novelty."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a meaningful problem: acquiring pose priors without manual annotation is practically important and scientifically interesting. The results demonstrate substantial improvements over strong baselines across multiple datasets. The iterative inference for handling occlusion is a practical contribution. However, the limitation to 2D and degraded performance on morphologically diverse categories constrain the immediate impact. The work advances understanding of unsupervised prior learning but does not represent a breakthrough. Significance is moderate to strong for the pose estimation community."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The paper provides comprehensive quantitative evaluation on three major datasets (Human3.6m, Taichi, CUB-200-2011) with consistent improvements. Ablation studies (Table 4, Appendix A3) are thorough and provide insights into which components matter. Qualitative visualizations are informative. However, several evaluation gaps exist: (1) no statistical significance testing or error bars, (2) no computational cost analysis, (3) missing comparisons to non-hierarchical memory variants, (4) limited analysis of when/why the method fails. Despite these gaps, the evaluation is sufficiently comprehensive to support the main claims."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written and clearly structured. The motivation is well-articulated with good illustrations (Figure 1 introduces the challenge intuitively). The method is described systematically in Section 3, with clear mathematical notation. Figures 2, 3, and 4 effectively convey the approach and results. Extensive appendices provide implementation details and additional experiments. The writing is generally clear, though some technical details (e.g., the chicken-and-egg problem in Section 3.3 and Appendix A6) could be explained more intuitively earlier in the main paper. No significant clarity issues prevent understanding."
+              }
+            },
+            "summary_comment": "This paper makes a solid contribution to unsupervised pose estimation by introducing the problem of learning categorical pose priors without manual annotations and proposing PPL as a solution. The core idea is intuitive and well-motivated: learn prototypical poses via a hierarchical memory, distill these into a prior, and use the prior to guide pose estimation. Empirical results are strong, consistently outperforming baselines including those with human-defined priors. The work includes good ablations and visualizations showing interpretability. The acceptance gates all pass: the approach is technically sound, the problem and solution are novel (though not revolutionary), the impact is meaningful for pose estimation, experiments are reasonably comprehensive, and presentation is clear. However, the paper has non-trivial weaknesses: (1) reliance on multiple ad-hoc gradient detachment techniques without principled justification, (2) fundamental limitations to 2D and degraded performance on morphologically diverse categories, (3) incomplete experimental analysis (no error bars, no computational costs, missing ablations on key design choices). These weaknesses are not fatal—they represent limitations rather than invalidating errors—but they prevent the paper from being exceptional. The work is a good incremental advance suitable for a top-tier venue, advancing our understanding of unsupervised prior learning while leaving room for improvement on practical applicability and theoretical understanding."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel problem formulation: The paper introduces the challenge of 'unsupervised categorical prior learning' in pose estimation, which is a well-motivated and clearly defined problem. The idea of learning pose priors from data without human annotations addresses a practical limitation of prior work.",
+              "Strong empirical results on standard benchmarks: PPL consistently outperforms competitive baselines across multiple datasets (Human3.6m, Taichi, CUB-200-2011). The finding that learned priors outperform manually designed ones (Table 4, comparison with STT) is noteworthy and challenges assumptions about the optimality of human-defined priors.",
+              "Comprehensive ablation studies: Table 4 and Appendix A3 provide valuable insights into which components matter. The finding that connectivity priors are more critical than keypoint priors, and that randomly initialized learnable priors can match human-defined ones, is informative.",
+              "Practical iterative inference strategy: The iterative refinement approach for handling occluded scenes is well-motivated and demonstrated to progressively recover occluded poses by leveraging learned prototypical poses (Figure 4a, Figures A2-A3).",
+              "Interpretable visualizations: Figure 4(b) shows how pose priors evolve during training, converging to meaningful human skeletons. Visualizations across multiple categories (Figure A5) demonstrate broad applicability of the approach."
+            ],
+            "weaknesses": [
+              "Limited novelty in individual components: While the problem formulation is novel, the method combines relatively standard techniques (affine transformations, link heatmaps from AutoLink, memory banks, image reconstruction). The hierarchical memory design is an incremental extension of PCT with separate embedding spaces and mean pooling, lacking strong theoretical justification.",
+              "Insufficient experimental rigor and incomplete analysis: The paper reports only single point estimates without error bars, standard deviations, or statistical significance tests across multiple runs. Hyperparameter choices (34 memory banks, 16 vectors, dimension 512) lack principled justification. Reference image selection (video frames vs. masked images) appears ad-hoc across datasets. No computational cost analysis or training time comparisons are provided.",
+              "Training complexity with ad-hoc stabilization techniques: The method requires three separate gradient detachment strategies (VQ-VAE style, exponential moving average, gradient separation) to achieve convergence (Appendix A6). While these are valid techniques, their necessity is not ablated, convergence guarantees are not analyzed, and the optimization landscape is not characterized.",
+              "Fundamental limitations to 2D with degraded performance on diverse morphologies: The method explicitly learns 2D priors, which fundamentally limits handling of 3D rotations and significant shape changes (acknowledged Discussion, page 11). Performance degrades noticeably on morphologically diverse categories like dogs (page 9), with the authors acknowledging this stems from 'significant morphological differences among various dog breeds.'",
+              "Missing ablations on key design choices: No comparison between hierarchical memory (multiple banks, separate embedding spaces) and flat memory (single bank) baselines is provided to validate the hierarchical design. Claims that hierarchical memory enables 'more accurate pose retrieval' and 'addresses data bias' (Section 3.3) are not empirically supported."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited novelty in individual components: While the problem formulation is novel, the method combines relatively standard techniques (affine transformations, link heatmaps from AutoLink, memory banks, image reconstruction). The hierarchical memory design is an incremental extension of PCT with separate embedding spaces and mean pooling, lacking strong theoretical justification.",
+                "severity": "minor",
+                "evidence": "Section 3 describes: affine transformations (Eq. 1-2) following standard spatial transformation pipelines; link heatmaps (Eq. 3) similar to AutoLink (He et al., 2022a, explicitly compared in Related Works); hierarchical memory acknowledged as extending PCT (page 6: 'Unlike PCT where all vectors of a memory are within the same embedding space, we organize M into m memory banks'). The paper's own Related Works identifies these as established approaches.",
+                "affected_claim": "The contribution's novelty is primarily in problem formulation and integration rather than methodological innovation.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Insufficient experimental rigor and incomplete analysis: The paper reports only single point estimates without error bars, standard deviations, or statistical significance tests across multiple runs. Hyperparameter choices (34 memory banks, 16 vectors, dimension 512) lack principled justification. Reference image selection (video frames vs. masked images) appears ad-hoc across datasets. No computational cost analysis or training time comparisons are provided.",
+                "severity": "major",
+                "evidence": "All results in Tables 1-4 and Figures A1-A3 report single values without confidence intervals. Appendix A1 specifies hyperparameters (34 banks, 16 vectors/bank, dimension 512) and Appendix A3 shows ablations but provides no principled selection criteria. Section 4 and Appendix A2 indicate reference image choice is dataset-dependent ('a randomly selected frame from the same video' or 'a randomly masked version') without systematic justification or ablation. No training time, inference speed, or memory requirements are reported anywhere in the paper.",
+                "affected_claim": "The reproducibility, statistical reliability, and practical feasibility of PPL are undermined by lack of rigorous experimental documentation.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Training complexity with ad-hoc stabilization techniques: The method requires three separate gradient detachment strategies (VQ-VAE style, exponential moving average, gradient separation) to achieve convergence (Appendix A6). While these are valid techniques, their necessity is not ablated, convergence guarantees are not analyzed, and the optimization landscape is not characterized.",
+                "severity": "major",
+                "evidence": "Appendix A6 explicitly lists three 'gradient dettachment techniques': (1) VQ-VAE style gradient copying to address 'broken gradient issue', (2) exponential moving average for memory updates 'to smooth the gradient updates', (3) 'two gradient detachments to separate the training processes' for the 'chicken-and-egg problem.' The phrase 'to ensure convergence and stability during the training of PPL' indicates these are necessitated by optimization difficulty. Figure A4(a) shows explicit stop-gradient (sg) operations. However, no ablation removes individual techniques to demonstrate their necessity, no convergence analysis is provided, and no discussion characterizes why the optimization is difficult.",
+                "affected_claim": "The method's practical stability and optimization tractability are uncertain. The reliance on multiple ad-hoc stabilization tricks suggests potential brittleness, but this is not rigorously analyzed.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Fundamental limitations to 2D with degraded performance on diverse morphologies: The method explicitly learns 2D priors, which fundamentally limits handling of 3D rotations and significant shape changes (acknowledged Discussion, page 11). Performance degrades noticeably on morphologically diverse categories like dogs (page 9), with the authors acknowledging this stems from 'significant morphological differences among various dog breeds.'",
+                "severity": "major",
+                "evidence": "Discussion (page 11): 'PPL learns 2D priors, which makes it difficult to capture real-world 3D postures. Thus, PPL struggles in scenarios where objects involve rotations or significant shape changes. Extending PPL to incorporate 3D priors will be a key focus of our future research.' Visualization section (page 9): 'We found the quality of estimated poses of dogs is inferior to that of humans. This is primarily due to the significant morphological differences among various dog breeds. Additionally, dogs often perform actions such as turning around, which can lead to significant changes in pose that are difficult to accurately capture by our priors in 2D space.' These are inherent constraints on applicability.",
+                "affected_claim": "The generality and real-world applicability of PPL are substantially limited by fundamental design constraints to 2D and homogeneous morphologies.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Missing ablations on key design choices: No comparison between hierarchical memory (multiple banks, separate embedding spaces) and flat memory (single bank) baselines is provided to validate the hierarchical design. Claims that hierarchical memory enables 'more accurate pose retrieval' and 'addresses data bias' (Section 3.3) are not empirically supported.",
+                "severity": "minor",
+                "evidence": "Section 3.3 (page 6) claims: '(1) the hierarchical memory increases the complexity of the embedding space with compositional parts, enhances the expressive capability for poses and facilitates more accurate pose retrieval for occluded images; (2) the compositional nature of the hierarchical memory addresses data bias, enabling the distillation of a less biased prior.' However, no ablation in Tables 4 or Appendices tests hierarchical vs. flat memory variants. No empirical evidence demonstrates that these claimed benefits actually materialize. The comparison to PCT (Section 2) discusses differences but not performance implications.",
+                "affected_claim": "The design choice for hierarchical memory organization is not validated experimentally.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical approach is sound. Mathematical formulation (Equations 1-6) correctly describes affine transformations, link heatmaps, and loss functions. The hierarchical memory retrieval mechanism is properly defined with valid use of L2 distance for nearest-neighbor retrieval and mean pooling for distillation. Image reconstruction as supervision is a principled approach. The gradient detachment techniques (VQ-VAE style, exponential moving average) are established practices from prior work. No fundamental logical errors are detected. The rebuttal's acknowledgment that gradient detachment techniques reflect 'complexity of jointly optimizing the prior distillation and pose estimation pathways' clarifies (but does not resolve) why optimization is non-trivial."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper introduces a novel problem formulation: unsupervised categorical prior learning for pose estimation. This problem is distinct from prior work addressing either hand-crafted priors or learning without priors. The specific solution—hierarchical memory aggregation and distillation—is a novel combination, though individual components are established. The empirical finding that learned priors outperform human-defined ones provides additional novelty and challenges prior assumptions. While component-level novelty is limited (as both reviewer and rebuttal acknowledge), the problem formulation and integrated approach represent sufficient novelty for a top-tier venue."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a meaningful and practical problem: acquiring pose priors without costly manual annotation. Results demonstrate substantial improvements over strong baselines (AutoLink, STT) across multiple datasets. The counter-intuitive finding that learned priors outperform predefined ones (Table 4) has scientific significance for the pose estimation community. The iterative inference capability for handling occlusion is a practical contribution. However, fundamental limitations to 2D and reduced effectiveness on morphologically diverse categories constrain broader impact. Significance is solid for the pose estimation community but not transformative for machine learning generally."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The paper provides quantitative evaluation on three standard datasets (Human3.6m, Taichi, CUB-200-2011) with consistent improvements. Ablation studies (Table 4, Appendix A3) provide insights into component importance. Qualitative visualizations effectively demonstrate learned priors and pose estimates. However, significant evaluation gaps persist despite rebuttal acknowledgments: (1) Results lack error bars, standard deviations, or statistical significance tests—the paper reports only point estimates, (2) No ablation validates hierarchical vs. flat memory design despite claims of compositional benefits, (3) Hyperparameter selection (34 banks, 16 vectors, 512 dims) remains unjustified despite rebuttal noting 'robustness' in appendix, (4) Reference image selection appears ad-hoc with no systematic ablation, (5) No computational cost analysis is provided. The rebuttal promises to add these analyses 'in a revision if accepted,' but they are not present in the submitted paper. Evaluation is reasonably comprehensive but has notable gaps that reduce confidence in reproducibility and understanding of why the method works. This is sufficient for acceptance but represents a weakness."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written and clearly structured. Motivation is well-articulated with intuitive illustrations (Figure 1). Method is described systematically in Section 3 with clear mathematical notation. Figures 2, 3, 4, and A5 effectively convey approach and results. Extensive appendices provide implementation details. The discussion honestly acknowledges limitations (2D priors, morphological diversity). One clarity issue: the necessity and rationale for three gradient detachment techniques (Appendix A6) could be better motivated earlier. Overall, presentation is clear and enables understanding of the approach."
+              }
+            },
+            "summary_comment": "This paper makes a solid contribution to unsupervised pose estimation by introducing and addressing the problem of learning categorical pose priors without human annotation. The core intuition—learn prototypical poses via hierarchical memory, distill these into a categorical prior, use the prior to guide pose estimation—is sensible and well-executed. Empirical results are strong, consistently outperforming competitive baselines including those with human-defined priors across Human3.6m, Taichi, and CUB-200-2011. The work includes informative ablations, honest acknowledgment of limitations, and good visualizations. All acceptance gates pass. However, the paper has meaningful weaknesses: (1) Individual components are standard techniques; novelty is primarily in integration and problem formulation, (2) Training requires three ad-hoc gradient detachment techniques without ablation or convergence analysis, suggesting potential brittleness, (3) Evaluation lacks rigor: no error bars/confidence intervals across runs, hyperparameter choices unjustified, reference image selection ad-hoc, no computational costs reported, (4) Fundamental 2D limitation and degraded performance on morphologically diverse categories constrain practical applicability, (5) Key design claims (hierarchical memory benefits) lack empirical validation via ablation. The rebuttal acknowledges most weaknesses and promises to address them 'in a revision if accepted,' but these analyses are not present in the submitted paper and thus cannot change the evaluation. The paper represents good incremental progress suitable for a top-tier venue, advancing understanding of unsupervised prior learning while leaving room for improvement on experimental rigor and practical applicability. The weaknesses in evaluation rigor lower confidence in reproducibility but do not invalidate the core contributions."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited novelty in individual components despite novel problem formulation\",\n        \"Significant computational complexity requiring multiple gradient detachment techniques without thorough justification or convergence analysis\",\n        \"Fundamental limitations to 2D pose estimation with degraded performance on morphologically diverse categories\",\n        \"Incomplete experimental analysis lacking statistical significance testing, error bars, and computational cost comparisons\",\n        \"Insufficient theoretical justification for hierarchical memory design versus flat memory alternatives\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Novel problem formulation with strong empirical results\",\n          \"location\": \"Introduction, Abstract, Tables 1-3, Figures 4(a), 4(b)\",\n          \"explanation\": \"The paper clearly introduces 'unsupervised categorical prior learning' as a novel problem (Contribution 1, page 5). Tables 1-3 demonstrate consistent improvements over baselines including STT with human-defined priors. Figure 4(b) shows learned priors converge to meaningful human skeletons.\"\n        },\n        {\n          \"concern\": \"Individual components are relatively standard techniques\",\n          \"location\": \"Section 3, Related Works (Section 2)\",\n          \"explanation\": \"Affine transformations (Eq. 1-2) are standard spatial transformations. Link heatmaps (Eq. 3) are similar to AutoLink (He et al., 2022a). The paper acknowledges hierarchical memory is an extension of PCT: 'Unlike PCT where all vectors of a memory are within the same embedding space, we organize M into m memory banks' (page 6). The novelty is primarily in combination rather than individual techniques.\"\n        },\n        {\n          \"concern\": \"Multiple gradient detachment techniques required for training stability\",\n          \"location\": \"Appendix A6, Section 3.3, Figure A4(a)\",\n          \"explanation\": \"Appendix A6 describes three techniques: (1) VQ-VAE style gradient copying, (2) exponential moving average for memory updates, (3) two separate gradient detachments to address 'chicken-and-egg problem.' The phrase 'to ensure convergence and stability' indicates these are stabilization interventions. Figure A4(a) shows gradient flows with explicit detachments (stop-gradient operations indicated by sg).\"\n        },\n        {\n          \"concern\": \"Limitations to 2D pose and morphologically diverse categories\",\n          \"location\": \"Discussion (page 11), Visualization section (page 9)\",\n          \"explanation\": \"Discussion explicitly states: 'PPL learns 2D priors, which makes it difficult to capture real-world 3D postures. Thus, PPL struggles in scenarios where objects involve rotations or significant shape changes.' For dogs, the paper notes: 'the quality of estimated poses of dogs is inferior to that of humans... due to the significant morphological differences among various dog breeds' and 'dogs often perform actions such as turning around, which can lead to significant changes in pose that are difficult to accurately capture by our priors in 2D space.'\"\n        },\n        {\n          \"concern\": \"Incomplete experimental analysis\",\n          \"location\": \"Tables 1-4, Figures A1-A3, Appendix A1, Experiments section (Section 4)\",\n          \"explanation\": \"All results report single point estimates without error bars or confidence intervals. Hyperparameter choices (34 banks, 16 vectors, dimension 512) are presented in Appendix A1 without principled justification. Section 4 states reference image choice is 'a randomly selected frame from the same video' for videos or 'a randomly masked version of the original image' for static images, but no systematic justification is provided. No training time or computational cost comparisons are reported.\"\n        },\n        {\n          \"concern\": \"Hierarchical memory design lacks thorough justification\",\n          \"location\": \"Section 3.3 (page 6), Compositional Memory Architectures in Related Works (Section 2)\",\n          \"explanation\": \"Section 3.3 claims hierarchical memory advantages: '(1) the hierarchical memory increases the complexity of the embedding space with compositional parts... (2) the compositional nature of the hierarchical memory addresses data bias.' However, no ablation compares hierarchical versus flat memory. The Related Works section discusses PCT but does not provide theoretical reasoning for why hierarchy is superior.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Training stability and optimization landscape are not thoroughly analyzed\",\n          \"proposed_change\": \"Add convergence analysis, sensitivity studies on gradient detachment techniques, and ablation removing individual gradient detachment strategies to demonstrate their necessity and impact. Provide discussion of optimization landscape and potential alternatives to gradient detachment.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Lack of statistical significance and reproducibility metrics\",\n          \"proposed_change\": \"Report mean and standard deviation across multiple runs (e.g., 3-5 random seeds) with error bars in all tables and figures. Add confidence intervals or statistical significance tests comparing PPL to baselines.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Missing computational cost analysis\",\n          \"proposed_change\": \"Report training time, inference time, and memory requirements for PPL compared to baselines (AutoLink, STT, etc.). Include FLOPs or computational complexity analysis.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Hyperparameter choices lack principled justification\",\n          \"proposed_change\": \"Clarify the rationale for 34 memory banks, 16 vectors per bank, and dimension 512. Add systematic hyperparameter search results or principled selection criteria based on dataset characteristics.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Reference image selection appears ad-hoc\",\n          \"proposed_change\": \"Provide principled guidance for reference image selection (video frame vs. masked image) based on dataset properties. Add ablation studying impact of reference image type across datasets.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Hierarchical memory design not validated against flat memory baseline\",\n          \"proposed_change\": \"Add ablation comparing hierarchical memory (multiple banks, separate embedding spaces) against flat memory (single bank, shared embedding space) to empirically validate the hierarchical design choice.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"2D limitation and degraded performance on morphologically diverse categories are fundamental constraints\",\n          \"proposed_change\": \"These limitations are acknowledged but inherent to the current approach. Future work could explore 3D priors or adaptive mechanisms for handling morphological diversity, but such solutions would require substantial methodological changes beyond the current submission.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Missing ablation on gradient detachment techniques\",\n          \"proposed_change\": \"Add ablation study in Appendix showing results when removing each of the three gradient detachment techniques individually to quantify their contribution to stability and performance.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We thank the reviewer for the comprehensive and constructive feedback. We address the major concerns systematically:\\n\\n**On Limited Novelty in Components:** We appreciate the reviewer's accurate observation that individual components (affine transformations, link heatmaps, memory banks) are established techniques. However, we emphasize that the novelty lies in: (1) **Problem formulation**: Unsupervised categorical prior learning is a novel challenge not previously formalized in pose estimation. (2) **Integration**: The specific combination of hierarchical memory distillation to learn categorical priors is distinct. (3) **Empirical findings**: Demonstrating that learned priors outperform human-defined ones (Table 4, comparison with STT) is a significant finding that challenges prior assumptions. While we agree novelty is primarily in combination rather than individual components, this is a valid research contribution that advances the field's understanding of how to acquire priors without annotation.\\n\\n**On Training Stability and Gradient Detachment:** We acknowledge this is a valid concern. The multiple gradient detachment techniques (Appendix A6) reflect the complexity of jointly optimizing the prior distillation and pose estimation pathways. We recognize that the paper would benefit from deeper analysis of the optimization landscape. **We propose adding** (in a revision): (1) Convergence curves across training epochs, (2) Ablation studies removing each gradient detachment technique to quantify their individual contributions, (3) Analysis of failure modes and sensitivity to initialization. These analyses would clarify whether our approach is robust or brittle. We commit to providing these in the final version if the paper is accepted.\\n\\n**On 2D Limitations:** We fully acknowledge the fundamental limitation to 2D pose estimation. The paper explicitly states (Discussion, page 11): 'PPL learns 2D priors, which makes it difficult to capture real-world 3D postures... Extending PPL to incorporate 3D priors will be a key focus of our future research.' This is presented as an honest limitation rather than a hidden flaw. The degraded performance on morphologically diverse dog breeds (acknowledged in page 9) reflects the inherent difficulty of capturing high-variance object categories in a single prior. These are limitations of our current approach that constrain its applicability, not errors in the method itself.\\n\\n**On Incomplete Experimental Analysis:** We recognize several gaps:\\n\\n- **Statistical significance and error bars**: The paper reports single point estimates without confidence intervals. **We propose adding** multiple runs (3-5 seeds) with mean/std error bars and statistical significance tests in a revision. This is standard practice and would strengthen reproducibility claims.\\n\\n- **Reference image selection**: The choice of video frames vs. masked images appears dataset-dependent (page 9, Appendix A2) without systematic justification. **We propose adding** an ablation study showing the impact of reference image type across datasets, along with principled guidelines for selection. This would address the apparent ad-hoc nature of this choice.\\n\\n- **Computational costs**: The paper does not report training time, inference speed, or memory usage compared to baselines. **We propose adding** FLOPs analysis and wall-clock time comparisons with AutoLink and other methods to demonstrate practical feasibility.\\n\\n- **Hyperparameter choices**: The 34 memory banks, 16 vectors per bank, and 512 dimensions appear arbitrary. While Appendix A3 shows robustness across these settings, the rationale for these specific values is unclear. **We propose clarifying** whether these were selected based on initial hyperparameter search, dataset properties, or other principles.\\n\\n**On Hierarchical Memory Design:** The reviewer correctly identifies that Section 3.3 claims hierarchical memory addresses 'compositional parts' and 'data bias' without strong empirical evidence. **We propose adding** (in a revision): (1) Ablation comparing hierarchical memory (multiple banks with separate embedding spaces) against a flat memory baseline (single bank, shared embedding space). (2) Analysis of what compositional parts are learned in each memory bank through visualization. (3) Quantitative study of how hierarchical organization affects robustness to data bias by comparing learned priors across datasets with different biases.\\n\\nThese additions would either validate the hierarchical design or reveal that a simpler flat memory suffices, providing valuable insights.\\n\\n**Summary:** The reviewer's concerns are substantive and fair. The paper's contributions are solid but incremental, and the experimental analysis, while reasonable, has gaps that limit confidence in reproducibility and understanding of why the method works. We are committed to addressing these gaps in a revision if the paper is accepted. The fundamental limitations (2D, morphological diversity) are acknowledged and inherent to the approach rather than hidden flaws. The training complexity reflects a challenging optimization problem that we are working to better understand and communicate.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel problem formulation: The paper introduces the challenge of 'unsupervised categorical prior learning' in pose estimation, which is a well-motivated and clearly defined problem. The idea of learning pose priors from data without human annotations addresses a practical limitation of prior work.",
+              "Strong empirical results on standard benchmarks: PPL consistently outperforms competitive baselines across multiple datasets (Human3.6m, Taichi, CUB-200-2011). The finding that learned priors outperform manually designed ones (Table 4, comparison with STT achieving 3.31 vs. PPL's 2.56 on Human3.6m at 256×256 resolution) is noteworthy and challenges assumptions about the optimality of human-defined priors.",
+              "Comprehensive ablation studies: Table 4 provides valuable insights into which components matter, revealing that connectivity priors are more critical than keypoint priors and that randomly initialized learnable priors can achieve comparable performance to human-defined ones.",
+              "Practical iterative inference strategy: The iterative refinement approach for handling occluded scenes is well-motivated and demonstrated to progressively recover occluded poses by leveraging learned prototypical poses (Figure 4a, Figures A2-A3).",
+              "Interpretable visualizations and honest acknowledgment of limitations: Figure 4(b) shows how pose priors evolve during training, converging to meaningful human skeletons. The paper explicitly acknowledges fundamental limitations to 2D priors and degraded performance on morphologically diverse categories rather than hiding these constraints."
+            ],
+            "weaknesses": [
+              "Limited component-level novelty: While the problem formulation is novel, the method combines relatively standard techniques (affine transformations, link heatmaps from AutoLink, memory banks, image reconstruction). The hierarchical memory design is an incremental architectural modification of PCT with separate embedding spaces rather than a fundamental innovation.",
+              "Insufficient experimental rigor undermines reproducibility: All reported results are point estimates without error bars, standard deviations, confidence intervals, or statistical significance tests. Results are not averaged across multiple random seeds. This limits confidence in the reliability and reproducibility of reported improvements.",
+              "Ad-hoc design choices lacking principled justification: The choice of 34 memory banks is not ablated or justified. The number of vectors per bank (16) and dimension (512) are selected because performance plateaus in Appendix A3 ablations, not based on principled criteria. Reference image selection (video frames vs. masked images) varies across datasets without systematic justification or ablation study.",
+              "Training complexity with unexplored necessity of stabilization techniques: The method requires three separate gradient detachment strategies (VQ-VAE style, exponential moving average, gradient separation) to achieve convergence (Appendix A6). However, ablations removing individual techniques are not provided, and convergence guarantees or optimization landscape characterization is absent. The necessity and brittleness of these techniques remain unclear.",
+              "Fundamental limitations constraining practical applicability: The method explicitly learns 2D priors, limiting ability to handle 3D rotations and significant shape changes. Performance noticeably degrades on morphologically diverse categories (dogs), as acknowledged by authors. These are inherent constraints rather than fixable issues."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited component-level novelty: While the problem formulation is novel, the method combines relatively standard techniques (affine transformations, link heatmaps from AutoLink, memory banks, image reconstruction). The hierarchical memory design is an incremental architectural modification of PCT with separate embedding spaces rather than a fundamental innovation.",
+                "severity": "minor",
+                "evidence": "Section 3 describes standard techniques; Section 2 and page 6 acknowledge that hierarchical memory organizes vectors into separate embedding spaces compared to PCT's shared space, representing an architectural modification rather than methodological innovation. The paper explicitly states 'Unlike PCT where all vectors of a memory are within the same embedding space, we organize M into m memory banks.'",
+                "affected_claim": "Component-level novelty is limited, though problem formulation and integrated approach are novel.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Insufficient experimental rigor undermines reproducibility: All reported results are point estimates without error bars, standard deviations, confidence intervals, or statistical significance tests. Results are not averaged across multiple random seeds. This limits confidence in the reliability and reproducibility of reported improvements.",
+                "severity": "major",
+                "evidence": "Tables 1-4 and Figures A1-A3 report single values or lines without confidence intervals, error regions, or mention of multiple runs. No standard deviations are reported. The paper contains no reference to random seed selection or multiple experimental runs. This is a standard practice in machine learning that is notably absent.",
+                "affected_claim": "The statistical reliability and reproducibility of the reported improvements over baselines is uncertain.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Ad-hoc design choices lacking principled justification: The choice of 34 memory banks is not ablated or justified. The number of vectors per bank (16) and dimension (512) are selected because performance plateaus in Appendix A3 ablations, not based on principled criteria. Reference image selection (video frames vs. masked images) varies across datasets without systematic justification or ablation study.",
+                "severity": "major",
+                "evidence": "Appendix A1 specifies 34 banks with 16 vectors of dimension 512 'for all experiments' without justification or ablation. Appendix A3 shows ablations concluding 'we fixed 16 vectors per memory bank, each with a dimension of 512' because 'performance slightly improves with more vectors of higher dimensions.' Section 4 and Appendix A2 show reference image selection varies (video frames for temporal data, masked images for static data) without systematic justification or ablation demonstrating this choice's impact.",
+                "affected_claim": "The design choices appear arbitrary rather than principled, raising questions about whether alternatives might be equally or more effective.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Training complexity with unexplored necessity of stabilization techniques: The method requires three separate gradient detachment strategies (VQ-VAE style, exponential moving average, gradient separation) to achieve convergence (Appendix A6). However, ablations removing individual techniques are not provided, and convergence guarantees or optimization landscape characterization is absent. The necessity and brittleness of these techniques remain unclear.",
+                "severity": "major",
+                "evidence": "Appendix A6 lists three techniques introduced 'to ensure convergence and stability during the training of PPL' but provides no ablation removing individual techniques to demonstrate necessity. No convergence curves, loss trajectories, or analysis of what happens when techniques are removed are provided. The 'chicken-and-egg problem' is mentioned but not rigorously characterized.",
+                "affected_claim": "The method's optimization tractability, stability, and robustness are uncertain. Practitioners cannot assess whether this approach is reliable for new domains.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Fundamental limitations constraining practical applicability: The method explicitly learns 2D priors, limiting ability to handle 3D rotations and significant shape changes. Performance noticeably degrades on morphologically diverse categories (dogs), as acknowledged by authors. These are inherent constraints rather than fixable issues.",
+                "severity": "major",
+                "evidence": "Discussion (page 11): 'PPL learns 2D priors, which makes it difficult to capture real-world 3D postures. Thus, PPL struggles in scenarios where objects involve rotations or significant shape changes.' Visualization section (page 9): 'We found the quality of estimated poses of dogs is inferior to that of humans. This is primarily due to the significant morphological differences among various dog breeds... dogs often perform actions such as turning around, which can lead to significant changes in pose that are difficult to accurately capture by our priors in 2D space.'",
+                "affected_claim": "The generality and real-world applicability of PPL are substantially constrained by 2D design and reduced effectiveness on morphologically diverse categories.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical approach is sound. Mathematical formulation (Equations 1-6) correctly describes affine transformations, link heatmaps, and loss functions. The hierarchical memory retrieval mechanism using L2 distance and mean pooling for distillation is properly defined. Image reconstruction as supervision is principled. Gradient detachment techniques are valid practices from prior work (VQ-VAE, exponential moving average). No fundamental logical errors are detected. The rebuttal's acknowledgment that stabilization techniques are required reflects genuine optimization complexity but does not reveal unsoundness—the method still converges reliably with these techniques applied."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper introduces a novel problem formulation: unsupervised categorical prior learning for pose estimation. This is distinct from prior work that either assumes hand-crafted priors or operates without priors. The solution—using hierarchical memory to aggregate and distill prototypical poses into categorical priors—is a novel integration, though individual components are standard. The empirical finding that learned priors outperform human-defined ones (Table 4: STT 3.31 vs. PPL 2.56 on Human3.6m 256×256) is noteworthy. Component-level novelty is limited but problem formulation and integrated approach provide sufficient novelty for a top venue."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a meaningful problem: acquiring pose priors without expensive manual annotation. Results demonstrate consistent improvements over strong baselines (AutoLink, STT) across multiple datasets. The counterintuitive finding that learned priors outperform predefined ones has scientific value for the pose estimation community. The iterative inference capability for occluded scenes is a practical contribution. However, fundamental 2D limitation and reduced effectiveness on morphologically diverse categories constrain broader impact. Significance is solid within pose estimation community but moderate for machine learning generally."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The paper provides quantitative results on three standard datasets (Human3.6m, Taichi, CUB-200-2011) with consistent improvements. Ablation studies (Table 4, Appendix A3) demonstrate component importance. Qualitative visualizations effectively show learned priors and pose estimates across categories. However, significant rigor gaps persist: (1) Results lack error bars or statistical testing—no multiple runs reported, (2) No ablation validates hierarchical vs. flat memory design despite claimed benefits, (3) Hyperparameter selection (34 banks, etc.) unjustified, (4) Reference image selection lacks ablation, (5) No computational cost analysis. The rebuttal promises to add these 'in revision if accepted,' but they are absent from the submitted paper. Evaluation is reasonably comprehensive for acceptance but has notable gaps limiting reproducibility confidence."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written and clearly structured. Motivation is intuitive with good illustrations (Figure 1). Method is systematically described in Section 3 with clear mathematical notation. Figures 2, 3, 4, and A5 effectively convey approach and results. Appendices provide implementation details. Discussion honestly acknowledges limitations (2D design, morphological diversity). One minor issue: the necessity for three gradient detachment techniques could be better motivated earlier in the main paper. Overall presentation is clear and enables understanding."
+              }
+            },
+            "summary_comment": "This paper makes a solid contribution to unsupervised pose estimation by introducing and addressing the problem of learning categorical pose priors without human annotation. The core approach—storing prototypical poses in hierarchical memory, distilling them into a categorical prior, and using this prior to guide pose estimation—is sensible and well-executed. Empirical results are strong, showing consistent improvements over competitive baselines (including those with human-defined priors) on Human3.6m, Taichi, and CUB-200-2011. All acceptance gates pass. The work includes informative ablations and honest acknowledgment of limitations. However, the paper has notable weaknesses that limit confidence: (1) Results lack statistical rigor (no error bars, multiple runs, or significance tests), (2) Design choices (34 memory banks, 16 vectors, 512 dimension, reference image selection) appear ad-hoc without principled justification or ablation, (3) Training requires three gradient detachment techniques without ablation demonstrating individual necessity, (4) Fundamental 2D limitation and degraded performance on morphologically diverse categories substantially constrain practical applicability. The rebuttal acknowledges these weaknesses and proposes addressing them 'in revision if accepted,' but these improvements are absent from the submitted paper and thus cannot influence the current evaluation. The work represents good incremental progress suitable for a top-tier venue, advancing understanding of unsupervised prior learning while leaving room for improvement on experimental rigor and practical applicability. The evaluation rigor gap (missing error bars, statistical tests, computational costs) is the most significant fixable weakness, and the fundamental 2D limitation is the most significant inherent constraint."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited novelty in individual components; hierarchical memory is incremental extension of PCT\",\n        \"Insufficient experimental rigor: no error bars, standard deviations, or statistical significance tests\",\n        \"Ad-hoc hyperparameter choices and reference image selection without principled justification\",\n        \"Training complexity requiring three gradient detachment techniques without ablation or convergence analysis\",\n        \"Fundamental limitations to 2D with degraded performance on morphologically diverse categories\",\n        \"Missing ablation validating hierarchical versus flat memory design despite claims of compositional benefits\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Limited novelty - hierarchical memory is incremental extension of PCT\",\n          \"location\": \"Section 3.3 (page 6), Section 2 Related Works, Comparison with PCT\",\n          \"explanation\": \"The paper explicitly acknowledges: 'Unlike PCT where all vectors of a memory are within the same embedding space, we organize M into m memory banks' (page 6). The Related Works section (page 4) discusses PCT's approach of 'encodes all tokens into the same embedding space,' whereas PPL uses separate embedding spaces for each bank. The enhancement—organizing memory into multiple banks with separate embedding spaces and using mean pooling for distillation—is a straightforward architectural modification rather than a fundamental innovation. Individual components (affine transformations Eq. 1-2, link heatmaps Eq. 3, image reconstruction) are acknowledged to come from prior work.\"\n        },\n        {\n          \"concern\": \"No error bars or statistical significance testing across multiple runs\",\n          \"location\": \"Tables 1, 2, 3, 4 and Figures A1, A2, A3\",\n          \"explanation\": \"All quantitative results report single point estimates. Table 1 shows single L2 error values for each method without confidence intervals. Table 3 reports 'Summed L2 Error' as single values. Table 4 presents ablation results as single normalized L2 errors. Figures A1-A3 plot single lines without shaded error regions. The paper contains no mention of multiple runs, seeds, or statistical tests anywhere in the main paper or appendices.\"\n        },\n        {\n          \"concern\": \"Hyperparameter choices lack principled justification\",\n          \"location\": \"Appendix A1 (Implementation Details), Appendix A3 (Ablation on Memory Bank Vectors)\",\n          \"explanation\": \"Appendix A1 specifies: '34 memory banks, each of which contains 16 vectors of dimension 512, for all experiments.' Appendix A3 (Figure A1) shows ablations across different vector counts (k ∈ {4, 8, 16, 32}) and dimensions (d ∈ {64, 128, 256, 512}), concluding 'PPL remains robust across different vector counts and dimensions, although performance slightly improves with more vectors of higher dimensions. As a result, we fixed 16 vectors per memory bank, each with a dimension of 512, for all experiments.' This explanation provides no principled criteria—16 vectors and 512 dimensions are chosen because performance plateaus, not based on dataset properties, computational constraints, or theoretical analysis. The choice of 34 memory banks is stated without any ablation or justification.\"\n        },\n        {\n          \"concern\": \"Reference image selection appears ad-hoc across datasets\",\n          \"location\": \"Section 4 (Experiments, page 8), Appendix A2 (Datasets)\",\n          \"explanation\": \"Section 4 states: 'We utilize video frames as Iref for the Human3.6m, Taichi, and YouTube dog videos, while randomly masked images are used as Iref for other datasets.' Appendix A2 elaborates: video-based datasets use 'a randomly selected frame from the same video,' while static image datasets (CUB, Flowers, Horses, Hands) use 'a randomly masked version of the original image.' No justification is provided for why video frames are used for some datasets and masked images for others. No ablation studies the effect of reference image type on a given dataset.\"\n        },\n        {\n          \"concern\": \"Three gradient detachment techniques required without ablation or convergence analysis\",\n          \"location\": \"Appendix A6 (Training Techniques)\",\n          \"explanation\": \"Appendix A6 describes three techniques: (1) 'copies the gradients of G′ to G for backward propagation' (VQ-VAE style), (2) 'hierarchical memory M is updated using an exponential moving average to smooth the gradient updates,' (3) 'two gradient detachments to separate the training processes' for addressing the 'chicken-and-egg problem.' The section states 'To ensure convergence and stability during the training of PPL, we introduce three gradient dettachment techniques.' No ablation removes individual techniques. No convergence curves, loss trajectories, or analysis of optimization dynamics are provided. Figure A4(a) shows stop-gradient (sg) operations but does not analyze their impact.\"\n        },\n        {\n          \"concern\": \"Fundamental 2D limitation and degraded performance on diverse morphologies\",\n          \"location\": \"Discussion (page 11), Visualization section (page 9)\",\n          \"explanation\": \"Discussion states: 'PPL learns 2D priors, which makes it difficult to capture real-world 3D postures. Thus, PPL struggles in scenarios where objects involve rotations or significant shape changes. Extending PPL to incorporate 3D priors will be a key focus of our future research.' Page 9 notes: 'We found the quality of estimated poses of dogs is inferior to that of humans. This is primarily due to the significant morphological differences among various dog breeds. Additionally, dogs often perform actions such as turning around, which can lead to significant changes in pose that are difficult to accurately capture by our priors in 2D space.'\"\n        },\n        {\n          \"concern\": \"Missing ablation: hierarchical vs. flat memory\",\n          \"location\": \"Section 3.3 (Claims of hierarchical benefits), Table 4 (Ablations), Ablation section (4.2)\",\n          \"explanation\": \"Section 3.3 claims hierarchical memory '(1) increases the complexity of the embedding space with compositional parts, enhances the expressive capability for poses and facilitates more accurate pose retrieval for occluded images; (2) addresses data bias, enabling the distillation of a less biased prior.' However, Table 4 only ablates prior initialization and trainability, not memory architecture. Appendix A3 only ablates the number and dimension of vectors within the hierarchical structure, not whether hierarchy itself is beneficial. No variant compares a flat memory (single bank, shared embedding space) to the hierarchical design. Therefore, the claimed benefits of hierarchy remain unvalidated.\"\n        },\n        {\n          \"concern\": \"No computational cost analysis or training time comparison\",\n          \"location\": \"Implementation Details (Appendix A1), Experiments section (Section 4)\",\n          \"explanation\": \"Appendix A1 provides hyperparameters and training settings ('Adam optimizer with learning rate 10−3, batch size 64, training for 50 epochs') but no timing information. Section 4 and all appendices provide no training time, inference speed, memory requirements, or FLOPs analysis. No comparison with baseline methods (AutoLink, STT) on computational costs is provided. This prevents assessment of practical feasibility and scalability.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"No error bars or statistical significance testing\",\n          \"proposed_change\": \"Conduct experiments with multiple random seeds (e.g., 3-5 seeds). Report mean ± standard deviation for all results in Tables 1-4 and Figures A1-A3. Add error bars to figures. Include statistical significance tests (e.g., t-tests) comparing PPL to strongest baselines.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Hyperparameter choices lack justification; 34 memory banks not ablated\",\n          \"proposed_change\": \"Add ablation varying number of memory banks (e.g., 8, 16, 24, 34, 48) to determine if 34 is optimal or arbitrary. Provide principled criteria for selecting this value (e.g., dataset complexity, object structure complexity, or computational constraints). Clarify whether 34 was selected based on initial hyperparameter search results.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Reference image selection appears ad-hoc; no systematic justification or ablation\",\n          \"proposed_change\": \"Add ablation on a representative dataset (e.g., Human3.6m) comparing: (1) video frame reference, (2) masked image reference, (3) other alternatives. Provide principled guidelines for selecting reference image type based on dataset properties (presence of video sequences, static images, etc.). Include results in main paper or supplementary material.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Three gradient detachment techniques used without ablation; necessity unclear\",\n          \"proposed_change\": \"Add ablation removing each gradient detachment technique individually to quantify its contribution. Show results for: (1) full method (all three techniques), (2) without VQ-VAE gradient copying, (3) without exponential moving average, (4) without gradient separation. Include convergence curves (training loss over epochs) for each variant to characterize optimization dynamics.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Hierarchical memory design not validated against flat memory baseline\",\n          \"proposed_change\": \"Add ablation comparing: (1) hierarchical memory (m banks, separate embedding spaces, mean pooling distillation—current approach), (2) flat memory (single bank, shared embedding space, mean pooling distillation), (3) flat memory with individual token distillation (no mean pooling). Report quantitative results and qualitative analysis of what each variant learns. This directly validates claims that hierarchy 'facilitates more accurate pose retrieval' and 'addresses data bias.'\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"No computational cost analysis provided\",\n          \"proposed_change\": \"Add table comparing training time (minutes/hours for 50 epochs), inference speed (milliseconds per image), memory requirements (MB), and approximate FLOPs for PPL vs. AutoLink and STT on a standard setup (e.g., single GPU). Include this in main paper or supplementary material. This enables practitioners to assess practical feasibility.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"2D limitation and morphological diversity issues are fundamental but acknowledged\",\n          \"proposed_change\": \"These are inherent constraints that cannot be addressed within the current 2D framework. The honest acknowledgment in Discussion and Visualization sections is appropriate. Future work on 3D priors or adaptive mechanisms for morphological diversity would require substantial methodological changes beyond the current submission's scope.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We sincerely thank the reviewer for the detailed and fair assessment. The review correctly identifies our work's contributions and limitations. We address each major concern:\\n\\n**On Limited Novelty of Individual Components:**\\nThe reviewer's observation is accurate: the hierarchical memory is an incremental architectural modification of PCT, and other components (affine transformations, link heatmaps, image reconstruction) are established techniques. We agree that novelty is primarily in problem formulation and integration. However, we emphasize that: (1) The problem formulation—\\\"unsupervised categorical prior learning\\\"—is novel and well-motivated. (2) The integrated approach of learning and distilling hierarchical memory to obtain categorical priors is distinct from prior work. (3) The empirical finding that learned priors outperform human-defined ones (Table 4, comparison with STT achieving 3.31 vs. our 2.56 on Human3.6m at 256×256) is significant and challenges prior assumptions about optimal prior design. While we acknowledge limited component-level novelty, we believe the problem formulation and integrated solution represent sufficient contribution for a top venue.\\n\\n**On Experimental Rigor (Error Bars, Statistical Significance):**\\nThe reviewer correctly identifies that all reported results are point estimates without error bars or confidence intervals. This is a fair criticism of experimental practice. **We propose adding** (in a revision): (1) Multiple runs with 3-5 random seeds across all datasets, (2) Mean ± standard deviation reported in all tables and figures, (3) Statistical significance tests (e.g., paired t-tests) comparing PPL to the strongest baseline (AutoLink) on each dataset. We acknowledge this is standard practice that should be included. The rebuttal's promise to add this analysis 'in revision if accepted' reflects our commitment to strengthening experimental rigor.\\n\\n**On Hyperparameter Choices (34 banks, 16 vectors, 512 dimension):**\\nThe reviewer correctly notes these choices lack justification. Appendix A3 shows robustness across settings but provides no principled selection criteria. **We propose adding** (in revision): (1) Ablation explicitly varying number of memory banks (e.g., 8, 16, 24, 34, 48) to determine if 34 is optimal, (2) Analysis of whether 34 was selected via hyperparameter search or chosen arbitrarily, (3) Discussion relating these choices to dataset properties or computational constraints. Currently, the 34 banks were selected during initial hyperparameter exploration but this is not documented. Clarifying this process would improve transparency.\\n\\n**On Reference Image Selection (Video Frames vs. Masked Images):**\\nThe reviewer notes this appears ad-hoc across datasets without systematic justification. Currently, we use video frames for temporal datasets (Human3.6m, Taichi, YouTube dogs) and masked images for static datasets (CUB, Flowers, Horses, Hands). **We propose adding** (in revision): (1) Ablation on Human3.6m comparing video frame reference vs. masked image reference, (2) Systematic study of how reference image type affects performance across dataset types, (3) Principled guidelines for selecting reference image based on dataset properties. This would remove the appearance of ad-hoc choice and provide practitioners with clear guidance.\\n\\n**On Training Complexity and Gradient Detachment Techniques:**\\nThe reviewer is correct that three gradient detachment techniques are required (Appendix A6) without ablation validating their individual necessity. This is a legitimate concern about method complexity and potential brittleness. **We propose adding** (in revision): (1) Ablation removing each technique individually (full method, without VQ-VAE copying, without EMA, without gradient separation), (2) Convergence curves (training loss vs. epochs) for each variant showing whether the method diverges without these stabilization techniques, (3) Analysis of the optimization landscape explaining why the 'chicken-and-egg problem' arises and how each detachment addresses it. These analyses would either validate that each technique is necessary or reveal that some can be removed. The current submission provides insufficient evidence of necessity, and we acknowledge this is a weakness that should be addressed.\\n\\n**On Fundamental 2D Limitation and Morphological Diversity:**\\nThe reviewer correctly identifies these as inherent constraints, and we agree. The paper's Discussion and Visualization sections honestly acknowledge: \\\"PPL learns 2D priors, which makes it difficult to capture real-world 3D postures\\\" and \\\"the quality of estimated poses of dogs is inferior to that of humans... due to the significant morphological differences among various dog breeds.\\\" These limitations cannot be addressed within the current 2D framework and would require substantial methodological changes (extending to 3D, adaptive mechanisms for morphological diversity) beyond the current work's scope. We believe the honest acknowledgment is appropriate for a scientific contribution that identifies both contributions and limitations.\\n\\n**On Missing Ablation: Hierarchical vs. Flat Memory:**\\nThis is a valid criticism. Section 3.3 claims hierarchical memory '(1) increases the complexity of the embedding space with compositional parts... and facilitates more accurate pose retrieval,' and '(2) addresses data bias.' However, Table 4 and Appendix A3 only ablate prior initialization and memory hyperparameters, not the hierarchical architecture itself. **We propose adding** (in revision): Ablation comparing: (1) Hierarchical memory with separate embedding spaces (current approach), (2) Flat memory with shared embedding space (single bank), (3) Variants with/without mean pooling distillation. This would directly validate whether hierarchy provides claimed benefits or if a simpler flat architecture suffices. Currently, this design choice is justified by intuition rather than empirical evidence, which is a gap we acknowledge.\\n\\n**On Missing Computational Cost Analysis:**\\nThe paper provides no training time, inference speed, or memory requirements. **We propose adding** (in revision): Comparison table showing for PPL vs. AutoLink: (1) Training time (hours for 50 epochs on standard GPU), (2) Inference speed (ms per image), (3) Memory requirements (MB), (4) Approximate computational complexity. This enables practitioners to assess whether PPL is computationally feasible compared to baselines, which is important practical information currently absent.\\n\\n**Summary:**\\nThe reviewer's assessment is fair and constructive. The paper makes solid contributions in problem formulation and empirical results but has notable gaps in experimental rigor and methodological justification. Most of these gaps can be addressed through ablations and statistical analysis without new conceptual contributions. We are committed to incorporating these improvements in a revision if the paper is accepted. The fundamental limitations (2D scope, morphological diversity) are honest acknowledgments of current constraints rather than hidden flaws. We appreciate the reviewer's balanced perspective that recognizes both the contributions and limitations of this work.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_a16e1d087b4c",
+    "conference": "ICML",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/icml_reject_2025_042_pose_prior_learner_unsupervised_categorical_prior_learning_for_pose_estimation.md",
+    "target_paper_summary": {
+      "paper_id": "paper_a16e1d087b4c",
+      "title": "Pose Prior Learner: Unsupervised Categorical Prior Learning For Pose Estimation",
+      "abstract": "A prior represents a set of beliefs or assumptions about a system, aiding inference and decision-making. In this paper, we introduce the challenge of unsupervised categorical prior learning in pose estimation, where AI models learn a general pose prior for an object category from images in a self-supervised manner. Although priors are effective in estimating pose, acquiring them can be difficult. We propose a novel method, named Pose Prior Learner (PPL), to learn a general pose prior for any object category. PPL uses a hierarchical memory to store compositional parts of prototypical poses, from which we distill a general pose prior. This prior improves pose estimation accuracy through template transformation and image reconstruction. PPL learns meaningful pose priors without any additional human annotations or interventions, outperforming competitive baselines on both human and animal pose estimation datasets.\n\nNotably, our experimental results reveal the effectiveness of PPL using learned prototypical poses for pose estimation on occluded images. Through iterative inference, PPL leverages the pose prior to refine estimated poses, regressing them to any prototypical poses stored in memory. Our code, model, and data will be publicly available.\n\n055 056 057 058 059 060 061 062 063 064 065 066 067 068 069 070 071 072 073 074 075 076 077 078 079 080 081 082 083 084 085 086 087 088 089 090 091 092 093 094 095 096 097 098 099 100 101 102 103 104 105 106 107 108 109\n\naggregate keypoint prior images occluded images ⋯\n⋯\npose prior distill prototypical poses regress transform connectivity prior refine\na category's general pose to guide the pose estimation of individuals within that category. Conceptually, each category is expected to exhibit a generalized and distinctive pose prior that reflects characteristics such as shape, size, and structure. Individual poses should be seen as geometric transformations of this category-specific pose prior. As a result, employing a category-specific pose prior aids in guiding and regularizing the learning of poses. However, obtaining comprehensive general pose priors is highly challenging, as it requires extensive human annotations, particularly for novel categories. Moreover, human annotations may introduce implicit biases, hindering models from learning more meaningful priors. Loosely inspired by how humans develop a general prior representation of an object category by observing individual object instances in images and subseq",
+      "topic": "",
+      "claims": [
+        "we introduce the challenge of unsupervised categorical prior learning in pose estimation, where AI models learn a general pose prior for an object category from images in a self-supervised manner.",
+        "We propose a novel method, named Pose Prior Learner (PPL), to learn a general pose prior for any object category."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_7e1c9f90e",
+        "title": "Semi-Supervised and Unsupervised Deep Visual Learning: A Survey",
+        "authors": [
+          "Yanbei Chen",
+          "Massimiliano Mancini",
+          "Xiatian Zhu",
+          "Zeynep Akata"
+        ],
+        "year": 2022,
+        "publication_date": "2022-08-25",
+        "venue": "IEEE Transactions on Pattern Analysis and Machine Intelligence",
+        "abstract": "State-of-the-art deep learning models are often trained with a large amount of costly labeled training data. However, requiring exhaustive manual annotations may degrade the model's generalizability in the limited-label regime.Semi-supervised learning and unsupervised learning offer promising paradigms to learn from an abundance of unlabeled visual data. Recent progress in these paradigms has indicated the strong benefits of leveraging unlabeled data to improve model generalization and provide better model initialization. In this survey, we review the recent advanced deep learning algorithms on semi-supervised learning (SSL) and unsupervised learning (UL) for visual recognition from a unified perspective. To offer a holistic understanding of the state-of-the-art in these areas, we propose a unified taxonomy. We categorize existing representative SSL and UL with comprehensive and insightful analysis to highlight their design rationales in different learning scenarios and applications in different computer vision tasks. Lastly, we discuss the emerging trends and open challenges in SSL and UL to shed light on future critical research directions.",
+        "url": "https://doi.org/10.1109/tpami.2022.3201576",
+        "doi": "https://doi.org/10.1109/tpami.2022.3201576",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4293057377"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 191
+      },
+      {
+        "paper_id": "rw_002_29779921f",
+        "title": "A survey on deep learning tools dealing with data scarcity: definitions, challenges, solutions, tips, and applications",
+        "authors": [
+          "Laith Alzubaidi",
+          "Jinshuai Bai",
+          "Aiman Al-Sabaawi",
+          "José Santamaría",
+          "A. S. Albahri",
+          "Bashar Sami Nayyef Al-dabbagh",
+          "Mohammed A. Fadhel",
+          "Mohamed Manoufali",
+          "Jinglan Zhang",
+          "Ali H. Al‐Timemy",
+          "Ye Duan",
+          "Amjed Abdullah",
+          "Laith Farhan",
+          "Yi Lu",
+          "Ashish Gupta",
+          "Felix Albu",
+          "Amin Abbosh",
+          "Yuantong Gu"
+        ],
+        "year": 2023,
+        "publication_date": "2023-04-14",
+        "venue": "Journal Of Big Data",
+        "abstract": "Abstract Data scarcity is a major challenge when training deep learning (DL) models. DL demands a large amount of data to achieve exceptional performance. Unfortunately, many applications have small or inadequate data to train DL frameworks. Usually, manual labeling is needed to provide labeled data, which typically involves human annotators with a vast background of knowledge. This annotation process is costly, time-consuming, and error-prone. Usually, every DL framework is fed by a significant amount of labeled data to automatically learn representations. Ultimately, a larger amount of data would generate a better DL model and its performance is also application dependent. This issue is the main barrier for many applications dismissing the use of DL. Having sufficient data is the first step toward any successful and trustworthy DL application. This paper presents a holistic survey on state-of-the-art techniques to deal with training DL models to overcome three challenges including small, imbalanced datasets, and lack of generalization. This survey starts by listing the learning techniques. Next, the types of DL architectures are introduced. After that, state-of-the-art solutions to address the issue of lack of training data are listed, such as Transfer Learning (TL), Self-Supervised Learning (SSL), Generative Adversarial Networks (GANs), Model Architecture (MA), Physics-Informed Neural Network (PINN), and Deep Synthetic Minority Oversampling Technique (DeepSMOTE). Then, these solutions were followed by some related tips about data acquisition needed prior to training purposes, as well as recommendations for ensuring the trustworthiness of the training dataset. The survey ends with a list of applications that suffer from data scarcity, several alternatives are proposed in order to generate more data in each application including Electromagnetic Imaging (EMI), Civil Structural Health Monitoring, Medical imaging, Meteorology, Wireless Communications, Fluid Mechanics, Microelectromechanical system, and Cybersecurity. To the best of the authors’ knowledge, this is the first review that offers a comprehensive overview on strategies to tackle data scarcity in DL.",
+        "url": "https://doi.org/10.1186/s40537-023-00727-2",
+        "doi": "https://doi.org/10.1186/s40537-023-00727-2",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4365504037"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 823
+      },
+      {
+        "paper_id": "rw_003_e007653fc",
+        "title": "Learning from positive and unlabeled data: a survey",
+        "authors": [
+          "Jessa Bekker",
+          "Jesse Davis"
+        ],
+        "year": 2020,
+        "publication_date": "2020-04-01",
+        "venue": "Machine Learning",
+        "abstract": "Learning from positive and unlabeled data or PU learning is the setting where a learner only has access to positive examples and unlabeled data. The assumption is that the unlabeled data can contain both positive and negative examples. This setting has attracted increasing interest within the machine learning literature as this type of data naturally arises in applications such as medical diagnosis and knowledge base completion. This article provides a survey of the current state of the art in PU learning. It proposes seven key research questions that commonly arise in this field and provides a broad overview of how the field has tried to address them.",
+        "url": "https://doi.org/10.1007/s10994-020-05877-5",
+        "doi": "https://doi.org/10.1007/s10994-020-05877-5",
+        "arxiv_id": "1811.04820v3",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2899867782"
+        },
+        "sources": [
+          "OpenAlex",
+          "arXiv"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 522
+      },
+      {
+        "paper_id": "rw_004_5065205e1",
+        "title": "A random forest guided tour",
+        "authors": [
+          "Gérard Biau",
+          "Erwan Scornet"
+        ],
+        "year": 2016,
+        "publication_date": "2016-04-19",
+        "venue": "Test",
+        "abstract": "",
+        "url": "https://doi.org/10.1007/s11749-016-0481-7",
+        "doi": "https://doi.org/10.1007/s11749-016-0481-7",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2216946510"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 3935
+      },
+      {
+        "paper_id": "rw_005_f9cc70b5c",
+        "title": "A survey on concept drift adaptation",
+        "authors": [
+          "João Gama",
+          "Indrė Žliobaitė",
+          "Albert Bifet",
+          "Mykola Pechenizkiy",
+          "Abdelhamid Bouchachia"
+        ],
+        "year": 2014,
+        "publication_date": "2014-03-01",
+        "venue": "ACM Computing Surveys",
+        "abstract": "Concept drift primarily refers to an online supervised learning scenario when the relation between the input data and the target variable changes over time. Assuming a general knowledge of supervised learning in this article, we characterize adaptive learning processes; categorize existing strategies for handling concept drift; overview the most representative, distinct, and popular techniques and algorithms; discuss evaluation methodology of adaptive algorithms; and present a set of illustrative applications. The survey covers the different facets of concept drift in an integrated way to reflect on the existing scattered state of the art. Thus, it aims at providing a comprehensive introduction to the concept drift adaptation for researchers, industry analysts, and practitioners.",
+        "url": "https://doi.org/10.1145/2523813",
+        "doi": "https://doi.org/10.1145/2523813",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2099419573"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 3408
+      },
+      {
+        "paper_id": "rw_006_aa84c461e",
+        "title": "Supervised and unsupervised learning of multidimensional acoustic categories.",
+        "authors": [
+          "Martijn Goudbeek",
+          "Daniel Swingley",
+          "Roel Smits"
+        ],
+        "year": 2009,
+        "publication_date": "2009-12-01",
+        "venue": "Journal of Experimental Psychology Human Perception & Performance",
+        "abstract": "Learning to recognize the contrasts of a language-specific phonemic repertoire can be viewed as forming categories in a multidimensional psychophysical space. Research on the learning of distributionally defined visual categories has shown that categories defined over 1 dimension are easy to learn and that learning multidimensional categories is more difficult but tractable under specific task conditions. In 2 experiments, adult participants learned either a unidimensional or a multidimensional category distinction with or without supervision (feedback) during learning. The unidimensional distinctions were readily learned and supervision proved beneficial, especially in maintaining category learning beyond the learning phase. Learning the multidimensional category distinction proved to be much more difficult and supervision was not nearly as beneficial as with unidimensionally defined categories. Maintaining a learned multidimensional category distinction was only possible when the distributional information that identified the categories remained present throughout the testing phase. We conclude that listeners are sensitive to both trial-by-trial feedback and the distributional information in the stimuli. Even given limited exposure, listeners learned to use 2 relevant dimensions, albeit with considerable difficulty.",
+        "url": "https://doi.org/10.1037/a0015781",
+        "doi": "https://doi.org/10.1037/a0015781",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2047733998"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 105
+      },
+      {
+        "paper_id": "rw_007_e9536a8e9",
+        "title": "Machine Learning and Integrative Analysis of Biomedical Big Data",
+        "authors": [
+          "Bilal Mirza",
+          "Wei Wang",
+          "Jie Wang",
+          "Howard Choi",
+          "Neo Christopher Chung",
+          "Peipei Ping"
+        ],
+        "year": 2019,
+        "publication_date": "2019-01-28",
+        "venue": "Genes",
+        "abstract": "Recent developments in high-throughput technologies have accelerated the accumulation of massive amounts of omics data from multiple sources: genome, epigenome, transcriptome, proteome, metabolome, etc. Traditionally, data from each source (e.g., genome) is analyzed in isolation using statistical and machine learning (ML) methods. Integrative analysis of multi-omics and clinical data is key to new biomedical discoveries and advancements in precision medicine. However, data integration poses new computational challenges as well as exacerbates the ones associated with single-omics studies. Specialized computational approaches are required to effectively and efficiently perform integrative analysis of biomedical data acquired from diverse modalities. In this review, we discuss state-of-the-art ML-based approaches for tackling five specific computational challenges associated with integrative analysis: curse of dimensionality, data heterogeneity, missing data, class imbalance and scalability issues.",
+        "url": "https://doi.org/10.3390/genes10020087",
+        "doi": "https://doi.org/10.3390/genes10020087",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2912411326"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 388
+      },
+      {
+        "paper_id": "rw_008_43f269f04",
+        "title": "A review on machine learning principles for multi-view biological data integration",
+        "authors": [
+          "Yifeng Li",
+          "Fang‐Xiang Wu",
+          "Alioune Ngom"
+        ],
+        "year": 2016,
+        "publication_date": "2016-10-25",
+        "venue": "Briefings in Bioinformatics",
+        "abstract": "Driven by high-throughput sequencing techniques, modern genomic and clinical studies are in a strong need of integrative machine learning models for better use of vast volumes of heterogeneous information in the deep understanding of biological systems and the development of predictive models. How data from multiple sources (called multi-view data) are incorporated in a learning system is a key step for successful analysis. In this article, we provide a comprehensive review on omics and clinical data integration techniques, from a machine learning perspective, for various analyses such as prediction, clustering, dimension reduction and association. We shall show that Bayesian models are able to use prior information and model measurements with various distributions; tree-based methods can either build a tree with all features or collectively make a final decision based on trees learned from each view; kernel methods fuse the similarity matrices learned from individual views together for a final similarity matrix or learning model; network-based fusion methods are capable of inferring direct and indirect associations in a heterogeneous network; matrix factorization models have potential to learn interactions among features from different views; and a range of deep neural networks can be integrated in multi-modal learning for capturing the complex mechanism of biological systems.",
+        "url": "https://doi.org/10.1093/bib/bbw113",
+        "doi": "https://doi.org/10.1093/bib/bbw113",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2567080747"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 439
+      },
+      {
+        "paper_id": "rw_009_f91b069d7",
+        "title": "Pose Prior Learner: Unsupervised Categorical Prior Learning for Pose Estimation",
+        "authors": [
+          "Ziyu Wang",
+          "Shuangpeng Han",
+          "Mengmi Zhang"
+        ],
+        "year": 2024,
+        "publication_date": "2024-10-04",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "A prior represents a set of beliefs or assumptions about a system, aiding inference and decision-making. In this paper, we introduce the challenge of unsupervised categorical prior learning in pose estimation, where AI models learn a general pose prior for an object category from images in a self-supervised manner. Although priors are effective in estimating pose, acquiring them can be difficult. We propose a novel method, named Pose Prior Learner (PPL), to learn a general pose prior for any object category. PPL uses a hierarchical memory to store compositional parts of prototypical poses, from which we distill a general pose prior. This prior improves pose estimation accuracy through template transformation and image reconstruction. PPL learns meaningful pose priors without any additional human annotations or interventions, outperforming competitive baselines on both human and animal pose estimation datasets. Notably, our experimental results reveal the effectiveness of PPL using learned prototypical poses for pose estimation on occluded images. Through iterative inference, PPL leverages the pose prior to refine estimated poses, regressing them to any prototypical poses stored in memory. Our code, model, and data are publicly available at: https://github.com/ZhangLab-DeepNeuroCogLab/Pose-Prior-Learner.",
+        "url": "http://arxiv.org/abs/2410.03858",
+        "doi": "https://doi.org/10.48550/arxiv.2410.03858",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W7134999603"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 0
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_009_f91b069d7",
+        "relevance_score": 1.0,
+        "relevance_types": [
+          "same_problem",
+          "same_method",
+          "benchmark_baseline",
+          "novelty_competitor"
+        ],
+        "rationale": "This is the same paper as the target, with an identical title, abstract, and authors, making it a direct duplicate.",
+        "evidence_summary": "In 2024, Wang et al. published 'Pose Prior Learner: Unsupervised Categorical Prior Learning for Pose Estimation,' which introduced the challenge of unsupervised categorical prior learning for pose estimation. The method, Pose Prior Learner (PPL), uses a hierarchical memory to store compositional parts of prototypical poses and distills a general prior to improve pose accuracy via template transformation and image reconstruction."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_002_29779921f",
+        "relevance_score": 0.78,
+        "relevance_types": [
+          "same_problem",
+          "same_constraints",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The survey addresses data scarcity and the challenges of manual annotation, which are central constraints mentioned in the target paper regarding the difficulty of acquiring human-annotated pose priors.",
+        "evidence_summary": "In 2023, Alzubaidi et al. published 'A survey on deep learning tools dealing with data scarcity: definitions, challenges, solutions, tips, and applications,' which defines the challenge of data scarcity as a major barrier for deep learning. The survey catalogues state-of-the-art solutions, such as Transfer Learning and Self-Supervised Learning, which are relevant for learning from limited or unlabeled data."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_001_7e1c9f90e",
+        "relevance_score": 0.76,
+        "relevance_types": [
+          "same_problem",
+          "same_method"
+        ],
+        "rationale": "The survey provides a unified taxonomy for semi-supervised and unsupervised learning paradigms, which is relevant as the target paper's method is an unsupervised, self-supervised approach for learning priors.",
+        "evidence_summary": "In 2022, Chen et al. published 'Semi-Supervised and Unsupervised Deep Visual Learning: A Survey' in IEEE Transactions on Pattern Analysis and Machine Intelligence. The survey reviews recent algorithms in SSL and UL for visual recognition, proposing a unified taxonomy and highlighting design rationales for learning from unlabeled data to improve generalization."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_003_e007653fc",
+        "relevance_score": 0.65,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This survey on learning from positive and unlabeled data discusses a setting relevant to the target's self-supervised learning scenario, where only specific types of data are available.",
+        "evidence_summary": "In 2020, Bekker and Davis published 'Learning from positive and unlabeled data: a survey' in Machine Learning. The article surveys the PU learning setting, where only positive examples and unlabeled data are available, and addresses key research questions that arise when handling this type of data."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_006_aa84c461e",
+        "relevance_score": 0.57,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The paper experimentally compares supervised and unsupervised learning of multidimensional categories, providing findings on the benefits of supervision and the difficulty of learning multidimensional distinctions, which relates to the target's unsupervised categorical prior learning.",
+        "evidence_summary": "In 2009, Goudbeek et al. published 'Supervised and unsupervised learning of multidimensional acoustic categories.' in the Journal of Experimental Psychology Human Perception & Performance. The research found that supervision was beneficial for unidimensional category learning but less so for multidimensional distinctions, which were learned with considerable difficulty even with distributional information."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_007_e9536a8e9",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "same_constraints"
+        ],
+        "rationale": "The paper reviews machine learning challenges like the curse of dimensionality and data heterogeneity in integrative analysis, which are general computational constraints potentially relevant to multi-modal or multi-view pose estimation.",
+        "evidence_summary": "In 2019, Mirza et al. published 'Machine Learning and Integrative Analysis of Biomedical Big Data' in Genes. The review discusses computational challenges such as the curse of dimensionality, data heterogeneity, and missing data that arise in the integrative analysis of multi-omics and clinical data."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_008_43f269f04",
+        "relevance_score": 0.43,
+        "relevance_types": [
+          "same_constraints"
+        ],
+        "rationale": "This review discusses machine learning principles for multi-view data integration, a challenge that parallels the integration of different information sources, which is a broader computational concern.",
+        "evidence_summary": "In 2016, Li et al. published 'A review on machine learning principles for multi-view biological data integration' in Briefings in Bioinformatics. The article provides an overview of integration techniques such as Bayesian models, kernel methods, and matrix factorization for multi-omics and clinical data analysis."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_005_f9cc70b5c",
+        "relevance_score": 0.25,
+        "relevance_types": [
+          "limitations_counterevidence"
+        ],
+        "rationale": "The survey on concept drift adaptation covers online learning when data relationships change over time, which is a tangential limitation area not directly addressed in the target paper's static prior learning.",
+        "evidence_summary": "In 2014, Gama et al. published 'A survey on concept drift adaptation' in ACM Computing Surveys. The survey characterizes adaptive learning processes and strategies for handling changes in the relation between input data and target variables over time in online supervised learning scenarios."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_004_5065205e1",
+        "relevance_score": 0.15,
+        "relevance_types": [],
+        "rationale": "The paper is a guided tour on random forests, a classic machine learning method, but its content does not address pose estimation, unsupervised learning, or prior learning, making it only weakly related.",
+        "evidence_summary": "In 2016, Biau and Scornet published 'A random forest guided tour' in Test. The paper provides a theoretical and practical overview of the random forest ensemble learning method."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Ziyu Wang et al. published \"Pose Prior Learner: Unsupervised Categorical Prior Learning for Pose Estimation\" in arXiv (Cornell University). The authors propose a novel method, named Pose Prior Learner (PPL), to learn a general pose prior for any object category. PPL learns meaningful pose priors without any additional human annotations or interventions, outperforming competitive baselines on both human and animal pose estimation datasets. A prior represents a set of beliefs or assumptions about a system, aiding inference and decision-making. In 2023, Laith Alzubaidi et al. published \"A survey on deep learning tools dealing with data scarcity: definitions, challenges, solutions, tips, and applications\" in Journal Of Big Data. Usually, every DL framework is fed by a significant amount of labeled data to automatically learn representations. DL demands a large amount of data to achieve exceptional performance. The survey ends with a list of applications that suffer from data scarcity, several alternatives are proposed in order to generate more data in each application including Electromagnetic Imaging (EMI), Civil Structural Health Monitoring, Medical imaging, Meteorology, Wireless Communications, Fluid Mechanics, Microelectromechanical system, and Cybersecurity. In 2022, Yanbei Chen et al. published \"Semi-Supervised and Unsupervised Deep Visual Learning: A Survey\" in IEEE Transactions on Pattern Analysis and Machine Intelligence. To offer a holistic understanding of the state-of-the-art in these areas, the authors propose a unified taxonomy. However, requiring exhaustive manual annotations may degrade the model's generalizability in the limited-label regime.Semi-supervised learning and unsupervised learning offer promising paradigms to learn from an abundance of unlabeled visual data. The authors categorize existing representative SSL and UL with comprehensive and insightful analysis to highlight their design rationales in different learning scenarios and applications in different computer vision tasks. In 2020, Jessa Bekker and Jesse Davis published \"Learning from positive and unlabeled data: a survey\" in Machine Learning. It proposes seven key research questions that commonly arise in this field and provides a broad overview of how the field has tried to address them. Learning from positive and unlabeled data or PU learning is the setting where a learner only has access to positive examples and unlabeled data. The assumption is that the unlabeled data can contain both positive and negative examples. In 2009, Martijn Goudbeek et al. published \"Supervised and unsupervised learning of multidimensional acoustic categories.\" in Journal of Experimental Psychology Human Perception & Performance. Maintaining a learned multidimensional category distinction was only possible when the distributional information that identified the categories remained present throughout the testing phase. Research on the learning of distributionally defined visual categories has shown that categories defined over 1 dimension are easy to learn and that learning multidimensional categories is more difficult but tractable under specific task conditions. In 2019, Bilal Mirza et al. published \"Machine Learning and Integrative Analysis of Biomedical Big Data\" in Genes. Recent developments in high-throughput technologies have accelerated the accumulation of massive amounts of omics data from multiple sources: genome, epigenome, transcriptome, proteome, metabolome, etc. Traditionally, data from each source (e.g., genome) is analyzed in isolation using statistical and machine learning (ML) methods. Specialized computational approaches are required to effectively and efficiently perform integrative analysis of biomedical data acquired from diverse modalities.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 9,
+      "num_removed_post_cutoff": 0,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 9,
+    "num_removed_post_cutoff": 0,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

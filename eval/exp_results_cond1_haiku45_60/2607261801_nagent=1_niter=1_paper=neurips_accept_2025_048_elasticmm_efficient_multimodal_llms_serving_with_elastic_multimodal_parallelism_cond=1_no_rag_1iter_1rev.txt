@@ -1,0 +1,200 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Well-motivated problem with clear identification of limitations in existing tightly-coupled MLLM serving systems. The paper provides compelling evidence (Figures 1a-c, Table 1) showing how MLLM-specific characteristics create bottlenecks that general LLM serving systems fail to address.",
+        "Comprehensive system design with two complementary hierarchical levels (modality-level and stage-level). The proposed Elastic Multimodal Parallelism framework is thoughtfully designed, combining decoupling with elasticity through modality-aware load balancing and elastic partition scheduling with principled gain-cost models (Equations 2-3).",
+        "Strong experimental results demonstrating substantial improvements: up to 4.2× TTFT reduction and 3.2-4.5× throughput improvement over vLLM while maintaining SLO compliance. Evaluation uses two representative MLLM architectures (decoder-only and encoder-decoder), two real-world datasets with different characteristics, and includes reasonable baselines and ablation studies.",
+        "Practical optimizations that address real MLLM-specific overheads: unified multimodal prefix caching reduces redundant computation across vision and language models, while non-blocking encoding effectively decouples the vision encoder from subsequent stages, each contributing measurable performance gains.",
+        "Thorough presentation with clear motivation (Section 2), well-organized system design (Section 3), and transparent disclosure of evaluation setup and limitations. The paper acknowledges single-node constraints and identifies multi-node deployment as future work."
+      ],
+      "weaknesses": [
+        "Evaluation limited to single-node 8×A800 GPU setup without multi-node distributed experiments, which significantly constrains the scope and applicability of findings for production-scale deployment scenarios.",
+        "Gain-cost model formulations (Equations 2-3) and scheduling decisions lack theoretical analysis or convergence guarantees. The paper provides heuristic strategies without formal justification for optimality or characterization of worst-case behavior.",
+        "Minimal comparison with related work—DistServe is the only disaggregated baseline, and recent MLLM-specific systems (ModServe [22], EPD [52]) are mentioned but not experimentally compared, limiting the assessment of ElasticMM's advantages.",
+        "Limited exploration of how design choices scale and generalize: only two specific MLLM architectures tested, impact of different GPU types/clusters not studied, and applicability to emerging modalities (video, audio) not demonstrated despite being mentioned in the abstract.",
+        "Key implementation details and hyperparameter settings (tunable penalty factor w, scaling thresholds, memory management strategies) are not fully specified, which could impact reproducibility and the portability of results to different configurations."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Evaluation limited to single-node 8×A800 GPU setup without multi-node distributed experiments, which significantly constrains the scope and applicability of findings for production-scale deployment scenarios.",
+          "severity": "major",
+          "evidence": "Section 4.1 explicitly states testbed is 'a high-end workstation equipped with eight NVIDIA A800 80GB GPUs' and conclusion acknowledges 'We leave multi-node distributed studies to future work.' For production systems, this is a critical limitation as distributed inference is the norm for large-scale serving.",
+          "affected_claim": "The claim that ElasticMM 'achieves up to 4.2× reduction in TTFT and 3.2-4.5× higher throughput' is based solely on single-node evaluation, limiting generalizability to real production deployments that typically span multiple nodes.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Gain-cost model formulations (Equations 2-3) and scheduling decisions lack theoretical analysis or convergence guarantees. The paper provides heuristic strategies without formal justification for optimality or characterization of worst-case behavior.",
+          "severity": "major",
+          "evidence": "Equations 2 and 3 present empirical gain-cost models for preemption decisions, but there is no analysis of whether the greedy scheduling approach is optimal, no bounds on approximation ratio, and no convergence proofs. The tunable penalty factor w is introduced as 'enabling flexible system behavior' but without principled guidelines for setting it.",
+          "affected_claim": "The claim that elastic partition scheduling 'maximizes GPU efficiency' and the modality-aware load balancing achieves 'maximum burst tolerance' lack formal theoretical support.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Minimal comparison with related work—DistServe is the only disaggregated baseline, and recent MLLM-specific systems (ModServe [22], EPD [52]) are mentioned but not experimentally compared, limiting the assessment of ElasticMM's advantages.",
+          "severity": "major",
+          "evidence": "Section 4.1 mentions only vLLM (coupled) and DistServe (disaggregated) as baselines. Related work Section 5 cites ModServe [22] and EPD [52] as recent MLLM-specific systems, but they are not included in the experimental evaluation. The paper justifies this by noting these are concurrent work, but this still limits clarity on ElasticMM's comparative positioning.",
+          "affected_claim": "The claim of 'outperforming state-of-the-art (SOTA) serving systems' cannot be fully substantiated without comparison to other recent MLLM-specific approaches.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Limited exploration of how design choices scale and generalize: only two specific MLLM architectures tested, impact of different GPU types/clusters not studied, and applicability to emerging modalities (video, audio) not demonstrated despite being mentioned in the abstract.",
+          "severity": "minor",
+          "evidence": "Section 4.1 evaluates only LLaMA3.2-Vision-11B and Qwen2.5-VL-7B. Abstract mentions 'images, videos, and audio' but evaluation covers only vision-language models. No experiments with different GPU architectures (e.g., H100, L40) or multi-GPU topologies beyond NVLink within a single node.",
+          "affected_claim": "The generality of the approach to diverse MLLM architectures and modalities is claimed but not substantiated experimentally.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Key implementation details and hyperparameter settings (tunable penalty factor w, scaling thresholds, memory management strategies) are not fully specified, which could impact reproducibility and the portability of results to different configurations.",
+          "severity": "minor",
+          "evidence": "Section 3.2 mentions 'tunable penalty factor w' but does not specify how it is set for experiments. The paper states 'scaling thresholds through offline profiling' but provides no details on the profiling methodology or resulting threshold values. These details are crucial for reproducibility.",
+          "affected_claim": "The claim that the system can be reproduced with sufficient detail is partially undermined by missing hyperparameter specifications.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The core technical approach is sound. The hierarchical decomposition into modality-level and stage-level management is well-motivated and logically coherent. The gain-cost models (Equations 2-3) are reasonable heuristics for scheduling decisions, though lacking formal theoretical justification. The experimental methodology is rigorous with controlled baselines, appropriate metrics (TTFT, throughput, SLO compliance), and ablation studies isolating individual contributions. No significant logical flaws or invalid claims were identified."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper makes solid contributions to MLLM serving. While stage disaggregation (prefill/decode separation) exists in prior LLM systems, the two-tier separation architecture combining modality-group isolation with stage-level elastic scheduling is novel. The unified multimodal prefix caching extends existing prefix caching ideas to the multimodal domain in a new way. Non-blocking encoding, while conceptually simple, is a practical contribution. The hierarchical elastic scheduling framework represents a meaningful advance over static decoupling approaches like DistServe."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The work addresses a timely and important problem: efficient serving of rapidly-emerging MLLMs in production environments. The demonstrated performance improvements (4.2× TTFT reduction, 3.2-4.5× throughput) are substantial and practically meaningful for SLO-sensitive inference services. The system design provides insights applicable to other heterogeneous inference workloads. However, significance is somewhat limited by restriction to single-node evaluation and lack of comparison with concurrent MLLM-specific systems, which prevents full assessment of impact relative to the state-of-the-art."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The experimental evaluation is reasonably comprehensive within its scope. Two real-world datasets (VisualWebInstruct, ShareGPT-4o) with complementary characteristics are used. Two representative MLLM architectures (decoder-only, encoder-decoder) are tested. Baselines (vLLM, DistServe) are reasonable. Ablation studies effectively isolate the contributions of EMP and MLLM-specific optimizations. Results show consistent improvements across multiple SLO settings. However, the single-node limitation and absence of comparisons with ModServe/EPD reduce evaluation comprehensiveness. Error bars are mentioned as provided in supplementary materials but not visible in figures, making it difficult to assess statistical significance in the submitted version."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written with well-organized sections. Figures (especially Figures 2, 3, 4) effectively communicate the system architecture and scheduling mechanisms. Motivation is compelling and clearly presented in Section 2. Technical contributions are precisely described in Section 3. Experimental setup is adequately detailed in Section 4.1. The paper acknowledges limitations transparently. Some improvements could be made (e.g., specifying hyperparameter values, providing error bars in main figures), but overall presentation is strong and suitable for a top-tier venue."
+        }
+      },
+      "summary_comment": "This paper presents ElasticMM, a well-motivated and thoughtfully designed system for efficient multimodal LLM serving. The core insight—that MLLM serving requires both modality-level and stage-level adaptation through elastic scheduling—is valuable and addresses real limitations in existing tightly-coupled systems. The two-tier architecture with modality-aware load balancing and elastic partition scheduling is novel, and the multimodal-specific optimizations (unified prefix caching, non-blocking encoding) are practical contributions. Experimental results demonstrate substantial improvements (up to 4.2× TTFT reduction, 3.2-4.5× throughput improvement) over vLLM and DistServe baselines on representative MLLM architectures using real-world datasets. The evaluation includes appropriate ablations isolating individual contributions. However, the work has notable limitations: (1) evaluation restricted to a single-node 8×A800 setup without multi-node experiments, significantly limiting applicability to production-scale deployments; (2) lack of formal theoretical analysis of the scheduling algorithms or convergence guarantees; (3) no experimental comparison with concurrent MLLM-specific systems (ModServe, EPD) despite mentioning them in related work; (4) limited exploration of generalization across diverse MLLM architectures, GPU types, and emerging modalities (video, audio) mentioned in the abstract. The gain-cost models appear reasonable but lack principled guidelines for hyperparameter setting (e.g., penalty factor w). Despite these limitations, the system design is sound, the technical approach is novel within its scope, and the practical improvements are significant. The paper makes a solid contribution to an important and timely problem, though the single-node evaluation and narrow baseline comparisons prevent it from being a strong accept. The work would benefit from multi-node evaluation and additional baseline comparisons before deployment in production systems, but the core contributions are valuable for the MLLM serving research community."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"The paper addresses machine learning systems optimization, a core ICML topic. ElasticMM presents novel scheduling algorithms and resource allocation strategies that advance ML systems research.\",\n      \"The work involves principled design of gain-cost models (Equations 2-3) for scheduling decisions, which relates to ICML's interest in optimization and decision-making algorithms.\",\n      \"The paper includes comprehensive experimental evaluation with ablation studies isolating individual contributions, demonstrating empirical rigor valued at ICML.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The paper is fundamentally a systems engineering contribution focused on inference serving infrastructure rather than advancing machine learning algorithms, theory, or models. ICML's primary focus is on machine learning methodology, not production deployment systems.\",\n      \"ElasticMM lacks theoretical contributions. The scheduling algorithms are heuristic-based without convergence proofs, approximation bounds, or formal analysis—areas where ICML expects rigorous mathematical foundation for non-systems work.\",\n      \"The evaluation is limited to a single-node 8×A800 GPU setup, which is insufficient for ICML's standards for systems work. ICML typically expects broader evaluation across diverse hardware configurations and scales.\",\n      \"The paper makes minimal algorithmic or methodological innovations. The core techniques (load balancing, elastic scheduling, prefix caching) are applications of existing principles rather than novel ML contributions.\",\n      \"Topic mismatch: The paper is explicitly categorized as 'Others' and is primarily about inference system design and resource management, not core ML (learning algorithms, theory, models).\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"NeurIPS explicitly welcomes systems-oriented ML infrastructure contributions. The conference has a strong track record of accepting papers on 'SysML Infrastructure' and 'AI/ML for scalability', which align directly with ElasticMM's focus.\",\n      \"The paper addresses a timely and urgent problem in the ML community: efficient serving of rapidly-emerging multimodal large language models. This is highly relevant to NeurIPS's broad audience working with modern ML systems.\",\n      \"The comprehensive experimental evaluation on real-world datasets and models (LLaMA3.2-Vision, Qwen2.5-VL) with two different architectures (encoder-decoder, decoder-only) demonstrates the rigor NeurIPS values. The ablation studies effectively isolate contributions.\",\n      \"The work demonstrates substantial practical impact with up to 4.2× improvement in TTFT and 3.2-4.5× throughput gains over state-of-the-art systems—the kind of impactful results NeurIPS appreciates.\",\n      \"The paper is well-written with clear motivation, thorough related work, and transparent acknowledgment of limitations. This presentation quality aligns with NeurIPS standards.\",\n      \"The hierarchical elastic scheduling framework represents a novel serving paradigm that advances infrastructure for deploying MLLMs—an active area of NeurIPS research.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Evaluation is strictly single-node (8×A800). NeurIPS systems papers typically demonstrate scalability across multiple nodes and distributed settings. This is a critical gap for a systems infrastructure paper.\",\n      \"Limited baseline comparisons: Only vLLM and DistServe are experimentally evaluated. The paper mentions but does not compare against concurrent MLLM-specific systems (ModServe [22], EPD [52]), limiting the assessment of how well ElasticMM compares to the true state-of-the-art.\",\n      \"Lack of theoretical justification for design choices. While NeurIPS accepts systems papers, they still expect sound reasoning. The gain-cost models and scheduling heuristics lack formal analysis, convergence guarantees, or principled hyperparameter setting guidelines.\",\n      \"Generalization concerns: Only two specific MLLM architectures tested (Llama 3.2-Vision, Qwen2.5-VL). The abstract mentions audio and video, but evaluation covers only vision-language models. Limited exploration of diverse GPU types or hardware configurations.\",\n      \"Implementation reproducibility issues: Key details like the tunable penalty factor w, scaling thresholds, and memory management strategies are underspecified, which could hinder reproduction and adoption.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"ICLR's scope includes 'infrastructure, software libraries, hardware' and 'applications to physical sciences and other domains', which could encompass systems work supporting deep learning deployment.\",\n      \"The paper involves representation learning optimization in multimodal contexts (vision-language encoders), which is within ICLR's core interests.\",\n      \"ElasticMM improves inference efficiency for deep learning models at scale, which relates to ICLR's focus on practical deep learning systems.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICLR is fundamentally focused on representation learning, deep learning architectures, and learning theory—not inference serving infrastructure. The paper makes zero contributions to these core areas.\",\n      \"The paper does not advance understanding of learned representations, model architectures, or learning algorithms. It is purely an engineering optimization for existing models.\",\n      \"ICLR's infrastructure topics are secondary to its primary focus on learning and representation. A systems infrastructure paper without deep learning methodology innovations is a poor fit for ICLR's audience and review standards.\",\n      \"The evaluation does not probe questions central to ICLR (e.g., how do architectural choices affect learnability, robustness, or generalization?). Instead, it focuses on throughput and latency metrics relevant to systems venues.\",\n      \"No novel insights into representation learning, model design, or learning theory. The work is orthogonal to ICLR's core mission of advancing deep learning research.\",\n      \"The single-node evaluation and narrow scope (vision-language models only) further limit applicability to ICLR's expectations for comprehensive deep learning studies.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\n**Best Fit: NeurIPS (fit_score: 7)**\n\nThis paper is a solid **systems infrastructure contribution** that makes practical and novel advances in multimodal LLM serving. It is **best suited for NeurIPS**, which has:\n- An established track for systems/infrastructure papers (\"SysML Infrastructure\")\n- Audience engagement with deployment and scalability challenges\n- Tolerance for engineering contributions alongside theoretical work\n\n**Why not ICML (5)?**\nICML is more focused on machine learning algorithms, theory, and models. While ElasticMM involves optimization heuristics, it lacks the algorithmic novelty or theoretical depth ICML expects. The systems focus is secondary at ICML.\n\n**Why not ICLR (4)?**\nICLR is centered on representation learning and deep learning architectures. This infrastructure paper contributes nothing to those domains and would be out of place in a primarily learning-focused venue.\n\n---\n\n## Key Concerns for NeurIPS Submission\n\n1. **Single-node evaluation is a significant limitation.** Multi-node experiments would substantially strengthen the submission and reduce reviewer skepticism about production applicability.\n\n2. **Missing baseline comparisons** with ModServe [22] and EPD [52] weaken claims of being \"state-of-the-art.\" Including these (if feasible) would address a major reviewer concern.\n\n3. **Hyperparameter underspecification** (penalty factor w, scaling thresholds) should be clarified in camera-ready version for reproducibility.\n\n4. **Generalization claims** about video/audio should either be demonstrated or removed from the abstract.\n\nDespite these limitations, the core contribution is solid, the results are strong, and the paper is well-executed. It is **acceptable for NeurIPS** but would benefit from addressing the above points to improve reviewer confidence.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Well-motivated problem with clear identification of limitations in existing tightly-coupled MLLM serving systems. The paper provides compelling evidence (Figures 1a-c, Table 1) showing how MLLM-specific characteristics create bottlenecks that general LLM serving systems fail to address.",
+              "Comprehensive system design with two complementary hierarchical levels (modality-level and stage-level). The proposed Elastic Multimodal Parallelism framework is thoughtfully designed, combining decoupling with elasticity through modality-aware load balancing and elastic partition scheduling with principled gain-cost models (Equations 2-3).",
+              "Strong experimental results demonstrating substantial improvements: up to 4.2× TTFT reduction and 3.2-4.5× throughput improvement over vLLM while maintaining SLO compliance. Evaluation uses two representative MLLM architectures (decoder-only and encoder-decoder), two real-world datasets with different characteristics, and includes reasonable baselines and ablation studies.",
+              "Practical optimizations that address real MLLM-specific overheads: unified multimodal prefix caching reduces redundant computation across vision and language models, while non-blocking encoding effectively decouples the vision encoder from subsequent stages, each contributing measurable performance gains.",
+              "Thorough presentation with clear motivation (Section 2), well-organized system design (Section 3), and transparent disclosure of evaluation setup and limitations. The paper acknowledges single-node constraints and identifies multi-node deployment as future work."
+            ],
+            "weaknesses": [
+              "Evaluation limited to single-node 8×A800 GPU setup without multi-node distributed experiments, which significantly constrains the scope and applicability of findings for production-scale deployment scenarios.",
+              "Gain-cost model formulations (Equations 2-3) and scheduling decisions lack theoretical analysis or convergence guarantees. The paper provides heuristic strategies without formal justification for optimality or characterization of worst-case behavior.",
+              "Minimal comparison with related work—DistServe is the only disaggregated baseline, and recent MLLM-specific systems (ModServe [22], EPD [52]) are mentioned but not experimentally compared, limiting the assessment of ElasticMM's advantages.",
+              "Limited exploration of how design choices scale and generalize: only two specific MLLM architectures tested, impact of different GPU types/clusters not studied, and applicability to emerging modalities (video, audio) not demonstrated despite being mentioned in the abstract.",
+              "Key implementation details and hyperparameter settings (tunable penalty factor w, scaling thresholds, memory management strategies) are not fully specified, which could impact reproducibility and the portability of results to different configurations."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Evaluation limited to single-node 8×A800 GPU setup without multi-node distributed experiments, which significantly constrains the scope and applicability of findings for production-scale deployment scenarios.",
+                "severity": "major",
+                "evidence": "Section 4.1 explicitly states testbed is 'a high-end workstation equipped with eight NVIDIA A800 80GB GPUs' and conclusion acknowledges 'We leave multi-node distributed studies to future work.' For production systems, this is a critical limitation as distributed inference is the norm for large-scale serving.",
+                "affected_claim": "The claim that ElasticMM 'achieves up to 4.2× reduction in TTFT and 3.2-4.5× higher throughput' is based solely on single-node evaluation, limiting generalizability to real production deployments that typically span multiple nodes.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Gain-cost model formulations (Equations 2-3) and scheduling decisions lack theoretical analysis or convergence guarantees. The paper provides heuristic strategies without formal justification for optimality or characterization of worst-case behavior.",
+                "severity": "major",
+                "evidence": "Equations 2 and 3 present empirical gain-cost models for preemption decisions, but there is no analysis of whether the greedy scheduling approach is optimal, no bounds on approximation ratio, and no convergence proofs. The tunable penalty factor w is introduced as 'enabling flexible system behavior' but without principled guidelines for setting it.",
+                "affected_claim": "The claim that elastic partition scheduling 'maximizes GPU efficiency' and the modality-aware load balancing achieves 'maximum burst tolerance' lack formal theoretical support.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Minimal comparison with related work—DistServe is the only disaggregated baseline, and recent MLLM-specific systems (ModServe [22], EPD [52]) are mentioned but not experimentally compared, limiting the assessment of ElasticMM's advantages.",
+                "severity": "major",
+                "evidence": "Section 4.1 mentions only vLLM (coupled) and DistServe (disaggregated) as baselines. Related work Section 5 cites ModServe [22] and EPD [52] as recent MLLM-specific systems, but they are not included in the experimental evaluation. The paper justifies this by noting these are concurrent work, but this still limits clarity on ElasticMM's comparative positioning.",
+                "affected_claim": "The claim of 'outperforming state-of-the-art (SOTA) serving systems' cannot be fully substantiated without comparison to other recent MLLM-specific approaches.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited exploration of how design choices scale and generalize: only two specific MLLM architectures tested, impact of different GPU types/clusters not studied, and applicability to emerging modalities (video, audio) not demonstrated despite being mentioned in the abstract.",
+                "severity": "minor",
+                "evidence": "Section 4.1 evaluates only LLaMA3.2-Vision-11B and Qwen2.5-VL-7B. Abstract mentions 'images, videos, and audio' but evaluation covers only vision-language models. No experiments with different GPU architectures (e.g., H100, L40) or multi-GPU topologies beyond NVLink within a single node.",
+                "affected_claim": "The generality of the approach to diverse MLLM architectures and modalities is claimed but not substantiated experimentally.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Key implementation details and hyperparameter settings (tunable penalty factor w, scaling thresholds, memory management strategies) are not fully specified, which could impact reproducibility and the portability of results to different configurations.",
+                "severity": "minor",
+                "evidence": "Section 3.2 mentions 'tunable penalty factor w' but does not specify how it is set for experiments. The paper states 'scaling thresholds through offline profiling' but provides no details on the profiling methodology or resulting threshold values. These details are crucial for reproducibility.",
+                "affected_claim": "The claim that the system can be reproduced with sufficient detail is partially undermined by missing hyperparameter specifications.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core technical approach is sound. The hierarchical decomposition into modality-level and stage-level management is well-motivated and logically coherent. The gain-cost models (Equations 2-3) are reasonable heuristics for scheduling decisions, though lacking formal theoretical justification. The experimental methodology is rigorous with controlled baselines, appropriate metrics (TTFT, throughput, SLO compliance), and ablation studies isolating individual contributions. No significant logical flaws or invalid claims were identified."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper makes solid contributions to MLLM serving. While stage disaggregation (prefill/decode separation) exists in prior LLM systems, the two-tier separation architecture combining modality-group isolation with stage-level elastic scheduling is novel. The unified multimodal prefix caching extends existing prefix caching ideas to the multimodal domain in a new way. Non-blocking encoding, while conceptually simple, is a practical contribution. The hierarchical elastic scheduling framework represents a meaningful advance over static decoupling approaches like DistServe."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a timely and important problem: efficient serving of rapidly-emerging MLLMs in production environments. The demonstrated performance improvements (4.2× TTFT reduction, 3.2-4.5× throughput) are substantial and practically meaningful for SLO-sensitive inference services. The system design provides insights applicable to other heterogeneous inference workloads. However, significance is somewhat limited by restriction to single-node evaluation and lack of comparison with concurrent MLLM-specific systems, which prevents full assessment of impact relative to the state-of-the-art."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is reasonably comprehensive within its scope. Two real-world datasets (VisualWebInstruct, ShareGPT-4o) with complementary characteristics are used. Two representative MLLM architectures (decoder-only, encoder-decoder) are tested. Baselines (vLLM, DistServe) are reasonable. Ablation studies effectively isolate the contributions of EMP and MLLM-specific optimizations. Results show consistent improvements across multiple SLO settings. However, the single-node limitation and absence of comparisons with ModServe/EPD reduce evaluation comprehensiveness. Error bars are mentioned as provided in supplementary materials but not visible in figures, making it difficult to assess statistical significance in the submitted version."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with well-organized sections. Figures (especially Figures 2, 3, 4) effectively communicate the system architecture and scheduling mechanisms. Motivation is compelling and clearly presented in Section 2. Technical contributions are precisely described in Section 3. Experimental setup is adequately detailed in Section 4.1. The paper acknowledges limitations transparently. Some improvements could be made (e.g., specifying hyperparameter values, providing error bars in main figures), but overall presentation is strong and suitable for a top-tier venue."
+              }
+            },
+            "summary_comment": "This paper presents ElasticMM, a well-motivated and thoughtfully designed system for efficient multimodal LLM serving. The core insight—that MLLM serving requires both modality-level and stage-level adaptation through elastic scheduling—is valuable and addresses real limitations in existing tightly-coupled systems. The two-tier architecture with modality-aware load balancing and elastic partition scheduling is novel, and the multimodal-specific optimizations (unified prefix caching, non-blocking encoding) are practical contributions. Experimental results demonstrate substantial improvements (up to 4.2× TTFT reduction, 3.2-4.5× throughput improvement) over vLLM and DistServe baselines on representative MLLM architectures using real-world datasets. The evaluation includes appropriate ablations isolating individual contributions. However, the work has notable limitations: (1) evaluation restricted to a single-node 8×A800 setup without multi-node experiments, significantly limiting applicability to production-scale deployments; (2) lack of formal theoretical analysis of the scheduling algorithms or convergence guarantees; (3) no experimental comparison with concurrent MLLM-specific systems (ModServe, EPD) despite mentioning them in related work; (4) limited exploration of generalization across diverse MLLM architectures, GPU types, and emerging modalities (video, audio) mentioned in the abstract. The gain-cost models appear reasonable but lack principled guidelines for hyperparameter setting (e.g., penalty factor w). Despite these limitations, the system design is sound, the technical approach is novel within its scope, and the practical improvements are significant. The paper makes a solid contribution to an important and timely problem, though the single-node evaluation and narrow baseline comparisons prevent it from being a strong accept. The work would benefit from multi-node evaluation and additional baseline comparisons before deployment in production systems, but the core contributions are valuable for the MLLM serving research community."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

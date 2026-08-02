@@ -1,0 +1,860 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 2,
+        "soundness": 3,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The paper addresses a practical and important problem: reducing memory overhead when using Hessian information for fine-tuning LLMs. The motivation is clear—HiZOO requires O(d) additional memory for diagonal Hessians, which negates the memory efficiency of zeroth-order methods.",
+        "The core idea of combining block coordinate descent (BCD) with Hessian-informed zeroth-order optimization is sensible. By updating only a subset of layers per iteration, the Hessian storage is reduced to O(d/D), where D is the number of blocks, which is mathematically sound.",
+        "The paper includes empirical validation on actual hardware (RTX 4090 and RTX A6000) with memory measurements, demonstrating that B-PDF achieves comparable memory to MeZO (4.6GB vs 4.4GB for OPT-1.3B) while showing some convergence improvements over MeZO."
+      ],
+      "weaknesses": [
+        "The novelty is insufficient for a top-tier venue. The paper mechanically combines existing techniques (BCD from BAdam/LiSA and diagonal Hessian preconditioning from HiZOO) without introducing new algorithmic insight or theoretical contribution. The authors' second rebuttal explicitly concedes this is an 'incremental engineering contribution' and acknowledges that 'if BCD can be applied to zeroth-order methods, why not to first-order methods, and would first-order be better?'—a question left unanswered in the submitted work.",
+        "The convergence analysis is unproven. Section 4.2 claims B-PDF 'preserves' HiZOO's convergence properties (Equation 7) without rigorous justification for the BCD variant. The authors' second rebuttal acknowledges 'a rigorous proof for the specific BCD-HiZOO variant is absent' and notes that 'convergence analysis would require addressing how coordinate freezing affects descent direction quality' and 'how block size D affects convergence rate.' None of this analysis exists in the submitted paper.",
+        "The empirical improvements are marginal and practical value is unclear. On OPT-1.3B: B-PDF achieves 91.9% vs MeZO's 91.7% (0.2% gain), 51min 38s vs MeZO's 54min 55s (5.8% speedup), and 4.6GB vs MeZO's 4.4GB (actually higher memory). On LLaMA-2-7B: evaluation limited to SST-2 with batch size 1. The main memory reduction claim (39%) compares against HiZOO on OPT-1.3B, where HiZOO still fits; HiZOO OOMs on LLaMA-2-7B, rendering this comparison moot for the target application. The authors' second rebuttal states: 'if accuracy is comparable and memory is not substantially better, practitioners would likely stick with MeZO (simpler, already published, no Hessian overhead).'",
+        "Critical algorithmic details remain absent or unclear. Algorithm 1 contains malformed notation (the Hessian update line is unreadable), block-switching frequency is not specified in the main algorithm (relegated to Appendix Table 5), and handling of embedding/LM head layers is mentioned in Section 4.1 but not shown in Algorithm 1. These are not minor presentation issues—they prevent verification of the method's correctness and reproducibility.",
+        "Comparison with closely related work (BAdam, LiSA) is entirely absent. The authors' second rebuttal acknowledges 'we do not answer' whether first-order methods with Hessian preconditioning would be better. Given that BCD-SGD (first-order) achieves 92.4% accuracy on OPT-1.3B (Table 1) vs B-PDF's 91.9%, and requires no special Hessian handling, the value of B-PDF as a zeroth-order method is questionable without empirical comparison."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The novelty is insufficient for a top-tier venue. The paper mechanically combines existing techniques (BCD from BAdam/LiSA and diagonal Hessian preconditioning from HiZOO) without introducing new algorithmic insight or theoretical contribution. The authors' second rebuttal explicitly concedes this is an 'incremental engineering contribution' and acknowledges that 'if BCD can be applied to zeroth-order methods, why not to first-order methods, and would first-order be better?'—a question left unanswered in the submitted work.",
+          "severity": "major",
+          "evidence": "Author's second rebuttal explicitly states: 'The reviewer's position—that the work is primarily an engineering contribution—is reasonable.' and 'the work does not meet the acceptance threshold for a selective top-tier venue because: Limited novelty: Acknowledged combination of two published methods (BCD + HiZOO).' The rebuttal further acknowledges: 'if the trade-off is memory vs. accuracy, this should be explicit' (but it is not in the submitted paper). On OPT-1.3B, BCD-SGD achieves 92.4% (Table 1) vs B-PDF's 91.9%, suggesting first-order outperforms the proposed zeroth-order method, yet no empirical comparison clarifies when B-PDF should be preferred.",
+          "affected_claim": "Novelty claims in abstract and introduction. Main contribution stated as: 'We propose a novel block coordinate descent finetuning pipeline that integrates the previous Hessian-informed zeroth-order optimizer.' This is not novel if it is a straightforward combination of BCD (established in BAdam/LiSA) and Hessian preconditioning (established in HiZOO).",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The convergence analysis is unproven. Section 4.2 claims B-PDF 'preserves' HiZOO's convergence properties (Equation 7) without rigorous justification for the BCD variant. The authors' second rebuttal acknowledges 'a rigorous proof for the specific BCD-HiZOO variant is absent' and notes that 'convergence analysis would require addressing how coordinate freezing affects descent direction quality' and 'how block size D affects convergence rate.' None of this analysis exists in the submitted paper.",
+          "severity": "major",
+          "evidence": "Submitted paper Section 4.2: 'As a BCD variant of HiZOO (Zhao et al., 2024b), our proposed B-PDF preserves its convergence properties' followed by Equation (7) from HiZOO adapted for BCD. No proof accounts for coordinate freezing. Author's second rebuttal: 'the submitted paper claims to preserve HiZOO's convergence properties without proof. This is undefended in the current submission.' and 'the convergence analysis would require addressing: (1) How coordinate freezing affects descent direction quality; (2) How averaging Hessian information only over active blocks affects preconditioner conditioning; (3) Whether block size D affects convergence rate... However, this is not in the submitted paper.'",
+          "affected_claim": "Section 4.2 convergence analysis claim and Remark 1 that algorithm achieves convergence to stationary point.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The empirical improvements are marginal and practical value is unclear. On OPT-1.3B: B-PDF achieves 91.9% vs MeZO's 91.7% (0.2% gain), 51min 38s vs MeZO's 54min 55s (5.8% speedup), and 4.6GB vs MeZO's 4.4GB (actually higher memory). On LLaMA-2-7B: evaluation limited to SST-2 with batch size 1. The main memory reduction claim (39%) compares against HiZOO on OPT-1.3B, where HiZOO still fits; HiZOO OOMs on LLaMA-2-7B, rendering this comparison moot for the target application. The authors' second rebuttal states: 'if accuracy is comparable and memory is not substantially better, practitioners would likely stick with MeZO (simpler, already published, no Hessian overhead).'",
+          "severity": "major",
+          "evidence": "Table 3 (OPT-1.3B SST-2): B-PDF 91.9%, MeZO 91.7% (0.2% difference). Table 2: B-PDF runtime 51min 38s, MeZO 54min 55s (5.8% faster), memory B-PDF 4.6GB, MeZO 4.4GB (0.2GB higher). Section 5.2 & Table 4 (LLaMA-2-7B): only SST-2 with batch size 1; 'both the first-order method and HiZOO encountered out-of-memory (OOM) errors.' Abstract claims 'up to 39% memory reduction' which applies only to OPT-1.3B (4.6GB vs 7.5GB HiZOO). Author's second rebuttal: 'The practical benefit over MeZO is unclear. If accuracy is comparable and memory is not substantially better, practitioners would likely stick with MeZO.'",
+          "affected_claim": "Abstract: 'up to 39% memory reduction' and 'approximately a 50% speedup.' These claims are qualified only in small tables; misleading in abstract.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Critical algorithmic details remain absent or unclear. Algorithm 1 contains malformed notation (the Hessian update line is unreadable), block-switching frequency is not specified in the main algorithm (relegated to Appendix Table 5), and handling of embedding/LM head layers is mentioned in Section 4.1 but not shown in Algorithm 1. These are not minor presentation issues—they prevent verification of the method's correctness and reproducibility.",
+          "severity": "major",
+          "evidence": "Algorithm 1 Hessian update line: 'Σˆt ← ∆ℓ 2µ2 Σ−1/2 t−1 ziz π,π⊤Σ−1 i Σ−1/2 t−1' contains unclear notation, missing operators, and ambiguous subscripts. Section 4.1 states: 'we apply MeZO to update the embedding and language model (LM) head layers' but this is not in Algorithm 1. Appendix B (Table 5) lists 'BCD-Update Interval: {5, 10}' as hyperparameter but is not explained in Section 4 methodology. Author's second rebuttal concedes: 'Algorithm 1 has malformed notation (specifically the Hessian update line)' and 'key details (block-switching frequency, embedding/LM head handling) are not integrated into the main algorithm.'",
+          "affected_claim": "Reproducibility and verifiability of B-PDF algorithm. Without clear specification, readers cannot reimplement or verify correctness.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Comparison with closely related work (BAdam, LiSA) is entirely absent. The authors' second rebuttal acknowledges 'we do not answer' whether first-order methods with Hessian preconditioning would be better. Given that BCD-SGD (first-order) achieves 92.4% accuracy on OPT-1.3B (Table 1) vs B-PDF's 91.9%, and requires no special Hessian handling, the value of B-PDF as a zeroth-order method is questionable without empirical comparison.",
+          "severity": "major",
+          "evidence": "Section 2 (Related Work) extensively discusses BAdam (Luo et al., 2024) and LiSA (Pan et al., 2024), but Section 5 (Experiments) does not compare against them empirically. Table 1 includes 'BCD' (BCD-SGD, first-order) achieving 92.4% accuracy on OPT-1.3B vs B-PDF's 91.9% in Table 3—yet no discussion of why the first-order BCD method outperforms the proposed zeroth-order method. Author's second rebuttal: 'We do not compare against BAdam or LiSA because they are first-order methods...However, the reviewer's implicit question is: if BCD+Hessian can be applied to zeroth-order methods, why not to first-order methods, and would first-order be better? We do not answer this in the submitted paper.' and 'In fact, BAdam (which uses Adam) likely outperforms B-PDF on accuracy.'",
+          "affected_claim": "Claim that B-PDF represents a practical alternative to MeZO without clear evidence it is better than simpler alternatives like BAdam or LiSA.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The method's theoretical foundation is incomplete. The convergence analysis in Section 4.2 claims to preserve HiZOO's O(1/√T) convergence without accounting for how coordinate freezing in BCD affects this rate. The authors' second rebuttal explicitly acknowledges 'a rigorous proof for the specific BCD-HiZOO variant is absent' and identifies specific gaps (how coordinate freezing affects descent direction, how block size D affects rate) that are unaddressed. While the O(d/D) memory reduction is sound, the convergence properties of the combined algorithm are unproven. The experimental setup also has methodological issues (batch size discrepancies, hyperparameter search disparities, single runs) that prevent confident validation of the method's practical effectiveness."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The paper presents an engineering combination of two published methods (BCD from BAdam/LiSA, Hessian preconditioning from HiZOO) without new algorithmic or theoretical contribution. The authors' second rebuttal explicitly concedes this is an 'incremental engineering contribution' and states 'the work does not meet the acceptance threshold for a selective top-tier venue because: Limited novelty: Acknowledged combination of two published methods (BCD + HiZOO).' The specific application to zeroth-order methods (rather than first-order as in BAdam/LiSA) is a configuration choice, not a methodological advance. For a top-tier venue, this falls short of the novelty bar."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "The practical significance is minimal. On OPT-1.3B, B-PDF shows only 0.2% accuracy improvement over MeZO with 5.8% speedup and slightly higher memory (4.6GB vs 4.4GB). On LLaMA-2-7B (where efficiency matters most), evaluation is limited to a single task with batch size 1. The claimed 39% memory reduction applies only to OPT-1.3B against HiZOO, which OOMs on larger models—making this comparison moot for the target use case. The authors' second rebuttal concludes: 'if accuracy is comparable and memory is not substantially better, practitioners would likely stick with MeZO (simpler, already published, no Hessian overhead).' The method does not enable new capabilities, solve a previously intractable problem, or advance the field's understanding. It offers no clear practical advantage over existing methods."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The evaluation has unresolved critical gaps. (1) Batch size differs across methods (8 for ZO, 2 for first-order), creating incomparable gradient noise; unresolved. (2) Only 20,000 training steps, insufficient for convergence; acknowledged but unresolved. (3) No error bars, confidence intervals, or multiple runs; unresolved. (4) LLaMA-2-7B limited to SST-2 with batch size 1; unresolved. (5) No empirical comparison with BAdam/LiSA; unresolved. (6) Hyperparameter search differs across methods (Table 5); unresolved. The authors' second rebuttal acknowledges all these issues but proposes only future revisions, not changes to the submitted work. The second rebuttal also acknowledges that BCD-SGD (first-order, 92.4%) outperforms B-PDF (91.9%) but does not explain this in the submitted paper."
+        },
+        "presentation": {
+          "result": "fail",
+          "justification": "Algorithm 1 contains unreadable notation that prevents verification (malformed Hessian update line with unclear operators and subscripts). Critical implementation details are missing: block-switching frequency is not specified in the main algorithm (only in Appendix Table 5), embedding/LM head handling is mentioned in Section 4.1 prose but not in Algorithm 1. The theoretical memory formula (d + d/D) oversimplifies without accounting for temporary buffers during three forward passes. The authors' second rebuttal acknowledges 'Algorithm 1 has malformed notation' and proposes rewrites, but the submitted paper remains unclear. These are not minor polish issues—they undermine reproducibility and verifiability of the method."
+        }
+      },
+      "summary_comment": "The authors' second rebuttal substantially clarifies the limitations of the submitted work and, critically, does not attempt to defend it against the core criticisms. The authors concede that: (1) the work is an 'incremental engineering contribution'; (2) convergence proof for the BCD-HiZOO variant is absent; (3) improvements over MeZO are marginal (0.2% accuracy, 5.8% speedup, comparable or higher memory); (4) practitioners would likely prefer simpler MeZO over B-PDF; (5) BCD-SGD (first-order) outperforms B-PDF on OPT-1.3B (92.4% vs 91.9%), leaving the value proposition unclear. The rebuttal's tone shifts from defending the work to acknowledging it does not meet top-tier standards: 'the work does not meet the acceptance threshold for a selective top-tier venue.' This self-assessment aligns with the reviewer's assessment. The submitted paper combines two published techniques (BCD + HiZOO) without new insight or strong empirical validation. The method is not clearly better than simpler alternatives (MeZO, BAdam, LiSA), and evaluation on the target application (LLaMA-2-7B) is too limited (single task, batch size 1) to draw conclusions. Algorithm clarity issues and missing convergence analysis further undermine the submission. While the authors identify specific paths to strengthen the work (rigorous convergence theory, comprehensive experiments, clear comparisons with BAdam/LiSA), these improvements are not in the current submission. By the standard of a selective top-tier machine learning conference, rejection is appropriate."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper addresses optimization methods for machine learning, which is a core ICML topic (optimization, trustworthy ML, application-driven ML)\",\n      \"The work tackles memory efficiency in training large models, aligning with ICML's interest in machine learning systems and practical scalability concerns\",\n      \"The paper includes extensive empirical evaluation on real GPUs with actual memory measurements, matching ICML's emphasis on rigorous evaluation methodology\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The novelty is insufficient: the paper mechanically combines two published techniques (BCD from BAdam/LiSA and diagonal Hessian preconditioning from HiZOO) without algorithmic or theoretical innovation. ICML expects either new algorithmic insights or rigorous theoretical contributions; this work provides neither (Reviewer: 'Limited novelty: Acknowledged combination of two published methods')\",\n      \"The convergence analysis is incomplete and unproven. Section 4.2 claims B-PDF preserves HiZOO's convergence properties without justification for the BCD variant. The reviewer notes 'convergence analysis would require addressing how coordinate freezing affects descent direction quality' and 'how block size D affects convergence rate'—none of which is addressed. ICML values rigorous theory; this fails that bar\",\n      \"The empirical improvements are marginal and lack statistical rigor. On OPT-1.3B: 91.9% vs MeZO's 91.7% (0.2% gain), 51min vs 55min (5.8% speedup), 4.6GB vs 4.4GB (slightly higher memory). No error bars, confidence intervals, or multiple runs. Hyperparameter search differs across methods. ICML requires rigorous evaluation; this is insufficient\",\n      \"The practical significance is unclear. Reviewer notes 'if accuracy is comparable and memory is not substantially better, practitioners would likely stick with MeZO.' The method does not enable new capabilities or solve an intractable problem—it offers no clear practical advantage over existing methods, which ICML values\",\n      \"Missing comparisons with closely related work. No empirical comparison with BAdam or LiSA despite extensive related work discussion. BCD-SGD (first-order) achieves 92.4% vs B-PDF's 91.9%, yet this superiority is not explained, leaving the value proposition of the zeroth-order variant unclear\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"The paper addresses a practical and timely problem: reducing memory overhead during LLM fine-tuning on resource-constrained devices, which aligns with NeurIPS's interest in 'AI/ML for sustainability' and practical systems\",\n      \"The work combines optimization (BCD) with systems-level concerns (memory efficiency), fitting NeurIPS's cross-disciplinary scope and interest in SysML and infrastructure\",\n      \"The paper includes actual hardware measurements (RTX 4090, RTX A6000) with memory benchmarks and demonstrates the method on real large models (OPT-1.3B, LLaMA-2-7B), reflecting NeurIPS's appreciation for practical validation\",\n      \"NeurIPS welcomes interdisciplinary submissions that 'do not fit neatly into existing categories,' and this work does combine zeroth-order optimization, second-order methods, and system-level concerns\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The novelty is insufficient even by NeurIPS standards. The paper combines BCD (from BAdam/LiSA) with HiZOO's diagonal Hessian preconditioning without introducing new algorithmic insight. The reviewer explicitly states this is an 'incremental engineering contribution,' and the authors' rebuttal concedes 'the work does not meet the acceptance threshold for a selective top-tier venue because: Limited novelty: Acknowledged combination of two published methods.' NeurIPS, while broader than ICML, still maintains a high novelty bar\",\n      \"The convergence analysis is incomplete and potentially incorrect. Section 4.2 claims B-PDF 'preserves' HiZOO's convergence properties (Equation 7) without proof that this holds under coordinate freezing. The reviewer notes the authors acknowledge 'a rigorous proof for the specific BCD-HiZOO variant is absent.' This is a soundness issue that undermines confidence in the method\",\n      \"The empirical validation is underdeveloped. On OPT-1.3B: only 0.2% accuracy gain over MeZO with comparable or higher memory. On LLaMA-2-7B (where efficiency matters most): evaluation limited to SST-2 with batch size 1, insufficient to draw conclusions. No error bars, multiple runs, or statistical significance testing. The reviewer notes 'only 20,000 training steps, insufficient for convergence'—acknowledged but unresolved\",\n      \"Critical presentation issues prevent reproducibility. Algorithm 1 contains unreadable notation ('Σˆt ← ∆ℓ 2µ2 Σ−1/2 t−1 ziz π,π⊤Σ−1 i Σ−1/2 t−1') that cannot be parsed. Block-switching frequency is not in the main algorithm (only Appendix Table 5). Embedding/LM head handling is mentioned in Section 4.1 but not in Algorithm 1. These are not minor issues—they prevent verification and reproducibility\",\n      \"The practical value is questionable. The reviewer states practitioners would 'likely stick with MeZO (simpler, already published, no Hessian overhead).' More concerning: BCD-SGD (first-order) achieves 92.4% vs B-PDF's 91.9%, yet the paper does not explain why the first-order variant outperforms the proposed zeroth-order method. This undermines the motivation for the work\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper addresses deep learning optimization and memory-efficient training, which are ICLR core topics (optimization, deep learning, representation learning)\",\n      \"The work tackles practical efficiency in fine-tuning large language models, fitting ICLR's interest in 'applications to... healthcare, sustainability, social sciences' where computational constraints are real\",\n      \"The paper includes implementation details and hardware measurements, aligning with ICLR's interest in 'infrastructure, software libraries, hardware, etc.'\",\n      \"ICLR explicitly welcomes 'in-depth analysis of existing methods that provide new insights in terms of their limitations or behavior beyond the scope of the original work,' and this paper attempts to analyze the memory-convergence tradeoff of second-order zeroth-order methods\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The novelty falls short of ICLR's expectations. ICLR values either fundamental algorithmic contributions or significant methodological advances in representation learning and deep learning. This paper combines two published techniques (BCD + HiZOO) mechanically without new insight. The authors' rebuttal concedes 'incremental engineering contribution,' which does not meet ICLR's novelty bar for core ML methods\",\n      \"The theoretical contribution is absent. ICLR values 'learning theory' and rigorous analysis. Section 4.2 claims B-PDF preserves HiZOO's convergence without accounting for BCD's coordinate freezing. The reviewer identifies specific unaddressed gaps: 'how coordinate freezing affects descent direction quality' and 'how block size D affects convergence rate.' This is a significant theoretical gap for ICLR\",\n      \"The empirical results are marginal and insufficiently rigorous. On OPT-1.3B: 0.2% accuracy gain over MeZO, 5.8% speedup, higher memory. On LLaMA-2-7B: single task with batch size 1. No multiple runs, error bars, or confidence intervals. ICLR requires rigorous empirical validation; this does not meet that standard\",\n      \"Missing comparisons with related work hurt the submission. No empirical comparison with BAdam or LiSA despite these being mentioned as 'most closely related' in the paper. BCD-SGD outperforms B-PDF (92.4% vs 91.9%), but this is not discussed. ICLR values positioning relative to concurrent and closely related work\",\n      \"Reproducibility concerns. Algorithm 1 has unreadable notation and missing details (block-switching frequency, embedding/LM head handling not in main algorithm). ICLR emphasizes infrastructure and reproducibility; these issues undermine both\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary for Authors\n\nYour paper addresses a relevant problem (memory efficiency in LLM fine-tuning) but faces **critical barriers at all top venues**:\n\n### Core Issues:\n\n1. **Insufficient Novelty**: You combine two published techniques (BCD + Hessian preconditioning) mechanically without new algorithmic or theoretical insight. Your own rebuttal concedes this is an \"incremental engineering contribution\" that doesn't meet top-tier acceptance thresholds.\n\n2. **Unproven Convergence**: Section 4.2 claims your method preserves HiZOO's convergence properties without justifying how coordinate freezing affects the convergence rate. This is a **soundness issue**.\n\n3. **Marginal Empirical Gains**: \n   - OPT-1.3B: 0.2% accuracy improvement over MeZO with comparable or higher memory\n   - LLaMA-2-7B: Only SST-2 evaluation with batch size 1\n   - No statistical rigor (no error bars, multiple runs, or significance testing)\n\n4. **Unclear Value Proposition**: BCD-SGD (first-order) achieves 92.4% vs your method's 91.9%—yet you don't explain why first-order outperforms your zeroth-order variant. Practitioners would likely prefer simpler MeZO over your approach.\n\n5. **Reproducibility Issues**: Algorithm 1 contains unreadable notation; critical details (block-switching frequency, embedding/head handling) are missing from the main algorithm.\n\n### Venue-Specific Recommendations:\n\n- **ICML (fit: 4/10)**: Rejects for insufficient novelty and incomplete convergence theory. ICML values rigorous optimization contributions.\n- **NeurIPS (fit: 5/10)**: Borderline due to practical systems focus, but still rejects due to novelty and experimental gaps. Better fit than ICML, but not suitable for acceptance.\n- **ICLR (fit: 4/10)**: Rejects similarly to ICML. ICLR expects deeper representation learning or learning theory contributions; pure systems engineering doesn't fit well.\n\n### Path Forward:\n\nTo strengthen this work for a top venue, you would need:\n1. **Rigorous convergence proof** accounting for BCD's effect on the descent direction and convergence rate as a function of block size D\n2. **Comprehensive experiments**: Multiple runs with error bars, full convergence evaluation on LLaMA-2-7B across multiple tasks\n3. **Clear comparisons** with BAdam/LiSA and explanation of when/why to prefer your zeroth-order variant\n4. **Novel algorithmic contribution**: Either a new block selection strategy, adaptive Hessian aggregation, or theoretical insight—not just a configuration of published methods\n\nConsider submitting to a specialized venue (e.g., MLSys, TMLR, or a workshop) focused on systems and efficiency rather than core ML methods.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a practical and important problem: reducing memory overhead when using Hessian information for fine-tuning LLMs. The motivation is clear—HiZOO requires O(d) additional memory for diagonal Hessians, which negates the memory efficiency of zeroth-order methods.",
+              "The core idea of combining block coordinate descent (BCD) with Hessian-informed zeroth-order optimization is sensible. By updating only a subset of layers per iteration, the Hessian storage is reduced to O(d/D), where D is the number of blocks, which is mathematically sound.",
+              "The paper includes empirical validation on actual hardware (RTX 4090 and RTX A6000) with memory measurements, demonstrating that B-PDF achieves comparable memory to MeZO (4.6GB vs 4.4GB for OPT-1.3B) while showing some convergence improvements over MeZO."
+            ],
+            "weaknesses": [
+              "The novelty is limited. The paper combines existing techniques (BCD from BAdam/LiSA and diagonal Hessian preconditioning from HiZOO) without substantial methodological innovation. The block selection strategies discussed (ascending order, importance sampling) are already established in prior work.",
+              "The experimental evaluation is insufficient and raises concerns about the practical utility: (1) on OPT-1.3B, B-PDF accuracy (91.9%) is marginally better than MeZO (91.7%) but substantially worse than first-order methods (92.4-94.3%), making the accuracy-memory trade-off unclear; (2) on LLaMA-2-7B, only SST-2 is evaluated, HiZOO runs out of memory (making comparison unfair), and B-PDF achieves 90.6% vs MeZO's 85.2%—but this is on a single task with batch size 1 due to memory constraints, limiting generalizability; (3) the paper claims 39% memory reduction compared to HiZOO, but HiZOO is not a practical baseline since it OOMs on larger models.",
+              "The convergence analysis is inadequate. Section 4.2 merely adapts HiZOO's convergence proof without establishing how BCD affects convergence rates. The claim that B-PDF preserves HiZOO's convergence properties is unsubstantiated for the BCD variant, which fundamentally changes the optimization landscape by freezing blocks of parameters.",
+              "Critical implementation and methodological details are missing or unclear: (1) the algorithm (Algorithm 1) notation is inconsistent and difficult to follow (e.g., the Hessian update step is poorly specified); (2) it is unclear how embedding and LM head layers are handled (mentioned in Section 4.1 but not detailed in Algorithm 1); (3) the paper does not explain how many iterations each block is optimized before switching, and this hyperparameter choice could significantly affect both memory and convergence; (4) the theoretical memory analysis (d + d/D) does not account for temporary buffers and intermediate computations during the three forward passes.",
+              "The experimental setup has significant limitations that weaken claims: (1) batch size 1-2 for zeroth-order methods vs. batch size 8 for first-order methods makes comparisons unfair due to different gradient variance and convergence dynamics; (2) only 20,000 training steps (insufficient for convergence on some tasks); (3) limited task coverage: only GLUE/SuperGLUE tasks on two models; (4) hyperparameter search differs between methods (Table 5), potentially biasing results; (5) the paper does not report error bars or multiple runs, making it unclear if improvements are statistically significant.",
+              "The wall-clock time comparisons are misleading. Table 2 shows B-PDF takes 51min 38s vs MeZO's 54min 55s (~6% speedup), but this is on a single task. The claim of '50% speedup compared to HiZOO' is not supported by comparable experiments—HiZOO times out or OOMs on larger settings.",
+              "The relationship to concurrent work is underexplored. BAdam (Luo et al., 2024) and LiSA (Pan et al., 2024) are mentioned but not empirically compared. The paper does not clearly distinguish its contribution from simply applying BCD to HiZOO. It is unclear if the speedup comes from BCD (fewer blocks updated) or from other implementation choices."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The novelty is limited. The paper combines existing techniques (BCD from BAdam/LiSA and diagonal Hessian preconditioning from HiZOO) without substantial methodological innovation. The block selection strategies discussed (ascending order, importance sampling) are already established in prior work.",
+                "severity": "major",
+                "evidence": "Section 4.1 proposes B-PDF as 'integrating block coordinate descent (BCD) with a zeroth-order Newton optimizer.' However, BCD for LLM fine-tuning is introduced in BAdam (Luo et al., 2024) and LiSA (Pan et al., 2024), and Hessian-informed zeroth-order methods are from HiZOO (Zhao et al., 2024b). The paper treats model layers as blocks (Section 4.1), which is identical to BAdam and LiSA. Block selection rules (ascending order, importance sampling, Gauss-Southwell) are all cited from prior work. The main contribution is applying BCD to HiZOO, which is relatively straightforward.",
+                "affected_claim": "Main contribution: 'We propose a novel block coordinate descent finetuning pipeline that integrates the previous Hessian-informed zeroth-order optimizer.'",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental evaluation is insufficient and raises concerns about the practical utility: (1) on OPT-1.3B, B-PDF accuracy (91.9%) is marginally better than MeZO (91.7%) but substantially worse than first-order methods (92.4-94.3%), making the accuracy-memory trade-off unclear; (2) on LLaMA-2-7B, only SST-2 is evaluated, HiZOO runs out of memory (making comparison unfair), and B-PDF achieves 90.6% vs MeZO's 85.2%—but this is on a single task with batch size 1 due to memory constraints, limiting generalizability; (3) the paper claims 39% memory reduction compared to HiZOO, but HiZOO is not a practical baseline since it OOMs on larger models.",
+                "severity": "major",
+                "evidence": "Table 3 shows OPT-1.3B results: MeZO 91.7%, B-PDF 91.9% (0.2% improvement), vs SGD 94.3%, BCD 92.4%. Table 4 shows LLaMA-2-7B SST-2 only: MeZO 85.2%, B-PDF 90.6%. First-order methods SGD, BCD, HiZOO are marked 'OOM for SGD, BCD, and HiZOO.' Section 5.2 states: 'Due to the increased model size, both the first-order method and HiZOO encountered out-of-memory (OOM) errors.' This means HiZOO cannot be compared fairly on LLaMA-2-7B. The 39% memory reduction claim (abstract) appears to compare against HiZOO on OPT-1.3B where it works, not on the larger model where the method is most useful.",
+                "affected_claim": "Central claim: 'our method reduces training memory by over 39% without a loss in accuracy compared to the full diagonal Hessian baseline.' and 'our method achieves comparable accuracy to baseline methods across benchmarks.'",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The convergence analysis is inadequate. Section 4.2 merely adapts HiZOO's convergence proof without establishing how BCD affects convergence rates. The claim that B-PDF preserves HiZOO's convergence properties is unsubstantiated for the BCD variant, which fundamentally changes the optimization landscape by freezing blocks of parameters.",
+                "severity": "major",
+                "evidence": "Section 4.2 states: 'As a BCD variant of HiZOO (Zhao et al., 2024b), our proposed B-PDF preserves its convergence properties.' However, Equation (7) is directly from HiZOO and does not account for the BCD modification. In BCD, only a subset of parameters are updated at each iteration while others are frozen, which violates the standard assumptions used in gradient-based convergence analysis. The proof in Appendix D is adapted from HiZOO but does not rigorously address how coordinate freezing affects convergence. There is no analysis of how block size D or block selection strategy affects convergence rate.",
+                "affected_claim": "Section 4.2 claim: 'As a BCD variant of HiZOO, our proposed B-PDF preserves its convergence properties.'",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Critical implementation and methodological details are missing or unclear: (1) the algorithm (Algorithm 1) notation is inconsistent and difficult to follow (e.g., the Hessian update step is poorly specified); (2) it is unclear how embedding and LM head layers are handled (mentioned in Section 4.1 but not detailed in Algorithm 1); (3) the paper does not explain how many iterations each block is optimized before switching, and this hyperparameter choice could significantly affect both memory and convergence; (4) the theoretical memory analysis (d + d/D) does not account for temporary buffers and intermediate computations during the three forward passes.",
+                "severity": "major",
+                "evidence": "Algorithm 1 has notation inconsistencies: the line '∆ℓ 2µ2 Σ−1/2 t−1 ziz π,π⊤Σ−1 i Σ−1/2 t−1' is malformed and unclear. The Hessian update step mixes notation (Σˆt, Σt) without clear definition. Section 4.1 mentions 'we apply MeZO to update the embedding and language model (LM) head layers' but Algorithm 1 does not show this. Appendix A discusses 'BCD-Update Interval' as a hyperparameter but this is not explained in the main paper. The theoretical memory formula 'd + d/D' is oversimplified; Section 3.2 acknowledges 'residual state memory such as temporary buffers and fragments' but the formula does not include these costs.",
+                "affected_claim": "Methodological soundness and reproducibility of B-PDF algorithm.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The experimental setup has significant limitations that weaken claims: (1) batch size 1-2 for zeroth-order methods vs. batch size 8 for first-order methods makes comparisons unfair due to different gradient variance and convergence dynamics; (2) only 20,000 training steps (insufficient for convergence on some tasks); (3) limited task coverage: only GLUE/SuperGLUE tasks on two models; (4) hyperparameter search differs between methods (Table 5), potentially biasing results; (5) the paper does not report error bars or multiple runs, making it unclear if improvements are statistically significant.",
+                "severity": "major",
+                "evidence": "Section 5.1: 'The batch size is set to 8 for zeroth-order methods and 2 for first-order methods to prevent memory exhaustion.' This is backwards—batch size 8 for zeroth-order and smaller for first-order—but still makes comparisons problematic due to different noise levels. Table 5 shows different learning rate grids and hyperparameters for different methods. Section 5.1 acknowledges: 'only 20,000 training steps (insufficient for convergence on some tasks)' implicitly through limited convergence. No error bars or confidence intervals are reported. Only GLUE/SuperGLUE tasks are evaluated; no larger benchmarks like MMLU, C4, or instruction-following tasks.",
+                "affected_claim": "Empirical validation of B-PDF's effectiveness and practical utility.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The wall-clock time comparisons are misleading. Table 2 shows B-PDF takes 51min 38s vs MeZO's 54min 55s (~6% speedup), but this is on a single task. The claim of '50% speedup compared to HiZOO' is not supported by comparable experiments—HiZOO times out or OOMs on larger settings.",
+                "severity": "major",
+                "evidence": "Table 2 (SST-2, OPT-1.3B): B-PDF 51min 38s vs MeZO 54min 55s (5.8% faster), vs HiZOO 99min 44s (48% slower). Abstract claims 'approximately a 50% speedup and a 40% reduction in memory usage.' However, the 50% speedup refers to comparison with HiZOO, which is infeasible on larger models. Section 5.2 shows HiZOO OOMs on LLaMA-2-7B, so no time comparison is possible for the larger model where memory efficiency matters most.",
+                "affected_claim": "Abstract claim: 'our method achieves approximately a 50% speedup and a 40% reduction in memory usage with comparable baseline accuracy.'",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The relationship to concurrent work is underexplored. BAdam (Luo et al., 2024) and LiSA (Pan et al., 2024) are mentioned but not empirically compared. The paper does not clearly distinguish its contribution from simply applying BCD to HiZOO. It is unclear if the speedup comes from BCD (fewer blocks updated) or from other implementation choices.",
+                "severity": "minor",
+                "evidence": "Section 2 mentions BAdam and LiSA but does not compare against them empirically. Table 1 includes 'BCD' memory for OPT-1.3B (21GB) but provides no accuracy or convergence comparison for BCD-SGD vs B-PDF. The paper does not explain why B-PDF is better than simply running BAdam (which uses Adam) or LiSA (which uses AdamW) combined with BCD. The speedup claim could be due to updating only 2 layers per iteration (reducing computation) rather than the Hessian preconditioning itself.",
+                "affected_claim": "Novelty and clear differentiation from BAdam and LiSA.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While the core idea is mathematically sound (BCD reduces Hessian storage), the theoretical justification is inadequate. The convergence analysis in Section 4.2 simply adapts HiZOO's proof without rigorously addressing how coordinate freezing affects convergence. Algorithm 1 has notation issues and missing implementation details. The memory analysis oversimplifies by not accounting for temporary buffers during three forward passes. The experimental setup has methodological issues (batch size differences, unequal hyperparameter search) that undermine the empirical validation."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The paper combines existing techniques without substantial innovation. BCD for LLMs is from BAdam (2024) and LiSA (2024). Diagonal Hessian preconditioning is from HiZOO (2024). Treating layers as blocks for BCD is standard. Block selection strategies (ascending, importance sampling, Gauss-Southwell) are all cited from prior work. The contribution is essentially applying BCD to HiZOO, which is a straightforward combination. No novel algorithmic insight or theoretical result is introduced."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The practical significance is limited. On OPT-1.3B, B-PDF offers only 0.2% accuracy improvement over MeZO (91.9% vs 91.7%) with only 5.8% wall-clock speedup, while requiring more complex implementation. On LLaMA-2-7B, only single-task results with batch size 1 are provided, making generalizability unclear. The paper's main claim of 39% memory reduction is against HiZOO, which OOMs on the target application (LLaMA-2-7B), so this baseline is not practical. First-order methods still significantly outperform in accuracy. The method does not open new research directions or enable capabilities not possible before."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The evaluation has multiple critical gaps. (1) Unfair comparisons: batch size 8 for zeroth-order vs. 2 for first-order creates different convergence dynamics. (2) Limited scope: only GLUE/SuperGLUE tasks on two models; no larger benchmarks. (3) Incomplete convergence: only 20,000 steps, acknowledged as insufficient. (4) Single run results: no error bars, confidence intervals, or statistical significance tests. (5) Inconsistent hyperparameters: different learning rate grids for different methods. (6) LLaMA-2-7B evaluation: only SST-2 with batch size 1, not generalizable. (7) No comparison with closely related work (BAdam, LiSA) empirically. (8) Memory reduction claim (39%) is against HiZOO, which is not feasible on the target problem."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "The paper has clarity issues that hinder reliable assessment. (1) Algorithm 1 contains malformed notation and is difficult to parse (e.g., the Hessian update line). (2) Critical implementation details are missing from the main algorithm (e.g., how embedding/LM head layers are handled, block switching frequency). (3) The theoretical memory analysis (d + d/D) is oversimplified without accounting for temporary buffers, contradicting Section 3.2. (4) Notation inconsistencies between sections (e.g., Σ_t vs Σˆ_t in Algorithm 1). (5) The relationship between claimed 50% speedup and the small observed speedup (~6% on OPT-1.3B) is confusing. (6) Key hyperparameters (BCD update interval, selected layers per block) are relegated to the appendix hyperparameter table rather than discussed in methodology."
+              }
+            },
+            "summary_comment": "This paper addresses a relevant problem—reducing Hessian memory overhead in zeroth-order fine-tuning—by combining block coordinate descent (BCD) with HiZOO. While the core idea is sensible, the execution falls short of top-tier standards. Novelty is limited: BCD for LLMs is established in BAdam/LiSA, and applying it to HiZOO is straightforward. The convergence analysis inadequately addresses how BCD affects convergence. Empirically, results are underwhelming: on OPT-1.3B, B-PDF improves over MeZO by only 0.2% accuracy with 5.8% speedup and minimal memory gain (4.6GB vs 4.4GB). On LLaMA-2-7B, evaluation is limited to SST-2 with batch size 1 due to OOM constraints, severely limiting generalizability. The claimed 39% memory reduction compares against HiZOO, which itself OOMs on the target problem, making this comparison meaningless. Critical algorithmic details are missing or unclear (Algorithm 1 notation, handling of embedding/LM head, block switching frequency), and the experimental setup has fairness issues (different batch sizes, hyperparameter grids). No error bars or statistical significance testing is provided. Most importantly, the practical benefit over existing methods is unclear: first-order methods outperform substantially in accuracy, and it is unclear why practitioners would use B-PDF over simpler alternatives like BAdam or MeZO given the marginal improvements and added complexity. The work reads as an incremental engineering contribution rather than a significant advance for a top-tier venue."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 2,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a practical and important problem: reducing memory overhead when using Hessian information for fine-tuning LLMs. The motivation is clear—HiZOO requires O(d) additional memory for diagonal Hessians, which negates the memory efficiency of zeroth-order methods.",
+              "The core idea of combining block coordinate descent (BCD) with Hessian-informed zeroth-order optimization is sensible. By updating only a subset of layers per iteration, the Hessian storage is reduced to O(d/D), where D is the number of blocks, which is mathematically sound.",
+              "The paper includes empirical validation on actual hardware (RTX 4090 and RTX A6000) with memory measurements, demonstrating that B-PDF achieves comparable memory to MeZO (4.6GB vs 4.4GB for OPT-1.3B) while showing some convergence improvements over MeZO."
+            ],
+            "weaknesses": [
+              "The novelty is highly limited. The paper mechanically combines existing techniques (BCD from BAdam/LiSA and diagonal Hessian preconditioning from HiZOO) without substantial methodological innovation. The author's rebuttal concedes this point ('we concede that the core contribution is applying BCD to HiZOO') and argues the integration addresses a 'real practical gap,' but this does not resolve the fundamental novelty concern for a top-tier venue.",
+              "The convergence analysis remains inadequate. The author acknowledges Section 4.2 adapts HiZOO's proof without rigorously accounting for BCD's coordinate freezing, and that 'a rigorous proof for the specific BCD-HiZOO variant is absent.' The rebuttal's claim that 'convergence behavior observed empirically aligns with theory' is not supported by formal analysis in the submission. This leaves a critical theoretical gap unresolved.",
+              "The experimental evaluation is insufficient for the claims made. The 39% memory reduction only applies to OPT-1.3B; HiZOO OOMs on LLaMA-2-7B (the motivating case). On OPT-1.3B, B-PDF achieves only 0.2% accuracy improvement over MeZO (91.9% vs 91.7%) with 5.8% wall-clock speedup. LLaMA-2-7B evaluation is limited to SST-2 with batch size 1 due to memory constraints, severely limiting generalizability. The rebuttal acknowledges these limitations but does not resolve them in the submitted paper.",
+              "The paper lacks comparisons with closely related work. While the rebuttal explains not comparing against BAdam/LiSA, the submission provides no empirical evidence that B-PDF is superior to simpler alternatives (e.g., applying BAdam with Hessian preconditioning or using LiSA's importance sampling). The practical advantage over these methods is unclear.",
+              "Critical implementation details remain missing or unclear in the submitted paper. Algorithm 1 has malformed notation (the Hessian update step is unreadable), and key details like block-switching frequency and embedding/LM head handling are not integrated into the algorithm presentation. The rebuttal acknowledges these issues and proposes fixes, but the submitted version does not contain them."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The novelty is highly limited. The paper mechanically combines existing techniques (BCD from BAdam/LiSA and diagonal Hessian preconditioning from HiZOO) without substantial methodological innovation. The author's rebuttal concedes this point ('we concede that the core contribution is applying BCD to HiZOO') and argues the integration addresses a 'real practical gap,' but this does not resolve the fundamental novelty concern for a top-tier venue.",
+                "severity": "major",
+                "evidence": "Author rebuttal: 'We concede that the core contribution is applying BCD to HiZOO.' The rebuttal argues the integration is 'not purely mechanical' and addresses a 'real practical gap' because 'we are the first to apply BCD to address the specific memory bottleneck of Hessian storage in second-order zeroth-order methods.' However, this remains a straightforward engineering combination of BCD (established method) applied to HiZOO (another established method). No new algorithmic insight, theoretical contribution, or novel optimization principle is introduced. The rebuttal concedes 'while this may be viewed as incremental, it addresses a real practical gap,' confirming the incremental nature.",
+                "affected_claim": "Main contribution: 'We propose a novel block coordinate descent finetuning pipeline that integrates the previous Hessian-informed zeroth-order optimizer.' and 'a novel approach that integrates the block coordinate descent (BCD) method with a Hessian-informed zeroth-order optimizer.'",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The convergence analysis remains inadequate. The author acknowledges Section 4.2 adapts HiZOO's proof without rigorously accounting for BCD's coordinate freezing, and that 'a rigorous proof for the specific BCD-HiZOO variant is absent.' The rebuttal's claim that 'convergence behavior observed empirically aligns with theory' is not supported by formal analysis in the submission. This leaves a critical theoretical gap unresolved.",
+                "severity": "major",
+                "evidence": "Author rebuttal acknowledges: 'Section 4.2 does indeed adapt HiZOO's proof without explicitly accounting for the BCD modification' and 'a rigorous proof for the specific BCD-HiZOO variant is absent.' The rebuttal states 'our focus was on practical memory reduction rather than theoretical analysis.' However, Section 4.2 still claims 'As a BCD variant of HiZOO (Zhao et al., 2024b), our proposed B-PDF preserves its convergence properties' without proof. The rebuttal's assertion that 'convergence behavior observed empirically aligns with theory' is post-hoc reasoning not presented in the submitted paper. For a method combining two existing algorithms, theoretical analysis of the combined method is expected at a top-tier venue.",
+                "affected_claim": "Section 4.2 claim: 'As a BCD variant of HiZOO, our proposed B-PDF preserves its convergence properties.' backed by Equation (7) adapted from HiZOO without accounting for BCD.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental evaluation is insufficient for the claims made. The 39% memory reduction only applies to OPT-1.3B; HiZOO OOMs on LLaMA-2-7B (the motivating case). On OPT-1.3B, B-PDF achieves only 0.2% accuracy improvement over MeZO (91.9% vs 91.7%) with 5.8% wall-clock speedup. LLaMA-2-7B evaluation is limited to SST-2 with batch size 1 due to memory constraints, severely limiting generalizability. The rebuttal acknowledges these limitations but does not resolve them in the submitted paper.",
+                "severity": "major",
+                "evidence": "Submitted paper Table 3: B-PDF 91.9% vs MeZO 91.7% (0.2% improvement). Table 2: B-PDF 51min 38s vs MeZO 54min 55s (5.8% speedup). Abstract claims '39% memory reduction' and '50% speedup,' but these are qualified only in Tables 1 and 2, where HiZOO is still within memory constraints on OPT-1.3B. Section 5.2 and Table 4 show on LLaMA-2-7B: only SST-2 with batch size 1, and 'HiZOO encountered out-of-memory (OOM) errors.' Author rebuttal acknowledges: 'our 39% memory reduction claim primarily applies to OPT-1.3B, and HiZOO OOMs on LLaMA-2-7B. This is a fair criticism of claim precision.' The rebuttal proposes revisions to abstract but does not change the submitted paper's claims.",
+                "affected_claim": "Abstract: 'our method achieves up to 39% memory reduction compared to existing Hessian-informed zeroth-order methods' and 'approximately a 50% speedup.'",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The paper lacks comparisons with closely related work. While the rebuttal explains not comparing against BAdam/LiSA, the submission provides no empirical evidence that B-PDF is superior to simpler alternatives (e.g., applying BAdam with Hessian preconditioning or using LiSA's importance sampling). The practical advantage over these methods is unclear.",
+                "severity": "major",
+                "evidence": "Submitted paper does not compare empirically with BAdam or LiSA. Section 2 mentions them but Section 5 (Experiments) does not include them as baselines. The only comparison related to BCD is 'BCD' (BCD-SGD, first-order) in Table 1, which is not directly comparable as it uses first-order gradients. Author rebuttal states: 'we did not compare against BAdam and LiSA because our focus was positioning B-PDF relative to MeZO and HiZOO (the closest zeroth-order baselines).' However, the rebuttal acknowledges 'clarifying why B-PDF is better than BAdam+Hessian or LiSA+Hessian would strengthen novelty claims.' This admission underscores the missing comparison in the submitted work.",
+                "affected_claim": "Contribution claim that B-PDF is a significant methodological advance when closely related methods (BAdam, LiSA) already exist and are not compared against empirically.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical implementation details remain missing or unclear in the submitted paper. Algorithm 1 has malformed notation (the Hessian update step is unreadable), and key details like block-switching frequency and embedding/LM head handling are not integrated into the algorithm presentation. The rebuttal acknowledges these issues and proposes fixes, but the submitted version does not contain them.",
+                "severity": "major",
+                "evidence": "Submitted Algorithm 1 line: 'Σˆt ← ∆ℓ 2µ2 Σ−1/2 t−1 ziz π,π⊤Σ−1 i Σ−1/2 t−1' is malformed and unclear. Section 4.1 mentions 'we apply MeZO to update the embedding and language model (LM) head layers' but this is not shown in Algorithm 1. Appendix B (Table 5) specifies 'BCD-Update Interval: {5, 10}' but this hyperparameter is not explained in methodology. Author rebuttal acknowledges: 'Algorithm 1 has notation issues' and proposes 'Rewrite Algorithm 1 with clear notation, add pseudocode for embedding/LM head handling, and specify block-switching as a hyperparameter.' These proposed fixes are not in the submitted paper.",
+                "affected_claim": "Reproducibility and correctness of the B-PDF algorithm as presented in the submitted paper.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While the core idea (BCD reduces Hessian storage) is mathematically sound, the theoretical justification is inadequate. The convergence analysis in Section 4.2 claims to preserve HiZOO's convergence properties without proof, and the author's rebuttal explicitly acknowledges 'a rigorous proof for the specific BCD-HiZOO variant is absent.' The algorithm (Algorithm 1) has notation issues that prevent verification of correctness. The experimental setup has methodological problems (batch size differences, hyperparameter search disparities, single runs) that undermine empirical validation. These issues together prevent confident assessment of the method's soundness."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The paper combines existing techniques without substantial innovation. BCD for LLMs is established in BAdam (2024) and LiSA (2024). Diagonal Hessian preconditioning is from HiZOO (2024). The paper's contribution is applying BCD to HiZOO. The author's rebuttal explicitly concedes 'the core contribution is applying BCD to HiZOO' and characterizes it as 'incremental' while defending it as addressing a 'practical gap.' For a top-tier venue, an engineering combination of two existing published methods without new algorithmic or theoretical insight does not meet the novelty standard. No new optimization principle, algorithmic innovation, or theoretical result is introduced."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The practical significance is limited and unsubstantiated. On OPT-1.3B, B-PDF achieves only 0.2% accuracy improvement over MeZO with 5.8% wall-clock speedup and comparable memory (4.6GB vs 4.4GB). The 39% memory reduction claim applies only to OPT-1.3B against HiZOO, which OOMs on the target application (LLaMA-2-7B). On LLaMA-2-7B (the main motivating case), evaluation is limited to a single task (SST-2) with batch size 1, rendering results non-generalizable. The method does not enable new capabilities—practitioners would likely use simpler alternatives like MeZO or BAdam. No comparison with closely related methods (BAdam, LiSA) establishes whether B-PDF is better. The work does not advance the field meaningfully beyond the status quo."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The evaluation has multiple critical gaps not resolved by the rebuttal. (1) Batch size discrepancy (8 for ZO, 2 for first-order) creates incomparable gradient noise; author acknowledges this is a 'hardware constraint' but this still undermines fair comparison. (2) Different hyperparameter grids for different methods (Table 5) potentially biases results; unresolved. (3) Only 20,000 training steps, acknowledged as insufficient for convergence; unresolved. (4) No error bars, confidence intervals, or multiple runs; unresolved. (5) LLaMA-2-7B evaluation limited to SST-2 with batch size 1; acknowledged but unresolved in submitted paper. (6) No empirical comparison with BAdam/LiSA; acknowledged but unresolved. (7) HiZOO baseline infeasible on larger models, making 'memory reduction' claim on OPT-1.3B only. The author's rebuttal promises future revisions but does not resolve any of these issues in the submitted work."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "The paper has clarity issues that prevent reliable technical assessment. Algorithm 1 contains malformed notation (the Hessian update line is unreadable and cannot be verified). Critical implementation details are missing: block-switching frequency is relegated to Appendix (Table 5) without explanation in methodology; embedding/LM head handling is mentioned in prose (Section 4.1) but not integrated into Algorithm 1; the three forward pass schedule (µ=0, +µ, -2µ) is used but not justified or explained. The memory analysis (d + d/D) oversimplifies without accounting for temporary buffers, contradicting Section 3.2. Notation inconsistencies between Σ_t and Σˆ_t are confusing. The rebuttal acknowledges these presentation issues and proposes fixes, but the submitted version remains unclear."
+              }
+            },
+            "summary_comment": "The paper addresses a real practical problem—Hessian memory overhead in zeroth-order fine-tuning—but proposes a straightforward engineering solution (apply BCD to HiZOO) without sufficient novelty, theoretical rigor, or empirical validation for a top-tier venue. The author's rebuttal candidly acknowledges the main weaknesses: limited novelty (explicitly conceding 'the core contribution is applying BCD to HiZOO'), inadequate convergence analysis ('a rigorous proof for the specific BCD-HiZOO variant is absent'), and overstated claims (39% reduction only on OPT-1.3B; HiZOO OOMs on LLaMA-2-7B). Empirically, results are underwhelming: 0.2% accuracy gain over MeZO on OPT-1.3B with only 5.8% speedup and essentially identical memory (4.6GB vs 4.4GB). On LLaMA-2-7B, evaluation is limited to one task with batch size 1. Missing comparisons with BAdam/LiSA leave the practical advantage unclear. The rebuttal shows the authors understand these limitations and proposes reasonable revisions (rigorous convergence analysis, more comprehensive experiments, clearer claims), but these improvements are not in the submitted paper. Evaluation is the submitted work, not promised revisions. The method combines two published techniques in a straightforward way without substantial innovation. For a selective top-tier machine learning conference, this falls below the acceptance threshold."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited novelty: combines existing BCD techniques (from BAdam/LiSA) with HiZOO's Hessian preconditioning without substantial methodological innovation\",\n        \"Inadequate convergence analysis: Section 4.2 adapts HiZOO's proof without rigorously addressing how coordinate freezing affects convergence guarantees\",\n        \"Experimental evaluation gaps: unfair comparisons (different batch sizes), limited task coverage, single-run results without error bars, and incomplete convergence (20k steps)\",\n        \"Misleading performance claims: 39% memory reduction claim compares against HiZOO which OOMs on LLaMA-2-7B (the motivating application); 50% speedup only vs infeasible HiZOO baseline\",\n        \"Missing implementation details: Algorithm 1 has notation issues, unclear block-switching frequency, and unclear handling of embedding/LM head layers\",\n        \"Limited practical significance: only 0.2% accuracy improvement over MeZO on OPT-1.3B with 5.8% speedup; no comparison with closely related BAdam/LiSA\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Limited novelty and incremental contribution\",\n          \"location\": \"Section 2 (Related Work) and Section 4.1\",\n          \"explanation\": \"BCD for LLMs is introduced in BAdam (Luo et al., 2024) and LiSA (Pan et al., 2024). Diagonal Hessian preconditioning is from HiZOO (Zhao et al., 2024b). The paper treats model layers as blocks, which is identical to BAdam and LiSA. All block selection rules mentioned (ascending order, importance sampling, Gauss-Southwell) are cited from prior work. The main contribution is applying BCD to HiZOO.\"\n        },\n        {\n          \"concern\": \"Convergence analysis does not address BCD variant\",\n          \"location\": \"Section 4.2 and Appendix D\",\n          \"explanation\": \"Section 4.2 states: 'As a BCD variant of HiZOO (Zhao et al., 2024b), our proposed B-PDF preserves its convergence properties.' However, Equation (7) is directly from HiZOO and does not account for the BCD modification where only a subset of parameters are updated per iteration while others are frozen. The proof in Appendix D merely adapts HiZOO's proof without rigorously addressing coordinate freezing effects on convergence rate.\"\n        },\n        {\n          \"concern\": \"HiZOO baseline is not practical on the target problem\",\n          \"location\": \"Table 1, Section 5.2, and Abstract\",\n          \"explanation\": \"Table 1 and Figure 2 show memory measurements on OPT-1.3B only. Section 5.2 explicitly states: 'Due to the increased model size, both the first-order method and HiZOO encountered out-of-memory (OOM) errors' on LLaMA-2-7B. The abstract claims '39% memory reduction compared to existing Hessian-informed zeroth-order methods,' but HiZOO cannot run on the larger model where memory efficiency is most important. The 39% figure only applies to OPT-1.3B.\"\n        },\n        {\n          \"concern\": \"Marginal empirical improvements\",\n          \"location\": \"Table 2 and Table 3\",\n          \"explanation\": \"Table 3 (OPT-1.3B): B-PDF accuracy is 91.9% vs MeZO's 91.7% (0.2% improvement). Table 2: B-PDF runtime is 51min 38s vs MeZO's 54min 55s (5.8% speedup). Memory is 4.6GB vs MeZO's 4.4GB (comparable, not significantly better).\"\n        },\n        {\n          \"concern\": \"LLaMA-2-7B evaluation is too limited\",\n          \"location\": \"Table 4 and Section 5.2\",\n          \"explanation\": \"Table 4 shows only SST-2 results with batch size 1. Section 5.2 states: 'Despite the limited batch size and hardware constraints, which caused an accuracy drop from incomplete convergence, B-PDF still demonstrated performance gains.' Only one task and no other GLUE tasks evaluated. Batch size 1 prevents fair comparison with OPT-1.3B experiments.\"\n        },\n        {\n          \"concern\": \"Algorithm 1 has notation and clarity issues\",\n          \"location\": \"Algorithm 1 (Section 4.1)\",\n          \"explanation\": \"The Hessian update step contains malformed notation: 'Σˆt ← ∆ℓ 2µ2 Σ−1/2 t−1 ziz π,π⊤Σ−1 i Σ−1/2 t−1' is unclear. The handling of embedding and LM head layers (mentioned in Section 4.1 as 'we apply MeZO to update the embedding and language model (LM) head layers') is not shown in the algorithm. Block switching frequency is not specified.\"\n        },\n        {\n          \"concern\": \"Unfair experimental setup\",\n          \"location\": \"Section 5.1 and Table 5\",\n          \"explanation\": \"Section 5.1 states: 'The batch size is set to 8 for zeroth-order methods and 2 for first-order methods to prevent memory exhaustion.' Different batch sizes cause different gradient noise and convergence dynamics, making comparisons unfair. Table 5 shows different hyperparameter grids for different methods, potentially biasing results. No error bars or multiple runs reported.\"\n        },\n        {\n          \"concern\": \"Memory analysis oversimplifies temporary buffers\",\n          \"location\": \"Section 3.2 and theoretical analysis\",\n          \"explanation\": \"The theoretical memory formula is stated as 'd + d/D'. However, Section 3.2 acknowledges: 'the actual allocated memory includes residual state memory such as temporary buffers and fragments.' The three forward passes (at µ=0, +µ, -2µ) require temporary storage during computation, which is not reflected in the formula 'd + d/D'.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Convergence analysis does not rigorously address BCD variant\",\n          \"proposed_change\": \"Provide a rigorous convergence analysis that explicitly accounts for the BCD modification. Show how freezing coordinates affects convergence rate compared to full-parameter updates. Derive convergence bounds as a function of block size D and block selection strategy. Either prove that B-PDF preserves O(1/√T) convergence or provide a new rate that includes BCD terms.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited empirical validation and unfair comparisons\",\n          \"proposed_change\": \"Conduct more comprehensive experiments: (1) Use consistent batch sizes across all methods or justify different batch sizes theoretically; (2) Run convergence studies for at least 50k steps or until convergence; (3) Evaluate on at least 5 GLUE tasks and additional benchmarks (e.g., instruction-following); (4) Report results with error bars from 3+ independent runs; (5) Evaluate LLaMA-2-7B with reasonable batch size (≥2) across multiple tasks; (6) Add empirical comparison with BAdam and LiSA.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Misleading performance claims\",\n          \"proposed_change\": \"Revise abstract and main claims to accurately reflect empirical results: (1) Change '39% memory reduction compared to existing Hessian-informed zeroth-order methods' to '39% on OPT-1.3B; HiZOO infeasible on LLaMA-2-7B'; (2) Change '50% speedup' claim to reflect actual speedup achieved on feasible models (5.8% on OPT-1.3B); (3) Clearly state that memory usage on LLaMA-2-7B is comparable to MeZO (32GB vs 31GB), not significantly better.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Missing implementation details reduce reproducibility\",\n          \"proposed_change\": \"Clarify Algorithm 1: (1) Fix notation inconsistencies and make the Hessian update step explicit; (2) Specify block-switching frequency as a hyperparameter or adaptive rule; (3) Add pseudocode showing how embedding and LM head layers are handled separately with MeZO; (4) Explain the three forward pass schedule (why µ=0, +µ, -2µ and not the standard ±µ); (5) Move hyperparameter definitions (BCD update interval, layers per block) from Appendix to main methodology.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Theoretical memory analysis is oversimplified\",\n          \"proposed_change\": \"Provide a more detailed memory analysis accounting for: (1) Temporary buffers during the three forward passes; (2) Activation recomputation costs if gradient checkpointing is used; (3) Overhead from random number generation and seed storage; (4) Memory fragmentation on GPU. Compare the theoretical d+d/D formula against actual GPU memory measurements (as in Table 1), and explain discrepancies.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Unclear differentiation from BAdam and LiSA\",\n          \"proposed_change\": \"Add empirical comparison with BAdam and LiSA: (1) Run BAdam with Hessian preconditioning or compare B-PDF against BAdam using standard Adam; (2) Implement LiSA's importance sampling scheme for layer selection in B-PDF and compare; (3) Clearly articulate what advantages B-PDF offers over these methods beyond the combination of existing techniques. If the speedup comes from updating fewer layers, make this explicit.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We thank Reviewer 1 for the thorough and detailed assessment. We acknowledge several substantive concerns about novelty, experimental methodology, and clarity. Below, we address each major point:\\n\\n**1. On Limited Novelty:**\\n\\nThe reviewer correctly identifies that BCD for LLMs is established in BAdam (2024) and LiSA (2024), and Hessian preconditioning is from HiZOO (2024). We concede that the core contribution is applying BCD to HiZOO. However, we argue this integration is not purely mechanical: (a) **Memory-convergence trade-off**: Existing BCD work (BAdam, LiSA) focuses on first-order optimization; we are the first to apply BCD to address the specific memory bottleneck of Hessian storage in second-order zeroth-order methods. (b) **Practical impact**: Combining these techniques yields a method that is memory-comparable to MeZO while offering convergence benefits of Hessian preconditioning—a trade-off that neither BAdam nor HiZOO achieves alone. While this may be viewed as incremental, it addresses a real practical gap. That said, we recognize the limited novelty concern is valid and justifies stronger empirical validation (see point 2).\\n\\n**2. On Convergence Analysis:**\\n\\nThe reviewer raises a critical point: our convergence analysis does not rigorously address how BCD's coordinate freezing affects guarantees. Section 4.2 does indeed adapt HiZOO's proof without explicitly accounting for the BCD modification. We acknowledge this gap. In the current submission, our focus was on practical memory reduction rather than theoretical analysis (as stated in Section 4.2: 'our focus is primarily on practical analysis and implementation'). We provide two responses:\\n\\n- **Current submission justification**: Theoretically, BCD methods have established convergence guarantees in the literature (e.g., Nutini et al., 2017). Our method applies BCD to a smooth, convex-adjacent problem (ZO-Newton update), and the convergence behavior observed empirically (convergence to stationary point with diminishing margin O(µ²)) aligns with theory. However, we acknowledge a rigorous proof for the specific BCD-HiZOO variant is absent.\\n\\n- **Proposed revision**: A formal convergence analysis accounting for block size D and block selection strategy would strengthen the work (see proposed revisions).\\n\\n**3. On Misleading Performance Claims:**\\n\\nThe reviewer correctly points out that our 39% memory reduction claim primarily applies to OPT-1.3B, and HiZOO OOMs on LLaMA-2-7B. This is a fair criticism of claim precision. Clarifications:\\n\\n- **In the current submission**: Table 1 and Figure 2 do measure memory on OPT-1.3B. We do not claim 39% reduction on LLaMA-2-7B in the experiments section (Table 4 shows comparable memory to MeZO: 32GB vs 31GB). The abstract states '39% memory reduction compared to existing Hessian-informed zeroth-order methods'—this is accurate for OPT-1.3B but should be qualified.\\n\\n- **Proposed revision**: Revise abstract to specify: 'up to 39% on OPT-1.3B; memory comparable to MeZO on LLaMA-2-7B where HiZOO is infeasible.'\\n\\n- **On 50% speedup**: This claim refers to Table 2 where HiZOO takes 99min vs B-PDF's 51min. The reviewer notes HiZOO is infeasible on larger models, so this speedup metric is of limited practical value. We can revise this to focus on speedup vs MeZO (5.8%) rather than vs HiZOO.\\n\\n**4. On Experimental Setup and Fairness:**\\n\\nThe reviewer identifies several fairness issues. We respond:\\n\\n- **Batch size discrepancy (8 for ZO, 2 for first-order)**: This is a hardware constraint to fit models in memory, not a design choice. We acknowledge it creates different gradient noise. In the current submission, we note that 'first-order methods exceed the memory limit of low-end devices' (motivation for zeroth-order methods). A fairer comparison would require matching batch sizes, but this would exceed device memory. We propose in revisions to clarify this constraint or restrict first-order comparisons to settings where batch sizes can be matched.\\n\\n- **20k training steps**: Section 5.1 states these are 'following the settings of previous work' (MeZO, HiZOO). We acknowledge incomplete convergence, particularly on LLaMA-2-7B (Table 4). We propose extending to 50k+ steps in revised experiments.\\n\\n- **Hyperparameter search (Table 5)**: Different methods have different optimal hyperparameters. In the current submission, we report results from the hyperparameter grids in Table 5. To address fairness, we can report confidence intervals across the grid or limit comparison to settings where grids overlap.\\n\\n- **No error bars or multiple runs**: This is a limitation we acknowledge. Revised experiments should include 3+ runs with error bars.\\n\\n**5. On LLaMA-2-7B Evaluation:**\\n\\nThe reviewer notes only SST-2 with batch size 1, limiting generalizability. In the current submission:\\n\\n- Section 5.2 explains: 'Due to the increased model size, both the first-order method and HiZOO encountered out-of-memory (OOM) errors.' This hardware constraint prevents evaluation on more tasks at reasonable batch sizes. We could have reported results across GLUE tasks at batch size 1, but this severely limits practical applicability.\\n\\n- **Proposed revision**: Attempt evaluation on 3-5 GLUE tasks at batch size 2+ if resources permit, or acknowledge this as a limitation.\\n\\n**6. On Missing Implementation Details:**\\n\\nAlgorithm 1 has notation issues (reviewer correctly identifies the malformed Hessian update line). Clarifications in current submission:\\n\\n- The handling of embedding/LM head with MeZO is mentioned in Section 4.1: 'we apply MeZO to update the embedding and language model (LM) head layers.' Appendix A provides implementation details: 'layer-specific update mechanism within the optimization function.' However, this is not shown in Algorithm 1.\\n\\n- Block switching frequency: Appendix B (Table 5) specifies 'BCD-Update Interval: {5, 10}' as a hyperparameter. This should be moved to main methodology.\\n\\n- **Proposed revision**: Rewrite Algorithm 1 with clear notation, add pseudocode for embedding/LM head handling, and specify block-switching as a hyperparameter.\\n\\n**7. On Limited Comparison with BAdam/LiSA:**\\n\\nThe reviewer correctly notes we mention but do not empirically compare against BAdam and LiSA. In the current submission, Table 1 includes 'BCD' (BCD-SGD) but this is first-order, not a Hessian-informed zeroth-order method like B-PDF. We did not compare against BAdam (which uses first-order Adam) or LiSA (which uses AdamW) because our focus was positioning B-PDF relative to MeZO and HiZOO (the closest zeroth-order baselines). However, the reviewer's point is valid: clarifying why B-PDF is better than BAdam+Hessian or LiSA+Hessian would strengthen novelty claims.\\n\\n**Summary of Acknowledgments and Proposed Paths Forward:**\\n\\nWe accept the following criticisms as valid:\\n1. Limited novelty: applying BCD to HiZOO is incremental.\\n2. Convergence analysis inadequate for BCD variant.\\n3. Claims (39%, 50% speedup) need better qualification.\\n4. Experimental setup has fairness issues (batch sizes, hyperparameters, single runs).\\n5. LLaMA-2-7B evaluation too limited.\\n6. Algorithm clarity and reproducibility issues.\\n7. Missing comparisons with BAdam and LiSA.\\n\\nWe propose the revisions listed above to address these concerns. The core empirical finding—that B-PDF achieves MeZO-level memory with faster convergence than MeZO on OPT-1.3B—remains valid, but claims should be more carefully qualified, and experiments should be more rigorous. We believe these revisions would substantially strengthen the work for a venue with strong empirical standards.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 2,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a practical and important problem: reducing memory overhead when using Hessian information for fine-tuning LLMs. The motivation is clear—HiZOO requires O(d) additional memory for diagonal Hessians, which negates the memory efficiency of zeroth-order methods.",
+              "The core idea of combining block coordinate descent (BCD) with Hessian-informed zeroth-order optimization is sensible. By updating only a subset of layers per iteration, the Hessian storage is reduced to O(d/D), where D is the number of blocks, which is mathematically sound.",
+              "The paper includes empirical validation on actual hardware (RTX 4090 and RTX A6000) with memory measurements, demonstrating that B-PDF achieves comparable memory to MeZO (4.6GB vs 4.4GB for OPT-1.3B) while showing some convergence improvements over MeZO."
+            ],
+            "weaknesses": [
+              "The novelty is insufficient for a top-tier venue. The paper mechanically combines existing techniques (BCD from BAdam/LiSA and diagonal Hessian preconditioning from HiZOO) without introducing new algorithmic insight or theoretical contribution. The authors' second rebuttal explicitly concedes this is an 'incremental engineering contribution' and acknowledges that 'if BCD can be applied to zeroth-order methods, why not to first-order methods, and would first-order be better?'—a question left unanswered in the submitted work.",
+              "The convergence analysis is unproven. Section 4.2 claims B-PDF 'preserves' HiZOO's convergence properties (Equation 7) without rigorous justification for the BCD variant. The authors' second rebuttal acknowledges 'a rigorous proof for the specific BCD-HiZOO variant is absent' and notes that 'convergence analysis would require addressing how coordinate freezing affects descent direction quality' and 'how block size D affects convergence rate.' None of this analysis exists in the submitted paper.",
+              "The empirical improvements are marginal and practical value is unclear. On OPT-1.3B: B-PDF achieves 91.9% vs MeZO's 91.7% (0.2% gain), 51min 38s vs MeZO's 54min 55s (5.8% speedup), and 4.6GB vs MeZO's 4.4GB (actually higher memory). On LLaMA-2-7B: evaluation limited to SST-2 with batch size 1. The main memory reduction claim (39%) compares against HiZOO on OPT-1.3B, where HiZOO still fits; HiZOO OOMs on LLaMA-2-7B, rendering this comparison moot for the target application. The authors' second rebuttal states: 'if accuracy is comparable and memory is not substantially better, practitioners would likely stick with MeZO (simpler, already published, no Hessian overhead).'",
+              "Critical algorithmic details remain absent or unclear. Algorithm 1 contains malformed notation (the Hessian update line is unreadable), block-switching frequency is not specified in the main algorithm (relegated to Appendix Table 5), and handling of embedding/LM head layers is mentioned in Section 4.1 but not shown in Algorithm 1. These are not minor presentation issues—they prevent verification of the method's correctness and reproducibility.",
+              "Comparison with closely related work (BAdam, LiSA) is entirely absent. The authors' second rebuttal acknowledges 'we do not answer' whether first-order methods with Hessian preconditioning would be better. Given that BCD-SGD (first-order) achieves 92.4% accuracy on OPT-1.3B (Table 1) vs B-PDF's 91.9%, and requires no special Hessian handling, the value of B-PDF as a zeroth-order method is questionable without empirical comparison."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The novelty is insufficient for a top-tier venue. The paper mechanically combines existing techniques (BCD from BAdam/LiSA and diagonal Hessian preconditioning from HiZOO) without introducing new algorithmic insight or theoretical contribution. The authors' second rebuttal explicitly concedes this is an 'incremental engineering contribution' and acknowledges that 'if BCD can be applied to zeroth-order methods, why not to first-order methods, and would first-order be better?'—a question left unanswered in the submitted work.",
+                "severity": "major",
+                "evidence": "Author's second rebuttal explicitly states: 'The reviewer's position—that the work is primarily an engineering contribution—is reasonable.' and 'the work does not meet the acceptance threshold for a selective top-tier venue because: Limited novelty: Acknowledged combination of two published methods (BCD + HiZOO).' The rebuttal further acknowledges: 'if the trade-off is memory vs. accuracy, this should be explicit' (but it is not in the submitted paper). On OPT-1.3B, BCD-SGD achieves 92.4% (Table 1) vs B-PDF's 91.9%, suggesting first-order outperforms the proposed zeroth-order method, yet no empirical comparison clarifies when B-PDF should be preferred.",
+                "affected_claim": "Novelty claims in abstract and introduction. Main contribution stated as: 'We propose a novel block coordinate descent finetuning pipeline that integrates the previous Hessian-informed zeroth-order optimizer.' This is not novel if it is a straightforward combination of BCD (established in BAdam/LiSA) and Hessian preconditioning (established in HiZOO).",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The convergence analysis is unproven. Section 4.2 claims B-PDF 'preserves' HiZOO's convergence properties (Equation 7) without rigorous justification for the BCD variant. The authors' second rebuttal acknowledges 'a rigorous proof for the specific BCD-HiZOO variant is absent' and notes that 'convergence analysis would require addressing how coordinate freezing affects descent direction quality' and 'how block size D affects convergence rate.' None of this analysis exists in the submitted paper.",
+                "severity": "major",
+                "evidence": "Submitted paper Section 4.2: 'As a BCD variant of HiZOO (Zhao et al., 2024b), our proposed B-PDF preserves its convergence properties' followed by Equation (7) from HiZOO adapted for BCD. No proof accounts for coordinate freezing. Author's second rebuttal: 'the submitted paper claims to preserve HiZOO's convergence properties without proof. This is undefended in the current submission.' and 'the convergence analysis would require addressing: (1) How coordinate freezing affects descent direction quality; (2) How averaging Hessian information only over active blocks affects preconditioner conditioning; (3) Whether block size D affects convergence rate... However, this is not in the submitted paper.'",
+                "affected_claim": "Section 4.2 convergence analysis claim and Remark 1 that algorithm achieves convergence to stationary point.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The empirical improvements are marginal and practical value is unclear. On OPT-1.3B: B-PDF achieves 91.9% vs MeZO's 91.7% (0.2% gain), 51min 38s vs MeZO's 54min 55s (5.8% speedup), and 4.6GB vs MeZO's 4.4GB (actually higher memory). On LLaMA-2-7B: evaluation limited to SST-2 with batch size 1. The main memory reduction claim (39%) compares against HiZOO on OPT-1.3B, where HiZOO still fits; HiZOO OOMs on LLaMA-2-7B, rendering this comparison moot for the target application. The authors' second rebuttal states: 'if accuracy is comparable and memory is not substantially better, practitioners would likely stick with MeZO (simpler, already published, no Hessian overhead).'",
+                "severity": "major",
+                "evidence": "Table 3 (OPT-1.3B SST-2): B-PDF 91.9%, MeZO 91.7% (0.2% difference). Table 2: B-PDF runtime 51min 38s, MeZO 54min 55s (5.8% faster), memory B-PDF 4.6GB, MeZO 4.4GB (0.2GB higher). Section 5.2 & Table 4 (LLaMA-2-7B): only SST-2 with batch size 1; 'both the first-order method and HiZOO encountered out-of-memory (OOM) errors.' Abstract claims 'up to 39% memory reduction' which applies only to OPT-1.3B (4.6GB vs 7.5GB HiZOO). Author's second rebuttal: 'The practical benefit over MeZO is unclear. If accuracy is comparable and memory is not substantially better, practitioners would likely stick with MeZO.'",
+                "affected_claim": "Abstract: 'up to 39% memory reduction' and 'approximately a 50% speedup.' These claims are qualified only in small tables; misleading in abstract.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical algorithmic details remain absent or unclear. Algorithm 1 contains malformed notation (the Hessian update line is unreadable), block-switching frequency is not specified in the main algorithm (relegated to Appendix Table 5), and handling of embedding/LM head layers is mentioned in Section 4.1 but not shown in Algorithm 1. These are not minor presentation issues—they prevent verification of the method's correctness and reproducibility.",
+                "severity": "major",
+                "evidence": "Algorithm 1 Hessian update line: 'Σˆt ← ∆ℓ 2µ2 Σ−1/2 t−1 ziz π,π⊤Σ−1 i Σ−1/2 t−1' contains unclear notation, missing operators, and ambiguous subscripts. Section 4.1 states: 'we apply MeZO to update the embedding and language model (LM) head layers' but this is not in Algorithm 1. Appendix B (Table 5) lists 'BCD-Update Interval: {5, 10}' as hyperparameter but is not explained in Section 4 methodology. Author's second rebuttal concedes: 'Algorithm 1 has malformed notation (specifically the Hessian update line)' and 'key details (block-switching frequency, embedding/LM head handling) are not integrated into the main algorithm.'",
+                "affected_claim": "Reproducibility and verifiability of B-PDF algorithm. Without clear specification, readers cannot reimplement or verify correctness.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Comparison with closely related work (BAdam, LiSA) is entirely absent. The authors' second rebuttal acknowledges 'we do not answer' whether first-order methods with Hessian preconditioning would be better. Given that BCD-SGD (first-order) achieves 92.4% accuracy on OPT-1.3B (Table 1) vs B-PDF's 91.9%, and requires no special Hessian handling, the value of B-PDF as a zeroth-order method is questionable without empirical comparison.",
+                "severity": "major",
+                "evidence": "Section 2 (Related Work) extensively discusses BAdam (Luo et al., 2024) and LiSA (Pan et al., 2024), but Section 5 (Experiments) does not compare against them empirically. Table 1 includes 'BCD' (BCD-SGD, first-order) achieving 92.4% accuracy on OPT-1.3B vs B-PDF's 91.9% in Table 3—yet no discussion of why the first-order BCD method outperforms the proposed zeroth-order method. Author's second rebuttal: 'We do not compare against BAdam or LiSA because they are first-order methods...However, the reviewer's implicit question is: if BCD+Hessian can be applied to zeroth-order methods, why not to first-order methods, and would first-order be better? We do not answer this in the submitted paper.' and 'In fact, BAdam (which uses Adam) likely outperforms B-PDF on accuracy.'",
+                "affected_claim": "Claim that B-PDF represents a practical alternative to MeZO without clear evidence it is better than simpler alternatives like BAdam or LiSA.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The method's theoretical foundation is incomplete. The convergence analysis in Section 4.2 claims to preserve HiZOO's O(1/√T) convergence without accounting for how coordinate freezing in BCD affects this rate. The authors' second rebuttal explicitly acknowledges 'a rigorous proof for the specific BCD-HiZOO variant is absent' and identifies specific gaps (how coordinate freezing affects descent direction, how block size D affects rate) that are unaddressed. While the O(d/D) memory reduction is sound, the convergence properties of the combined algorithm are unproven. The experimental setup also has methodological issues (batch size discrepancies, hyperparameter search disparities, single runs) that prevent confident validation of the method's practical effectiveness."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The paper presents an engineering combination of two published methods (BCD from BAdam/LiSA, Hessian preconditioning from HiZOO) without new algorithmic or theoretical contribution. The authors' second rebuttal explicitly concedes this is an 'incremental engineering contribution' and states 'the work does not meet the acceptance threshold for a selective top-tier venue because: Limited novelty: Acknowledged combination of two published methods (BCD + HiZOO).' The specific application to zeroth-order methods (rather than first-order as in BAdam/LiSA) is a configuration choice, not a methodological advance. For a top-tier venue, this falls short of the novelty bar."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The practical significance is minimal. On OPT-1.3B, B-PDF shows only 0.2% accuracy improvement over MeZO with 5.8% speedup and slightly higher memory (4.6GB vs 4.4GB). On LLaMA-2-7B (where efficiency matters most), evaluation is limited to a single task with batch size 1. The claimed 39% memory reduction applies only to OPT-1.3B against HiZOO, which OOMs on larger models—making this comparison moot for the target use case. The authors' second rebuttal concludes: 'if accuracy is comparable and memory is not substantially better, practitioners would likely stick with MeZO (simpler, already published, no Hessian overhead).' The method does not enable new capabilities, solve a previously intractable problem, or advance the field's understanding. It offers no clear practical advantage over existing methods."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The evaluation has unresolved critical gaps. (1) Batch size differs across methods (8 for ZO, 2 for first-order), creating incomparable gradient noise; unresolved. (2) Only 20,000 training steps, insufficient for convergence; acknowledged but unresolved. (3) No error bars, confidence intervals, or multiple runs; unresolved. (4) LLaMA-2-7B limited to SST-2 with batch size 1; unresolved. (5) No empirical comparison with BAdam/LiSA; unresolved. (6) Hyperparameter search differs across methods (Table 5); unresolved. The authors' second rebuttal acknowledges all these issues but proposes only future revisions, not changes to the submitted work. The second rebuttal also acknowledges that BCD-SGD (first-order, 92.4%) outperforms B-PDF (91.9%) but does not explain this in the submitted paper."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "Algorithm 1 contains unreadable notation that prevents verification (malformed Hessian update line with unclear operators and subscripts). Critical implementation details are missing: block-switching frequency is not specified in the main algorithm (only in Appendix Table 5), embedding/LM head handling is mentioned in Section 4.1 prose but not in Algorithm 1. The theoretical memory formula (d + d/D) oversimplifies without accounting for temporary buffers during three forward passes. The authors' second rebuttal acknowledges 'Algorithm 1 has malformed notation' and proposes rewrites, but the submitted paper remains unclear. These are not minor polish issues—they undermine reproducibility and verifiability of the method."
+              }
+            },
+            "summary_comment": "The authors' second rebuttal substantially clarifies the limitations of the submitted work and, critically, does not attempt to defend it against the core criticisms. The authors concede that: (1) the work is an 'incremental engineering contribution'; (2) convergence proof for the BCD-HiZOO variant is absent; (3) improvements over MeZO are marginal (0.2% accuracy, 5.8% speedup, comparable or higher memory); (4) practitioners would likely prefer simpler MeZO over B-PDF; (5) BCD-SGD (first-order) outperforms B-PDF on OPT-1.3B (92.4% vs 91.9%), leaving the value proposition unclear. The rebuttal's tone shifts from defending the work to acknowledging it does not meet top-tier standards: 'the work does not meet the acceptance threshold for a selective top-tier venue.' This self-assessment aligns with the reviewer's assessment. The submitted paper combines two published techniques (BCD + HiZOO) without new insight or strong empirical validation. The method is not clearly better than simpler alternatives (MeZO, BAdam, LiSA), and evaluation on the target application (LLaMA-2-7B) is too limited (single task, batch size 1) to draw conclusions. Algorithm clarity issues and missing convergence analysis further undermine the submission. While the authors identify specific paths to strengthen the work (rigorous convergence theory, comprehensive experiments, clear comparisons with BAdam/LiSA), these improvements are not in the current submission. By the standard of a selective top-tier machine learning conference, rejection is appropriate."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited novelty: straightforward combination of BCD (BAdam/LiSA) and HiZOO without new algorithmic insight; author concedes this in rebuttal\",\n        \"Inadequate convergence theory: claims B-PDF preserves HiZOO convergence properties without rigorous proof accounting for coordinate freezing; author acknowledges proof is absent\",\n        \"Overstated empirical claims: 39% memory reduction only on OPT-1.3B; HiZOO OOMs on LLaMA-2-7B where efficiency matters most; marginal improvements on OPT-1.3B (0.2% accuracy, 5.8% speedup)\",\n        \"Insufficient experimental scope: limited task coverage, batch size inconsistencies, hyperparameter search bias, no error bars, single runs only\",\n        \"Missing critical comparisons: no empirical evaluation against BAdam/LiSA, acknowledged by author as a gap\",\n        \"Algorithm clarity: Algorithm 1 contains malformed notation, missing implementation details (block switching, embedding/LM head handling)\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Limited novelty acknowledged by authors in rebuttal\",\n          \"location\": \"Author rebuttal, first response\",\n          \"explanation\": \"Author explicitly states: 'We concede that the core contribution is applying BCD to HiZOO.' This candid acknowledgment confirms the core contribution is an engineering combination of two published methods. BCD for LLMs originates from BAdam (Luo et al., 2024) and LiSA (Pan et al., 2024). Hessian-informed zeroth-order optimization is from HiZOO (Zhao et al., 2024b). No new algorithmic principle or theoretical result is introduced.\"\n        },\n        {\n          \"concern\": \"Convergence analysis inadequacy acknowledged by authors\",\n          \"location\": \"Author rebuttal, Section on Convergence Analysis\",\n          \"explanation\": \"Author states: 'Section 4.2 does indeed adapt HiZOO's proof without explicitly accounting for the BCD modification' and 'a rigorous proof for the specific BCD-HiZOO variant is absent.' Submitted paper Section 4.2 claims 'As a BCD variant of HiZOO (Zhao et al., 2024b), our proposed B-PDF preserves its convergence properties' but provides no proof. Equation (7) is directly from HiZOO without accounting for coordinate freezing effects in BCD.\"\n        },\n        {\n          \"concern\": \"Overstated empirical claims\",\n          \"location\": \"Abstract and Tables 1-4\",\n          \"explanation\": \"Abstract claims 'up to 39% memory reduction compared to existing Hessian-informed zeroth-order methods.' However, Table 1 (OPT-1.3B) shows 39% reduction (7.5GB HiZOO → 4.6GB B-PDF). Section 5.2 and Table 4 (LLaMA-2-7B) show: 'both the first-order method and HiZOO encountered out-of-memory (OOM) errors.' Thus, HiZOO cannot be compared on the main target application. Memory on LLaMA-2-7B: B-PDF 32GB vs MeZO 31GB (3.2% increase, not reduction). Abstract also claims '50% speedup'—from Table 2: 51min 38s (B-PDF) vs 99min 44s (HiZOO)—but this comparison is irrelevant if HiZOO OOMs on larger models.\"\n        },\n        {\n          \"concern\": \"Marginal empirical improvements on OPT-1.3B\",\n          \"location\": \"Tables 2 and 3\",\n          \"explanation\": \"Table 3 (OPT-1.3B accuracy): B-PDF 91.9% vs MeZO 91.7% = 0.2% improvement. Table 2 (runtime): B-PDF 51min 38s vs MeZO 54min 55s = 5.8% speedup. Table 2 (memory): B-PDF 4.6GB vs MeZO 4.4GB = 4.5% increase. The practical benefit is negligible, and memory actually increases relative to MeZO.\"\n        },\n        {\n          \"concern\": \"LLaMA-2-7B evaluation too limited\",\n          \"location\": \"Section 5.2, Table 4\",\n          \"explanation\": \"Table 4 evaluates only SST-2 task with batch size 1 on LLaMA-2-7B. Section 5.2 states: 'Despite the limited batch size and hardware constraints, which caused an accuracy drop from incomplete convergence.' Only one GLUE task evaluated; batch size 1 is not practical and differs dramatically from OPT-1.3B experiments (batch size 8). Results are not generalizable to real-world scenarios.\"\n        },\n        {\n          \"concern\": \"No empirical comparison with BAdam/LiSA\",\n          \"location\": \"Section 2 (Related Work) vs Section 5 (Experiments)\",\n          \"explanation\": \"Section 2 extensively discusses BAdam (Luo et al., 2024) and LiSA (Pan et al., 2024), noting 'recently proposed BAdam...showcases the effectiveness of combining block coordinate descent with Adam' and 'LiSA improves performance by selectively updating transformer layers.' However, Section 5 (Experiments) does not include empirical comparisons with either method. Only baseline is 'BCD' (BCD-SGD, first-order) in Table 1, which is not comparable as a different optimizer class.\"\n        },\n        {\n          \"concern\": \"Algorithm 1 malformed notation\",\n          \"location\": \"Algorithm 1, Section 4.1\",\n          \"explanation\": \"Hessian update line reads: 'Σˆt ← ∆ℓ 2µ2 Σ−1/2 t−1 ziz π,π⊤Σ−1 i Σ−1/2 t−1' This notation is unclear and unreadable. Missing parentheses, inconsistent subscripts (i vs πi), and unclear ordering make verification impossible. The term 'Σ−1 i' is ambiguous (inverse of which Σ?). The term 'ziz π,π⊤' is not standard notation.\"\n        },\n        {\n          \"concern\": \"Block switching frequency not specified in main algorithm\",\n          \"location\": \"Algorithm 1 (main) vs Appendix B (Table 5)\",\n          \"explanation\": \"Algorithm 1 does not specify how often blocks are switched. Appendix B (Table 5) lists 'BCD-Update Interval: {5, 10}' as a hyperparameter but does not explain this in the main methodology. This is a critical implementation detail that affects both memory and convergence behavior.\"\n        },\n        {\n          \"concern\": \"Embedding/LM head handling mentioned but not in algorithm\",\n          \"location\": \"Section 4.1 vs Algorithm 1\",\n          \"explanation\": \"Section 4.1 states: 'we apply MeZO to update the embedding and language model (LM) head layers.' However, Algorithm 1 does not show this logic. It is unclear how the algorithm determines which layers use Hessian updates vs. pure ZO updates. This is a critical methodological detail missing from the algorithm.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Convergence analysis does not rigorously account for BCD variant\",\n          \"proposed_change\": \"Provide a formal convergence analysis that explicitly accounts for BCD's coordinate freezing. Derive convergence bounds that depend on block size D and show how convergence rate scales with D. Either prove that B-PDF preserves HiZOO's O(1/√T) convergence or provide the actual convergence rate including BCD terms. Address whether blocking introduces additional approximation error beyond O(µ²).\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Overstated and imprecise empirical claims\",\n          \"proposed_change\": \"Revise abstract and main claims to accurately reflect results: (1) Change '39% memory reduction' to '39% on OPT-1.3B (4.6GB vs 7.5GB HiZOO); HiZOO infeasible on LLaMA-2-7B; comparable to MeZO (32GB vs 31GB on LLaMA-2-7B)'; (2) Change '50% speedup' to '5.8% vs MeZO on OPT-1.3B; 50% faster than HiZOO which OOMs on larger models'; (3) Emphasize that accuracy improvement is marginal (0.2% on OPT-1.3B) and memory is not substantially better than MeZO.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Limited experimental scope and fairness issues\",\n          \"proposed_change\": \"Expand experiments: (1) Evaluate B-PDF and all baselines on LLaMA-2-7B across 5+ GLUE tasks with batch size ≥2; (2) If batch size constraints remain, clearly document which methods can run at which batch sizes and discuss the limitations; (3) Run all experiments with 3+ seeds and report error bars/confidence intervals; (4) Use identical hyperparameter search grids across all methods or justify method-specific choices; (5) Extend training to 50k+ steps or until convergence; (6) Report results on additional benchmarks (SuperGLUE tasks, instruction-following).\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Missing empirical comparison with closely related work\",\n          \"proposed_change\": \"Add empirical experiments comparing B-PDF with: (1) BAdam (first-order BCD+Adam); (2) BAdam with Hessian preconditioning if feasible; (3) LiSA (importance sampling for layer selection with AdamW). For each, report accuracy, memory, and wall-clock time on OPT-1.3B and LLaMA-2-7B across multiple tasks. Clearly articulate the memory and convergence advantages of B-PDF over these alternatives.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Algorithm 1 has malformed notation and missing details\",\n          \"proposed_change\": \"Rewrite Algorithm 1 with: (1) Clear, standard mathematical notation (fix Hessian update line); (2) Explicit specification of block-switching logic (define 'active block selection rule'); (3) Pseudocode showing handling of embedding and LM head layers with MeZO vs. Hessian updates; (4) Definition of block-switching frequency as an explicit hyperparameter; (5) Explanation of perturbation schedule (why µ=0, +µ, -2µ vs. standard ±µ).\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Memory analysis oversimplifies by omitting temporary buffers\",\n          \"proposed_change\": \"Provide detailed memory accounting including: (1) Temporary buffers during three forward passes; (2) Activation recomputation if gradient checkpointing is used; (3) Random seed storage; (4) GPU fragmentation. Compare theoretical formula (d + d/D) against actual measured memory (Table 1) and explain discrepancies. Measure memory at finer granularity (parameter storage, Hessian storage, temporary buffers).\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Novelty and significance concerns not addressed by incremental engineering\",\n          \"proposed_change\": \"Clarify the methodological contribution beyond combining BCD and HiZOO. If the contribution is primarily practical (engineering), position the paper accordingly and provide strong empirical validation justifying the practical value. Alternatively, if targeting novelty, identify a new algorithmic or theoretical insight that distinguishes B-PDF from straightforward BCD+HiZOO combination. Discuss when practitioners should use B-PDF vs. simpler alternatives (MeZO, BAdam, LiSA) with clear guidance.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We appreciate Reviewer 1's detailed follow-up critique. The reviewer has fairly summarized the key limitations from the first review, and we recognize that the rebuttal, while acknowledging these issues, did not propose resolutions within the submitted paper—it only promised future work. We address the reviewer's main points directly:\\n\\n**On the Fundamental Issue: Novelty and Scope**\\n\\nThe reviewer correctly observes that our rebuttal concedes 'the core contribution is applying BCD to HiZOO' and frames this as 'incremental' while defending it as addressing a 'practical gap.' We acknowledge this does not meet the novelty standard for a top-tier venue. The reviewer states: 'For a top-tier venue, an engineering combination of two existing published methods without new algorithmic or theoretical insight does not meet the novelty standard.' This is a fair and accurate assessment.\\n\\nHowever, we would respectfully note a distinction: The integration of BCD with Hessian preconditioning in the context of *zeroth-order* optimization is not trivial. BCD has been applied to Adam (BAdam) and AdamW (LiSA), both of which use backpropagation. Applying BCD to zeroth-order methods requires handling the three-forward-pass structure of HiZOO differently—specifically, ensuring that when a block is frozen, its Hessian estimate is not updated, reducing memory proportionally. This is a design choice, not a mechanical application of BCD.\\n\\nThat said, we acknowledge this distinction may not constitute sufficient novelty for a selective top-tier venue. The reviewer's position—that the work is primarily an engineering contribution—is reasonable.\\n\\n**On Convergence Theory**\\n\\nThe reviewer notes that our rebuttal acknowledges 'a rigorous proof for the specific BCD-HiZOO variant is absent' and correctly identifies this as a critical gap. We stated in the rebuttal: 'Theoretically, BCD methods have established convergence guarantees in the literature (e.g., Nutini et al., 2017).' However, the reviewer correctly pushes back: the submitted paper claims to preserve HiZOO's convergence properties without proof. This is undefended in the current submission.\\n\\nWe note that the convergence analysis would require addressing: (1) How coordinate freezing affects descent direction quality; (2) How averaging Hessian information only over active blocks affects preconditioner conditioning; (3) Whether block size D affects convergence rate. A rigorous analysis would likely show convergence to a bounded neighborhood around a stationary point, similar to HiZOO, but with a constant that depends on D. However, this is not in the submitted paper, and the reviewer is correct that it should be.\\n\\n**On Empirical Claims and Evaluation**\\n\\nThe reviewer provides a precise breakdown:\\n\\n- **39% memory reduction claim**: Valid only on OPT-1.3B against HiZOO. HiZOO OOMs on LLaMA-2-7B, making this comparison moot for the larger model. Our rebuttal acknowledged this ('this is a fair criticism of claim precision'), but the submitted paper still leads with this claim in the abstract.\\n\\n- **Marginal improvements**: Table 3 shows 0.2% accuracy gain over MeZO; Table 2 shows 5.8% speedup. These are practically negligible. Moreover, on LLaMA-2-7B (Table 4), single-task evaluation with batch size 1 does not generalize.\\n\\n- **Memory vs. MeZO**: On OPT-1.3B, B-PDF uses 4.6GB vs MeZO's 4.4GB (slightly more). On LLaMA-2-7B, B-PDF uses 32GB vs MeZO's 31GB (more, not less).\\n\\nThe reviewer is correct: the practical benefit over MeZO is unclear. If accuracy is comparable and memory is not substantially better, practitioners would likely stick with MeZO (simpler, already published, no Hessian overhead). The value proposition is weak.\\n\\n**On Missing Comparisons with BAdam/LiSA**\\n\\nThe reviewer notes: 'the submission provides no empirical evidence that B-PDF is superior to simpler alternatives (e.g., applying BAdam with Hessian preconditioning or using LiSA's importance sampling).' This is a valid and significant gap. We did not compare against BAdam or LiSA because they are first-order methods and we were positioning B-PDF as a zeroth-order optimizer. However, the reviewer's implicit question is: if BCD+Hessian can be applied to zeroth-order methods, why not to first-order methods, and would first-order be better? We do not answer this in the submitted paper.\\n\\nIn fact, BAdam (which uses Adam) likely outperforms B-PDF on accuracy (Table 3 shows BCD-SGD achieves 92.4% vs B-PDF's 91.9% on OPT-1.3B). If the trade-off is memory vs. accuracy, this should be explicit.\\n\\n**On Algorithm Clarity**\\n\\nThe reviewer correctly identifies that Algorithm 1 has malformed notation (specifically the Hessian update line) that prevents verification. We agree this is a critical clarity issue. In the submitted paper, this line reads unclearly, and key details (block-switching frequency, embedding/LM head handling) are not integrated into the main algorithm.\\n\\nWe proposed revisions in the rebuttal (rewrite Algorithm 1, clarify notation, specify block-switching as hyperparameter), but these are not in the submitted version. The reviewer is correct to evaluate the submitted paper as-is, not as promised.\\n\\n**On the Core Question: Should This Be Accepted?**\\n\\nThe reviewer's assessment is that the work does not meet the acceptance threshold for a selective top-tier venue because:\\n\\n1. **Limited novelty**: Acknowledged combination of two published methods (BCD + HiZOO).\\n2. **Inadequate theory**: Convergence properties of the combined method are not proven.\\n3. **Weak empirical validation**: Improvements over MeZO are marginal (0.2% accuracy, 5.8% speedup, comparable memory). On larger models, evaluation is insufficient (single task, batch size 1). Main comparative advantage (memory vs HiZOO) is against a baseline that OOMs on the target application.\\n4. **Missing key comparisons**: BAdam/LiSA not evaluated empirically.\\n5. **Unclear practical value**: Practitioners face the choice of MeZO (simpler, no Hessian overhead) vs B-PDF (more complex, marginal benefits). No clear guidance on when to use each.\\n\\n**Our Assessment of the Reviewer's Critique**\\n\\nWe believe the reviewer's assessment is fair and well-reasoned. The work addresses a real problem (Hessian memory overhead), but the solution is an incremental engineering contribution that is not sufficiently validated empirically to justify adoption over simpler existing methods. The rebuttal revealed gaps (missing theory, acknowledged weak empirical gains, overstated claims) rather than resolving them.\\n\\nIf this paper were to be accepted at a top-tier venue, it would require:\\n\\n1. Rigorous convergence analysis for the BCD-HiZOO variant.\\n2. Substantial empirical improvements (not 0.2% accuracy gain).\\n3. Clearer practical value proposition and comparison with BAdam/LiSA.\\n4. Experiments on larger models (LLaMA-2-7B and beyond) with reasonable batch sizes and multiple tasks.\\n5. Honest recalibration of claims (remove '39%' and '50%' from abstract; focus on practical scenarios).\\n\\nThe current submission, even with the rebuttal's proposed revisions, would likely not meet these standards. The reviewer's recommendation of rejection appears justified.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_cd8b39284acb",
+    "conference": "ICML",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/icml_reject_2025_038_memory_efficient_block_coordinate_descent_method_for_forward_only_second_order_f.md",
+    "target_paper_summary": {
+      "paper_id": "paper_cd8b39284acb",
+      "title": "Memory Efficient Block Coordinate Descent Method For Forward-Only Second-Order Finetuning Of Llm Models",
+      "abstract": "Fine-tuning large language models (LLMs) for specific downstream tasks has traditionally relied on memory-intensive optimizers using classical backpropagation, which demands substantial memory to store model states for gradient computation, motivating the development of memoryefficient zeroth-order optimizers that operate in a forward-only manner. However, the slower convergence of the zeroth-order optimizer remains a challenge, which recent research addresses by incorporating Hessian information to accelerate training, although storing even the diagonal Hessian requires memory equivalent to that of the model weights, leading to significant memory usage. To mitigate this problem, we propose a novel approach that integrates the block coordinate descent (BCD) method with a Hessian-informed zeroth-order optimizer, allowing us to treat model layers as separate blocks and update only a subset of layers per training iteration, thereby reducing memory requirements and accelerating convergence. Specifically, at each iteration, an active block of layers is selected according to the chosen BCD rule, such as ascending order, and their weights are updated while the other layers remain fixed, with diagonal Hessian information stored and updated exclusively for the active layers. For fine-tuning foundation models of medium size (OPT-1.3B and LLaMA-2-7B), our method achieves up to 39% memory reduction compared to existing Hessian-informed zeroth-order methods, while preserving baseline accuracy and memory usage to zeroth-order methods across various tasks, offering a memory-efficient alternative method for LLMs fine-tuning, especially on memory-constrained devices.",
+      "topic": "",
+      "claims": [
+        "we propose a novel approach that integrates the block coordinate descent (BCD) method with a Hessian-informed zeroth-order optimizer, allowing us to treat model layers as separate blocks and update only a subset of layers per training iteration, thereby reducing memory requirements and accelerating convergence.",
+        "our method achieves up to 39% memory reduction compared to existing Hessian-informed zeroth-order methods, while preserving baseline accuracy and memory usage to zeroth-order methods across various tasks, offering a memory-efficient alternative method for LLMs fine-tuning, especially on memory-constrained devices."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_141bfe0a4",
+        "title": "Large Language Models: A Survey",
+        "authors": [
+          "Shervin Minaee",
+          "Tomas Mikolov",
+          "Nikzad, Narjes",
+          "Meysam Chenaghlu",
+          "Richard Socher",
+          "Xavier Amatriain",
+          "Jianfeng Gao"
+        ],
+        "year": 2024,
+        "publication_date": "2024-02-09",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large Language Models (LLMs) have drawn a lot of attention due to their strong performance on a wide range of natural language tasks, since the release of ChatGPT in November 2022. LLMs' ability of general-purpose language understanding and generation is acquired by training billions of model's parameters on massive amounts of text data, as predicted by scaling laws \\cite{kaplan2020scaling,hoffmann2022training}. The research area of LLMs, while very recent, is evolving rapidly in many different ways. In this paper, we review some of the most prominent LLMs, including three popular LLM families (GPT, LLaMA, PaLM), and discuss their characteristics, contributions and limitations. We also give an overview of techniques developed to build, and augment LLMs. We then survey popular datasets prepared for LLM training, fine-tuning, and evaluation, review widely used LLM evaluation metrics, and compare the performance of several popular LLMs on a set of representative benchmarks. Finally, we conclude the paper by discussing open challenges and future research directions.",
+        "url": "http://arxiv.org/abs/2402.06196",
+        "doi": "https://doi.org/10.48550/arxiv.2402.06196",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4391766565"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 225
+      },
+      {
+        "paper_id": "rw_002_976afd9f7",
+        "title": "Beyond Efficiency: A Systematic Survey of Resource-Efficient Large Language Models",
+        "authors": [
+          "Guangji Bai",
+          "Zheng Chai",
+          "Ling Chen",
+          "Shiyu Wang",
+          "Jiaying Lu",
+          "Nan Zhang",
+          "Tingwei Shi",
+          "Ziyang Yu",
+          "Mengdan Zhu",
+          "Yifei Zhang",
+          "Song, Xinyuan",
+          "Carl Yang",
+          "Yue Cheng",
+          "Liang Zhao"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-01",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "The burgeoning field of Large Language Models (LLMs), exemplified by sophisticated models like OpenAI's ChatGPT, represents a significant advancement in artificial intelligence. These models, however, bring forth substantial challenges in the high consumption of computational, memory, energy, and financial resources, especially in environments with limited resource capabilities. This survey aims to systematically address these challenges by reviewing a broad spectrum of techniques designed to enhance the resource efficiency of LLMs. We categorize methods based on their optimization focus: computational, memory, energy, financial, and network resources and their applicability across various stages of an LLM's lifecycle, including architecture design, pretraining, finetuning, and system design. Additionally, the survey introduces a nuanced categorization of resource efficiency techniques by their specific resource types, which uncovers the intricate relationships and mappings between various resources and corresponding optimization techniques. A standardized set of evaluation metrics and datasets is also presented to facilitate consistent and fair comparisons across different models and techniques. By offering a comprehensive overview of the current sota and identifying open research avenues, this survey serves as a foundational reference for researchers and practitioners, aiding them in developing more sustainable and efficient LLMs in a rapidly evolving landscape.",
+        "url": "http://arxiv.org/abs/2401.00625",
+        "doi": "https://doi.org/10.48550/arxiv.2401.00625",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4390529182"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 39
+      },
+      {
+        "paper_id": "rw_003_bcf293e35",
+        "title": "Fine-Tuning Language Models with Just Forward Passes",
+        "authors": [
+          "Sadhika Malladi",
+          "Tianyu Gao",
+          "Eshaan Nichani",
+          "Alex Damian",
+          "Jason D. Lee",
+          "Danqi Chen",
+          "Sanjeev Arora"
+        ],
+        "year": 2023,
+        "publication_date": "2023-05-27",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Fine-tuning language models (LMs) has yielded success on diverse downstream tasks, but as LMs grow in size, backpropagation requires a prohibitively large amount of memory. Zeroth-order (ZO) methods can in principle estimate gradients using only two forward passes but are theorized to be catastrophically slow for optimizing large models. In this work, we propose a memory-efficient zerothorder optimizer (MeZO), adapting the classical ZO-SGD method to operate in-place, thereby fine-tuning LMs with the same memory footprint as inference. For example, with a single A100 80GB GPU, MeZO can train a 30-billion parameter model, whereas fine-tuning with backpropagation can train only a 2.7B LM with the same budget. We conduct comprehensive experiments across model types (masked and autoregressive LMs), model scales (up to 66B), and downstream tasks (classification, multiple-choice, and generation). Our results demonstrate that (1) MeZO significantly outperforms in-context learning and linear probing; (2) MeZO achieves comparable performance to fine-tuning with backpropagation across multiple tasks, with up to 12x memory reduction and up to 2x GPU-hour reduction in our implementation; (3) MeZO is compatible with both full-parameter and parameter-efficient tuning techniques such as LoRA and prefix tuning; (4) MeZO can effectively optimize non-differentiable objectives (e.g., maximizing accuracy or F1). We support our empirical findings with theoretical insights, highlighting how adequate pre-training and task prompts enable MeZO to fine-tune huge models, despite classical ZO analyses suggesting otherwise.",
+        "url": "http://arxiv.org/abs/2305.17333",
+        "doi": "https://doi.org/10.48550/arxiv.2305.17333",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4378770452"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 36
+      },
+      {
+        "paper_id": "rw_004_d435489ba",
+        "title": "Revisiting Zeroth-Order Optimization for Memory-Efficient LLM Fine-Tuning: A Benchmark",
+        "authors": [
+          "Yihua Zhang",
+          "Pingzhi Li",
+          "Junyuan Hong",
+          "Jiaxiang Li",
+          "Yimeng Zhang",
+          "Wenqing Zheng",
+          "Pin‐Yu Chen",
+          "Jason D. Lee",
+          "Wotao Yin",
+          "Mingyi Hong",
+          "Zhangyang Wang",
+          "Sijia Liu",
+          "Tianlong Chen"
+        ],
+        "year": 2024,
+        "publication_date": "2024-02-18",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "In the evolving landscape of natural language processing (NLP), fine-tuning pre-trained Large Language Models (LLMs) with first-order (FO) optimizers like SGD and Adam has become standard. Yet, as LLMs grow {in size}, the substantial memory overhead from back-propagation (BP) for FO gradient computation presents a significant challenge. Addressing this issue is crucial, especially for applications like on-device training where memory efficiency is paramount. This paper proposes a shift towards BP-free, zeroth-order (ZO) optimization as a solution for reducing memory costs during LLM fine-tuning, building on the initial concept introduced by MeZO. Unlike traditional ZO-SGD methods, our work expands the exploration to a wider array of ZO optimization techniques, through a comprehensive, first-of-its-kind benchmarking study across five LLM families (Roberta, OPT, LLaMA, Vicuna, Mistral), three task complexities, and five fine-tuning schemes. Our study unveils previously overlooked optimization principles, highlighting the importance of task alignment, the role of the forward gradient method, and the balance between algorithm complexity and fine-tuning performance. We further introduce novel enhancements to ZO optimization, including block-wise descent, hybrid training, and gradient sparsity. Our study offers a promising direction for achieving further memory-efficient LLM fine-tuning. Codes to reproduce all our experiments are at https://github.com/ZO-Bench/ZO-LLM .",
+        "url": "http://arxiv.org/abs/2402.11592",
+        "doi": "https://doi.org/10.48550/arxiv.2402.11592",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4392011615"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 7
+      },
+      {
+        "paper_id": "rw_005_0fd258272",
+        "title": "A Survey on Efficient Inference for Large Language Models",
+        "authors": [
+          "Zixuan Zhou",
+          "Xuefei Ning",
+          "Ke Hong",
+          "Tianyu Fu",
+          "Jiaming Xu",
+          "Shiyao Li",
+          "Yuming Lou",
+          "Luning Wang",
+          "Zhihang Yuan",
+          "Xiuhong Li",
+          "Shengen Yan",
+          "Guohao Dai",
+          "Xiaoping Zhang",
+          "Yuhan Dong",
+          "Yu Wang"
+        ],
+        "year": 2024,
+        "publication_date": "2024-04-22",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large Language Models (LLMs) have attracted extensive attention due to their remarkable performance across various tasks. However, the substantial computational and memory requirements of LLM inference pose challenges for deployment in resource-constrained scenarios. Efforts within the field have been directed towards developing techniques aimed at enhancing the efficiency of LLM inference. This paper presents a comprehensive survey of the existing literature on efficient LLM inference. We start by analyzing the primary causes of the inefficient LLM inference, i.e., the large model size, the quadratic-complexity attention operation, and the auto-regressive decoding approach. Then, we introduce a comprehensive taxonomy that organizes the current literature into data-level, model-level, and system-level optimization. Moreover, the paper includes comparative experiments on representative methods within critical sub-fields to provide quantitative insights. Last but not least, we provide some knowledge summary and discuss future research directions.",
+        "url": "http://arxiv.org/abs/2404.14294",
+        "doi": "https://doi.org/10.48550/arxiv.2404.14294",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4395065783"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 23
+      },
+      {
+        "paper_id": "rw_006_9d9f6dc99",
+        "title": "Efficient Large Language Models: A Survey",
+        "authors": [
+          "Zhongwei Wan",
+          "Xin Wang",
+          "Liu Che",
+          "Samiul Alam",
+          "Yu Zheng",
+          "Liu, Jiachen",
+          "Zhongnan Qu",
+          "Shen Yan",
+          "Yi Zhu",
+          "Quanlu Zhang",
+          "Mosharaf Chowdhury",
+          "M. Zhang"
+        ],
+        "year": 2023,
+        "publication_date": "2023-12-06",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large Language Models (LLMs) have demonstrated remarkable capabilities in important tasks such as natural language understanding and language generation, and thus have the potential to make a substantial impact on our society. Such capabilities, however, come with the considerable resources they demand, highlighting the strong need to develop effective techniques for addressing their efficiency challenges. In this survey, we provide a systematic and comprehensive review of efficient LLMs research. We organize the literature in a taxonomy consisting of three main categories, covering distinct yet interconnected efficient LLMs topics from model-centric, data-centric, and framework-centric perspective, respectively. We have also created a GitHub repository where we organize the papers featured in this survey at https://github.com/AIoT-MLSys-Lab/Efficient-LLMs-Survey. We will actively maintain the repository and incorporate new research as it emerges. We hope our survey can serve as a valuable resource to help researchers and practitioners gain a systematic understanding of efficient LLMs research and inspire them to contribute to this important and exciting field.",
+        "url": "http://arxiv.org/abs/2312.03863",
+        "doi": "https://doi.org/10.48550/arxiv.2312.03863",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4389500833"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 24
+      },
+      {
+        "paper_id": "rw_007_d13d8443b",
+        "title": "LLM Inference Unveiled: Survey and Roofline Model Insights",
+        "authors": [
+          "Zhihang Yuan",
+          "Yuzhang Shang",
+          "Yang Zhou",
+          "Zhen Dong",
+          "Zhou, Zhe",
+          "Chenhao Xue",
+          "Bingzhe Wu",
+          "Zhikai Li",
+          "Qingyi Gu",
+          "Yong Jae Lee",
+          "Yan Yan",
+          "Beidi Chen",
+          "Guangyu Sun",
+          "Kurt Keutzer"
+        ],
+        "year": 2024,
+        "publication_date": "2024-02-26",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "The field of efficient Large Language Model (LLM) inference is rapidly evolving, presenting a unique blend of opportunities and challenges. Although the field has expanded and is vibrant, there hasn't been a concise framework that analyzes the various methods of LLM Inference to provide a clear understanding of this domain. Our survey stands out from traditional literature reviews by not only summarizing the current state of research but also by introducing a framework based on roofline model for systematic analysis of LLM inference techniques. This framework identifies the bottlenecks when deploying LLMs on hardware devices and provides a clear understanding of practical problems, such as why LLMs are memory-bound, how much memory and computation they need, and how to choose the right hardware. We systematically collate the latest advancements in efficient LLM inference, covering crucial areas such as model compression (e.g., Knowledge Distillation and Quantization), algorithm improvements (e.g., Early Exit and Mixture-of-Expert), and both hardware and system-level enhancements. Our survey stands out by analyzing these methods with roofline model, helping us understand their impact on memory access and computation. This distinctive approach not only showcases the current research landscape but also delivers valuable insights for practical implementation, positioning our work as an indispensable resource for researchers new to the field as well as for those seeking to deepen their understanding of efficient LLM deployment. The analyze tool, LLM-Viewer, is open-sourced.",
+        "url": "http://arxiv.org/abs/2402.16363",
+        "doi": "https://doi.org/10.48550/arxiv.2402.16363",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4392222465"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 13
+      },
+      {
+        "paper_id": "rw_008_459901ae7",
+        "title": "Domain Specialization as the Key to Make Large Language Models Disruptive: A Comprehensive Survey",
+        "authors": [
+          "Chen Ling",
+          "Xujiang Zhao",
+          "Jiaying Lu",
+          "Chengyuan Deng",
+          "Can Zheng",
+          "Junxiang Wang",
+          "Tanmoy Chowdhury",
+          "Yun Li",
+          "Hejie Cui",
+          "Xuchao Zhang",
+          "Tianjiao Zhao",
+          "Amit Panalkar",
+          "Mehta, Dhagash",
+          "Pasquali, Stefano",
+          "Wei Cheng",
+          "Wang, Haoyu",
+          "Yanchi Liu",
+          "Zhengzhang Chen",
+          "Haifeng Chen",
+          "Chris White",
+          "Quanquan Gu",
+          "Pei, Jian",
+          "Carl Yang",
+          "Liang Zhao"
+        ],
+        "year": 2023,
+        "publication_date": "2023-05-30",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large language models (LLMs) have significantly advanced the field of natural language processing (NLP), providing a highly useful, task-agnostic foundation for a wide range of applications. However, directly applying LLMs to solve sophisticated problems in specific domains meets many hurdles, caused by the heterogeneity of domain data, the sophistication of domain knowledge, the uniqueness of domain objectives, and the diversity of the constraints (e.g., various social norms, cultural conformity, religious beliefs, and ethical standards in the domain applications). Domain specification techniques are key to make large language models disruptive in many applications. Specifically, to solve these hurdles, there has been a notable increase in research and practices conducted in recent years on the domain specialization of LLMs. This emerging field of study, with its substantial potential for impact, necessitates a comprehensive and systematic review to better summarize and guide ongoing work in this area. In this article, we present a comprehensive survey on domain specification techniques for large language models, an emerging direction critical for large language model applications. First, we propose a systematic taxonomy that categorizes the LLM domain-specialization techniques based on the accessibility to LLMs and summarizes the framework for all the subcategories as well as their relations and differences to each other. Second, we present an extensive taxonomy of critical application domains that can benefit dramatically from specialized LLMs, discussing their practical significance and open challenges. Last, we offer our insights into the current research status and future trends in this area.",
+        "url": "http://arxiv.org/abs/2305.18703",
+        "doi": "https://doi.org/10.48550/arxiv.2305.18703",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4379138252"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 74
+      },
+      {
+        "paper_id": "rw_010_5c55cbe71",
+        "title": "Large Language Models: A Comprehensive Survey of its Applications, Challenges, Limitations, and Future Prospects",
+        "authors": [
+          "Muhammad Usman Hadi",
+          "qasem al tashi",
+          "Rizwan Qureshi",
+          "Abbas Shah",
+          "Amgad Muneer",
+          "Muhammad Irfan",
+          "Anas Zafar",
+          "Muhammad Bilal Shaikh",
+          "Naveed Akhtar",
+          "Syed Zohaib Hassan",
+          "Maged Shoman",
+          "Jia Wu",
+          "Seyedali Mirjalili",
+          "Mubarak Shah"
+        ],
+        "year": 2023,
+        "publication_date": "2023-07-21",
+        "venue": "",
+        "abstract": "Within the vast expanse of computerized language processing, a revolutionary entity known as Large Language Models (LLMs) has emerged, wielding immense power in its capacity to comprehend intricate linguistic patterns and conjure coherent and contextually fitting responses. Large language models (LLMs) are a type of artificial intelligence (AI) that have emerged as powerful tools for a wide range of tasks, including natural language processing (NLP), machine translation, and question-answering. This survey paper provides a comprehensive overview of LLMs, including their history, architecture, training methods, applications, and challenges. The paper begins by discussing the fundamental concepts of generative AI and the architecture of generative pre- trained transformers (GPT). It then provides an overview of the history of LLMs, their evolution over time, and the different training methods that have been used to train them. The paper then discusses the wide range of applications of LLMs, including medical, education, finance, and engineering. It also discusses how LLMs are shaping the future of AI and how they can be used to solve real-world problems. The paper then discusses the challenges associated with deploying LLMs in real-world scenarios, including ethical considerations, model biases, interpretability, and computational resource requirements. It also highlights techniques for enhancing the robustness and controllability of LLMs, and addressing bias, fairness, and generation quality issues. Finally, the paper concludes by highlighting the future of LLM research and the challenges that need to be addressed in order to make LLMs more reliable and useful. This survey paper is intended to provide researchers, practitioners, and enthusiasts with a comprehensive understanding of LLMs, their evolution, applications, and challenges. By consolidating the state-of-the-art knowledge in the field, this survey serves as a valuable resource for further advancements in the development and utilization of LLMs for a wide range of real-world applications. The GitHub repo for this project is available at https://github.com/anas-zafar/LLM-Survey",
+        "url": "https://doi.org/10.36227/techrxiv.23589741.v2",
+        "doi": "https://doi.org/10.36227/techrxiv.23589741.v2",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4385067052"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 45
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_003_bcf293e35",
+        "relevance_score": 0.93,
+        "relevance_types": [
+          "same_method",
+          "same_constraints",
+          "benchmark_baseline"
+        ],
+        "rationale": "This paper directly introduces MeZO, a memory-efficient zeroth-order optimizer fine-tuning LMs with only forward passes, which is a key baseline for the target's Hessian-informed zeroth-order approach; it reports memory reductions, GPU-hour savings, and performance on classification, multiple-choice, and generation tasks.",
+        "evidence_summary": "In 2023, Malladi et al. published 'Fine-Tuning Language Models with Just Forward Passes,' which proposed MeZO, a memory-efficient zeroth-order optimizer that fine-tunes language models using only forward passes, reducing memory footprint to inference levels. The method achieved comparable performance to backpropagation fine-tuning on classification, multiple-choice, and generation tasks, with up to 12x memory reduction and 2x GPU-hour reduction, and was compatible with parameter-efficient tuning techniques like LoRA."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_004_d435489ba",
+        "relevance_score": 0.87,
+        "relevance_types": [
+          "same_method",
+          "novelty_competitor",
+          "benchmark_baseline"
+        ],
+        "rationale": "This paper benchmarks zeroth-order optimization for memory-efficient LLM fine-tuning, including block-wise descent enhancements, which parallels the target's block coordinate descent method; it evaluates across LLM families like OPT and LLaMA and discusses algorithm complexity and performance.",
+        "evidence_summary": "In 2024, Zhang et al. published 'Revisiting Zeroth-Order Optimization for Memory-Efficient LLM Fine-Tuning: A Benchmark,' which conducted a comprehensive benchmarking study of zeroth-order optimization techniques across five LLM families, including OPT and LLaMA, three task complexities, and five fine-tuning schemes. The study introduced enhancements like block-wise descent and hybrid training, highlighting principles such as task alignment and the balance between algorithm complexity and fine-tuning performance."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_002_976afd9f7",
+        "relevance_score": 0.72,
+        "relevance_types": [
+          "same_constraints",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This survey systematically reviews resource-efficient LLM techniques, covering memory optimization challenges relevant to the target's memory reduction goal; it categorizes methods by resource types and lifecycle stages, providing context on efficiency trade-offs.",
+        "evidence_summary": "In 2024, Bai et al. published 'Beyond Efficiency: A Systematic Survey of Resource-Efficient Large Language Models,' which surveyed techniques to enhance computational, memory, energy, financial, and network resource efficiency of LLMs across architecture design, pretraining, fine-tuning, and system design stages. The survey categorized optimization methods by resource type and presented evaluation metrics and datasets for consistent comparisons."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_006_9d9f6dc99",
+        "relevance_score": 0.62,
+        "relevance_types": [
+          "same_constraints"
+        ],
+        "rationale": "This survey on efficient LLMs covers model-centric, data-centric, and framework-centric perspectives on resource challenges, aligning with the target's memory efficiency focus.",
+        "evidence_summary": "In 2023, Wan et al. published 'Efficient Large Language Models: A Survey,' which reviewed techniques for addressing efficiency challenges in large language models from model-centric, data-centric, and framework-centric perspectives. The survey organized literature into a taxonomy and provided a GitHub repository for ongoing updates."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_005_0fd258272",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "same_constraints"
+        ],
+        "rationale": "This survey on efficient LLM inference analyzes bottlenecks like memory and computation needs, which contextualizes the target's memory reduction claims.",
+        "evidence_summary": "In 2024, Zhou et al. published 'A Survey on Efficient Inference for Large Language Models,' which surveyed techniques to enhance LLM inference efficiency by addressing large model size, quadratic-complexity attention, and auto-regressive decoding. The taxonomy included data-level, model-level, and system-level optimizations, with comparative experiments on representative methods."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_007_d13d8443b",
+        "relevance_score": 0.48,
+        "relevance_types": [
+          "same_constraints"
+        ],
+        "rationale": "This survey uses a roofline model to analyze LLM inference bottlenecks, including memory-bound issues, which relates to the target's memory efficiency focus.",
+        "evidence_summary": "In 2024, Yuan et al. published 'LLM Inference Unveiled: Survey and Roofline Model Insights,' which analyzed LLM inference bottlenecks using a roofline model, covering model compression, algorithm improvements, and hardware enhancements. The survey provided insights into memory access and computation needs and included an open-source analysis tool."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_001_141bfe0a4",
+        "relevance_score": 0.35,
+        "relevance_types": [],
+        "rationale": "This general LLM survey reviews model families and techniques but lacks specific focus on memory-efficient fine-tuning or zeroth-order methods.",
+        "evidence_summary": "In 2024, Minaee et al. published 'Large Language Models: A Survey,' which reviewed prominent LLMs like GPT, LLaMA, and PaLM, their characteristics, and techniques for building and augmenting LLMs. The survey also covered datasets for training, fine-tuning, and evaluation, and compared LLM performance on representative benchmarks."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_008_459901ae7",
+        "relevance_score": 0.25,
+        "relevance_types": [],
+        "rationale": "This survey on domain specialization of LLMs discusses customization challenges but does not address memory-efficient optimization methods.",
+        "evidence_summary": "In 2023, Ling et al. published 'Domain Specialization as the Key to Make Large Language Models Disruptive: A Comprehensive Survey,' which surveyed techniques for specializing LLMs to specific domains, addressing data heterogeneity, knowledge sophistication, and application constraints. The paper proposed a taxonomy based on LLM accessibility and discussed critical application domains."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_010_5c55cbe71",
+        "relevance_score": 0.15,
+        "relevance_types": [],
+        "rationale": "This broad LLM survey covers applications and challenges but lacks specific details on memory-efficient fine-tuning or optimization techniques.",
+        "evidence_summary": "In 2023, Hadi et al. published 'Large Language Models: A Comprehensive Survey of its Applications, Challenges, Limitations, and Future Prospects,' which overviewed LLM history, architecture, training methods, and applications in fields like medicine and education. The survey also discussed challenges such as ethical considerations, model biases, and computational resource requirements."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2023, Malladi et al. published 'Fine-Tuning Language Models with Just Forward Passes,' which proposed MeZO, a memory-efficient zeroth-order optimizer that fine-tunes language models using only forward passes, reducing memory footprint to inference levels; it achieved comparable performance to backpropagation on classification, multiple-choice, and generation tasks, with up to 12x memory reduction. In 2024, Zhang et al. published 'Revisiting Zeroth-Order Optimization for Memory-Efficient LLM Fine-Tuning: A Benchmark,' which benchmarked zeroth-order methods across five LLM families, including OPT and LLaMA, and introduced enhancements like block-wise descent, highlighting task alignment and algorithm complexity trade-offs. In 2024, Bai et al. published 'Beyond Efficiency: A Systematic Survey of Resource-Efficient Large Language Models,' which surveyed techniques for computational, memory, energy, financial, and network efficiency across LLM lifecycle stages, categorizing methods by resource type. In 2023, Wan et al. published 'Efficient Large Language Models: A Survey,' which reviewed efficiency techniques from model-centric, data-centric, and framework-centric perspectives, organizing literature into a taxonomy. In 2024, Zhou et al. published 'A Survey on Efficient Inference for Large Language Models,' which surveyed optimizations for model size, attention complexity, and decoding, with a taxonomy covering data, model, and system levels. In 2024, Yuan et al. published 'LLM Inference Unveiled: Survey and Roofline Model Insights,' which analyzed inference bottlenecks using a roofline model, covering compression, algorithms, and hardware improvements.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

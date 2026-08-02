@@ -1,0 +1,846 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Novel framework addressing a genuine gap: This is the first systematic study of data attribution for online RL, tackling the fundamental challenge of circular data-model dependency that existing attribution methods cannot handle. The local attribution framework that operates within individual training rounds is a principled solution to this problem.",
+        "Well-motivated target functions with practical utility: The design of f_action and f_return is thoughtful. f_return in particular is a meaningful surrogate that balances tractability with relevance by using a reference policy and advantage estimates, avoiding high-variance raw returns while maintaining connection to the PPO objective.",
+        "Comprehensive empirical validation across multiple domains: The paper demonstrates the framework's power through three well-designed applications (diagnosis of learning, temporal analysis, targeted intervention) and validates IIF across diverse environments (navigation, control, locomotion) plus RLHF for LLMs. The diagnostic insights (e.g., bottom records feature inaccurate advantage estimates) are valuable and well-characterized quantitatively.",
+        "Practical algorithm with demonstrated efficiency gains: IIF achieves substantial improvements in sample efficiency (20-67% reduction in rounds), computational efficiency (~4× runtime reduction in RLHF), and final performance, with minimal implementation overhead. The algorithm is simple enough for practitioners to adopt.",
+        "Insightful temporal analysis revealing phase transitions: The three-stage analysis of behavior formation (initial association → semantic clustering → influence saturation) with roughness-based quantification provides fresh insights into how RL agents learn, advancing our understanding of online RL dynamics.",
+        "Reproducibility and transparency: The authors provide code, detailed experimental setups in appendices, results with error bars across multiple seeds, and honest discussion of limitations including assumptions about SGD vs. Adam and the lack of counterfactual interpretation."
+      ],
+      "weaknesses": [
+        "Design choice of π_ref = π^(k) lacks empirical validation: While the intuitive motivation (contextual evaluation matching the agent's current capability) is clarified in the rebuttal, the submitted paper contains no ablation studies comparing this choice with alternatives (fixed initial policy, exponential moving average, importance-weighted historical policies). The paper relies on intuitive justification rather than empirical evidence that this design choice is superior.",
+        "Insufficient cross-round validation of f_return's reliability: Figure 5 demonstrates that filtering based on f_return within a single round improves performance, but the paper lacks direct evidence that f_return influence scores computed at round k remain predictive of policy improvement from k to k+T. The rebuttal notes that Figure 6's multi-round IIF improvements provide indirect support, but explicit correlation analysis between f_return scores and future policy gains is absent.",
+        "Practical limitation with SGD vs. Adam undermines real-world applicability: The submitted paper uses only SGD as a proxy for Adam, despite acknowledging that adaptive optimizers are standard in modern RL. No empirical comparison is provided. This substantially limits confidence in the method's applicability to current systems.",
+        "Hyperparameter p selection lacks principled guidance: The paper shows post-hoc results in Figure 6 but provides no data-driven method for selecting p. The rebuttal suggests a simple heuristic (start with 20-30%), but this guidance is not in the submitted work and remains post-hoc rather than principled."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Design choice of π_ref = π^(k) lacks empirical validation: While the intuitive motivation is clarified in the rebuttal, the submitted paper contains no ablation studies comparing this choice with alternatives.",
+          "severity": "minor",
+          "evidence": "Section 3.1 provides intuitive motivation for π_ref = π^(k) but no empirical comparison. The rebuttal clarifies: 'The reference policy should match the agent's current capability level to ask the right counterfactual question: given where the agent is now, which experiences help?' This is sound reasoning, but the submitted paper lacks ablation studies. The rebuttal notes this gap: 'our submitted paper lacks empirical validation comparing π_ref = π^(k) with alternatives.' The indirect evidence from IIF's multi-round success (Figure 6) suggests the choice is reasonable, but direct ablation would be stronger.",
+          "affected_claim": "The claim that π_ref = π^(k) is the appropriate design choice for reliable data attribution.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Insufficient cross-round validation of f_return's reliability: Figure 5 demonstrates single-round filtering, but the paper lacks direct evidence that f_return influence scores remain predictive across training.",
+          "severity": "major",
+          "evidence": "Section 4.3 and Figure 5 show single-round interventions: remove negative-influence records in round k, re-train from θ^(k), and measure improvement. The rebuttal acknowledges: 'Figure 5 shows single-round interventions where filtering within round k... improves test return at round k+1. What is NOT in the paper: Multi-round validation correlating f_return influence scores at round k with policy improvement from k to k+T.' The rebuttal argues Figure 6's multi-round IIF success provides indirect support ('If f_return influence scores were unreliable across rounds... we would expect IIF to degrade... Instead, IIF shows stable improvements'), but this is indirect. No explicit correlation measure (e.g., Spearman ρ between f_return scores and future policy improvement) is computed in the paper.",
+          "affected_claim": "The claim that f_return is a reliable target function for data attribution across full training trajectories.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Practical limitation with SGD vs. Adam undermines real-world applicability: The submitted paper uses only SGD, no comparison provided.",
+          "severity": "major",
+          "evidence": "Section 7 acknowledges 'adaptive optimizers like Adam are prevalent in modern RL... we follow Wang et al. [2025b] and employ SGD as a proxy for Adam. While empirically effective, investigating attribution methods... for adaptive optimizers is a valuable direction for future work.' All experiments (Figures 6-7) use SGD. The rebuttal states: 'All experiments reported (Figures 6-7, Tables in Figure 6(b)) use SGD. No comparison with Adam is provided in the submitted paper.' This is a factual limitation of the current work—practitioners using Adam (the standard) cannot verify whether the reported improvements transfer.",
+          "affected_claim": "The framework's practical applicability to modern RL systems using adaptive optimizers.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Hyperparameter p selection lacks principled guidance: The paper shows post-hoc results but provides no data-driven method for selecting p in the submission.",
+          "severity": "minor",
+          "evidence": "Section 5.1 states 'We evaluate various p's and report the best in Fig. 6' and defers details to Appendix B.6. Figure 6 does not indicate which p was used per environment. The rebuttal acknowledges: 'The paper does not provide principled guidance. However, we can add to this response: practitioners can use a simple rule... start with p = 20-30%.' This guidance is not in the submitted paper. The rebuttal correctly identifies this as a gap: 'The reviewer is correct: practitioners must perform post-hoc tuning; no actionable guidance is provided.'",
+          "affected_claim": "IIF is readily actionable for practitioners without extensive hyperparameter tuning.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The core technical approach is sound. The local attribution framework logically addresses online RL's circular data-model dependency. TracIn adaptation is technically correct. The rebuttal's clarification of π_ref = π^(k) provides sound intuition, even without empirical ablation. Empirical results (Figures 3-7) support main claims. The rebuttal acknowledges gaps honestly: multi-round f_return validation is absent, but Figure 6's multi-round IIF success indirectly supports f_return's reliability. The fundamental technical foundation is valid; design choices remain intuitive rather than empirically validated."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "This is clearly the first systematic study of data attribution for online RL. Prior RL interpretability work (Section 6) addressed features or policies, not data attribution. The circular data-model dependency challenge is unique to online RL and unaddressed by existing attribution methods. The local attribution framework is novel. The rebuttal does not dispute novelty and confirms the contribution's distinctness from prior work."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper addresses interpretability and sample efficiency in online RL—meaningful challenges. IIF demonstrates practical improvements: 20-67% sample efficiency gains, ~4× speedup in RLHF, improved performance. Diagnostic insights (inaccurate advantages harm learning; phase transitions) advance RL understanding. The rebuttal's honest assessment that 'core contributions are valuable... merit publication' even with identified gaps supports significance. Limitation to SGD somewhat moderates real-world impact but does not eliminate significance of the conceptual contributions."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Experiments are comprehensive across diverse environments with proper baselines (standard PPO, random filtering). Figure 6 compares IIF against baselines with multiple seeds and error bars. Diagnostic analyses quantitatively ground claims (Figure 3: advantage mismatch; Figure 4: roughness). The rebuttal acknowledges key gaps: multi-round f_return validation absent, SGD vs. Adam comparison missing, but concedes these are limitations of the submitted work rather than fatal flaws. IIF's multi-round success (Figure 6, Algorithm 1 iterates across rounds) provides indirect evidence of f_return's reliability, though not definitive. Evaluation supports main claims with identified gaps."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "Paper is well-written with clear motivation. Section 3 explains circular data-model dependency (Figure 2) and local attribution solution clearly. Framework components crisply defined. Experimental flow logical. Figures informative. Limitations honestly discussed (Section 7). The rebuttal demonstrates mature engagement with criticism, clearly distinguishing submitted work gaps from rebuttal promises. Presentation is sound."
+        }
+      },
+      "summary_comment": "This paper makes a novel and significant contribution by introducing the first data attribution framework for online RL, addressing the genuine challenge of circular data-model dependency. The local attribution framework is principled; the framework yields fresh insights (inaccurate advantage estimates; phase transitions); and IIF demonstrates practical improvements (20-67% sample efficiency, ~4× speedup) across diverse domains including RLHF. The work is technically sound and experiments are comprehensive. The rebuttal demonstrates integrity by explicitly accepting the reviewer's methodological point that evaluation should focus on the submitted paper, not promised revisions. Key gaps remain unresolved in the submitted work: (1) π_ref = π^(k) lacks empirical ablation, (2) f_return lacks explicit multi-round correlation analysis despite Figure 6's indirect support, (3) all experiments use SGD, no Adam comparison, (4) hyperparameter p lacks principled selection guidance. However, the rebuttal correctly clarifies that these gaps represent honest limitations rather than fundamental flaws. Figure 6's multi-round IIF success provides indirect evidence that f_return remains meaningful across training rounds. The intuitive motivation for π_ref = π^(k) is sound even without ablation. The SGD limitation is a practical constraint on modern systems but does not invalidate the framework's conceptual contribution. The paper's novelty, demonstrated improvements on standard benchmarks, fresh insights into RL learning dynamics, and honest discussion of limitations justify acceptance at a top-tier venue, while recognizing that future work should validate design choices across optimizers and longer training horizons to strengthen confidence in the framework's reliability."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Strong fit with ICML's core focus on machine learning methodology: The paper presents a novel framework for data attribution in online RL, directly addressing a methodological gap in how we understand and improve RL training. This aligns with ICML's emphasis on 'general machine learning' and 'evaluation (methodology, meta studies, replicability and validity)'.\",\n      \"Reinforcement learning as a primary ICML topic: The paper's focus on online RL (specifically PPO) matches ICML's explicit interest in 'reinforcement learning (decision and control, planning, hierarchical RL, robotics, etc.)'.\",\n      \"Solid empirical methodology with diverse benchmarks: The paper demonstrates rigorous experimental design across multiple environments (navigation, control, locomotion) with proper baselines, error bars, and multiple seeds. This aligns with ICML's emphasis on 'evaluation (methodology, meta studies, replicability and validity)'.\",\n      \"Practical algorithmic contribution (IIF): The iterative influence-based filtering algorithm provides concrete improvements in sample efficiency (20-67% reduction) and computational cost. ICML values 'machine learning systems (improved implementation and scalability)'.\",\n      \"Optimization and trustworthy ML themes: The paper touches on optimization implicitly (through PPO updates) and explicitly addresses interpretability and data understanding, which fall under ICML's 'trustworthy machine learning (reliability, causality, fairness, interpretability, privacy, robustness, safety)'\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited theoretical contribution: The paper is primarily empirical and methodological rather than theoretical. Reviewer noted novelty score of 4/10 and soundness of 4/10, indicating incremental technical depth. ICML has strong expectations for 'theory of machine learning (statistical learning theory, bandits, game theory, decision theory)' and the paper makes no theoretical claims beyond adapting existing TracIn methodology.\",\n      \"Adaptation of existing method (TracIn) rather than fundamentally new technique: While the application to online RL is novel, the core attribution method is from prior work (Pruthi et al., 2020). The paper acknowledges choosing TracIn for 'conceptual simplicity, relative efficiency, and widespread use' but doesn't develop new attribution theory. This makes it feel incremental to ICML's standards.\",\n      \"Narrow algorithmic scope: The framework is primarily developed for PPO only, with brief discussion of extensions to other algorithms deferred to remarks and limitations. ICML tends to prefer work that introduces broadly applicable principles or algorithms. The limitations section (Section 7) explicitly acknowledges that extending to other algorithms like GRPO is 'a promising avenue for future work.'\",\n      \"SGD-only implementation limits practical impact: All experiments use SGD as a proxy for Adam, despite acknowledging that 'adaptive optimizers like Adam are prevalent in modern RL.' This design choice undermines the paper's relevance to practitioners and limits its contribution to understanding modern RL systems, which ICML cares about.\",\n      \"Single-round intervention validation gap: Reviewer identified that cross-round validation of f_return's reliability is absent from the submitted paper. While IIF's multi-round success (Figure 6) provides indirect support, ICML's rigorous evaluation standards would want explicit correlation analysis between f_return scores and future policy gains, especially for a paper emphasizing data understanding.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Strong alignment with NeurIPS's interdisciplinary mission: The paper explicitly bridges data attribution, interpretability, and RL—spanning machine learning theory, empirical systems work, and applications (including RLHF for LLMs). NeurIPS explicitly welcomes 'interdisciplinary submissions that do not fit neatly into existing categories.'\",\n      \"Direct match with NeurIPS topics: The paper addresses 'reinforcement learning, control, and decision-making,' 'interpretability and explainability,' and 'data-centric aspects of AI'—all explicitly listed NeurIPS topics. The RLHF application extends to 'language and multimodal language models.'\",\n      \"Novel methodological contribution addressing a genuine gap: This is the first systematic study of data attribution for online RL, tackling the unique challenge of circular data-model dependency. Reviewer praised this as addressing 'a genuine gap' and 'the fundamental challenge.' NeurIPS values novel problem formulations.\",\n      \"Comprehensive empirical validation with fresh insights: The paper provides three well-motivated applications (diagnosis, temporal analysis, intervention) with concrete findings (e.g., phase transitions in behavior formation quantified via graph roughness). NeurIPS rewards 'in-depth analysis of existing methods that provide new insights in terms of their limitations or behavior.'\",\n      \"Practical algorithm with demonstrated improvements: IIF achieves 20-67% sample efficiency gains, 4× runtime reduction in RLHF, and improved final performance. NeurIPS values 'AI/ML for sustainability' and sample efficiency improvements directly support this. The algorithm is simple and reproducible.\",\n      \"Honest treatment of limitations and reproducibility: The paper discusses limitations (Section 7), acknowledges gaps (SGD vs. Adam, counterfactual interpretation), provides code, detailed appendices, and multi-seed experiments. NeurIPS explicitly rewards reproducibility and honesty about methodological constraints.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Primarily empirical/methodological rather than fundamental: NeurIPS includes theory, but this paper makes no theoretical contributions beyond adapting TracIn. Reviewer noted low novelty (4/10) and soundness (4/10) scores, indicating the technical depth is incremental. The local attribution framework, while novel in application, is not a fundamentally new theoretical insight.\",\n      \"Design choices lack rigorous empirical validation: The key design choice of π_ref = π^(k) relies on intuitive motivation without empirical ablation comparing alternatives. Reviewer identified this as 'lacking empirical validation.' While indirect evidence from IIF's success exists, NeurIPS standards typically demand explicit ablation studies before claiming a design is optimal.\",\n      \"Cross-round validation gap limits reliability claims: The paper demonstrates single-round interventions (Figure 5) work well, but lacks explicit correlation analysis showing that f_return scores computed at round k remain predictive of policy improvement through round k+T. Reviewer noted this as a 'major' weakness. For a paper emphasizing data understanding and attribution, this gap is significant.\",\n      \"SGD-only experiments limit generalizability: All experiments use SGD despite acknowledging Adam is standard. No empirical comparison provided. This is a 'major' weakness per reviewer, substantially limiting confidence that the framework transfers to how modern RL is actually implemented. NeurIPS emphasizes practical relevance.\",\n      \"Hyperparameter selection not principled: The paper shows post-hoc results for hyperparameter p but provides no principled selection method. Practitioners must tune p empirically, reducing the algorithm's immediate applicability. This is a 'minor' weakness per reviewer but affects practical utility that NeurIPS values.\",\n      \"Limited scope of RL algorithms: Framework primarily developed for PPO; extensions to other algorithms are deferred to future work. While GRPO, TRPO, and off-policy methods are briefly discussed, the submitted work doesn't validate these extensions. NeurIPS values broad applicability.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Direct alignment with ICLR's reinforcement learning focus: The paper is fundamentally about online RL (PPO), which is an ICLR core topic. The framework provides new insights into how RL agents learn from data, advancing our understanding of 'reinforcement learning' and related topics like 'representation learning.'\",\n      \"Interpretability and explainability is an ICLR priority: ICLR explicitly lists 'visualization or interpretation of learned representations' as a key topic. This paper's focus on data attribution as an interpretability lens directly aligns with this interest.\",\n      \"Novel problem formulation for deep learning practitioners: While ICLR emphasizes 'representation learning' and 'deep learning,' the paper's treatment of how individual experiences shape policy learning can be positioned as understanding learned representations in RL contexts.\",\n      \"Empirical methodology with insights into learning dynamics: The temporal analysis revealing three-stage phase transitions (initial association → semantic clustering → influence saturation) provides fresh insights into behavior formation. ICLR values 'in-depth analysis of existing methods providing new insights.'\",\n      \"Practical improvements to RL training: IIF achieves measurable gains in sample efficiency and training speed across standard benchmarks. ICLR values work that makes deep learning 'more efficient and effective.'\",\n      \"Application to LLMs via RLHF: The extension to RLHF for language models (Section 5.3) connects to ICLR's interest in 'applications to... language' and demonstrates the framework's relevance beyond traditional RL.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited representation learning contribution: While the paper claims to provide interpretability insights, it doesn't contribute fundamentally to understanding learned representations in the deep learning sense that ICLR emphasizes. The focus is on data attribution and filtering, not on how representations form or improve.\",\n      \"Adaptation of existing method without new representation insights: The framework adapts TracIn (existing method) to online RL. While novel in application, it doesn't introduce new representation learning theory or techniques. ICLR expects contributions to 'unsupervised, self-supervised, semi-supervised, and supervised representation learning' or related core topics.\",\n      \"Not primarily about deep learning architectures or learning theory: ICLR places strong emphasis on 'deep learning' in the architectural and theoretical sense (generative models, architectures, etc.). This paper is more about data selection and interpretability than advancing deep learning methods themselves.\",\n      \"No causal reasoning or neurosymbolic contributions: ICLR lists 'causal reasoning' and 'neurosymbolic & hybrid AI systems' as topics. The paper lacks counterfactual interpretation (acknowledged in Section 7) and doesn't engage with causal reasoning frameworks.\",\n      \"Narrow algorithmic scope limits technical contribution: The framework is validated primarily for PPO; extensions are deferred. ICLR values broadly applicable technical innovations. The 'local' nature of the attribution (within single rounds) is a design choice for tractability rather than a fundamental insight into deep learning.\",\n      \"Design choices under-validated relative to ICLR standards: The choice of π_ref = π^(k) lacks empirical ablation; cross-round f_return validation is absent. ICLR typically expects rigorous justification of design choices through multiple ablations, especially for papers claiming to provide deep understanding of learning mechanisms.\",\n      \"Primarily empirical results rather than theoretical or architectural contribution: Reviewer scored novelty and soundness as 4/10 (roughly 'borderline'), indicating incremental technical depth. ICLR's emphasis on representation learning and deep learning typically demands either strong theoretical insights or novel architectural contributions, neither of which this paper provides.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary & Recommendation\n\n**Best fit: NeurIPS (score 8)**\n\n**Why NeurIPS is the strongest match:**\nThis paper is ideally positioned for NeurIPS because it introduces a novel problem formulation (data attribution in online RL) with a principled solution and demonstrates both interpretability benefits and practical algorithmic improvements. NeurIPS explicitly welcomes interdisciplinary work that bridges methodological innovation, empirical insights, and applications—all of which this paper delivers. The honest treatment of limitations (SGD vs. Adam, counterfactual interpretation gap) aligns with NeurIPS's culture of transparency and rigor.\n\n**Why ICML is a solid alternative (score 7):**\nICML would also accept this work, especially valuing the practical algorithmic contribution (IIF) and the rigorous empirical methodology. However, ICML's stronger emphasis on theory and novel algorithmic techniques makes the adaptation of existing TracIn methodology feel slightly incremental. The SGD-only experiments further limit relevance to ICML's audience focused on modern ML systems.\n\n**Why ICLR is a weaker fit (score 6):**\nWhile ICLR shares RL interests with the other venues, this paper doesn't contribute sufficiently to representation learning or deep learning theory, which are ICLR's defining focuses. The paper is about data selection and attribution in RL, not about how representations form or improve. ICLR audiences would likely view this as more naturally suited to NeurIPS or ICML.\n\n**Key reviewer concerns to address before submission:**\n1. **Empirical ablation of π_ref = π^(k)**: Compare against fixed initial policy, moving averages, or other reference choices.\n2. **Cross-round f_return validation**: Compute explicit correlation (Spearman ρ) between f_return scores at round k and policy improvement to round k+T.\n3. **Adam experiments**: Provide at least one comparison with adaptive optimizers to validate real-world applicability.\n4. **Hyperparameter p guidance**: Develop or validate a principled heuristic for p selection rather than post-hoc tuning.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel framework addressing a genuine gap: This is the first systematic study of data attribution for online RL, tackling the fundamental challenge of circular data-model dependency that existing attribution methods cannot handle. The local attribution framework that operates within individual training rounds is a principled solution to this problem.",
+              "Well-motivated target functions with practical utility: The design of f_action and f_return is thoughtful. f_return in particular is a meaningful surrogate that balances tractability with relevance by using a reference policy and advantage estimates, avoiding high-variance raw returns while maintaining connection to the PPO objective.",
+              "Comprehensive empirical validation across multiple domains: The paper demonstrates the framework's power through three well-designed applications (diagnosis of learning, temporal analysis, targeted intervention) and validates IIF across diverse environments (navigation, control, locomotion) plus RLHF for LLMs. The diagnostic insights (e.g., bottom records feature inaccurate advantage estimates) are valuable and well-characterized quantitatively.",
+              "Practical algorithm with demonstrated efficiency gains: IIF achieves substantial improvements in sample efficiency (20-67% reduction in rounds), computational efficiency (~4× runtime reduction in RLHF), and final performance, with minimal implementation overhead. The algorithm is simple enough for practitioners to adopt.",
+              "Insightful temporal analysis revealing phase transitions: The three-stage analysis of behavior formation (initial association → semantic clustering → influence saturation) with roughness-based quantification provides fresh insights into how RL agents learn, advancing our understanding of online RL dynamics.",
+              "Reproducibility and transparency: The authors provide code, detailed experimental setups in appendices, results with error bars across multiple seeds, and honest discussion of limitations including assumptions about SGD vs. Adam and the lack of counterfactual interpretation."
+            ],
+            "weaknesses": [
+              "Limited theoretical justification for design choices, particularly the use of π_ref = π^(k): While the paper argues this is a 'key design choice' for contextual evaluation, the theoretical motivation is informal. The claim that this provides 'stable and relevant' evaluation lacks formal analysis of when this choice is valid or could be misleading. The response in Section 4.3 appeals to empirical robustness rather than principled justification.",
+              "Gap between f_return validation and practical utility: While f_return is motivated as capturing policy improvement and averaging advantage estimates reduces variance, the paper does not provide theoretical or empirical evidence quantifying the noise in f_return or its correlation with actual test performance. The sanity-check interventions in Section 4.3 show improvements but only within single rounds, leaving uncertain whether f_return remains meaningful across training dynamics.",
+              "Significant limitation with adaptive optimizers (Adam) reduces practical impact: The framework is designed for SGD but modern RL implementations typically use Adam. While the authors note they use SGD as a proxy following Wang et al. [2025b], this is acknowledged as non-ideal. This substantially limits the framework's applicability to state-of-the-art RL systems and weakens the practical contribution.",
+              "Limited analysis of failure modes and hyperparameter sensitivity: The choice of p (filtering percentage) substantially affects performance, but the paper provides limited guidance on selecting p beyond showing post-hoc results. No principled method is proposed, and sensitivity analysis is deferred to appendix. Additionally, potential failure modes (e.g., when influence scores are unreliable) are not discussed."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited theoretical justification for design choices, particularly the use of π_ref = π^(k): While the paper argues this is a 'key design choice' for contextual evaluation, the theoretical motivation is informal. The claim that this provides 'stable and relevant' evaluation lacks formal analysis of when this choice is valid or could be misleading.",
+                "severity": "major",
+                "evidence": "Section 3.1 states 'we set the reference policy π_ref = π_θ^(k), i.e., the policy snapshot at the beginning of the round. This is a key design choice' and argues it is 'contextual' and 'evolves with training.' However, the justification is largely intuitive: 'providing a stable and relevant basis for meaningful evaluation.' Section 4.3 defends this choice by appealing to empirical robustness ('Despite potential noise in individual records, the aggregated signal from f_return is reasonably robust') rather than principled analysis. No theoretical analysis shows when this choice is optimal, when it might fail, or how sensitive the framework is to this assumption.",
+                "affected_claim": "The claim that f_return is a tractable and meaningful target function that reliably indicates which records help or harm learning.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Gap between f_return validation and practical utility: While f_return is motivated as capturing policy improvement and averaging advantage estimates reduces variance, the paper does not provide theoretical or empirical evidence quantifying the noise in f_return or its correlation with actual test performance.",
+                "severity": "major",
+                "evidence": "The paper argues f_return reduces variance compared to raw returns (J(θ)) by using advantage estimates, but provides no quantitative analysis of the residual noise or its impact on attribution accuracy. Section 4.3 acknowledges 'potential noise in individual records' and appeals to 'the close alignment of f_return with the PPO objective' and 'purifying the learning signal,' but these are informal arguments. The single-round interventions (Figure 5) show improvements but don't establish that f_return scores reliably indicate which records help vs. harm across training dynamics. No analysis shows correlation between f_return influence scores and actual policy improvement.",
+                "affected_claim": "The claim that f_return is a reliable and meaningful target function for attributing records in online RL.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Significant limitation with adaptive optimizers (Adam) reduces practical impact: The framework is designed for SGD but modern RL implementations typically use Adam. While the authors note they use SGD as a proxy following Wang et al. [2025b], this is acknowledged as non-ideal.",
+                "severity": "major",
+                "evidence": "Section 7 (Limitations) explicitly states: 'Our framework leverages TracIn, which is designed for SGD [Hammoudeh and Lowd, 2024]. However, adaptive optimizers like Adam [Kingma and Ba, 2015] are prevalent in modern RL [Asadi et al., 2023] and LLMs [Zhao et al., 2025]. In this work, we follow Wang et al. [2025b] and employ SGD as a proxy for Adam. While empirically effective, investigating attribution methods specifically tailored for adaptive optimizers [Xia et al., 2024] is a valuable direction for future work.' This is a substantial limitation—all experiments use SGD as a proxy, which may not accurately reflect attribution under Adam, the de facto optimizer for modern RL and LLMs.",
+                "affected_claim": "The framework's applicability and effectiveness for modern online RL systems that use adaptive optimizers.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited analysis of failure modes and hyperparameter sensitivity: The choice of p (filtering percentage) substantially affects performance, but the paper provides limited guidance on selecting p beyond showing post-hoc results. No principled method is proposed.",
+                "severity": "minor",
+                "evidence": "Section 5.1 states 'IIF employs a hyperparameter, p, which determines the amount of records to discard. We evaluate various p's and report the best in Fig. 6' and notes that 'removing all negative-influence records (p = 100%) as in Wang et al. [2025a] is often suboptimal.' Full ablation is deferred to Appendix B.6. The paper provides no principled guidance for selecting p; practitioners must tune this hyperparameter. Additionally, no discussion of when IIF might fail (e.g., when influence scores are particularly noisy or unreliable).",
+                "affected_claim": "IIF is a practical algorithm that practitioners can readily apply to their RL training pipelines.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core technical approach is sound. The local attribution framework is logically motivated by the unique challenges of online RL (circular data-model dependency). The adaptation of TracIn via gradient inner products is technically correct. The target functions f_action and f_return are well-designed. The single-round intervention experiments (Figure 5) and comprehensive empirical analysis support the main claims. However, there are informal elements in the justification of key design choices (e.g., π_ref = π^(k)) and limited quantitative validation that f_return's noise is acceptably low. These issues do not invalidate the main contributions but leave some claims less rigorously supported than ideal."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "This is the first systematic study of data attribution for online RL, addressing the unique challenge of circular data-model dependency that existing methods (TracIn, influence functions, Data Shapley) cannot handle. The local attribution framework operating within training rounds is a novel conceptual contribution. The design of f_return as a tractable, meaningful surrogate objective is novel and well-motivated. While the paper builds on TracIn (a known method), the adaptation to online RL and the overall framework constitute a significant advance in interpretability for RL. Related work (Section 6) shows prior interpretability methods in RL focused on feature-level or policy-level explanations, not data-level attribution."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a fundamental challenge in online RL—sample inefficiency, interpretability, and instability—and proposes both a principled framework and a practical algorithm. IIF demonstrates consistent improvements: 20-67% reduction in training rounds, significant computational savings (especially ~4× in RLHF), and improved final performance across diverse environments. The framework enables new insights (e.g., bottom records feature inaccurate advantage estimates; temporal phase transitions in behavior formation) valuable for RL researchers. Extension to RLHF for LLMs broadens impact. However, significance is somewhat moderated by limitations with adaptive optimizers and lack of theoretical guarantees."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive and well-designed. The paper evaluates across diverse environments (navigation, control, locomotion, RLHF) with multiple seeds and error bars. Figure 6 shows IIF beats both standard PPO and random filtering, supporting the claim that improvements stem from data attribution rather than mere data reduction. Diagnostic analyses (Figure 3: inaccurate advantage estimates; Figure 4: phase transitions) are quantitatively grounded. Single-round interventions (Figure 5) provide a sanity check. Runtime analysis includes detailed breakdowns (Appendix B.9). However, single-round interventions only demonstrate that filtering within one round helps; cross-round validation of f_return's reliability is limited. RLHF experiments are somewhat limited (one task: toxicity mitigation) compared to RL experiments."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written and clearly organized. The motivation for local attribution in online RL is clearly explained (Section 3, Figure 2). The three components of the framework (entity, target functions, method) are crisply defined. Experimental sections flow logically. Figures are informative (e.g., Figure 3 clearly shows harmful records with inaccurate advantage estimates; Figure 4 effectively demonstrates phase transitions). Limitations are honestly discussed (Section 7). The paper includes extensive appendices with ablations and additional results. One minor issue: the paper is dense with multiple contributions (framework, three applications, algorithm), which could benefit from slightly tighter focus, but this is not a major clarity issue."
+              }
+            },
+            "summary_comment": "This paper makes a solid contribution by introducing the first data attribution framework for online RL, addressing the genuine challenge of circular data-model dependency. The local attribution framework is well-motivated and principled. The framework delivers fresh insights (inaccurate advantage estimates harm learning; phase transitions in behavior formation) and enables a practical algorithm (IIF) that achieves consistent improvements in sample efficiency and computational cost across diverse environments and tasks including RLHF. The experimental validation is comprehensive and fair. However, key design choices (π_ref = π^(k)) lack strong theoretical justification, f_return's reliability across training dynamics is not rigorously validated, and the constraint to SGD (rather than Adam) limits practical impact for modern RL systems. These are meaningful limitations but do not undermine the core contributions. The work advances interpretability and efficiency in online RL and opens new research directions, meriting acceptance at a top-tier venue."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel framework addressing a genuine gap: This is the first systematic study of data attribution for online RL, tackling the fundamental challenge of circular data-model dependency that existing attribution methods cannot handle. The local attribution framework that operates within individual training rounds is a principled solution to this problem.",
+              "Well-motivated target functions with practical utility: The design of f_action and f_return is thoughtful. f_return in particular is a meaningful surrogate that balances tractability with relevance by using a reference policy and advantage estimates, avoiding high-variance raw returns while maintaining connection to the PPO objective.",
+              "Comprehensive empirical validation across multiple domains: The paper demonstrates the framework's power through three well-designed applications (diagnosis of learning, temporal analysis, targeted intervention) and validates IIF across diverse environments (navigation, control, locomotion) plus RLHF for LLMs. The diagnostic insights (e.g., bottom records feature inaccurate advantage estimates) are valuable and well-characterized quantitatively.",
+              "Practical algorithm with demonstrated efficiency gains: IIF achieves substantial improvements in sample efficiency (20-67% reduction in rounds), computational efficiency (~4× runtime reduction in RLHF), and final performance, with minimal implementation overhead. The algorithm is simple enough for practitioners to adopt.",
+              "Insightful temporal analysis revealing phase transitions: The three-stage analysis of behavior formation (initial association → semantic clustering → influence saturation) with roughness-based quantification provides fresh insights into how RL agents learn, advancing our understanding of online RL dynamics.",
+              "Reproducibility and transparency: The authors provide code, detailed experimental setups in appendices, results with error bars across multiple seeds, and honest discussion of limitations including assumptions about SGD vs. Adam and the lack of counterfactual interpretation."
+            ],
+            "weaknesses": [
+              "Limited theoretical justification for design choices, particularly the use of π_ref = π^(k): While the paper argues this is a 'key design choice' for contextual evaluation, the theoretical motivation is informal. The rebuttal clarifies the intuition (contextual evaluation at current agent stage) but does not provide ablation studies comparing alternative reference policies or formal analysis of when this choice is optimal. This remains a conceptual gap.",
+              "Insufficient empirical validation of f_return's reliability across training: While the single-round interventions (Figure 5) show that filtering based on f_return helps, the paper lacks multi-round validation demonstrating that f_return influence scores remain meaningful and predictive of policy improvement across the full training trajectory. The rebuttal promises such analysis but it is not included in the submission.",
+              "Significant limitation with adaptive optimizers (Adam) reduces practical impact: The framework is designed for SGD but modern RL implementations typically use Adam. While the authors acknowledge this limitation and promise empirical comparison in revisions, the submitted paper provides no such comparison. All experiments use SGD as a proxy, substantially limiting applicability to state-of-the-art systems.",
+              "Limited guidance on hyperparameter p selection and failure modes: The choice of p substantially affects performance. While the paper shows post-hoc results in Figure 6, no principled method is provided. The rebuttal acknowledges this and promises data-driven approaches, but these are not in the submitted work. Practitioners lack actionable guidance for selecting p."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited theoretical justification for design choices, particularly the use of π_ref = π^(k): While the paper argues this is a 'key design choice' for contextual evaluation, the theoretical motivation is informal. The rebuttal clarifies the intuition (contextual evaluation at current agent stage) but does not provide ablation studies comparing alternative reference policies or formal analysis of when this choice is optimal.",
+                "severity": "minor",
+                "evidence": "Section 3.1 states 'This is a key design choice of our contextual framework' but provides only informal justification: 'providing a stable and relevant basis for meaningful evaluation.' The rebuttal explains the contextual motivation well: 'For the agent at its current stage of training, which experiences will be most helpful for the next update?' However, no ablation studies are provided in the submission comparing π_ref = π^(k) with alternatives (fixed initial policy, importance-weighted historical policies, etc.). The rebuttal commits to adding such ablations in revision but promises are not evidence in the submitted paper.",
+                "affected_claim": "The claim that π_ref = π^(k) is the appropriate design choice for reliable data attribution in online RL.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Insufficient empirical validation of f_return's reliability across training: While the single-round interventions (Figure 5) show that filtering based on f_return helps, the paper lacks multi-round validation demonstrating that f_return influence scores remain meaningful and predictive of policy improvement across the full training trajectory.",
+                "severity": "major",
+                "evidence": "Section 4.3 provides single-round interventions where removing negative-influence records within round k and re-training from θ^(k) improves test return. However, this only validates f_return within one round. There is no experiment measuring correlation between f_return influence rankings at round k and actual policy improvement from k to k+T for some lookahead window. The rebuttal proposes 'extend single-round interventions to multi-round studies' but this analysis is not in the submitted paper. Without this validation, it remains unclear whether f_return influence scores are meaningful across the full training trajectory or only locally within single rounds.",
+                "affected_claim": "The claim that f_return is a reliable and meaningful target function for data attribution throughout training in online RL.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Significant limitation with adaptive optimizers (Adam) reduces practical impact: The framework is designed for SGD but modern RL implementations typically use Adam. While the authors acknowledge this limitation and promise empirical comparison in revisions, the submitted paper provides no such comparison.",
+                "severity": "major",
+                "evidence": "Section 7 (Limitations) explicitly states: 'In this work, we follow Wang et al. [2025b] and employ SGD as a proxy for Adam. While empirically effective, investigating attribution methods specifically tailored for adaptive optimizers is a valuable direction for future work.' The rebuttal promises 'We can run IIF with both SGD and Adam on a subset of environments... to measure the performance gap' but this comparison is not present in any figures, tables, or appendices of the submitted paper. All experiments reported use SGD.",
+                "affected_claim": "The framework's practical applicability to modern RL systems that use adaptive optimizers.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited guidance on hyperparameter p selection and failure modes: The choice of p substantially affects performance. While the paper shows post-hoc results in Figure 6, no principled method is provided.",
+                "severity": "minor",
+                "evidence": "Section 5.1 states 'We evaluate various p's and report the best in Fig. 6' and defers full ablation to 'Appendix B.6.' Figure 6 shows results for unspecified values of p (no table indicating which p was used per environment), and the text notes 'removing all negative-influence records (p = 100%)... is often suboptimal.' The rebuttal proposes 'data-driven approach' and 'rules of thumb' but the submitted paper provides neither. Practitioners cannot easily apply IIF without post-hoc tuning of p.",
+                "affected_claim": "IIF is a practical algorithm that practitioners can readily apply without extensive hyperparameter tuning.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core technical approach is sound. The local attribution framework logically addresses the circular data-model dependency in online RL. TracIn adaptation via gradient inner products is technically correct. The target functions f_action and f_return are well-designed and motivated. The rebuttal clarifies the contextual motivation for π_ref = π^(k), which is intuitive even if not formally justified. Empirical results (Figures 3-7) support claims. However, the lack of multi-round validation for f_return leaves some uncertainty about its reliability across full training trajectories, and the SGD-only experiments mean the framework is not validated under modern optimizers. These limitations do not make the work unsound—the core logic holds—but leave some claims less rigorously supported than ideal. The soundness gate passes because the fundamental technical contributions are valid."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The novelty contribution is clear and significant. This is the first systematic study of data attribution for online RL. Prior work on RL interpretability (Section 6) focused on feature-level or policy-level explanations, not data-level attribution. The challenge of circular data-model dependency is unique to online RL and was not addressed by existing methods (TracIn, influence functions, Data Shapley all assume fixed datasets). The local attribution framework operating within training rounds is a novel conceptual solution. The target function f_return, while based on REINFORCE with baseline, is novel in its application as a tractable attribution target in online RL. The rebuttal does not dispute novelty and the paper's contributions remain distinct from prior work."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses meaningful challenges: interpretability and sample efficiency in online RL. IIF shows practical improvements (20-67% sample efficiency gains, ~4× runtime improvement in RLHF, improved final performance). The diagnostic insights (bottom records have inaccurate advantage estimates; phase transitions in behavior formation) advance understanding of RL learning dynamics. The framework potentially benefits the broader ML community—data attribution for non-stationary settings is of independent interest. However, significance is somewhat moderated by the SGD limitation (all experiments use SGD, not the default Adam), which restricts applicability to real-world systems. The core contributions remain significant for the research community even if practical adoption may be limited initially."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive across diverse environments and include proper baselines. Figure 6 compares IIF with standard PPO and random filtering, showing improvements are due to data attribution not mere filtering. Results include error bars across multiple seeds. Diagnostic analyses quantitatively ground claims (Figure 3: inaccuracy metrics; Figure 4: roughness analysis). Ablations are provided (e.g., advantage-based and TD-error-based heuristics in appendices). Runtime analysis includes detailed breakdowns. However, key gaps remain: (1) no multi-round validation of f_return's predictive power, (2) no SGD vs. Adam comparison despite acknowledging this as a major limitation, (3) limited ablation on the π_ref choice. The evaluation supports the main claims but lacks depth in validating design choices and cross-environment reliability."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written with clear motivation and organization. Section 3 clearly explains the circular data-model dependency problem (Figure 2) and the local attribution solution. The framework's three components are crisply defined. Experimental sections flow logically from diagnosis to temporal analysis to intervention. Figures are informative (e.g., Figure 3 effectively shows harmful records; Figure 4 demonstrates phase transitions). Limitations are honestly discussed (Section 7). Extensive appendices provide details. The rebuttal does not identify clarity issues. While the paper is dense with multiple contributions, this reflects the work's breadth rather than a presentation flaw."
+              }
+            },
+            "summary_comment": "This paper makes a solid and novel contribution by introducing the first data attribution framework for online RL. The local attribution framework is principled and well-motivated, addressing the unique challenge of circular data-model dependency. The framework yields fresh insights (e.g., inaccurate advantage estimates harm learning; temporal phase transitions) and enables a practical algorithm (IIF) with consistent improvements in sample efficiency and computation across diverse environments including RLHF. The work is technically sound and experiments are comprehensive. However, the rebuttal reveals several important gaps between the submitted paper and the authors' stated validation standards: (1) No ablation studies comparing alternative reference policies (π_ref = π^(k) vs. alternatives); (2) No multi-round validation that f_return influence scores remain meaningful across training trajectories; (3) No SGD vs. Adam comparison despite acknowledging this as a major practical limitation affecting modern RL systems; (4) No principled guidance for hyperparameter p selection. The rebuttal acknowledges all these limitations and commits to addressing them in revision, but these experiments and analyses are not present in the submitted work. Evaluating the paper as submitted (not as promised revisions), these gaps represent honest limitations rather than fatal flaws. The core contributions remain valuable: a novel framework, interpretable insights, and empirical improvements on SGD-trained PPO. For a top-tier venue, the work merits acceptance given its novelty and demonstrated improvements, but these validation gaps prevent a higher confidence recommendation. The practical impact may be initially limited by the SGD constraint, though the conceptual framework is generalizable."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited theoretical justification for the choice of π_ref = π^(k) as the reference policy\",\n        \"Gap between f_return validation and practical utility—lack of quantitative noise analysis and correlation with test performance\",\n        \"Significant limitation with SGD vs. Adam: the framework is designed for SGD but modern RL uses Adam, limiting practical applicability\",\n        \"Limited guidance on hyperparameter selection (p) and failure mode analysis\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Choice of π_ref = π^(k) as reference policy\",\n          \"location\": \"Section 3.1, paragraph 3 (Target functions)\",\n          \"explanation\": \"The paper states: 'For attribution in round k, we set the reference policy π_ref = π_θ^(k), i.e., the policy snapshot at the beginning of the round. This is a key design choice of our contextual framework, which enables us to ask: For the agent at its current stage of training, which experiences will be most helpful or harmful for the next update?' The rationale provided is intuitive rather than formal: the dynamic reference 'evolves with training, providing a stable and relevant basis for meaningful evaluation and attribution.'\"\n        },\n        {\n          \"concern\": \"Motivation for f_return and variance reduction\",\n          \"location\": \"Section 3.1, paragraph 2 (Target functions) and Section 4.3\",\n          \"explanation\": \"The paper argues that f_return avoids high-variance raw returns J(θ) by using advantage estimates: 'raw returns R(τ) exhibit high variance, leading to noisy influence estimates.' It further states: 'Maximizing f_return(θ) encourages increasing the probability of better-than-average actions and decreasing worse-than-average ones, capturing the essence of improving expected return while being tractable.' Section 4.3 appeals to empirical robustness: 'Despite potential noise in individual records, the aggregated signal from f_return is reasonably robust.'\"\n        },\n        {\n          \"concern\": \"Validation within single rounds\",\n          \"location\": \"Section 4.3 and Figure 5\",\n          \"explanation\": \"Figure 5 shows that filtering negative-influence records within a single training round improves test return. However, this only validates f_return's meaningfulness within one round. The paper does not establish whether f_return influence scores reliably correlate with policy improvement across multiple training rounds or over the full training trajectory.\"\n        },\n        {\n          \"concern\": \"SGD vs. Adam limitation\",\n          \"location\": \"Section 7 (Limitations and Discussion)\",\n          \"explanation\": \"The paper explicitly acknowledges: 'Our framework leverages TracIn, which is designed for SGD... However, adaptive optimizers like Adam are prevalent in modern RL and LLMs. In this work, we follow Wang et al. [2025b] and employ SGD as a proxy for Adam. While empirically effective, investigating attribution methods specifically tailored for adaptive optimizers is a valuable direction for future work.'\"\n        },\n        {\n          \"concern\": \"Hyperparameter p selection\",\n          \"location\": \"Section 5.1, paragraph 3 (Algorithm and Designs) and Figure 6\",\n          \"explanation\": \"The paper states: 'IIF employs a hyperparameter, p, which determines the amount of records to discard. We evaluate various p's and report the best in Fig. 6' and notes that 'removing all negative-influence records (p = 100%)... is often suboptimal, likely due to the non-additivity of sample influence. Full ablation and recommendations for the choice of p are in Appendix B.6.' No principled method for p selection is provided; practitioners must tune this hyperparameter.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Limited theoretical justification for π_ref = π^(k)\",\n          \"proposed_change\": \"Add formal or empirical analysis demonstrating when this choice is valid. For instance, (1) provide theoretical analysis of how choice of reference policy affects attribution accuracy, or (2) conduct ablation studies comparing π_ref = π^(k) with alternative choices (e.g., a fixed reference policy, or exponential moving average of policies) to demonstrate that the local choice is superior. This would strengthen the claim that this design choice is principled rather than heuristic.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Gap between f_return validation and practical utility\",\n          \"proposed_change\": \"Provide empirical evidence of f_return's reliability: (1) quantify the noise in f_return by analyzing the variance of influence scores across stochastic rollouts or by comparing f_return scores with ground-truth policy improvement metrics; (2) measure correlation between f_return influence rankings and actual test performance improvements in a held-out validation experiment; (3) extend the single-round interventions to multi-round studies showing that influence scores remain meaningful across the full training trajectory.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"SGD vs. Adam limitation\",\n          \"proposed_change\": \"While a full solution would require developing attribution methods tailored for adaptive optimizers (which is beyond the scope of this work), the authors could mitigate this limitation by: (1) conducting a comparison experiment where IIF is run with both SGD and Adam on a few representative environments to quantify the performance gap, and (2) discussing mitigation strategies (e.g., using recent work on adaptive optimizer attribution [Xia et al., 2024]) in the main paper rather than deferring to limitations. This would give practitioners better expectations of the method's applicability.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited guidance on hyperparameter p selection\",\n          \"proposed_change\": \"Propose a principled or data-driven method for selecting p. For example: (1) develop a heuristic based on the distribution of influence scores (e.g., remove records with influence below a percentile threshold), (2) use a small validation set to tune p, or (3) analyze the sensitivity of final performance to p more systematically and provide rules of thumb. Even a simple approach (e.g., 'remove bottom 20-30% of records based on influence scores') would be more actionable than current guidance.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"Thank you for the detailed and constructive review. We appreciate your recognition of the novelty and significance of our work—being the first to systematically study data attribution for online RL is indeed a key contribution. We address your main concerns below.\\n\\n**On π_ref = π^(k) justification:**\\nYou correctly identify that the theoretical motivation for this design choice is informal. We acknowledge this is a limitation of the current submission. Our reasoning—that the reference policy should evolve with the agent's training to provide \\\"stable and relevant\\\" evaluation—is intuitive rather than formal. To address your concern, we can provide additional support:\\n\\n(1) *Empirical validation:* The single-round interventions (Figure 5) and the fact that IIF consistently improves performance across environments (Figure 6) suggest that f_return with π_ref = π^(k) provides meaningful signals. A more rigorous approach would be to conduct ablation studies comparing π_ref = π^(k) with alternative choices (e.g., a fixed initial policy π_θ^(0), or a reference computed via importance weighting from older data). We can add this analysis in a revision.\\n\\n(2) *Contextual motivation:* Unlike offline settings where a fixed validation set is natural, online RL agents operate in a non-stationary regime. Using the policy at the beginning of each round (π_ref = π^(k)) ensures that the target function f_return captures the relevant counterfactual: \\\"given the agent's current capabilities, which experiences would be helpful for the next update?\\\" This is more informative than a fixed reference that may be far from the agent's current state.\\n\\n**On f_return validation and noise analysis:**\\nYou raise an important gap: while f_return is motivated by reducing variance compared to raw returns, we do not quantify the residual noise or demonstrate its correlation with actual policy improvement. We can address this in a revision:\\n\\n(1) *Noise quantification:* We can conduct a controlled experiment by computing f_return influence scores for multiple stochastic rollouts of the same buffer and measuring the variance of influence rankings. This would give a concrete measure of f_return's stability.\\n\\n(2) *Correlation with ground truth:* We can extend the single-round interventions (Figure 5) by conducting a multi-round validation study where we measure correlation between f_return influence scores at round k and the policy's improvement from round k to round k+T for some lookahead window T. This would directly validate f_return's predictive power.\\n\\n(3) *Cross-round validation:* The current paper validates filtering within a single round. We can extend this to show that influence scores computed at round k remain meaningful for predicting which records harm or help learning across subsequent rounds, not just within the round they were computed.\\n\\n**On the SGD vs. Adam limitation:**\\nWe acknowledge this is a significant practical limitation of the current work. TracIn is indeed designed for SGD, and modern RL systems typically use Adam. Our choice to use SGD as a proxy follows recent work (Wang et al., 2025b) but is suboptimal.\\n\\nWhile developing a full attribution method for adaptive optimizers is beyond the scope of this work, we can mitigate this concern:\\n\\n(1) *Empirical comparison:* We can run IIF with both SGD and Adam on a subset of environments (e.g., 2-3 representative tasks) to measure the performance gap. This would give practitioners realistic expectations.\\n\\n(2) *Mitigation discussion:* Recent work (Xia et al., 2024) proposes attribution methods tailored for adaptive optimizers. We can discuss these approaches in the main paper (rather than deferring to limitations) and outline how our framework could be adapted in future work.\\n\\n(3) *Transparency:* We can more prominently note in the main paper that all experiments use SGD, and clearly discuss the implications for practitioners using Adam.\\n\\n**On hyperparameter p selection:**\\nYou correctly point out that the choice of p substantially affects performance, and the paper provides limited principled guidance. This is a fair criticism. We can address this by:\\n\\n(1) *Proposing a heuristic:* For instance, we could recommend removing the bottom p% of records based on influence scores, with p selected via a small held-out validation set or via sensitivity analysis. We can provide empirical guidance based on the ablations already in Appendix B.6.\\n\\n(2) *Data-driven approach:* We can analyze the distribution of influence scores and propose removing records below a threshold (e.g., influence < 0th or 10th percentile) rather than a fixed percentage. This would be more adaptive to the specific problem.\\n\\n(3) *Rules of thumb:* Even a simple practical recommendation (e.g., \\\"based on our experiments, removing the bottom 20-30% of records by influence is a good starting point; tune p on a small validation set for your specific task\\\") would significantly improve actionability.\\n\\n**Summary:**\\nYour review identifies important gaps between the conceptual contributions and their empirical/theoretical validation. In a revision, we commit to:\\n- Adding ablation studies on π_ref choice\\n- Providing quantitative noise analysis for f_return\\n- Conducting multi-round validation of f_return's predictive power\\n- Empirically comparing SGD and Adam performance\\n- Proposing data-driven methods for p selection\\n\\nThese additions would substantially strengthen the rigor and practical applicability of the work while remaining grounded in experiments we can conduct without fundamental algorithmic changes.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel framework addressing a genuine gap: This is the first systematic study of data attribution for online RL, tackling the fundamental challenge of circular data-model dependency that existing attribution methods cannot handle. The local attribution framework that operates within individual training rounds is a principled solution to this problem.",
+              "Well-motivated target functions with practical utility: The design of f_action and f_return is thoughtful. f_return in particular is a meaningful surrogate that balances tractability with relevance by using a reference policy and advantage estimates, avoiding high-variance raw returns while maintaining connection to the PPO objective.",
+              "Comprehensive empirical validation across multiple domains: The paper demonstrates the framework's power through three well-designed applications (diagnosis of learning, temporal analysis, targeted intervention) and validates IIF across diverse environments (navigation, control, locomotion) plus RLHF for LLMs. The diagnostic insights (e.g., bottom records feature inaccurate advantage estimates) are valuable and well-characterized quantitatively.",
+              "Practical algorithm with demonstrated efficiency gains: IIF achieves substantial improvements in sample efficiency (20-67% reduction in rounds), computational efficiency (~4× runtime reduction in RLHF), and final performance, with minimal implementation overhead. The algorithm is simple enough for practitioners to adopt.",
+              "Insightful temporal analysis revealing phase transitions: The three-stage analysis of behavior formation (initial association → semantic clustering → influence saturation) with roughness-based quantification provides fresh insights into how RL agents learn, advancing our understanding of online RL dynamics.",
+              "Reproducibility and transparency: The authors provide code, detailed experimental setups in appendices, results with error bars across multiple seeds, and honest discussion of limitations including assumptions about SGD vs. Adam and the lack of counterfactual interpretation."
+            ],
+            "weaknesses": [
+              "Design choice of π_ref = π^(k) lacks empirical validation: While the intuitive motivation (contextual evaluation matching the agent's current capability) is clarified in the rebuttal, the submitted paper contains no ablation studies comparing this choice with alternatives (fixed initial policy, exponential moving average, importance-weighted historical policies). The paper relies on intuitive justification rather than empirical evidence that this design choice is superior.",
+              "Insufficient cross-round validation of f_return's reliability: Figure 5 demonstrates that filtering based on f_return within a single round improves performance, but the paper lacks direct evidence that f_return influence scores computed at round k remain predictive of policy improvement from k to k+T. The rebuttal notes that Figure 6's multi-round IIF improvements provide indirect support, but explicit correlation analysis between f_return scores and future policy gains is absent.",
+              "Practical limitation with SGD vs. Adam undermines real-world applicability: The submitted paper uses only SGD as a proxy for Adam, despite acknowledging that adaptive optimizers are standard in modern RL. No empirical comparison is provided. This substantially limits confidence in the method's applicability to current systems.",
+              "Hyperparameter p selection lacks principled guidance: The paper shows post-hoc results in Figure 6 but provides no data-driven method for selecting p. The rebuttal suggests a simple heuristic (start with 20-30%), but this guidance is not in the submitted work and remains post-hoc rather than principled."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Design choice of π_ref = π^(k) lacks empirical validation: While the intuitive motivation is clarified in the rebuttal, the submitted paper contains no ablation studies comparing this choice with alternatives.",
+                "severity": "minor",
+                "evidence": "Section 3.1 provides intuitive motivation for π_ref = π^(k) but no empirical comparison. The rebuttal clarifies: 'The reference policy should match the agent's current capability level to ask the right counterfactual question: given where the agent is now, which experiences help?' This is sound reasoning, but the submitted paper lacks ablation studies. The rebuttal notes this gap: 'our submitted paper lacks empirical validation comparing π_ref = π^(k) with alternatives.' The indirect evidence from IIF's multi-round success (Figure 6) suggests the choice is reasonable, but direct ablation would be stronger.",
+                "affected_claim": "The claim that π_ref = π^(k) is the appropriate design choice for reliable data attribution.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Insufficient cross-round validation of f_return's reliability: Figure 5 demonstrates single-round filtering, but the paper lacks direct evidence that f_return influence scores remain predictive across training.",
+                "severity": "major",
+                "evidence": "Section 4.3 and Figure 5 show single-round interventions: remove negative-influence records in round k, re-train from θ^(k), and measure improvement. The rebuttal acknowledges: 'Figure 5 shows single-round interventions where filtering within round k... improves test return at round k+1. What is NOT in the paper: Multi-round validation correlating f_return influence scores at round k with policy improvement from k to k+T.' The rebuttal argues Figure 6's multi-round IIF success provides indirect support ('If f_return influence scores were unreliable across rounds... we would expect IIF to degrade... Instead, IIF shows stable improvements'), but this is indirect. No explicit correlation measure (e.g., Spearman ρ between f_return scores and future policy improvement) is computed in the paper.",
+                "affected_claim": "The claim that f_return is a reliable target function for data attribution across full training trajectories.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Practical limitation with SGD vs. Adam undermines real-world applicability: The submitted paper uses only SGD, no comparison provided.",
+                "severity": "major",
+                "evidence": "Section 7 acknowledges 'adaptive optimizers like Adam are prevalent in modern RL... we follow Wang et al. [2025b] and employ SGD as a proxy for Adam. While empirically effective, investigating attribution methods... for adaptive optimizers is a valuable direction for future work.' All experiments (Figures 6-7) use SGD. The rebuttal states: 'All experiments reported (Figures 6-7, Tables in Figure 6(b)) use SGD. No comparison with Adam is provided in the submitted paper.' This is a factual limitation of the current work—practitioners using Adam (the standard) cannot verify whether the reported improvements transfer.",
+                "affected_claim": "The framework's practical applicability to modern RL systems using adaptive optimizers.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Hyperparameter p selection lacks principled guidance: The paper shows post-hoc results but provides no data-driven method for selecting p in the submission.",
+                "severity": "minor",
+                "evidence": "Section 5.1 states 'We evaluate various p's and report the best in Fig. 6' and defers details to Appendix B.6. Figure 6 does not indicate which p was used per environment. The rebuttal acknowledges: 'The paper does not provide principled guidance. However, we can add to this response: practitioners can use a simple rule... start with p = 20-30%.' This guidance is not in the submitted paper. The rebuttal correctly identifies this as a gap: 'The reviewer is correct: practitioners must perform post-hoc tuning; no actionable guidance is provided.'",
+                "affected_claim": "IIF is readily actionable for practitioners without extensive hyperparameter tuning.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core technical approach is sound. The local attribution framework logically addresses online RL's circular data-model dependency. TracIn adaptation is technically correct. The rebuttal's clarification of π_ref = π^(k) provides sound intuition, even without empirical ablation. Empirical results (Figures 3-7) support main claims. The rebuttal acknowledges gaps honestly: multi-round f_return validation is absent, but Figure 6's multi-round IIF success indirectly supports f_return's reliability. The fundamental technical foundation is valid; design choices remain intuitive rather than empirically validated."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "This is clearly the first systematic study of data attribution for online RL. Prior RL interpretability work (Section 6) addressed features or policies, not data attribution. The circular data-model dependency challenge is unique to online RL and unaddressed by existing attribution methods. The local attribution framework is novel. The rebuttal does not dispute novelty and confirms the contribution's distinctness from prior work."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses interpretability and sample efficiency in online RL—meaningful challenges. IIF demonstrates practical improvements: 20-67% sample efficiency gains, ~4× speedup in RLHF, improved performance. Diagnostic insights (inaccurate advantages harm learning; phase transitions) advance RL understanding. The rebuttal's honest assessment that 'core contributions are valuable... merit publication' even with identified gaps supports significance. Limitation to SGD somewhat moderates real-world impact but does not eliminate significance of the conceptual contributions."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive across diverse environments with proper baselines (standard PPO, random filtering). Figure 6 compares IIF against baselines with multiple seeds and error bars. Diagnostic analyses quantitatively ground claims (Figure 3: advantage mismatch; Figure 4: roughness). The rebuttal acknowledges key gaps: multi-round f_return validation absent, SGD vs. Adam comparison missing, but concedes these are limitations of the submitted work rather than fatal flaws. IIF's multi-round success (Figure 6, Algorithm 1 iterates across rounds) provides indirect evidence of f_return's reliability, though not definitive. Evaluation supports main claims with identified gaps."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "Paper is well-written with clear motivation. Section 3 explains circular data-model dependency (Figure 2) and local attribution solution clearly. Framework components crisply defined. Experimental flow logical. Figures informative. Limitations honestly discussed (Section 7). The rebuttal demonstrates mature engagement with criticism, clearly distinguishing submitted work gaps from rebuttal promises. Presentation is sound."
+              }
+            },
+            "summary_comment": "This paper makes a novel and significant contribution by introducing the first data attribution framework for online RL, addressing the genuine challenge of circular data-model dependency. The local attribution framework is principled; the framework yields fresh insights (inaccurate advantage estimates; phase transitions); and IIF demonstrates practical improvements (20-67% sample efficiency, ~4× speedup) across diverse domains including RLHF. The work is technically sound and experiments are comprehensive. The rebuttal demonstrates integrity by explicitly accepting the reviewer's methodological point that evaluation should focus on the submitted paper, not promised revisions. Key gaps remain unresolved in the submitted work: (1) π_ref = π^(k) lacks empirical ablation, (2) f_return lacks explicit multi-round correlation analysis despite Figure 6's indirect support, (3) all experiments use SGD, no Adam comparison, (4) hyperparameter p lacks principled selection guidance. However, the rebuttal correctly clarifies that these gaps represent honest limitations rather than fundamental flaws. Figure 6's multi-round IIF success provides indirect evidence that f_return remains meaningful across training rounds. The intuitive motivation for π_ref = π^(k) is sound even without ablation. The SGD limitation is a practical constraint on modern systems but does not invalidate the framework's conceptual contribution. The paper's novelty, demonstrated improvements on standard benchmarks, fresh insights into RL learning dynamics, and honest discussion of limitations justify acceptance at a top-tier venue, while recognizing that future work should validate design choices across optimizers and longer training horizons to strengthen confidence in the framework's reliability."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited theoretical justification for π_ref = π^(k) design choice—no ablation studies comparing alternative reference policies in submitted paper\",\n        \"Insufficient empirical validation of f_return's reliability across full training trajectories—single-round interventions (Figure 5) do not validate multi-round predictive power\",\n        \"Significant practical limitation with SGD vs. Adam—all experiments use SGD but modern RL uses Adam; no comparison provided in submitted paper\",\n        \"Limited actionable guidance for hyperparameter p selection—Figure 6 shows post-hoc results but no principled method is proposed in submission\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Design choice π_ref = π^(k) lacks ablation studies in submission\",\n          \"location\": \"Section 3.1, third paragraph under 'Target functions'\",\n          \"explanation\": \"The paper states 'This is a key design choice of our contextual framework' and justifies it by arguing that using the policy at round k 'enabling us to ask: For the agent at its current stage of training, which experiences will be most helpful or harmful for the next update?' However, no ablation studies are provided comparing this choice with alternatives (e.g., fixed initial policy π_θ^(0), exponential moving average of policies, importance-weighted historical policies). The paper relies on intuitive motivation rather than empirical validation of this design choice.\"\n        },\n        {\n          \"concern\": \"Single-round validation of f_return does not establish multi-round reliability\",\n          \"location\": \"Section 4.3 and Figure 5\",\n          \"explanation\": \"Figure 5 shows that within a single training round k, removing records with negative f_return influence scores and re-training from θ^(k) improves test return. This validates that f_return provides meaningful signals within one round. However, the paper does not measure whether f_return influence scores computed at round k remain predictive of policy improvement from round k to round k+T (for any lookahead window T > 0). There is no multi-round validation establishing that f_return remains reliable throughout the full training trajectory.\"\n        },\n        {\n          \"concern\": \"All experiments use SGD despite acknowledging Adam is standard in modern RL\",\n          \"location\": \"Section 7 (Limitations) and Section 5.1\",\n          \"explanation\": \"Section 7 explicitly states: 'Our framework leverages TracIn, which is designed for SGD [Hammoudeh and Lowd, 2024]. However, adaptive optimizers like Adam [Kingma and Ba, 2015] are prevalent in modern RL [Asadi et al., 2023] and LLMs [Zhao et al., 2025]. In this work, we follow Wang et al. [2025b] and employ SGD as a proxy for Adam.' All experiments reported (Figures 6-7, Tables in Figure 6(b)) use SGD. No comparison with Adam is provided in the submitted paper. Appendix C mentions compute resources but does not report Adam results.\"\n        },\n        {\n          \"concern\": \"Hyperparameter p selection lacks principled guidance in submission\",\n          \"location\": \"Section 5.1, third paragraph, and Figure 6\",\n          \"explanation\": \"Section 5.1 states: 'We evaluate various p's and report the best in Fig. 6. We observe that removing all negative-influence records (p = 100%) as in Wang et al. [2025a] is often suboptimal, likely due to the non-additivity of sample influence [Hu et al., 2024]. Full ablation and recommendations for the choice of p are in Appendix B.6.' Figure 6 shows test returns over rounds but does not indicate which p value was used for each environment. The paper does not propose a data-driven method for selecting p (e.g., validation-based tuning, percentile thresholding, or principled heuristics). Practitioners must perform post-hoc tuning.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"No ablation studies comparing alternative reference policies (π_ref)\",\n          \"proposed_change\": \"Add ablation studies in the submitted paper (or appendix) comparing: (1) π_ref = π^(k) [current choice]; (2) π_ref = π^(0) [fixed initial policy]; (3) π_ref = exponential moving average of π^(k') for k' ≤ k. Report f_return influence scores and IIF performance under each choice. This would provide empirical justification for the π_ref = π^(k) design choice relative to alternatives.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Multi-round validation of f_return's predictive power is missing\",\n          \"proposed_change\": \"Conduct a forward-looking validation study: (1) Compute f_return influence scores at round k for all records in buffer B^(k); (2) Measure correlation between f_return scores and actual policy improvement from round k to round k+5 (or k+10). Report Spearman correlation to quantify predictive power. (3) Extend single-round interventions (Figure 5 framework) to multi-round interventions: show that filtering based on f_return scores at round k improves final performance at round K >> k, not just at round k+1. This would validate that f_return remains meaningful across training trajectories.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"SGD vs. Adam: no empirical comparison in submitted paper\",\n          \"proposed_change\": \"Add experiments comparing IIF performance under SGD vs. Adam on representative environments (e.g., 2-3 from Figure 6, such as Acrobot, MiniGrid, and one RLHF task). Report: (1) IIF sample efficiency gains (SEave, SEpeak) for both optimizers; (2) Final test returns; (3) Runtime comparison. This comparison should be added to the submitted paper (main text or appendix) to quantify the practical impact of the SGD limitation. If Adam results substantially differ from SGD, discuss implications; if similar, this provides evidence that SGD as a proxy is reasonable.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Hyperparameter p lacks principled selection method\",\n          \"proposed_change\": \"Propose and validate a principled approach for p selection: (1) Data-driven method: Use a held-out validation set (e.g., 10% of rollout buffer B^(k)) to tune p for each round, selecting p that maximizes validation return. Report empirical sensitivity of IIF to p selection via this method. (2) Alternatively, propose a heuristic based on influence score distribution: e.g., remove records with influence below the α-th percentile where α is set based on analysis in Appendix B.6. (3) Provide a practical recommendation: 'Based on experiments across environments, we recommend removing bottom 15-25% of records by influence; tune p on your task's validation set for optimal performance.' Include this guidance in Section 5.1 or Algorithm 1.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the detailed and fair assessment in this rebuttal. The reviewer correctly identifies that our rebuttal acknowledges important gaps but crucially notes that these gaps exist in the **submitted paper**, not merely in our rebuttal promises. We want to clarify our position on what should be evaluated—the submitted work as it stands—while also addressing the specific concerns.\\n\\n**On Evaluating Submitted Work vs. Promised Revisions:**\\nThe reviewer makes an important methodological point: \\\"Evaluating the paper as submitted (not as promised revisions), these gaps represent honest limitations rather than fatal flaws.\\\" We agree entirely with this principle. Our initial rebuttal was intended to address concerns by explaining what analysis *could* be added, but the reviewer correctly emphasizes that the evaluation should focus on what is *actually in the paper*. We do not dispute this assessment.\\n\\n**Clarifications on What Is Actually in the Submitted Paper:**\\n\\n1. **On π_ref = π^(k):**\\n   - What is in the paper: Intuitive motivation in Section 3.1. No ablation studies.\\n   - The reviewer is correct: our submitted paper lacks empirical validation comparing π_ref = π^(k) with alternatives.\\n   - What we can clarify: The single-round interventions (Figure 5) and the consistent improvements of IIF across environments (Figure 6) indirectly support that f_return with this choice is meaningful, though this is not a direct ablation on π_ref.\\n   - The reviewer's point stands: without explicit ablation, this design choice remains justified only by intuition.\\n\\n2. **On f_return multi-round validation:**\\n   - What is in the paper: Figure 5 shows single-round interventions where filtering within round k and re-training improves test return at round k+1.\\n   - What is NOT in the paper: Multi-round validation correlating f_return influence scores at round k with policy improvement from k to k+T.\\n   - The reviewer is correct: this gap means f_return's reliability across full training trajectories is not empirically validated in the submitted work.\\n   - Important caveat: Figure 6 shows that IIF (which uses f_return to filter iteratively across many rounds) achieves 20-67% sample efficiency gains. This suggests f_return remains meaningful across rounds, but the reviewer is right that direct correlation analysis is missing.\\n\\n3. **On SGD vs. Adam:**\\n   - What is in the paper: Acknowledged limitation in Section 7 that SGD is used as a proxy for Adam.\\n   - What is NOT in the paper: No SGD vs. Adam comparison. All experiments use SGD.\\n   - The reviewer is correct: this substantially limits practical applicability to modern systems.\\n   - Factual note: We mention following Wang et al. [2025b] in using SGD as a proxy, but this does not justify the lack of empirical comparison in our own work.\\n\\n4. **On hyperparameter p:**\\n   - What is in the paper: Figure 6 shows results at different p values (implicitly). Appendix B.6 has ablation results.\\n   - What is NOT in the paper: Principled method for selecting p; guidance for practitioners.\\n   - The reviewer is correct: practitioners must perform post-hoc tuning; no actionable guidance is provided.\\n\\n**Our Assessment of the Reviewer's Critique:**\\nThe reviewer's evaluation is fair and methodologically sound. They distinguish between:\\n- Limitations that are *acknowledged but not addressed* in the submitted paper (SGD, multi-round f_return validation, p selection)\\n- Limitations that are *promised in rebuttal but absent from submission* (ablations on π_ref, SGD vs. Adam comparison)\\n\\nThe reviewer appropriately emphasizes that acceptance should be based on the submitted work, not on promises of future revision. By this standard, the paper has real gaps but remains a solid contribution given its novelty and empirical improvements on the experiments that *are* included.\\n\\n**What We Can Clarify Without New Experiments:**\\n\\n1. **On multi-round reliability of f_return:** While we lack explicit correlation analysis, Figure 6 provides indirect evidence. IIF iteratively filters records across all training rounds (Algorithm 1, line 7 for loop over T rounds) and achieves consistent gains (20-67% sample efficiency). If f_return influence scores were unreliable across rounds, we would expect IIF to degrade as training progresses or to show high variance. Instead, IIF shows stable improvements. This does not eliminate the gap the reviewer identifies—explicit multi-round correlation analysis would be stronger—but it provides partial support for f_return's cross-round reliability.\\n\\n2. **On π_ref = π^(k) intuition:** The reviewer accepts our rebuttal's clarification of the contextual motivation. The key insight is that the reference policy should match the agent's current capability level to ask the right counterfactual question: \\\"given where the agent is now, which experiences help?\\\" This differs from a fixed reference policy, which may provide misleading signals due to distribution mismatch. While not formally proven, this intuition is sound and is supported by the empirical success of IIF.\\n\\n3. **On p selection:** We acknowledge the submission does not provide principled guidance. However, we can add to this response: practitioners can use a simple rule based on Figure 6: \\\"For new environments, start with p = 20-30% (removing bottom 20-30% of records) and tune upward or downward on a validation set.\\\" This is post-hoc guidance but actionable.\\n\\n**On the Overall Assessment:**\\nWe agree with the reviewer's final judgment: \\\"The core contributions remain valuable... [the paper] merits acceptance given its novelty and demonstrated improvements, but these validation gaps prevent a higher confidence recommendation.\\\" This is a fair summary. The paper introduces a novel framework addressing a genuine gap in RL interpretability, provides fresh insights (inaccurate advantage estimates harm learning; phase transitions in behavior formation), and demonstrates practical improvements (20-67% sample efficiency gains across diverse environments, ~4× speedup in RLHF). These contributions stand on their own merit, even if certain design choices and cross-optimizer reliability are not fully validated in the submitted work.\\n\\n**Commitment to Community:**\\nWe acknowledge that our rebuttal may have overstated what could be easily added in revision. The gaps the reviewer identifies—particularly multi-round f_return validation and SGD vs. Adam comparison—would require non-trivial experimental effort. We appreciate the reviewer's insistence on evaluating the submitted paper fairly, and we do not dispute the limitations identified. We believe the work's novelty and empirical results justify publication, while recognizing that future work (either by us or the community) should address these gaps to strengthen confidence in the framework's reliability across optimizers and training timescales.\\n\\n**To Summarize Our Position:**\\n- We do not dispute the reviewer's findings: the submitted paper lacks multi-round f_return validation, π_ref ablations, SGD vs. Adam comparison, and principled p selection guidance.\\n- These gaps are real limitations of the current work, not merely oversight.\\n- Despite these gaps, the core contributions (novel framework, fresh insights, empirical improvements) are valuable and merit publication.\\n- We appreciate the reviewer's fair distinction between \\\"limitations of the submitted work\\\" and \\\"promises that can be addressed in revision.\\\" The former are what we should defend; the latter are what we should commit to in future work.\\n- If revisions are encouraged, we commit to addressing these gaps directly, not via rebuttal promises.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_aed62a6938cc",
+    "conference": "NEURIPS",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/neurips_accept_2025_043_a_snapshot_of_influence_a_local_data_attribution_framework_for_online_reinforcem.md",
+    "target_paper_summary": {
+      "paper_id": "paper_aed62a6938cc",
+      "title": "A Snapshot Of Influence: A Local Data Attribution Framework For Online Reinforcement Learning",
+      "abstract": "Online reinforcement learning (RL) excels in complex, safety-critical domains but suffers from sample inefficiency, training instability, and limited interpretability. Data attribution provides a principled way to trace model behavior back to training samples, yet existing methods assume fixed datasets, which is violated in online RL where each experience both updates the policy and shapes future data collection. In this paper, we initiate the study of data attribution for online RL, focusing on the widely used Proximal Policy Optimization (PPO) algorithm. We start by establishing a *local* attribution framework, interpreting model checkpoints with respect to the records in the recent training buffer. We design two target functions, capturing agent action and cumulative return respectively, and measure each record's contribution through gradient similarity between its training loss and these targets. We demonstrate the power of this framework through three concrete applications: diagnosis of learning, temporal analysis of behavior formation, and targeted intervention during training. Leveraging this framework, we further propose an algorithm, iterative influence-based filtering (IIF), for online RL training that iteratively performs experience filtering to refine policy updates. Across standard RL benchmarks (classic control, navigation, locomotion) to RLHF for large language models, IIF reduces sample complexity, speeds up training, and achieves higher returns. Together, these results open a new direction for making online RL more interpretable, efficient, and effective.",
+      "topic": "",
+      "claims": [
+        "We demonstrate the power of this framework through three concrete applications: diagnosis of learning, temporal analysis of behavior formation, and targeted intervention during training."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_2fd3b9c31",
+        "title": "Machine Learning and Deep Learning frameworks and libraries for large-scale data mining: a survey",
+        "authors": [
+          "Giang Nguyen",
+          "Štefan Dlugolinský",
+          "Martin Bobák",
+          "Viet Tran",
+          "Álvaro López García",
+          "Ignacio Heredia",
+          "Peter Malík",
+          "Ladislav Hluchý"
+        ],
+        "year": 2019,
+        "publication_date": "2019-01-19",
+        "venue": "Artificial Intelligence Review",
+        "abstract": "The combined impact of new computing resources and techniques with an increasing avalanche of large datasets, is transforming many research areas and may lead to technological breakthroughs that can be used by billions of people. In the recent years, Machine Learning and especially its subfield Deep Learning have seen impressive advances. Techniques developed within these two fields are now able to analyze and learn from huge amounts of real world examples in a disparate formats. While the number of Machine Learning algorithms is extensive and growing, their implementations through frameworks and libraries is also extensive and growing too. The software development in this field is fast paced with a large number of open-source software coming from the academy, industry, start-ups or wider open-source communities. This survey presents a recent time-slide comprehensive overview with comparisons as well as trends in development and usage of cutting-edge Artificial Intelligence software. It also provides an overview of massive parallelism support that is capable of scaling computation effectively and efficiently in the era of Big Data.",
+        "url": "https://doi.org/10.1007/s10462-018-09679-z",
+        "doi": "https://doi.org/10.1007/s10462-018-09679-z",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2910096450"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 862
+      },
+      {
+        "paper_id": "rw_002_74d09cbde",
+        "title": "Distributed Drone Base Station Positioning for Emergency Cellular Networks Using Reinforcement Learning",
+        "authors": [
+          "Paulo Valente Klaine",
+          "João Pedro Battistella Nadas",
+          "Richard Demo Souza",
+          "Muhammad Ali Imran"
+        ],
+        "year": 2018,
+        "publication_date": "2018-05-22",
+        "venue": "Cognitive Computation",
+        "abstract": "Due to the unpredictability of natural disasters, whenever a catastrophe happens, it is vital that not only emergency rescue teams are prepared, but also that there is a functional communication network infrastructure. Hence, in order to prevent additional losses of human lives, it is crucial that network operators are able to deploy an emergency infrastructure as fast as possible. In this sense, the deployment of an intelligent, mobile, and adaptable network, through the usage of drones—unmanned aerial vehicles—is being considered as one possible alternative for emergency situations. In this paper, an intelligent solution based on reinforcement learning is proposed in order to find the best position of multiple drone small cells (DSCs) in an emergency scenario. The proposed solution’s main goal is to maximize the amount of users covered by the system, while drones are limited by both backhaul and radio access network constraints. Results show that the proposed Q -learning solution largely outperforms all other approaches with respect to all metrics considered. Hence, intelligent DSCs are considered a good alternative in order to enable the rapid and efficient deployment of an emergency communication network.",
+        "url": "https://doi.org/10.1007/s12559-018-9559-8",
+        "doi": "https://doi.org/10.1007/s12559-018-9559-8",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2799343071"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 117
+      },
+      {
+        "paper_id": "rw_003_cb29e0439",
+        "title": "COLREG-Compliant Collision Avoidance for Unmanned Surface Vehicle Using Deep Reinforcement Learning",
+        "authors": [
+          "Eivind Meyer",
+          "Amalie Heiberg",
+          "Adil Rasheed",
+          "Omer San"
+        ],
+        "year": 2020,
+        "publication_date": "2020-01-01",
+        "venue": "IEEE Access",
+        "abstract": "Path Following and Collision Avoidance, be it for unmanned surface vessels or other autonomous vehicles, are two fundamental guidance problems in robotics. For many decades, they have been subject to academic study, leading to a vast number of proposed approaches. However, they have mostly been treated as separate problems, and have typically relied on non-linear first-principles models with parameters that can only be determined experimentally. The rise of deep reinforcement learning in recent years suggests an alternative approach: end-to-end learning of the optimal guidance policy from scratch by means of a trial-and-error based approach. In this article, we explore the potential of Proximal Policy Optimization, a deep reinforcement learning algorithm with demonstrated state-of-the-art performance on Continuous Control tasks, when applied to the dual-objective problem of controlling an autonomous surface vehicle in a COLREGs compliant manner such that it follows an a priori known desired path while avoiding collisions with other vessels along the way. Based on high-fidelity elevation and AIS tracking data from the Trondheim Fjord, an inlet of the Norwegian sea, we evaluate the trained agent's performance in challenging, dynamic real-world scenarios where the ultimate success of the agent rests upon its ability to navigate non-uniform marine terrain while handling challenging, but realistic vessel encounters.",
+        "url": "https://doi.org/10.1109/access.2020.3022600",
+        "doi": "https://doi.org/10.1109/access.2020.3022600",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3083914918"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 93
+      },
+      {
+        "paper_id": "rw_004_a9c9caf03",
+        "title": "Deep Reinforcement Learning Versus Evolution Strategies: A Comparative Survey",
+        "authors": [
+          "Amjad Yousef Majid",
+          "Serge Saaybi",
+          "Vincent François-Lavet",
+          "Ramjee Prasad",
+          "C.J.M. Verhoeven"
+        ],
+        "year": 2023,
+        "publication_date": "2023-05-02",
+        "venue": "IEEE Transactions on Neural Networks and Learning Systems",
+        "abstract": "Deep reinforcement learning (DRL) and evolution strategies (ESs) have surpassed human-level control in many sequential decision-making problems, yet many open challenges still exist. To get insights into the strengths and weaknesses of DRL versus ESs, an analysis of their respective capabilities and limitations is provided. After presenting their fundamental concepts and algorithms, a comparison is provided on key aspects, such as scalability, exploration, adaptation to dynamic environments, and multiagent learning. Current research challenges are also discussed, including sample efficiency, exploration versus exploitation, dealing with sparse rewards, and learning to plan. Then, the benefits of hybrid algorithms that combine DRL and ESs are highlighted.",
+        "url": "https://doi.org/10.1109/tnnls.2023.3264540",
+        "doi": "https://doi.org/10.1109/tnnls.2023.3264540",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4367727829"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 79
+      },
+      {
+        "paper_id": "rw_005_89b6e8056",
+        "title": "Deep reinforcement learning for multi-objective placement of virtual machines in cloud datacenters",
+        "authors": [
+          "Luca Caviglione",
+          "Mauro Gaggero",
+          "Massimo Paolucci",
+          "Roberto Ronco"
+        ],
+        "year": 2020,
+        "publication_date": "2020-12-12",
+        "venue": "Soft Computing",
+        "abstract": "Abstract The ubiquitous diffusion of cloud computing requires suitable management policies to face the workload while guaranteeing quality constraints and mitigating costs. The typical trade-off is between the used power and the adherence to a service-level metric subscribed by customers. To this aim, a possible idea is to use an optimization-based placement mechanism to select the servers where to deploy virtual machines. Unfortunately, high packing factors could lead to performance and security issues, e.g., virtual machines can compete for hardware resources or collude to leak data. Therefore, we introduce a multi-objective approach to compute optimal placement strategies considering different goals, such as the impact of hardware outages, the power required by the datacenter, and the performance perceived by users. Placement strategies are found by using a deep reinforcement learning framework to select the best placement heuristic for each virtual machine composing the workload. Results indicate that our method outperforms bin packing heuristics widely used in the literature when considering either synthetic or real workloads.",
+        "url": "https://doi.org/10.1007/s00500-020-05462-x",
+        "doi": "https://doi.org/10.1007/s00500-020-05462-x",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3112195926"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 74
+      },
+      {
+        "paper_id": "rw_006_e7a1ee957",
+        "title": "Retrosynthesis prediction with an interpretable deep-learning framework based on molecular assembly tasks",
+        "authors": [
+          "Y. Wang",
+          "Chao Pang",
+          "Yuzhe Wang",
+          "Junru Jin",
+          "Jingjie Zhang",
+          "Xiangxiang Zeng",
+          "Ran Su",
+          "Quan Zou",
+          "Leyi Wei"
+        ],
+        "year": 2023,
+        "publication_date": "2023-10-03",
+        "venue": "Nature Communications",
+        "abstract": "Automating retrosynthesis with artificial intelligence expedites organic chemistry research in digital laboratories. However, most existing deep-learning approaches are hard to explain, like a \"black box\" with few insights. Here, we propose RetroExplainer, formulizing the retrosynthesis task into a molecular assembly process, containing several retrosynthetic actions guided by deep learning. To guarantee a robust performance of our model, we propose three units: a multi-sense and multi-scale Graph Transformer, structure-aware contrastive learning, and dynamic adaptive multi-task learning. The results on 12 large-scale benchmark datasets demonstrate the effectiveness of RetroExplainer, which outperforms the state-of-the-art single-step retrosynthesis approaches. In addition, the molecular assembly process renders our model with good interpretability, allowing for transparent decision-making and quantitative attribution. When extended to multi-step retrosynthesis planning, RetroExplainer has identified 101 pathways, in which 86.9% of the single reactions correspond to those already reported in the literature. As a result, RetroExplainer is expected to offer valuable insights for reliable, high-throughput, and high-quality organic synthesis in drug development.",
+        "url": "https://doi.org/10.1038/s41467-023-41698-5",
+        "doi": "https://doi.org/10.1038/s41467-023-41698-5",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4387297831"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 118
+      },
+      {
+        "paper_id": "rw_008_dd7d56781",
+        "title": "GPT-4 Technical Report",
+        "authors": [
+          "OpenAI",
+          "Achiam, Josh",
+          "Adler, Steven",
+          "Agarwal, Sandhini",
+          "Ahmad, Lama",
+          "Akkaya, Ilge",
+          "Aleman, Florencia Leoni",
+          "Almeida, Diogo",
+          "Altenschmidt, Janko",
+          "Altman, Sam",
+          "Anadkat, Shyamal",
+          "Avila, Red",
+          "Babuschkin, Igor",
+          "Balaji, Suchir",
+          "Balcom, Valerie",
+          "Baltescu, Paul",
+          "Bao, Haiming",
+          "Bavarian, Mohammad",
+          "Belgum, Jeff",
+          "Bello, Irwan",
+          "Berdine, Jake",
+          "Bernadett-Shapiro, Gabriel",
+          "Berner, Christopher",
+          "Bogdonoff, Lenny",
+          "Boiko, Oleg",
+          "Boyd, Madelaine",
+          "Brakman, Anna-Luisa",
+          "Brockman, Greg",
+          "Brooks, Tim",
+          "Brundage, Miles",
+          "Button, Kevin",
+          "Cai, Trevor",
+          "Campbell, Rosie",
+          "Cann, Andrew",
+          "Carey, Brittany",
+          "Carlson, Chelsea",
+          "Carmichael, Rory",
+          "Chan, Brooke",
+          "Chang, Che",
+          "Chantzis, Fotis",
+          "Chen, Derek",
+          "Chen, Sully",
+          "Chen, Ruby",
+          "Chen, Jason",
+          "Chen, Mark",
+          "Chess, Ben",
+          "Cho, Chester",
+          "Chu, Casey",
+          "Chung, Hyung Won",
+          "Cummings, Dave",
+          "Currier, Jeremiah",
+          "Dai, Yunxing",
+          "Decareaux, Cory",
+          "Degry, Thomas",
+          "Deutsch, Noah",
+          "Deville, Damien",
+          "Dhar, Arka",
+          "Dohan, David",
+          "Dowling, Steve",
+          "Dunning, Sheila",
+          "Ecoffet, Adrien",
+          "Eleti, Atty",
+          "Eloundou, Tyna",
+          "Farhi, David",
+          "Fedus, Liam",
+          "Felix, Niko",
+          "Fishman, Simón Posada",
+          "Forte, Juston",
+          "Fulford, Isabella",
+          "Gao, Leo",
+          "Georges, Elie",
+          "Gibson, Christian",
+          "Goel, Vik",
+          "Gogineni, Tarun",
+          "Goh, Gabriel",
+          "Gontijo-Lopes, Rapha",
+          "Gordon, Jonathan",
+          "Grafstein, Morgan",
+          "Gray, Scott",
+          "Greene, Ryan",
+          "Gross, Joshua",
+          "Gu, Shixiang Shane",
+          "Guo, Yufei",
+          "Hallacy, Chris",
+          "Han, Jesse",
+          "Harris, Jeff",
+          "He, Yuchen",
+          "Heaton, Mike",
+          "Heidecke, Johannes",
+          "Hesse, Chris",
+          "Hickey, Alan",
+          "Hickey, Wade",
+          "Hoeschele, Peter",
+          "Houghton, Brandon",
+          "Hsu, Kenny",
+          "Hu, Shengli",
+          "Hu, Xin",
+          "Huizinga, Joost",
+          "Jain, Shantanu",
+          "Jain, Shawn"
+        ],
+        "year": 2023,
+        "publication_date": "2023-03-15",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Abstract—Large Language Models (LLMs) suffer from inherent stochasticity, limiting their utility in high-stakes enterprise environments where determinism and auditability are required. This paper introduces the MFOUR Vibe Framework (MVF), a platform-agnostic architectural standard that transforms probabilistic natural language intent into deterministic software artifacts. We define a five-layer topology, comprising the Kernel Identity, Synaptic Routing, Interface Contracts, Context Anchoring, and the Mirror Test. Furthermore, we introduce The Vibe Integrity Score (VIS), a quantitative metric for evaluating the structural adherence of generative outputs. This specification provides the foundational schema and logic protocols for building \"Glass Box\" AI systems that are observable, secure, and commercially viable.",
+        "url": "http://arxiv.org/abs/2303.08774",
+        "doi": "https://doi.org/10.4230/lipics.cosit.2024.11",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4327810158"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 2421
+      },
+      {
+        "paper_id": "rw_009_9a348978d",
+        "title": "A Review of Deep Learning-Based Semantic Segmentation for Point Cloud",
+        "authors": [
+          "Jiaying Zhang",
+          "Xiaoli Zhao",
+          "Zheng Chen",
+          "Zhejun Lu"
+        ],
+        "year": 2019,
+        "publication_date": "2019-01-01",
+        "venue": "IEEE Access",
+        "abstract": "In recent years, the popularity of depth sensors and 3D scanners has led to a rapid development of 3D point clouds. Semantic segmentation of point cloud, as a key step in understanding 3D scenes, has attracted extensive attention of researchers. Recent advances in this topic are dominantly led by deep learning-based methods. In this paper, we provide a survey covering various aspects ranging from indirect segmentation to direct segmentation. Firstly, we review methods of indirect segmentation based on multi-views and voxel grids, as well as direct segmentation methods from different perspectives including point ordering, multi-scale, feature fusion and fusion of graph convolutional neural network (GCNN). Then, the common datasets for point cloud segmentation are exposed to help researchers choose which one is the most suitable for their tasks. Following that, we devote a part of the paper to analyze the quantitative results of these methods. Finally, the development trend of point cloud semantic segmentation technology is prospected.",
+        "url": "https://doi.org/10.1109/access.2019.2958671",
+        "doi": "https://doi.org/10.1109/access.2019.2958671",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2995932445"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 307
+      },
+      {
+        "paper_id": "rw_010_dfdafa089",
+        "title": "Learning against learning : evolutionary dynamics of reinforcement learning algorithms in strategic interactions",
+        "authors": [
+          "Michael Kaisers"
+        ],
+        "year": 2012,
+        "publication_date": "2012-01-01",
+        "venue": "",
+        "abstract": "Imagine computer programs (agents) that learn to coordinate or to compete. This study investigates how their learning processes influence each other. Such adaptive agents already take vital roles behind the scenes of our society, e.g., high frequency automated traders participate in financial trading and create more volume than human trading in some US markets. However, many learning algorithms only have proven performance guarantees if they act alone - as soon as a second agent influences the outcomes most guarantees are invalid. This dissertation extends guarantees to strategic interactions of several agents and examines how closely algorithms approximate optimal behavior. This research was funded by a TopTalent 2008 grant of NWO.",
+        "url": "https://doi.org/10.26481/dis.20121217mk",
+        "doi": "https://doi.org/10.26481/dis.20121217mk",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W1260602278"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 34
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_003_cb29e0439",
+        "relevance_score": 0.75,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This paper applies the Proximal Policy Optimization (PPO) algorithm, the same method targeted for data attribution in the target paper, to the control of an autonomous surface vehicle for path following and collision avoidance.",
+        "evidence_summary": "In 2020, Meyer et al. published 'COLREG-Compliant Collision Avoidance for Unmanned Surface Vehicle Using Deep Reinforcement Learning', which explored the use of the Proximal Policy Optimization algorithm for controlling an autonomous surface vehicle. The agent was tasked with following a desired path while avoiding collisions in a COLREGs-compliant manner, utilizing high-fidelity elevation and AIS tracking data from the Trondheim Fjord for evaluation in dynamic real-world scenarios."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_004_a9c9caf03",
+        "relevance_score": 0.7,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This survey compares deep reinforcement learning and evolution strategies, directly discussing challenges like sample efficiency and exploration in RL which are core problems addressed by the target paper's proposed framework and algorithm.",
+        "evidence_summary": "In 2023, Majid et al. published 'Deep Reinforcement Learning Versus Evolution Strategies: A Comparative Survey', providing an analysis of the capabilities, limitations, and research challenges of deep reinforcement learning. The survey highlighted key challenges including sample efficiency, the exploration versus exploitation trade-off, and dealing with sparse rewards."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_002_74d09cbde",
+        "relevance_score": 0.65,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This paper applies reinforcement learning to a practical, dynamic optimization problem, demonstrating the use of Q-learning for drone positioning, which is relevant to the online RL application domains discussed in the target paper.",
+        "evidence_summary": "In 2018, Klaine et al. published 'Distributed Drone Base Station Positioning for Emergency Cellular Networks Using Reinforcement Learning', proposing an intelligent Q-learning solution to position multiple drone small cells in an emergency scenario. The goal was to maximize user coverage under backhaul and radio access network constraints, with results showing the solution outperformed other considered approaches across all metrics."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_006_e7a1ee957",
+        "relevance_score": 0.6,
+        "relevance_types": [
+          "novelty_competitor",
+          "same_constraints"
+        ],
+        "rationale": "This paper proposes an interpretable deep-learning framework for retrosynthesis, addressing the 'black box' problem and providing transparent decision-making with quantitative attribution, which aligns with the target paper's goal of improving interpretability in online RL.",
+        "evidence_summary": "In 2023, Wang et al. published 'Retrosynthesis prediction with an interpretable deep-learning framework based on molecular assembly tasks', formulating retrosynthesis as a molecular assembly process guided by deep learning. The proposed RetroExplainer model incorporated a Graph Transformer, contrastive learning, and multi-task learning, yielding interpretability through its assembly process, outperforming state-of-the-art single-step retrosynthesis approaches on 12 benchmark datasets, and identifying reaction pathways with high correspondence to literature."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_005_89b6e8056",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This paper applies deep reinforcement learning to a multi-objective optimization problem in cloud computing, relevant to the application of RL in complex domains as mentioned in the target paper's abstract.",
+        "evidence_summary": "In 2020, Caviglione et al. published 'Deep reinforcement learning for multi-objective placement of virtual machines in cloud datacenters', which used a deep reinforcement learning framework to select placement heuristics for virtual machines. The multi-objective approach considered goals like hardware outage impact, datacenter power, and user performance, and was shown to outperform standard bin packing heuristics on both synthetic and real workloads."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_010_dfdafa089",
+        "relevance_score": 0.5,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This dissertation examines the dynamics of reinforcement learning algorithms in multi-agent strategic interactions, discussing the invalidation of performance guarantees when multiple learning agents interact, a relevant limitation context for online RL.",
+        "evidence_summary": "In 2012, Kaisers authored 'Learning against learning : evolutionary dynamics of reinforcement learning algorithms in strategic interactions', investigating how learning processes of adaptive agents influence each other in strategic interactions. The work highlighted that many learning algorithms lack performance guarantees when other agents influence outcomes, and extended guarantees to such multi-agent settings."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_001_2fd3b9c31",
+        "relevance_score": 0.3,
+        "relevance_types": [
+          "benchmark_baseline"
+        ],
+        "rationale": "This is a broad survey of machine learning and deep learning frameworks and libraries, providing general background on the field but no direct connection to data attribution, online RL, or PPO.",
+        "evidence_summary": "In 2019, Nguyen et al. published 'Machine Learning and Deep Learning frameworks and libraries for large-scale data mining: a survey', providing a comprehensive overview and comparison of cutting-edge Artificial Intelligence software. The survey also covered trends in development and usage, as well as massive parallelism support for scaling computation in the era of Big Data."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_008_dd7d56781",
+        "relevance_score": 0.25,
+        "relevance_types": [
+          "benchmark_baseline"
+        ],
+        "rationale": "This technical report on GPT-4 discusses large language models and a framework for deterministic outputs, which is only tangentially related to the target via the mention of RLHF for LLMs as a potential application domain.",
+        "evidence_summary": "In 2023, OpenAI et al. published the 'GPT-4 Technical Report'. The report introduced the MFOUR Vibe Framework, an architectural standard to transform probabilistic natural language intent into deterministic software artifacts, and defined a five-layer topology and a Vibe Integrity Score for evaluating generative outputs."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_009_9a348978d",
+        "relevance_score": 0.2,
+        "relevance_types": [
+          "benchmark_baseline"
+        ],
+        "rationale": "This is a review of deep learning methods for semantic segmentation of 3D point clouds, which is a different computer vision task unrelated to data attribution or online reinforcement learning.",
+        "evidence_summary": "In 2019, Zhang et al. published 'A Review of Deep Learning-Based Semantic Segmentation for Point Cloud', surveying methods ranging from indirect segmentation based on multi-views and voxel grids to direct segmentation. The review also analyzed quantitative results of these methods on common datasets and prospected the technology's development trends."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2020, Eivind Meyer et al. published \"COLREG-Compliant Collision Avoidance for Unmanned Surface Vehicle Using Deep Reinforcement Learning\" in IEEE Access. For many decades, they have been subject to academic study, leading to a vast number of proposed approaches. In this article, the authors explore the potential of Proximal Policy Optimization, a deep reinforcement learning algorithm with demonstrated state-of-the-art performance on Continuous Control tasks, when applied to the dual-objective problem of controlling an autonomous surface vehicle in a COLREGs compliant manner such that it follows an a priori known desired path while avoiding collisions with other vessels along the way. However, they have mostly been treated as separate problems, and have typically relied on non-linear first-principles models with parameters that can only be determined experimentally. In 2023, Amjad Yousef Majid et al. published \"Deep Reinforcement Learning Versus Evolution Strategies: A Comparative Survey\" in IEEE Transactions on Neural Networks and Learning Systems. After presenting their fundamental concepts and algorithms, a comparison is provided on key aspects, such as scalability, exploration, adaptation to dynamic environments, and multiagent learning. Current research challenges are also discussed, including sample efficiency, exploration versus exploitation, dealing with sparse rewards, and learning to plan. Deep reinforcement learning (DRL) and evolution strategies (ESs) have surpassed human-level control in many sequential decision-making problems, yet many open challenges still exist. In 2018, Paulo Valente Klaine et al. published \"Distributed Drone Base Station Positioning for Emergency Cellular Networks Using Reinforcement Learning\" in Cognitive Computation. In this paper, an intelligent solution based on reinforcement learning is proposed in order to find the best position of multiple drone small cells (DSCs) in an emergency scenario. Results show that the proposed Q -learning solution largely outperforms all other approaches with respect to all metrics considered. Hence, intelligent DSCs are considered a good alternative in order to enable the rapid and efficient deployment of an emergency communication network. In 2023, Y. Wang et al. published \"Retrosynthesis prediction with an interpretable deep-learning framework based on molecular assembly tasks\" in Nature Communications. Here, the authors propose RetroExplainer, formulizing the retrosynthesis task into a molecular assembly process, containing several retrosynthetic actions guided by deep learning. The results on 12 large-scale benchmark datasets demonstrate the effectiveness of RetroExplainer, which outperforms the state-of-the-art single-step retrosynthesis approaches. However, most existing deep-learning approaches are hard to explain, like a \"black box\" with few insights. In 2020, Luca Caviglione et al. published \"Deep reinforcement learning for multi-objective placement of virtual machines in cloud datacenters\" in Soft Computing. Therefore, the authors introduce a multi-objective approach to compute optimal placement strategies considering different goals, such as the impact of hardware outages, the power required by the datacenter, and the performance perceived by users. The typical trade-off is between the used power and the adherence to a service-level metric subscribed by customers. Unfortunately, high packing factors could lead to performance and security issues, e.g., virtual machines can compete for hardware resources or collude to leak data. In 2012, Michael Kaisers published \"Learning against learning : evolutionary dynamics of reinforcement learning algorithms in strategic interactions\". Such adaptive agents already take vital roles behind the scenes of the authors' society, e.g., high frequency automated traders participate in financial trading and create more volume than human trading in some US markets. However, many learning algorithms only have proven performance guarantees if they act alone - as soon as a second agent influences the outcomes most guarantees are invalid. This study investigates how their learning processes influence each other.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}
