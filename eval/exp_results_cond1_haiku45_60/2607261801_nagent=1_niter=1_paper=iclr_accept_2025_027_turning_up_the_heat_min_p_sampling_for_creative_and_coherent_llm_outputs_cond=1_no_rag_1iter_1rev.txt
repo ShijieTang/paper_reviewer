@@ -1,0 +1,216 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The proposed min-p sampling method is simple, elegant, and addresses a practical problem: balancing creativity and coherence in LLM outputs, especially at high temperatures. The core idea of scaling the truncation threshold by the maximum token probability is intuitive and well-motivated.",
+        "Comprehensive experimental evaluation across multiple benchmarks (GPQA, GSM8K CoT, AlpacaEval Creative Writing), model families (Mistral, Llama), and model sizes (1B to 123B parameters) demonstrates broad applicability. The results consistently show min-p's advantages, particularly at higher temperatures where existing methods struggle.",
+        "Strong practical impact is demonstrated through rapid adoption by major open-source frameworks (Hugging Face Transformers, vLLM, SGLang, etc.), with over 667,000 GitHub stars across integrated projects. This real-world validation of utility is compelling and represents genuine community adoption.",
+        "The paper includes both quantitative benchmarks and human evaluation, providing multiple perspectives on performance. Human evaluation with attention checks and quality control measures strengthens claims about perceived quality and diversity.",
+        "Thorough appendices with implementation details, hyperparameter justification, ablation studies, and reproducibility information support the main claims and facilitate verification and adoption."
+      ],
+      "weaknesses": [
+        "The novelty of min-p sampling is limited. The core contribution—scaling a threshold by the maximum probability—is conceptually straightforward and represents an incremental modification of existing truncation methods rather than a fundamentally new insight. While incremental improvements can be valuable, the novelty bar for top-tier venues is moderately high.",
+        "The human evaluation, while a valuable addition, has notable limitations: only 54 valid responses after filtering, each configuration evaluated on just 3 samples (limiting per-condition sample diversity), and the diversity metric is a point estimate rather than a comprehensive measure. The authors acknowledge these limitations but the evaluation remains relatively modest in scope for claims about perceived quality and diversity.",
+        "The comparison with entropy-based methods (η and ϵ sampling) is undermined by implementation issues described in Appendix A.3 (exponential runtime increases, failures at high temperatures). While this demonstrates min-p's computational efficiency, it makes fair comparison difficult. The paper doesn't adequately separate whether poor performance reflects fundamental limitations or implementation challenges.",
+        "Hyperparameter selection choices are justified post-hoc through references to MAUVE scores, Risk Levels, and community recommendations, but these justifications are somewhat circular. The paper would be stronger with more principled, theoretically-grounded hyperparameter selection methodology rather than empirical tuning.",
+        "The paper claims min-p improves reasoning tasks (GPQA, GSM8K) but lacks deep analysis of why a sampling method designed primarily for diversity/coherence trade-off benefits tasks where greedy decoding has traditionally been considered more appropriate. The theoretical understanding of when and why min-p helps is incomplete.",
+        "Community adoption statistics in Appendix A.5 were substantially revised after preliminary overcounting (from claimed '54,000 repositories and 1.1 million stars' to more conservative estimates). While the revised statistics are more rigorous, this revision raises questions about initial claims and methodological rigor in measuring adoption."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The novelty of min-p sampling is limited. The core contribution—scaling a threshold by the maximum probability—is conceptually straightforward and represents an incremental modification of existing truncation methods rather than a fundamentally new insight.",
+          "severity": "minor",
+          "evidence": "The method is a relatively simple formula: pscaled = pbase × pmax, where truncation is based on tokens with P(v) ≥ pscaled. This is a straightforward extension of existing methods like top-p that use fixed thresholds. The paper does not establish significant theoretical novelty or unexpected insights.",
+          "affected_claim": "The paper frames min-p as a 'novel dynamic truncation method' but the core algorithmic contribution is incremental.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The human evaluation has significant limitations in scope and rigor that undermine confidence in claims about perceived quality and diversity.",
+          "severity": "major",
+          "evidence": "Section 6 reports: 54 valid responses after filtering (from 70 initial), each configuration evaluated on only 3 samples, diversity measured as 'a point estimate reflecting the diversity within those 3 specific samples' rather than a comprehensive measure across potential samples. The paper acknowledges 'while each triplet was rated by multiple humans, the diversity of other potential triplets from the same condition was not assessed.'",
+          "affected_claim": "The claim that 'Human evaluations show a preference for min-p, in both text quality and creativity' is based on limited data that provides only directional insights rather than robust evidence.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Comparison with entropy-based methods (η and ϵ sampling) is compromised by implementation issues that prevent fair evaluation at higher temperatures.",
+          "severity": "major",
+          "evidence": "Appendix A.3 reports that η and ϵ sampling showed 'exponential runtime increases with temperature' and 'failed completely at τ > 1.5' while 'min-p remained computationally efficient.' The paper doesn't clearly separate whether poor empirical performance reflects fundamental method limitations or implementation artifacts. Missing results (denoted with '-' in Table 2) at τ ≥ 2.0 prevent direct comparison.",
+          "affected_claim": "Claims that min-p 'outperforms...η sampling' in high-temperature settings are not fully supported when the comparison is incomplete due to implementation failures.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Hyperparameter selection methodology relies on post-hoc empirical justifications rather than principled, theoretically-grounded approaches.",
+          "severity": "minor",
+          "evidence": "Section 5.1 and Appendix A.2 justify hyperparameter choices through references to MAUVE scores, Risk Levels framework, and community recommendations. For top-k specifically, the paper states 'we could not find clear recommendations on the optimal hyperparameters' and resort to testing multiple values. This approach, while practical, is somewhat circular and makes it unclear whether comparisons are truly fair.",
+          "affected_claim": "Claims about relative performance of different methods depend on hyperparameter choices that are justified empirically rather than theoretically.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The paper lacks theoretical analysis of why min-p improves performance on reasoning tasks like GPQA and GSM8K where it was not designed to have advantages.",
+          "severity": "minor",
+          "evidence": "Min-p is motivated as addressing 'quality-diversity tradeoff' particularly for creative generation, yet it shows consistent improvements on graduate-level reasoning (GPQA) and mathematics (GSM8K CoT), where greedy decoding has traditionally been preferred. Table 2 shows min-p outperforming across all temperature ranges on these tasks, but the paper provides no mechanistic explanation for why dynamic truncation based on confidence helps reasoning.",
+          "affected_claim": "The claim that min-p 'consistently improves quality and diversity across different benchmarks' treats these domains as if they share the same mechanisms, but reasoning and creative tasks may benefit for different reasons that aren't analyzed.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Community adoption statistics were substantially revised after overcounting in preliminary assessments, raising concerns about methodological rigor.",
+          "severity": "minor",
+          "evidence": "Appendix A.5 states: 'We wish to clarify that our earlier claim specifying 54,000 repositories and 1.1 million stars was based on preliminary GitHub scans...which produced many false positives' and an independent contributor identified 'limitations of this search approach.' The revised conservative estimate of 668,000 stars across integrated projects is substantially lower than preliminary claims. A GitHub code search query yields 'over 13,000 matching code files' suggesting significant but uncertain adoption.",
+          "affected_claim": "The claim that rapid adoption 'highlights its considerable impact' is based on revised, more conservative metrics after initial overstatements. The true magnitude of adoption remains somewhat unclear.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The mathematical formulation of min-p sampling is sound and correctly specified. The experimental methodology is generally rigorous with appropriate benchmarks, metrics, and controls. The logic linking the core idea (dynamic threshold scaling) to the observed benefits is coherent, though some theoretical gaps remain regarding why it helps reasoning tasks. No significant mathematical or logical errors undermine the central claims."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "While the core algorithmic contribution (scaling threshold by max probability) is incremental, it represents a sufficient advance over existing methods. The combination of simplicity with consistent empirical improvements across diverse settings provides novelty of a practical rather than conceptual nature. For a methods paper, this is acceptable, though not exceptional. The rapid community adoption suggests the novelty is sufficient in terms of identifying an overlooked improvement."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The significance stems from both empirical improvements and demonstrated practical impact. Min-p shows consistent improvements over strong baselines especially at higher temperatures, addressing a genuine limitation of existing methods. The adoption by major frameworks (Hugging Face, vLLM, etc.) with hundreds of thousands of GitHub stars demonstrates meaningful real-world impact. While not a breakthrough, this represents a significant practical contribution to generative modeling."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The evaluation is comprehensive across multiple dimensions: automated benchmarks (GPQA, GSM8K, AlpacaEval), model families/sizes, temperature ranges, and human evaluation. Results are consistent and support the main claims. Ablation studies examine hyperparameter sensitivity. Issues exist with entropy-based comparisons and human evaluation scope, but these are limitations rather than fundamental flaws. The evaluation adequately supports the central claims."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-written and clearly structured. The motivation is well-explained, the method is described clearly with implementation details provided. Figures effectively illustrate the approach (especially Figure 1). Extensive appendices support reproducibility. Some weaknesses exist (post-hoc justifications, limited human evaluation discussion) but overall presentation is strong enough for reliable assessment."
+        }
+      },
+      "summary_comment": "This paper proposes min-p sampling, a simple modification to token sampling that scales the truncation threshold by the maximum token probability. The method is intuitive, computationally efficient, and demonstrates consistent empirical improvements over existing methods across multiple benchmarks, particularly at higher temperatures. The work is technically sound with comprehensive experiments and genuine real-world impact evidenced by integration into major frameworks. However, the core algorithmic novelty is incremental (a relatively straightforward idea), the human evaluation is limited in scope (54 valid responses, 3 samples per config), and theoretical understanding of why the method helps reasoning tasks remains incomplete. The paper addresses a practical problem and provides a useful solution with demonstrated community adoption, making it a solid contribution to the field. While not groundbreaking, it meets the standards of a top-tier venue for practical methods that advance the state of practice in generative modeling."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"The paper addresses a practical machine learning systems problem: improving LLM text generation through a novel decoding method. ICML values 'machine learning systems (improved implementation and scalability, hardware, libraries, distributed methods)' which directly applies to sampling methods integrated into inference pipelines.\",\n      \"Comprehensive experimental evaluation across multiple benchmarks (GPQA, GSM8K, AlpacaEval) with rigorous comparisons to baselines demonstrates the empirical methodology ICML expects. The paper includes ablation studies, hyperparameter sensitivity analysis, and evaluation across different model scales (1B-123B parameters).\",\n      \"The work represents an optimization contribution to generative modeling. ICML's topics explicitly include 'optimization (convex and non-convex optimization, matrix/tensor methods, stochastic, online, non-smooth, composite, etc.)' and decoding is a form of inference-time optimization.\",\n      \"Strong practical validation through adoption by major frameworks (Hugging Face, vLLM, SGLang) with 667,000+ GitHub stars demonstrates real-world impact and systems-level contribution that ICML values.\",\n      \"The paper includes implementation details and reproducibility information (code available, hyperparameter justifications, benchmark logs) which aligns with ICML's emphasis on methodological rigor and reproducibility.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited algorithmic novelty: The core contribution—scaling a threshold by maximum probability (pscaled = pbase × pmax)—is a straightforward incremental modification rather than a fundamental algorithmic insight. ICML typically expects stronger conceptual contributions, especially for methods papers.\",\n      \"Lack of theoretical analysis: The paper provides no formal theoretical justification, learning theory, or convergence analysis of when and why min-p sampling works. ICML values theoretical contributions, and this work is purely empirical without principled theoretical grounding.\",\n      \"The improvement is primarily empirical tuning of an existing concept (token truncation) rather than introducing new optimization or systems principles. While ICML values practical systems papers, this is closer to hyperparameter optimization than algorithmic advancement.\",\n      \"Human evaluation is limited (54 valid responses, 3 samples per configuration) and acknowledged as providing only 'directional insights.' ICML expects more rigorous evaluation methodologies for claims about output quality and user preferences.\",\n      \"The comparison with entropy-based methods (η, ϵ sampling) is compromised by implementation issues that prevent fair comparison at high temperatures. This undermines claims of superiority over existing methods in the experimental section.\",\n      \"Paper is positioned primarily as an applications/systems contribution rather than a core machine learning methodological advance. ICML's primary focus is machine learning algorithms and theory, where this work is incremental.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"NeurIPS explicitly welcomes interdisciplinary submissions and in-depth analysis of existing methods. The call explicitly states 'we welcome interdisciplinary submissions that do not fit neatly into existing categories. We also encourage in-depth analysis of existing methods that provide new insights.' Min-p provides systematic analysis of token sampling trade-offs.\",\n      \"The paper aligns with NeurIPS topics on 'Decision-making, reinforcement learning, and control' in the context of autoregressive generation as a sequential decision process. Token sampling is a core decision mechanism in generative models.\",\n      \"Strong empirical results across diverse benchmarks (reasoning, math, creative writing) demonstrate broad applicability. NeurIPS values empirical contributions that work across multiple domains and model sizes.\",\n      \"Human evaluation component with attention checks and quality control aligns with NeurIPS's interest in 'Human interaction in AI systems' and evaluation methodology. The paper acknowledges limitations while still providing human preference data.\",\n      \"Real-world impact through widespread adoption in major frameworks provides compelling evidence of practical significance that NeurIPS increasingly values. The paper demonstrates that a simple idea can have substantial community benefit.\",\n      \"Addresses a practical limitation of popular methods (top-p sampling struggling at high temperatures) that many NeurIPS community members care about, with immediate applicability to current LLM systems.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The paper is primarily a decoding/sampling method paper with limited scope for NeurIPS's primary focus on foundational machine learning, deep learning architectures, and learning theory. While NeurIPS covers broad topics, the core contribution is narrow (token truncation adjustment).\",\n      \"Minimal novelty in the algorithmic contribution. The idea of scaling by maximum probability is straightforward and represents incremental tuning rather than a new principle or insight about language model behavior or generation mechanisms.\",\n      \"Lack of theoretical understanding or novel insights about why this approach works. The paper doesn't advance our understanding of language model behavior, token probability distributions, or the quality-diversity trade-off at a conceptual level.\",\n      \"Limited scope of human evaluation (54 valid responses, only 3 samples per configuration) undermines claims about perceived quality and diversity. NeurIPS expects more rigorous human evaluation when making subjective quality claims.\",\n      \"Comparison with entropy-based methods (η, ϵ sampling) is incomplete due to implementation failures at higher temperatures, preventing decisive evidence of superiority over sophisticated alternatives.\",\n      \"The paper reads more as a systems/engineering contribution optimizing inference than a contribution to understanding or advancing machine learning itself. NeurIPS's mission emphasizes advancing the science of machine learning.\",\n      \"While community adoption is impressive for practical impact, it doesn't constitute novelty or scientific contribution. NeurIPS is a research venue where adoption is evidence of quality, not replacement for research novelty.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"ICLR explicitly includes 'representation learning for...language' and 'applications to...language' within its scope, and sampling methods are core to language model generation. Token sampling directly impacts the quality and diversity of learned representations in output.\",\n      \"The paper provides 'in-depth analysis of existing methods' through systematic comparison of min-p with top-p, top-k, and entropy-based methods across diverse settings. ICLR values thorough empirical analysis of when and why methods succeed or fail.\",\n      \"ICLR's stated topics include 'general machine learning (i.e., none of the above)' and welcomes papers that don't fit neatly into categories. A sampling method for language models could fall under this broad category.\",\n      \"Human evaluation component and analysis of quality-diversity trade-offs align with ICLR's interest in 'societal considerations including fairness, safety, privacy' to the extent that diverse, coherent generation supports responsible AI deployment.\",\n      \"Empirical results across multiple model families (Mistral, Llama) and sizes (1B-123B parameters) demonstrate generalization, which ICLR values in representation learning and generative models.\",\n      \"The method's integration into major deep learning frameworks (Hugging Face Transformers) demonstrates practical utility for the ICLR community building and using these systems.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICLR's primary focus is representation learning and deep learning—how neural networks learn and represent information. Min-p is an inference-time decoding method that doesn't engage with representation learning or learning mechanisms.\",\n      \"The core contribution lacks novelty from a deep learning perspective. The method doesn't advance understanding of representations, learning dynamics, or how language models encode information. It's purely a post-hoc adjustment to sampling.\",\n      \"No connection to ICLR's emphasis on representation learning across modalities, transfer learning, meta-learning, or lifelong learning. Min-p operates at the inference level after representations are fully learned.\",\n      \"Limited theoretical contribution. ICLR expects insights into why deep learning methods work, what representations are learned, or how learning mechanisms operate. This paper provides none of these.\",\n      \"The human evaluation is too limited (54 valid responses, 3 samples per config) to support strong claims about quality improvements. ICLR expects rigorous evaluation for papers making claims about output quality.\",\n      \"Comparison with entropy-based sampling is incomplete due to implementation issues, preventing definitive conclusions about superiority. This weakness is more problematic at ICLR given the venue's standards for deep learning method evaluation.\",\n      \"The paper is fundamentally about engineering and optimization of inference rather than about deep learning representations, learning processes, or advancing the science of representation learning that ICLR emphasizes.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary & Strategic Recommendation\n\n**Overall Assessment:** This is a **solid practical systems paper with strong empirical results and real-world impact, but limited algorithmic novelty and theoretical contribution**.\n\n### Key Strengths:\n- **Simple, elegant idea** addressing a real problem (creativity-coherence trade-off at high temperatures)\n- **Comprehensive empirical validation** across benchmarks, model families, and scales\n- **Genuine real-world adoption** (667,000+ GitHub stars in frameworks)\n- **Strong practical utility** with immediate applicability\n\n### Key Weaknesses:\n- **Incremental novelty**: Core idea (pscaled = pbase × pmax) is straightforward\n- **Limited human evaluation**: 54 valid responses, 3 samples per configuration\n- **Incomplete comparisons**: Entropy-based methods fail at high temperatures, preventing fair evaluation\n- **Lack of theory**: No principled explanation for why it helps reasoning tasks\n- **Post-hoc justifications**: Hyperparameter selection based on empirical tuning, not principled approaches\n\n### Venue Fit Scores Explained:\n\n**ICML (6/10 - Borderline/Risky):** ICML values practical systems contributions and empirical improvements, which this paper provides. However, the limited novelty and lack of theoretical analysis weaken the fit. The work is competent but not a strong match for a venue emphasizing algorithmic and theoretical advances in machine learning.\n\n**NeurIPS (6/10 - Borderline/Risky):** NeurIPS welcomes broad topics and in-depth analysis of existing methods, which accommodates this work. However, the paper is narrowly focused on sampling tuning without advancing the science of machine learning or providing novel insights about language models. The human evaluation limitations also create risk.\n\n**ICLR (5/10 - Weak/Risky Fit):** ICLR's primary mission is understanding representation learning and deep learning, which this inference-time method doesn't address. While technically sound, the paper has fundamental misalignment with ICLR's emphasis on representations, learning mechanisms, and how neural networks acquire knowledge. This is the weakest fit among the three venues.\n\n### Strategic Recommendation:\n\n**Best venue choice: ICML**, as it most directly values practical machine learning systems improvements and empirical validation across benchmarks. However, this paper carries **moderate-to-high rejection risk** (5-6 score range indicates borderline fit) at any top-tier venue due to limited novelty. \n\n**Risk mitigation strategies:**\n1. Reframe as a **systems contribution** emphasizing inference efficiency and framework integration\n2. Strengthen theoretical analysis of why the method works, particularly for reasoning tasks\n3. Expand human evaluation substantially to reduce vulnerability on subjective claims\n4. Provide complete comparisons with entropy-based methods or clearly acknowledge limitations\n\n**Alternative consideration:** This paper may be better suited for a **specialized workshop or applications track** at a top venue rather than the main conference, where practical contributions are explicitly encouraged.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 3,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The proposed min-p sampling method is simple, elegant, and addresses a practical problem: balancing creativity and coherence in LLM outputs, especially at high temperatures. The core idea of scaling the truncation threshold by the maximum token probability is intuitive and well-motivated.",
+              "Comprehensive experimental evaluation across multiple benchmarks (GPQA, GSM8K CoT, AlpacaEval Creative Writing), model families (Mistral, Llama), and model sizes (1B to 123B parameters) demonstrates broad applicability. The results consistently show min-p's advantages, particularly at higher temperatures where existing methods struggle.",
+              "Strong practical impact is demonstrated through rapid adoption by major open-source frameworks (Hugging Face Transformers, vLLM, SGLang, etc.), with over 667,000 GitHub stars across integrated projects. This real-world validation of utility is compelling and represents genuine community adoption.",
+              "The paper includes both quantitative benchmarks and human evaluation, providing multiple perspectives on performance. Human evaluation with attention checks and quality control measures strengthens claims about perceived quality and diversity.",
+              "Thorough appendices with implementation details, hyperparameter justification, ablation studies, and reproducibility information support the main claims and facilitate verification and adoption."
+            ],
+            "weaknesses": [
+              "The novelty of min-p sampling is limited. The core contribution—scaling a threshold by the maximum probability—is conceptually straightforward and represents an incremental modification of existing truncation methods rather than a fundamentally new insight. While incremental improvements can be valuable, the novelty bar for top-tier venues is moderately high.",
+              "The human evaluation, while a valuable addition, has notable limitations: only 54 valid responses after filtering, each configuration evaluated on just 3 samples (limiting per-condition sample diversity), and the diversity metric is a point estimate rather than a comprehensive measure. The authors acknowledge these limitations but the evaluation remains relatively modest in scope for claims about perceived quality and diversity.",
+              "The comparison with entropy-based methods (η and ϵ sampling) is undermined by implementation issues described in Appendix A.3 (exponential runtime increases, failures at high temperatures). While this demonstrates min-p's computational efficiency, it makes fair comparison difficult. The paper doesn't adequately separate whether poor performance reflects fundamental limitations or implementation challenges.",
+              "Hyperparameter selection choices are justified post-hoc through references to MAUVE scores, Risk Levels, and community recommendations, but these justifications are somewhat circular. The paper would be stronger with more principled, theoretically-grounded hyperparameter selection methodology rather than empirical tuning.",
+              "The paper claims min-p improves reasoning tasks (GPQA, GSM8K) but lacks deep analysis of why a sampling method designed primarily for diversity/coherence trade-off benefits tasks where greedy decoding has traditionally been considered more appropriate. The theoretical understanding of when and why min-p helps is incomplete.",
+              "Community adoption statistics in Appendix A.5 were substantially revised after preliminary overcounting (from claimed '54,000 repositories and 1.1 million stars' to more conservative estimates). While the revised statistics are more rigorous, this revision raises questions about initial claims and methodological rigor in measuring adoption."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The novelty of min-p sampling is limited. The core contribution—scaling a threshold by the maximum probability—is conceptually straightforward and represents an incremental modification of existing truncation methods rather than a fundamentally new insight.",
+                "severity": "minor",
+                "evidence": "The method is a relatively simple formula: pscaled = pbase × pmax, where truncation is based on tokens with P(v) ≥ pscaled. This is a straightforward extension of existing methods like top-p that use fixed thresholds. The paper does not establish significant theoretical novelty or unexpected insights.",
+                "affected_claim": "The paper frames min-p as a 'novel dynamic truncation method' but the core algorithmic contribution is incremental.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The human evaluation has significant limitations in scope and rigor that undermine confidence in claims about perceived quality and diversity.",
+                "severity": "major",
+                "evidence": "Section 6 reports: 54 valid responses after filtering (from 70 initial), each configuration evaluated on only 3 samples, diversity measured as 'a point estimate reflecting the diversity within those 3 specific samples' rather than a comprehensive measure across potential samples. The paper acknowledges 'while each triplet was rated by multiple humans, the diversity of other potential triplets from the same condition was not assessed.'",
+                "affected_claim": "The claim that 'Human evaluations show a preference for min-p, in both text quality and creativity' is based on limited data that provides only directional insights rather than robust evidence.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Comparison with entropy-based methods (η and ϵ sampling) is compromised by implementation issues that prevent fair evaluation at higher temperatures.",
+                "severity": "major",
+                "evidence": "Appendix A.3 reports that η and ϵ sampling showed 'exponential runtime increases with temperature' and 'failed completely at τ > 1.5' while 'min-p remained computationally efficient.' The paper doesn't clearly separate whether poor empirical performance reflects fundamental method limitations or implementation artifacts. Missing results (denoted with '-' in Table 2) at τ ≥ 2.0 prevent direct comparison.",
+                "affected_claim": "Claims that min-p 'outperforms...η sampling' in high-temperature settings are not fully supported when the comparison is incomplete due to implementation failures.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Hyperparameter selection methodology relies on post-hoc empirical justifications rather than principled, theoretically-grounded approaches.",
+                "severity": "minor",
+                "evidence": "Section 5.1 and Appendix A.2 justify hyperparameter choices through references to MAUVE scores, Risk Levels framework, and community recommendations. For top-k specifically, the paper states 'we could not find clear recommendations on the optimal hyperparameters' and resort to testing multiple values. This approach, while practical, is somewhat circular and makes it unclear whether comparisons are truly fair.",
+                "affected_claim": "Claims about relative performance of different methods depend on hyperparameter choices that are justified empirically rather than theoretically.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The paper lacks theoretical analysis of why min-p improves performance on reasoning tasks like GPQA and GSM8K where it was not designed to have advantages.",
+                "severity": "minor",
+                "evidence": "Min-p is motivated as addressing 'quality-diversity tradeoff' particularly for creative generation, yet it shows consistent improvements on graduate-level reasoning (GPQA) and mathematics (GSM8K CoT), where greedy decoding has traditionally been preferred. Table 2 shows min-p outperforming across all temperature ranges on these tasks, but the paper provides no mechanistic explanation for why dynamic truncation based on confidence helps reasoning.",
+                "affected_claim": "The claim that min-p 'consistently improves quality and diversity across different benchmarks' treats these domains as if they share the same mechanisms, but reasoning and creative tasks may benefit for different reasons that aren't analyzed.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Community adoption statistics were substantially revised after overcounting in preliminary assessments, raising concerns about methodological rigor.",
+                "severity": "minor",
+                "evidence": "Appendix A.5 states: 'We wish to clarify that our earlier claim specifying 54,000 repositories and 1.1 million stars was based on preliminary GitHub scans...which produced many false positives' and an independent contributor identified 'limitations of this search approach.' The revised conservative estimate of 668,000 stars across integrated projects is substantially lower than preliminary claims. A GitHub code search query yields 'over 13,000 matching code files' suggesting significant but uncertain adoption.",
+                "affected_claim": "The claim that rapid adoption 'highlights its considerable impact' is based on revised, more conservative metrics after initial overstatements. The true magnitude of adoption remains somewhat unclear.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical formulation of min-p sampling is sound and correctly specified. The experimental methodology is generally rigorous with appropriate benchmarks, metrics, and controls. The logic linking the core idea (dynamic threshold scaling) to the observed benefits is coherent, though some theoretical gaps remain regarding why it helps reasoning tasks. No significant mathematical or logical errors undermine the central claims."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "While the core algorithmic contribution (scaling threshold by max probability) is incremental, it represents a sufficient advance over existing methods. The combination of simplicity with consistent empirical improvements across diverse settings provides novelty of a practical rather than conceptual nature. For a methods paper, this is acceptable, though not exceptional. The rapid community adoption suggests the novelty is sufficient in terms of identifying an overlooked improvement."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The significance stems from both empirical improvements and demonstrated practical impact. Min-p shows consistent improvements over strong baselines especially at higher temperatures, addressing a genuine limitation of existing methods. The adoption by major frameworks (Hugging Face, vLLM, etc.) with hundreds of thousands of GitHub stars demonstrates meaningful real-world impact. While not a breakthrough, this represents a significant practical contribution to generative modeling."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The evaluation is comprehensive across multiple dimensions: automated benchmarks (GPQA, GSM8K, AlpacaEval), model families/sizes, temperature ranges, and human evaluation. Results are consistent and support the main claims. Ablation studies examine hyperparameter sensitivity. Issues exist with entropy-based comparisons and human evaluation scope, but these are limitations rather than fundamental flaws. The evaluation adequately supports the central claims."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written and clearly structured. The motivation is well-explained, the method is described clearly with implementation details provided. Figures effectively illustrate the approach (especially Figure 1). Extensive appendices support reproducibility. Some weaknesses exist (post-hoc justifications, limited human evaluation discussion) but overall presentation is strong enough for reliable assessment."
+              }
+            },
+            "summary_comment": "This paper proposes min-p sampling, a simple modification to token sampling that scales the truncation threshold by the maximum token probability. The method is intuitive, computationally efficient, and demonstrates consistent empirical improvements over existing methods across multiple benchmarks, particularly at higher temperatures. The work is technically sound with comprehensive experiments and genuine real-world impact evidenced by integration into major frameworks. However, the core algorithmic novelty is incremental (a relatively straightforward idea), the human evaluation is limited in scope (54 valid responses, 3 samples per config), and theoretical understanding of why the method helps reasoning tasks remains incomplete. The paper addresses a practical problem and provides a useful solution with demonstrated community adoption, making it a solid contribution to the field. While not groundbreaking, it meets the standards of a top-tier venue for practical methods that advance the state of practice in generative modeling."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

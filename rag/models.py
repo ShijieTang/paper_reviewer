@@ -60,17 +60,3 @@ class RerankedPaper:
         return asdict(self)
 
 
-@dataclass
-class ReviewMemoryCase:
-    source_paper_id: str
-    source_rank: int
-    title: str
-    year: int | None = None
-    openreview_forum_id: str = ""
-    openreview_url: str = ""
-    decision: str = "unknown"
-    score_range: dict[str, Any] = field(default_factory=dict)
-    reviews: list[dict[str, Any]] = field(default_factory=list)
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)

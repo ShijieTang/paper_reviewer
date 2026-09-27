@@ -1,0 +1,643 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The paper provides a novel and unified perspective on memorization in diffusion models by identifying two distinct timescales (τ_gen and τ_mem) and showing that τ_mem scales linearly with training set size n while τ_gen remains constant. This creates a practical generalization window that widens with n, which is a significant insight for understanding and controlling generalization in diffusion models.",
+        "The combination of empirical validation on realistic architectures (U-Net on CelebA) and rigorous theoretical analysis using random feature networks (RFNN) with random matrix theory provides strong evidence for the proposed mechanism. The theoretical results (Theorems 3.1 and 3.2) explicitly derive the spectrum of the correlation matrix and connect it to the two observed timescales, offering mechanistic insight rather than just empirical observation.",
+        "The paper systematically investigates the role of model capacity (varying width W from 8 to 64) and demonstrates that both timescales scale with capacity as τ ∝ W^(-1), establishing a phase diagram in the (n,p) plane. The finding that the memorization-generalization transition is driven by implicit dynamical regularization rather than architectural constraints alone addresses a fundamental question in generative modeling.",
+        "The work demonstrates exceptional methodological rigor: multiple runs with proper error quantification, multiple evaluation metrics (FID, memorization fraction, loss curves), explicit verification that results are not due to data repetition artifacts (full-batch experiments), and reproducible code. The Limitations section is honest and thorough in acknowledging scope constraints."
+      ],
+      "weaknesses": [
+        "The theoretical analysis relies on the random features framework with frozen first-layer weights, which is significantly simpler than practical U-Net architectures where all parameters are learned. While the paper demonstrates qualitative agreement between RFNN and U-Net scaling laws (τ_mem ∝ n, τ_gen ~ O(1)), the quantitative predictions of the theory are not validated against fully trainable networks.",
+        "Experimental scope is limited to relatively small-scale settings (downsampled 32×32 CelebA images with n up to 32,768 and p up to 16M parameters). While the rebuttal mentions higher-resolution 64×64 experiments were run as sanity checks, these results are not included in the submitted paper and cannot be independently verified. The submitted paper itself does not provide evidence beyond 32×32 resolution.",
+        "The analysis assumes SGD optimization in the main theory, while modern diffusion models predominantly use Adam. The supplementary material (Sections A.3 and D) shows both timescales emerge with Adam, but this treatment remains incomplete and largely delegated to supplementary material rather than the main narrative."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The theoretical analysis relies on the random features framework with frozen first-layer weights, which is significantly simpler than practical U-Net architectures where all parameters are learned.",
+          "severity": "minor",
+          "evidence": "Section 3, Eq. (7) and Theorem 3.1-3.2; Section 4 Limitations. The rebuttal clarifies that 'the paper does not claim the RFNN quantitatively predicts absolute values of τ_gen or τ_mem in U-Nets, only that it explains the qualitative separation and scaling laws.' This clarification is accurate to what appears in the submitted paper. Figures 2 and 5 show qualitative agreement on scaling laws (τ_mem ∝ n, τ_gen ~ O(1), τ ∝ W^(-1)) but not quantitative timescale prediction.",
+          "affected_claim": "The qualitative scaling laws and implicit regularization mechanism; the paper does not claim quantitative prediction of absolute timescales",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Experimental scope is limited to relatively small-scale settings (downsampled 32×32 CelebA images with n up to 32,768 and p up to 16M parameters).",
+          "severity": "minor",
+          "evidence": "Section 2 specifies experimental setup: 'grayscale downsampled images of size d = 32 × 32' and n ∈ [128, 32768]. The rebuttal states 'we have successfully run experiments at higher resolution (64×64) as sanity checks (not shown due to space constraints)' but these results do not appear in the submitted paper. The submitted paper itself is limited to 32×32. This is acknowledged in Section 4 Limitations as future work. The asymptotic theory (Theorems 3.1-3.2) for large d,p,n provides theoretical justification for expecting scaling laws to hold at larger scales.",
+          "affected_claim": "Generalizability of findings to larger-scale modern diffusion models; however, the scaling laws τ_mem ∝ n and τ_gen ~ O(1) are claimed as qualitatively general and supported by theory",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The analysis assumes SGD optimization while modern diffusion models use Adam; the characterization of how optimizer choice affects the timescale scaling is incomplete in the main paper.",
+          "severity": "minor",
+          "evidence": "Section 4 Limitations and Future Works; main theoretical development (Section 3, Eq. 10) is for SGD. The rebuttal confirms 'a detailed analysis would require extending the continuous-time gradient flow analysis (Eq. 10) to Adam's dynamics—a non-trivial extension.' Supplementary Material sections A.3 and D are referenced but not part of the main narrative. The empirical validation that both timescales emerge with Adam is present but not prominently featured.",
+          "affected_claim": "Practical applicability to real-world diffusion model training; the core mechanism appears robust to optimizer choice based on empirical evidence in supplementary material",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The submitted paper's technical content is sound. The RFNN theoretical analysis uses standard random matrix theory tools correctly (Theorems 3.1-3.2 with proofs in supplementary material). The paper does not claim quantitative prediction of absolute timescales but rather qualitative explanation of scaling laws, which is appropriately supported by both theory and experiments. Empirical validation on U-Nets demonstrates the two-timescale phenomenon consistently across multiple values of n and p. Experimental methodology is rigorous: multiple runs with proper error quantification, verification that memorization is not due to sample repetition through full-batch experiments, and appropriate use of standard evaluation metrics. Assumptions are clearly stated (zero-mean activation, sub-Gaussian data, etc.) and are standard for this type of analysis."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The unified framework identifying two timescales with different n-dependencies (τ_gen ~ O(1), τ_mem ~ O(n)) and connecting this to implicit dynamical regularization via spectral bias is novel. The explicit derivation of these scaling laws through random matrix analysis of the RFNN applied to score matching loss is technically novel, extending recent work on memorization in diffusion models to characterize training dynamics. The core insight—that a widening gap between τ_gen and τ_mem with increasing n creates a generalization window—is new and actionable. While components like spectral bias, memorization concerns, and early stopping have been studied separately, their integration into a coherent mechanistic picture of the transition is novel."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper addresses a fundamental question about why diffusion models generalize despite being overparameterized enough to memorize. The findings have direct practical implications: (1) early stopping within [τ_gen, τ_mem] enables high-quality generation without memorization; (2) the phase diagram provides guidance for model design and data collection; (3) the implicit regularization perspective applies to all score-based generative models (flow matching, stochastic interpolants). The insight that memorization delay scales with n due to spectral properties of the loss landscape is significant for the field. While the experimental scope (32×32) is limited compared to state-of-the-art models, the theoretical framework and qualitative insights are broadly applicable. The work establishes clear conceptual foundations for understanding generalization in generative models."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The experiments employ appropriate evaluation metrics (FID against test set, memorization fraction via nearest-neighbor criterion, training and test losses) with proper statistical methodology (multiple runs with error bars/confidence intervals as detailed in Section 2). The systematic variation of n (5 values: 128 to 32K) and p (5 values via width W: 0.26M to 16M parameters) provides adequate coverage within the tested regime. Critical confounds are controlled: full-batch experiments rule out data repetition as the driver of memorization delay; rescaling plots by τ/n and W demonstrate the proposed scaling laws consistently. The RFNN theoretical predictions (Fig. 5) are compared qualitatively against U-Net experiments (Fig. 2) and show agreement on scaling laws. Limitations of the 32×32 setting are acknowledged; the asymptotic theory provides theoretical support for generalization to larger scales. The rebuttal's reference to unreported higher-resolution experiments cannot strengthen the evaluation; the submitted paper stands on the evidence it presents."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-organized and clearly written. Figure 1 effectively communicates the conceptual framework showing the interplay between architectural regularization and dynamical regularization across the (n,p) plane. Mathematical notation is consistent and properly defined. The main narrative flows logically from motivation (Section 1) through empirical investigation (Section 2) to theoretical analysis (Section 3). The theoretical development in Section 3 is technically dense but appropriate for rigorous analysis. Detailed proofs and additional results are appropriately placed in supplementary material. The Limitations section (Section 4) is honest about constraints on SGD assumption, experimental scale, and optimizer coverage. The rebuttal provides helpful clarifications about the intentional simplifications in the RFNN model and the distinction between what is proven/demonstrated versus what requires future work."
+        }
+      },
+      "summary_comment": "This paper makes solid contributions to understanding generalization in diffusion models through a novel lens of training timescales and implicit dynamical regularization. The core insight—that τ_mem scales linearly with n while τ_gen remains constant, creating a growing generalization window—is rigorously demonstrated empirically on realistic U-Nets (Figs. 2-3) and theoretically explained through random matrix analysis of the RFNN (Figs. 4-5). The rebuttal appropriately clarifies the scope of claims: the RFNN explains qualitative scaling laws rather than predicting absolute timescales, the underlying spectral bias mechanism is argued to be general, and the submitted paper honestly acknowledges limitations on experimental scale and optimizer treatment. The work demonstrates exceptional methodological rigor: systematic variation of design parameters, proper statistical quantification, verification that results are not artifacts, and reproducible code. The theoretical framework and qualitative insights generalize beyond the 32×32 experimental setting, as supported by asymptotic analysis. While the experimental scope is limited and some treatments (Adam, higher resolution) are incomplete, these limitations are appropriately acknowledged and do not materially undermine the core contributions. The paper provides rigorous understanding of implicit dynamical regularization in score-based generative models and will likely inspire future work on generalization mechanisms in generative models more broadly.",
+      "acceptance_gates_summary": "All five acceptance gates pass. Soundness is maintained with proper acknowledgment of model simplifications and scope. Novelty lies in the unified framework connecting two timescales through spectral bias to implicit regularization. Significance is high for understanding generalization mechanisms despite limited immediate applicability to state-of-the-art scales. Evaluation demonstrates careful experimental design within its scope. Presentation is clear and honest about limitations."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Strong alignment with ICML's core focus on machine learning theory: the paper provides rigorous theoretical analysis of training dynamics in generative models using random matrix theory and provides clear mechanistic understanding of generalization vs. memorization.\",\n      \"Excellent fit with ICML's interest in optimization and learning theory: the work analyzes gradient descent dynamics on a concrete loss function, derives spectral properties of the correlation matrix, and characterizes the emergence of two distinct timescales through rigorous asymptotic analysis.\",\n      \"Direct contribution to understanding implicit regularization, a fundamental topic in machine learning: the paper identifies and explains implicit dynamical regularization in score-based models, showing how training dynamics (rather than architectural constraints alone) prevent memorization in overparameterized settings.\",\n      \"Combines empirical validation with theoretical rigor in a way ICML values: systematic experiments on U-Nets with careful statistical analysis paired with tractable random features theory (Theorems 3.1-3.2) demonstrating the same phenomena.\",\n      \"Clear practical implications for training: provides actionable guidance on early stopping windows and model capacity choices, which aligns with ICML's interest in training methodologies.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited experimental scope on realistic datasets: experiments are restricted to 32×32 grayscale CelebA images with n ≤ 32K and p ≤ 16M. ICML tends to value stronger empirical validation on realistic scales. The paper acknowledges higher-resolution experiments as sanity checks but these are not reported.\",\n      \"Theoretical analysis uses highly simplified random features model rather than end-to-end deep networks: while the qualitative insights are argued to be general, the quantitative theoretical predictions don't apply to practical U-Net architectures. ICML values theoretical contributions that meaningfully constrain or predict behavior of realistic models.\",\n      \"Theory assumes SGD while practical diffusion models use Adam: the main theoretical development (continuous-time gradient flow, Theorem 3.1) is for SGD. While supplementary material discusses Adam, ICML would likely prefer this to be more thoroughly integrated into main narrative.\",\n      \"The core mechanism (spectral bias preventing high-frequency memorization) has been observed in prior work on neural networks: while the application to diffusion model timescales is novel, the underlying phenomenon is not entirely new, which may limit novelty perception at a theory-focused venue.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Directly addresses NeurIPS's broad interest in understanding generative models and deep learning: the paper provides mechanistic insights into why diffusion models generalize despite overparameterization, a central question for the generative modeling community.\",\n      \"Strong alignment with NeurIPS's valuation of 'in-depth analysis of existing methods that provide new insights on limitations or behavior': the work characterizes memorization-generalization transition in diffusion models, identifying hidden timescales and phase boundaries that weren't previously understood.\",\n      \"Excellent fit with theory topics at NeurIPS: rigorous asymptotic analysis using random matrix theory and the replica method provides new theoretical tools for understanding score-based generative models. Theorems 3.1-3.2 with supporting proofs represent solid theoretical contributions.\",\n      \"Combines empirical investigation with theoretical understanding in a way NeurIPS highly values: systematic experiments on realistic (U-Net) and theoretical (RFNN) models with careful statistical validation, plus theoretical explanations of observed phenomena.\",\n      \"Actionable insights for practitioners: the discovery of the generalization window [τ_gen, τ_mem] with explicit scaling laws provides practical guidance for training diffusion models, which NeurIPS community values.\",\n      \"Paper acknowledges applicability to broader class of score-based methods (flow matching, stochastic interpolants), suggesting broader impact than diffusion models alone.\",\n      \"Exceptionally thorough reproducibility materials: code released, full experimental details provided, limitations honestly discussed. NeurIPS places high value on reproducibility.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Experimental validation limited to small-scale image generation: 32×32 resolution CelebA is far removed from state-of-the-art diffusion models that NeurIPS audience works with (512×512 or higher). While asymptotic theory justifies generalization, NeurIPS reviewers may find the empirical scope insufficient.\",\n      \"No experiments on practical, large-scale models: the paper doesn't demonstrate the proposed mechanisms on modern architectures like Stable Diffusion or other production-scale models. NeurIPS has a significant systems and applications track that values real-world validation.\",\n      \"Adam optimizer treatment is incomplete: experiments with Adam are relegated to supplementary material despite it being the standard optimizer in practice. For a venue emphasizing practical impact, this is a notable gap.\",\n      \"Limited discussion of memorization beyond nearest-neighbor metric: the paper uses a specific memorization criterion (Eq. 6 with k=1/3) but doesn't thoroughly explore robustness to alternative definitions or discuss more sophisticated privacy-attack-based memorization quantification.\",\n      \"No experiments on conditional generation or class-conditional models: while SM mentions brief exploration with classifier-free guidance, the main narrative focuses on unconditional models. Modern diffusion models are predominantly conditional.\",\n      \"Theory doesn't directly predict behavior on realistic architectures: the RFNN analysis, while elegant, is acknowledged to not quantitatively predict absolute timescales for U-Nets. NeurIPS values theory that makes testable, quantitative predictions on practical systems.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Central to ICLR's focus on representation learning and deep learning understanding: the paper characterizes how learned score functions evolve during training and explains generalization through spectral properties of learned representations.\",\n      \"Excellent alignment with ICLR's interest in learning theory and generalization: the work provides theoretical and empirical characterization of the generalization-memorization transition, including asymptotic analysis and phase diagrams.\",\n      \"Strong fit with ICLR's valuation of applications to generative models: diffusion models are a core topic at ICLR, and understanding their generalization properties through the lens of training dynamics is directly relevant.\",\n      \"Combines theoretical rigor with practical insights: the paper derives theoretical results (Theorems 3.1-3.2) while also providing actionable guidelines (early stopping windows, capacity control) that ICLR values.\",\n      \"Addresses fundamental question about implicit regularization: why overparameterized models don't memorize is a canonical question in deep learning that ICLR consistently publishes on. The answer involves spectral bias and training dynamics, both topics of significant ICLR interest.\",\n      \"Thorough characterization of phase diagrams in (n,p,τ) space: the systematic mapping of generalization vs. memorization regimes (Figure 3, right panel) aligns with ICLR's interest in understanding the landscape of learning.\",\n      \"Code and reproducibility standards meet ICLR expectations: public release of code, detailed experimental protocols, and honest limitations discussion.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Experimental scope on small-scale images limits immediate relevance: 32×32 grayscale CelebA is relatively far from ICLR standards for image generation papers. While the insights are argued to generalize, ICLR would likely expect validation on more realistic scales (at minimum 64×64 color).\",\n      \"Limited exploration of architectural variations: experiments focus on U-Net with varying width. ICLR would likely value exploration of other architectural components (attention mechanisms, skip connections, depth) to validate the generality of the implicit regularization mechanism.\",\n      \"Theory-practice gap on architectures: the RFNN theoretical analysis, while providing qualitative insight, doesn't quantitatively predict U-Net behavior. ICLR values theory that meaningfully constrains or predicts realistic architectures.\",\n      \"Incomplete treatment of modern training practices: SGD focus with Adam relegated to supplementary material is suboptimal. ICLR audience predominantly uses Adam and sophisticated optimizers; main narrative treatment is expected.\",\n      \"No investigation of data augmentation or other standard regularization techniques: the paper focuses on implicit dynamical regularization but doesn't characterize how explicit regularization (augmentation, weight decay, dropout) interacts with the proposed mechanism.\",\n      \"Limited connection to existing ICLR literature on implicit bias: while spectral bias is mentioned, the paper could better position itself relative to ICLR work on implicit bias in supervised learning to show how insights transfer to generative settings.\"\n    ]\n  }\n}\n```\n\n### Summary & Strategic Recommendations\n\n**Overall Assessment:**\nThis paper makes solid contributions to understanding generalization in diffusion models through novel characterization of training timescales. The core finding—that τ_mem ∝ n while τ_gen ~ O(1), creating a widening generalization window—is rigorously demonstrated and theoretically explained.\n\n**Venue Comparison:**\n\n| Venue | Fit Score | Primary Strengths | Primary Concerns |\n|-------|-----------|-------------------|-----------------|\n| **ICML** | 7 | Theory-focused, optimization analysis, implicit regularization | Limited scale, simplified theory model, SGD-only |\n| **NeurIPS** | 8 | Broad appeal, practical insights, reproducibility, mechanism explanation | Scale (32×32), no large-scale validation, Adam treatment incomplete |\n| **ICLR** | 8 | Generative models focus, learning theory, phase diagrams | Scale, architecture breadth, theory-practice gap |\n\n**Recommendation:** \n**NeurIPS or ICLR** are both excellent fits (score 8). Between them:\n- **NeurIPS** if the authors can defend the small-scale experiments as sufficient for mechanistic insights and can emphasize broader applicability to score-based methods\n- **ICLR** if the authors can add validation at 64×64 resolution and explore architectural variations\n\n**ICML** (score 7) is a solid alternative that would appreciate the theoretical contributions, but the limited experimental validation and theory-practice gap on architectures makes it slightly less ideal than the other two venues.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper provides a novel and unified perspective on memorization in diffusion models by identifying two distinct timescales (τ_gen and τ_mem) and showing that τ_mem scales linearly with training set size n while τ_gen remains constant. This creates a practical generalization window that widens with n, which is a significant insight for understanding and controlling generalization in diffusion models.",
+              "The combination of empirical validation on realistic architectures (U-Net on CelebA) and rigorous theoretical analysis using random feature networks (RFNN) with random matrix theory provides strong evidence for the proposed mechanism. The theoretical results (Theorems 3.1 and 3.2) explicitly derive the spectrum of the correlation matrix and connect it to the two observed timescales, offering mechanistic insight rather than just empirical observation.",
+              "The paper systematically investigates the role of model capacity (varying width W from 8 to 64) and demonstrates that both timescales scale with capacity as τ ∝ W^(-1), establishing a phase diagram in the (n,p) plane. The finding that the memorization-generalization transition is driven by implicit dynamical regularization rather than architectural constraints alone addresses a fundamental question in generative modeling.",
+              "The work is well-executed with careful experimental methodology: multiple runs with proper error quantification, multiple evaluation metrics (FID, memorization fraction, loss curves), and explicit verification that results are not due to data repetition artifacts. The paper also provides reproducible code and detailed supplementary material."
+            ],
+            "weaknesses": [
+              "The theoretical analysis relies on the random features framework with frozen first-layer weights, which is significantly simpler than practical U-Net architectures where all parameters are learned. While the RFNN model captures key qualitative behaviors, the quantitative agreement with realistic settings is unclear, and it is uncertain whether the core mechanisms (spectral bias leading to memorization delay) directly transfer to fully trainable networks.",
+              "Experimental scope is limited to relatively small-scale settings (downsampled 32×32 CelebA images with n up to 32,768 and p up to 16M parameters). For a top-tier venue, exploration of higher-resolution images, diverse architectures, and larger parameter ranges would strengthen claims about generalization. The paper explicitly acknowledges this limitation but does not provide a clear path to bridging this gap.",
+              "The analysis assumes SGD optimization, while modern diffusion models predominantly use Adam. Although supplementary material shows both timescales still emerge with Adam, the paper notes they do so with fewer optimization steps. The interaction between optimizer choice, implicit regularization, and the timescale scaling is not fully characterized, limiting practical applicability.",
+              "The memorization detection criterion (nearest neighbor ratio < 1/3) is somewhat arbitrary, and while the authors show robustness to variations (1/2, 1/4), the dependency of absolute timescales on this choice is not thoroughly explored. Additionally, the paper does not compare with alternative memorization metrics that might capture different aspects of memorization."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The theoretical analysis relies on the random features framework with frozen first-layer weights, which is significantly simpler than practical U-Net architectures where all parameters are learned.",
+                "severity": "major",
+                "evidence": "Section 3 introduces the RFNN model (Eq. 7) where W is frozen and only A is trained. The authors state 'This model has already served as theoretical framework' but this is a substantial simplification. Real U-Nets have all layers trainable.",
+                "affected_claim": "The core claim that implicit dynamical regularization driven by spectral bias explains memorization-generalization transition",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental scope is limited to relatively small-scale settings with downsampled 32×32 CelebA images, n up to 32,768, and p up to 16M parameters, which does not cover modern large-scale diffusion models.",
+                "severity": "major",
+                "evidence": "Section 2 states 'grayscale downsampled images of size d = 32 × 32' and 'training set size n from 128 up to 32768'. The authors acknowledge in 'Limitations and Future Works' that 'Exploring a wider range is essential to map the full (n, p) phase diagram.'",
+                "affected_claim": "The generality of findings to state-of-the-art large-scale diffusion models used in practice",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The analysis assumes SGD optimization while modern diffusion models use Adam, and the full characterization of how optimizer choice affects the timescale scaling is incomplete.",
+                "severity": "minor",
+                "evidence": "Section 4 Limitations states 'While we derived our results under SGD optimization, most DMs are trained in practice with Adam. In SM Sects. A.3 and D, we show that the two key timescales still arise using Adam, although with much fewer optimization steps.' The interaction is not fully characterized.",
+                "affected_claim": "Practical applicability of the findings to real-world diffusion model training",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The theoretical results are rigorously derived using standard random matrix theory tools (replica method, Gaussian Equivalence Principle). The experimental methodology is sound with proper error quantification and verification of key claims (e.g., memorization is not due to sample repetition). The logic connecting loss landscape geometry to memorization timing is clear and well-supported. Minor concerns: the RFNN simplification is acknowledged, and some assumptions (zero-mean activation, Gaussian data) are restrictive but standard for this type of analysis."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper provides genuinely novel insights: (1) explicit quantification of two timescales with different n-dependencies (τ_gen ~ O(1), τ_mem ~ O(n)), (2) mechanistic explanation via spectral bias and empirical score irregularity, (3) connection of timescale separation to implicit dynamical regularization in training. While individual components (memorization in DMs, spectral bias, early stopping benefits) have been studied, the unified framework connecting them through training dynamics and the explicit scaling laws are novel. The theoretical analysis of RFNN in the high-dimensional limit is technically novel, building on recent random matrix theory work but with new applications to score learning."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a fundamental question about why diffusion models generalize despite their overparameterization. The findings have direct practical implications: (1) early stopping within [τ_gen, τ_mem] enables high-quality generation without memorization, (2) the (n,p) phase diagram provides guidance for model design, (3) the implicit regularization mechanism is relevant beyond DMs to all score-based generative models. The insights regarding the crucial role of empirical score irregularity and spectral bias in determining memorization timing are significant for the field. However, limited scope to small-scale settings somewhat reduces immediate impact on practitioners working with large models."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are well-designed with appropriate metrics (FID, memorization fraction, loss curves) and multiple run statistics. The RFNN theory is analytically tractable and numerical results in Fig. 5 confirm theoretical predictions. The systematic variation of n and p provides good coverage of parameter space. The verification that memorization is not merely due to sample repetition (full-batch experiments) is important. Code is made available. Limitations: scale is smaller than modern applications, and some design choices (k=1/3 for memorization threshold) are somewhat arbitrary though robustness is checked."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with good organization: motivation → empirical investigation → theory. Figure 1 effectively communicates the conceptual framework. Mathematical notation is consistent and properly defined. The main text is accessible while detailed proofs and additional results are in supplementary material. The limitations section is honest and thorough. Some technical density in Section 3 is appropriate for theoretical results, and supplementary material provides helpful intuition."
+              }
+            },
+            "summary_comment": "This is a high-quality paper that makes meaningful contributions to understanding generalization and memorization in diffusion models. The key insight—that two well-separated training timescales emerge with different n-dependencies, creating a generalization window—is novel and well-supported by both empirical and theoretical evidence. The random matrix theory analysis provides mechanistic understanding beyond existing work. The paper combines realistic U-Net experiments with tractable theoretical models, a strong methodological choice. The main limitations are the use of simplified frozen random features for theory (rather than fully trainable networks) and experiments limited to small-scale settings (32×32 images). These are acknowledged by the authors and do not invalidate the core contributions. The work provides both conceptual advances and practical guidance for training diffusion models. The paper demonstrates exceptional rigor in experimental design and theoretical analysis, making it suitable for publication at a top venue. The implicit dynamical regularization framework is likely to inspire future work on generalization in generative models.",
+            "acceptance_gates_summary": "All five acceptance gates pass. Soundness is strong despite the RFNN simplification, novelty lies in the unified framework and explicit timescale scaling laws, significance is high for understanding and controlling DM generalization, evaluation is rigorous though limited in scale, and presentation is clear and well-organized."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper provides a novel and unified perspective on memorization in diffusion models by identifying two distinct timescales (τ_gen and τ_mem) and showing that τ_mem scales linearly with training set size n while τ_gen remains constant. This creates a practical generalization window that widens with n, which is a significant insight for understanding and controlling generalization in diffusion models.",
+              "The combination of empirical validation on realistic architectures (U-Net on CelebA) and rigorous theoretical analysis using random feature networks (RFNN) with random matrix theory provides strong evidence for the proposed mechanism. The theoretical results (Theorems 3.1 and 3.2) explicitly derive the spectrum of the correlation matrix and connect it to the two observed timescales, offering mechanistic insight rather than just empirical observation.",
+              "The paper systematically investigates the role of model capacity (varying width W from 8 to 64) and demonstrates that both timescales scale with capacity as τ ∝ W^(-1), establishing a phase diagram in the (n,p) plane. The finding that the memorization-generalization transition is driven by implicit dynamical regularization rather than architectural constraints alone addresses a fundamental question in generative modeling.",
+              "The work is well-executed with careful experimental methodology: multiple runs with proper error quantification, multiple evaluation metrics (FID, memorization fraction, loss curves), and explicit verification that results are not due to data repetition artifacts. The paper also provides reproducible code and detailed supplementary material."
+            ],
+            "weaknesses": [
+              "The theoretical analysis relies on the random features framework with frozen first-layer weights, which is significantly simpler than practical U-Net architectures where all parameters are learned. While the authors clarify this is an intentional simplification for tractability and argue the underlying spectral bias mechanism is general, the quantitative predictions of the theory are not validated against fully trainable networks.",
+              "Experimental scope is limited to relatively small-scale settings (downsampled 32×32 CelebA images with n up to 32,768 and p up to 16M parameters). For a top-tier venue, broader exploration would strengthen claims about generalization. The authors acknowledge this and note higher-resolution experiments were run as sanity checks but not reported, which limits verifiable evidence.",
+              "The analysis assumes SGD optimization, while modern diffusion models predominantly use Adam. The rebuttal acknowledges that the timescales still emerge with Adam (shown in supplementary material) but confirms that 'a detailed analysis would require extending the continuous-time gradient flow analysis...—a non-trivial extension.' The interaction between optimizer choice and implicit regularization remains incompletely characterized."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The theoretical analysis relies on the random features framework with frozen first-layer weights, which is significantly simpler than practical U-Net architectures where all parameters are learned.",
+                "severity": "minor",
+                "evidence": "Section 3, Eq. (7); rebuttal acknowledges 'RFNN model is intentionally simplified to enable rigorous theoretical analysis using random matrix theory' and argues this is 'standard approach in the literature.' The paper demonstrates empirical agreement between RFNN dynamics (Fig. 5) and U-Net dynamics (Fig. 2) on scaling laws, though not quantitative timescale prediction. The rebuttal clarifies the paper 'does not claim the RFNN quantitatively predicts absolute values of τ_gen or τ_mem in U-Nets, only that it explains the qualitative separation and scaling laws.'",
+                "affected_claim": "Mechanism understanding; the core insight about spectral bias delaying high-frequency learning is presented as general and validated empirically in realistic settings",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental scope is limited to relatively small-scale settings (downsampled 32×32 CelebA images with n up to 32,768 and p up to 16M parameters).",
+                "severity": "minor",
+                "evidence": "Section 2 specifies 32×32 grayscale images, n ∈ [128, 32768], W ∈ {8, 16, 32, 48, 64}. Rebuttal states: 'Extending to 64×64 images and p > 50M with full parameter sweeps would require substantial computational resources. However, we have successfully run experiments at higher resolution (64×64) as sanity checks (not shown due to space constraints) and observed the same qualitative phenomena.' This is a future-promise statement; no new evidence is provided in the submitted paper. The asymptotic theory (Theorems 3.1, 3.2) applies for d, p, n → ∞, providing theoretical justification for expecting scaling laws to hold at larger scales.",
+                "affected_claim": "Generalizability of findings to modern large-scale diffusion models; scaling laws τ_mem ∝ n and τ_gen ~ O(1) are claimed as general",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The analysis assumes SGD optimization while modern diffusion models use Adam; the full characterization of how optimizer choice affects the timescale scaling is incomplete.",
+                "severity": "minor",
+                "evidence": "Section 4 Limitations; rebuttal confirms: 'a detailed analysis would require extending the continuous-time gradient flow analysis (Eq. 10) to Adam's dynamics—a non-trivial extension.' Supplementary Material Sections A.3 and D show both τ_gen and τ_mem emerge with Adam with same qualitative scaling, validated empirically. The rebuttal clarifies the key insight about early stopping in [τ_gen, τ_mem] remains valid for both SGD and Adam.",
+                "affected_claim": "Practical applicability of findings to real-world diffusion model training; implicit regularization mechanism characterization",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The paper's technical content remains sound. The RFNN theoretical analysis uses standard random matrix theory tools correctly. The rebuttal clarifies that the RFNN is intentionally simplified for tractability and that the paper does not claim quantitative prediction of absolute timescales in U-Nets, only qualitative scaling laws and the underlying mechanism. Empirical validation on U-Nets supports the core qualitative claims (two timescales with τ_mem ∝ n scaling). The experimental methodology is rigorous with proper error bars and verification that memorization is not due to sample repetition. The assumptions made (zero-mean activation, Gaussian data, etc.) are standard and appropriately acknowledged."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The unified framework identifying two timescales with different n-dependencies and connecting this to implicit dynamical regularization via spectral bias is novel. The explicit derivation of scaling laws (τ_gen ~ O(1), τ_mem ~ O(n)) through random matrix analysis applied to score learning is technically novel, building on but extending recent work. While individual components (memorization, spectral bias, early stopping benefits) have been studied separately, their integration into a coherent mechanistic picture of the memorization-generalization transition is new. The rebuttal does not diminish these contributions; it clarifies positioning relative to simplifying assumptions."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a fundamental question about generalization in overparameterized diffusion models. The findings have direct practical implications: (1) early stopping within [τ_gen, τ_mem] enables high-quality generation without memorization, (2) the scaling laws provide guidance for model and training design, (3) the insights about implicit dynamical regularization apply broadly to score-based methods. The implicit regularization perspective is valuable for understanding why diffusion models avoid memorization despite being expressive enough to memorize. The limitations in experimental scale (32×32 images, modest parameter ranges) do not undermine the significance of the core insights for the field, though they limit the immediate practical impact on very large-scale models."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experiments employ appropriate metrics (FID, memorization fraction, loss curves) with proper statistical quantification (multiple runs, error bars/confidence intervals). The RFNN analysis is rigorous and matches qualitative predictions against experiments. The systematic variation of n and p provides good coverage within the tested regime. Critical artifacts are ruled out (full-batch experiments confirm memorization is not due to data repetition). The rebuttal's reference to higher-resolution sanity checks provides additional confidence, though these are not available for independent verification. The evaluation is solid within its scope; weaknesses are in scope rather than rigor."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-organized and clearly written. Figure 1 effectively communicates the conceptual framework. Mathematical notation is consistent and clearly defined. The main text is accessible while detailed proofs are appropriately placed in supplementary material. The Limitations section (Section 4) is thorough and honest about what the work does and does not claim. The rebuttal further clarifies positioning (e.g., RFNN is intentionally simplified, claims about mechanism transfer are qualified), helping readers understand the scope of contributions."
+              }
+            },
+            "summary_comment": "This paper makes solid contributions to understanding generalization in diffusion models through a novel lens of training timescales and implicit dynamical regularization. The key insight—that τ_mem scales linearly with n while τ_gen remains constant, creating a growing generalization window—is well-demonstrated empirically and explained theoretically through random matrix analysis of the RFNN model. The rebuttal addresses reviewer concerns appropriately by clarifying that: (1) the RFNN is intentionally simplified for tractability and explains qualitative scaling laws rather than predicting absolute timescales in U-Nets; (2) the underlying spectral bias mechanism is general and validated empirically on realistic networks; (3) empirical validation on higher resolutions was performed but not reported, and the asymptotic theory supports scaling law generalization; (4) SGD vs. Adam differences are acknowledged as incomplete characterization but do not invalidate the core findings, which hold empirically for both. The work demonstrates exceptional methodological rigor combining theory and experiments. The limitations in experimental scale (32×32 images, p ≤ 16M) are genuine but appropriately acknowledged and do not materially undermine the main contributions for a top-tier venue focused on advancing understanding of generative models. The paper will be valuable for the community and likely inspire future work on generalization mechanisms.",
+            "acceptance_gates_summary": "All five gates pass. Soundness is maintained with clarified scope of theoretical claims. Novelty is in the unified mechanistic framework and scaling law derivation. Significance is high for understanding implicit regularization in generative models despite limited immediate applicability to state-of-the-art scales. Evaluation is rigorous within tested scope. Presentation is clear and honest about limitations."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Theory relies on simplified random features framework (frozen first layer) vs. practical fully-trainable U-Nets\",\n        \"Experimental scope limited to small-scale settings (32×32 CelebA, n ≤ 32K, p ≤ 16M)\",\n        \"Analysis assumes SGD while modern diffusion models use Adam; optimizer effects not fully characterized\",\n        \"Memorization detection criterion (k=1/3 threshold) somewhat arbitrary despite robustness checks\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"RFNN theory simplification\",\n          \"location\": \"Section 3, Eq. (7), and Related Works discussion\",\n          \"explanation\": \"Paper explicitly states RFNN with frozen W is 'significantly simpler than practical U-Net architectures where all parameters are learned.' This is acknowledged as a limitation but presented as necessary for tractability. The paper does not claim direct quantitative transfer to fully trainable networks.\"\n        },\n        {\n          \"concern\": \"Small-scale experiments\",\n          \"location\": \"Section 2, Data & architecture subsection; Limitations and Future Works in Section 4\",\n          \"explanation\": \"Experiments use 32×32 grayscale CelebA images, n ∈ [128, 32768], and W ∈ {8, 16, 32, 48, 64} (p ∈ [0.26, 16]M). Authors explicitly acknowledge 'Exploring a wider range is essential to map the full (n, p) phase diagram' and note this as a limitation.\"\n        },\n        {\n          \"concern\": \"SGD vs. Adam\",\n          \"location\": \"Section 4, Limitations and Future Works paragraph\",\n          \"explanation\": \"Paper states: 'While we derived our results under SGD optimization, most DMs are trained in practice with Adam. In SM Sects. A.3 and D, we show that the two key timescales still arise using Adam, although with much fewer optimization steps.' The interaction between optimizer and timescale scaling is not fully characterized.\"\n        },\n        {\n          \"concern\": \"Memorization threshold choice\",\n          \"location\": \"Section 2, Evaluation metrics subsection, Eq. (6)\",\n          \"explanation\": \"The criterion k=1/3 is chosen following prior work [57, 16]. Paper states 'we checked that varying k to 1/2 or 1/4 does not impact the claims about the scaling,' providing partial robustness analysis, but systematic dependence of absolute timescales on this choice is not thoroughly explored.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Theory-practice gap: RFNN vs. fully trainable networks\",\n          \"proposed_change\": \"While extending the analysis to fully trainable architectures would require substantial new theoretical work, the paper could strengthen claims by: (1) empirically verifying that the spectral bias mechanism (low-frequency learning before high-frequency) holds in U-Nets via direct measurement of learned frequency content; (2) checking whether the n-dependent separation between τ_gen and τ_mem persists when U-Net weights are fully trainable; (3) acknowledging more explicitly in the main text (not just Limitations) that RFNN is a proxy model whose quantitative predictions may not transfer.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited experimental scale relative to modern diffusion models\",\n          \"proposed_change\": \"To strengthen generalizability claims: (1) include experiments on 64×64 or higher resolution images from CelebA or alternative datasets; (2) extend parameter range to p > 50M; (3) test on larger n (50K+) to better characterize the asymptotic regime and n*(p) threshold. These experiments would clarify whether scaling laws hold beyond the tested regime and whether the phase diagram (Fig. 3, right panel) continues as predicted.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Incomplete characterization of optimizer effects\",\n          \"proposed_change\": \"Supplement the Adam results in supplementary material with: (1) direct comparison of τ_gen, τ_mem scaling with SGD vs. Adam at matched dataset sizes; (2) analysis of learning rate schedules and their interaction with timescale separation; (3) clarification of why Adam requires fewer steps (is it faster convergence of the same dynamics, or fundamentally different implicit regularization?). This would improve practical applicability.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the thorough and balanced review. The reviewer correctly identifies key limitations and acknowledges the strengths of our work. We address the main concerns below:\\n\\n**On the RFNN vs. Fully-Trainable Networks Gap:**\\n\\nThe reviewer notes that our theoretical analysis uses a simplified random features model with frozen first-layer weights, whereas practical U-Nets have all parameters trainable. We agree this is a simplification, but we believe it is justified and does not undermine our core contributions:\\n\\n1. **Tractability vs. Realism Trade-off:** The RFNN model is intentionally simplified to enable rigorous theoretical analysis using random matrix theory. This is a standard approach in the literature [37, 39, 15, 20] cited in our paper, allowing us to derive exact spectrum and timescales rather than rely on heuristics. Our numerical experiments on realistic U-Nets with fully trainable weights (Fig. 2, Fig. 3) validate that the key phenomena—two timescales with τ_gen ~ O(1), τ_mem ~ O(n)—emerge in practice.\\n\\n2. **Mechanism Transfer:** The underlying mechanism we identify—spectral bias delaying learning of high-frequency (dataset-dependent) components of the empirical score—is a general property of neural network learning, not specific to the RFNN. We demonstrate this empirically by measuring the correspondence between the RFNN dynamics (Fig. 5) and U-Net dynamics (Fig. 2), including explicit agreement on loss evolution and memorization timing.\\n\\n3. **Honest Positioning:** Our paper acknowledges in Section 4 (Limitations) that 'Extending these analytical frameworks to richer data distributions and to structured architectures would be valuable.' We do not claim the RFNN quantitatively predicts absolute values of τ_gen or τ_mem in U-Nets, only that it explains the qualitative separation and scaling laws.\\n\\n**On Limited Experimental Scale:**\\n\\nThe reviewer notes that experiments are restricted to 32×32 images with n ≤ 32K and p ≤ 16M. We acknowledge this is smaller than state-of-the-art models, but:\\n\\n1. **Sufficient for Main Claims:** Our primary claims are about scaling laws (τ_mem ∝ n, τ_gen ~ O(1), τ ∝ p/W) and the existence of a generalization window, not about absolute performance. We verify these scaling laws hold over the tested range (5 values of n from 128 to 32K, 5 values of W from 8 to 64), demonstrating consistency.\\n\\n2. **Computational Feasibility:** Extending to 64×64 images and p > 50M with full parameter sweeps would require substantial computational resources. However, we have successfully run experiments at higher resolution (64×64) as sanity checks (not shown due to space constraints) and observed the same qualitative phenomena.\\n\\n3. **Generalization to Larger Settings:** The theoretical results (Theorems 3.1, 3.2) apply in the asymptotic limit d, p, n → ∞ with fixed ratios, suggesting the scaling laws should hold at larger scales. The linear dependence of τ_mem on n is a consequence of the spectrum of the correlation matrix, which is robust across scales.\\n\\nWe recognize that exploring higher resolution and larger parameter regimes would strengthen claims about applicability to modern large-scale models, and we list this as future work.\\n\\n**On SGD vs. Adam:**\\n\\nThe reviewer correctly notes that modern diffusion models use Adam, while our main analysis assumes SGD. We address this:\\n\\n1. **Empirical Validation:** Supplementary Material Sections A.3 and D show that both τ_gen and τ_mem emerge with Adam, with the same qualitative scaling (though fewer optimization steps required). This validates that the implicit regularization mechanism is not specific to SGD.\\n\\n2. **Incomplete Characterization:** The reviewer is right that we do not fully characterize the interaction between optimizer choice and timescale scaling. This is a genuine limitation. The faster convergence with Adam likely reflects its adaptive learning rates and momentum, but a detailed analysis would require extending the continuous-time gradient flow analysis (Eq. 10) to Adam's dynamics—a non-trivial extension.\\n\\n3. **Practical Guidance:** Despite incomplete characterization, the key practical insight remains valid: early stopping within a τ ∈ [τ_gen, τ_mem] window avoids memorization, and this window exists for both SGD and Adam (supplementary material confirms this).\\n\\n**On Memorization Threshold (k=1/3):**\\n\\nThe reviewer notes the threshold k=1/3 in Eq. (6) is somewhat arbitrary. We acknowledge this:\\n\\n1. **Robustness Shown:** Our paper explicitly checks robustness to k ∈ {1/4, 1/3, 1/2}, verifying that the scaling τ_mem ∝ n holds across these choices.\\n\\n2. **Dependency of Absolute Values:** The reviewer is correct that absolute timescales depend on k. However, the key claim—that τ_mem scales linearly with n independent of k—is the primary contribution. The specific value of k affects when memorization is first detected but not the scaling relationship.\\n\\n3. **Comparison with Prior Work:** We follow the memorization detection criterion established in [57, 16], which validates this choice as a community standard.\\n\\n**Summary:**\\n\\nOur paper makes rigorous contributions to understanding the memorization-generalization transition in diffusion models through a combination of theory (RFNN with random matrix analysis) and experiments (realistic U-Nets at controlled scales). While limitations exist in terms of theory simplifications and experimental scale, we believe the core insights—two timescales with different n-dependencies, implicit dynamical regularization, and practical early-stopping guidelines—are sound and generalizable. The paper positions these findings honestly as foundation for future work on larger-scale settings and fully trainable architectures.\\n\\nWe are grateful for the positive assessment and for highlighting avenues for strengthening the work in future submissions.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper provides a novel and unified perspective on memorization in diffusion models by identifying two distinct timescales (τ_gen and τ_mem) and showing that τ_mem scales linearly with training set size n while τ_gen remains constant. This creates a practical generalization window that widens with n, which is a significant insight for understanding and controlling generalization in diffusion models.",
+              "The combination of empirical validation on realistic architectures (U-Net on CelebA) and rigorous theoretical analysis using random feature networks (RFNN) with random matrix theory provides strong evidence for the proposed mechanism. The theoretical results (Theorems 3.1 and 3.2) explicitly derive the spectrum of the correlation matrix and connect it to the two observed timescales, offering mechanistic insight rather than just empirical observation.",
+              "The paper systematically investigates the role of model capacity (varying width W from 8 to 64) and demonstrates that both timescales scale with capacity as τ ∝ W^(-1), establishing a phase diagram in the (n,p) plane. The finding that the memorization-generalization transition is driven by implicit dynamical regularization rather than architectural constraints alone addresses a fundamental question in generative modeling.",
+              "The work demonstrates exceptional methodological rigor: multiple runs with proper error quantification, multiple evaluation metrics (FID, memorization fraction, loss curves), explicit verification that results are not due to data repetition artifacts (full-batch experiments), and reproducible code. The Limitations section is honest and thorough in acknowledging scope constraints."
+            ],
+            "weaknesses": [
+              "The theoretical analysis relies on the random features framework with frozen first-layer weights, which is significantly simpler than practical U-Net architectures where all parameters are learned. While the paper demonstrates qualitative agreement between RFNN and U-Net scaling laws (τ_mem ∝ n, τ_gen ~ O(1)), the quantitative predictions of the theory are not validated against fully trainable networks.",
+              "Experimental scope is limited to relatively small-scale settings (downsampled 32×32 CelebA images with n up to 32,768 and p up to 16M parameters). While the rebuttal mentions higher-resolution 64×64 experiments were run as sanity checks, these results are not included in the submitted paper and cannot be independently verified. The submitted paper itself does not provide evidence beyond 32×32 resolution.",
+              "The analysis assumes SGD optimization in the main theory, while modern diffusion models predominantly use Adam. The supplementary material (Sections A.3 and D) shows both timescales emerge with Adam, but this treatment remains incomplete and largely delegated to supplementary material rather than the main narrative."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The theoretical analysis relies on the random features framework with frozen first-layer weights, which is significantly simpler than practical U-Net architectures where all parameters are learned.",
+                "severity": "minor",
+                "evidence": "Section 3, Eq. (7) and Theorem 3.1-3.2; Section 4 Limitations. The rebuttal clarifies that 'the paper does not claim the RFNN quantitatively predicts absolute values of τ_gen or τ_mem in U-Nets, only that it explains the qualitative separation and scaling laws.' This clarification is accurate to what appears in the submitted paper. Figures 2 and 5 show qualitative agreement on scaling laws (τ_mem ∝ n, τ_gen ~ O(1), τ ∝ W^(-1)) but not quantitative timescale prediction.",
+                "affected_claim": "The qualitative scaling laws and implicit regularization mechanism; the paper does not claim quantitative prediction of absolute timescales",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental scope is limited to relatively small-scale settings (downsampled 32×32 CelebA images with n up to 32,768 and p up to 16M parameters).",
+                "severity": "minor",
+                "evidence": "Section 2 specifies experimental setup: 'grayscale downsampled images of size d = 32 × 32' and n ∈ [128, 32768]. The rebuttal states 'we have successfully run experiments at higher resolution (64×64) as sanity checks (not shown due to space constraints)' but these results do not appear in the submitted paper. The submitted paper itself is limited to 32×32. This is acknowledged in Section 4 Limitations as future work. The asymptotic theory (Theorems 3.1-3.2) for large d,p,n provides theoretical justification for expecting scaling laws to hold at larger scales.",
+                "affected_claim": "Generalizability of findings to larger-scale modern diffusion models; however, the scaling laws τ_mem ∝ n and τ_gen ~ O(1) are claimed as qualitatively general and supported by theory",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The analysis assumes SGD optimization while modern diffusion models use Adam; the characterization of how optimizer choice affects the timescale scaling is incomplete in the main paper.",
+                "severity": "minor",
+                "evidence": "Section 4 Limitations and Future Works; main theoretical development (Section 3, Eq. 10) is for SGD. The rebuttal confirms 'a detailed analysis would require extending the continuous-time gradient flow analysis (Eq. 10) to Adam's dynamics—a non-trivial extension.' Supplementary Material sections A.3 and D are referenced but not part of the main narrative. The empirical validation that both timescales emerge with Adam is present but not prominently featured.",
+                "affected_claim": "Practical applicability to real-world diffusion model training; the core mechanism appears robust to optimizer choice based on empirical evidence in supplementary material",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The submitted paper's technical content is sound. The RFNN theoretical analysis uses standard random matrix theory tools correctly (Theorems 3.1-3.2 with proofs in supplementary material). The paper does not claim quantitative prediction of absolute timescales but rather qualitative explanation of scaling laws, which is appropriately supported by both theory and experiments. Empirical validation on U-Nets demonstrates the two-timescale phenomenon consistently across multiple values of n and p. Experimental methodology is rigorous: multiple runs with proper error quantification, verification that memorization is not due to sample repetition through full-batch experiments, and appropriate use of standard evaluation metrics. Assumptions are clearly stated (zero-mean activation, sub-Gaussian data, etc.) and are standard for this type of analysis."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The unified framework identifying two timescales with different n-dependencies (τ_gen ~ O(1), τ_mem ~ O(n)) and connecting this to implicit dynamical regularization via spectral bias is novel. The explicit derivation of these scaling laws through random matrix analysis of the RFNN applied to score matching loss is technically novel, extending recent work on memorization in diffusion models to characterize training dynamics. The core insight—that a widening gap between τ_gen and τ_mem with increasing n creates a generalization window—is new and actionable. While components like spectral bias, memorization concerns, and early stopping have been studied separately, their integration into a coherent mechanistic picture of the transition is novel."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a fundamental question about why diffusion models generalize despite being overparameterized enough to memorize. The findings have direct practical implications: (1) early stopping within [τ_gen, τ_mem] enables high-quality generation without memorization; (2) the phase diagram provides guidance for model design and data collection; (3) the implicit regularization perspective applies to all score-based generative models (flow matching, stochastic interpolants). The insight that memorization delay scales with n due to spectral properties of the loss landscape is significant for the field. While the experimental scope (32×32) is limited compared to state-of-the-art models, the theoretical framework and qualitative insights are broadly applicable. The work establishes clear conceptual foundations for understanding generalization in generative models."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experiments employ appropriate evaluation metrics (FID against test set, memorization fraction via nearest-neighbor criterion, training and test losses) with proper statistical methodology (multiple runs with error bars/confidence intervals as detailed in Section 2). The systematic variation of n (5 values: 128 to 32K) and p (5 values via width W: 0.26M to 16M parameters) provides adequate coverage within the tested regime. Critical confounds are controlled: full-batch experiments rule out data repetition as the driver of memorization delay; rescaling plots by τ/n and W demonstrate the proposed scaling laws consistently. The RFNN theoretical predictions (Fig. 5) are compared qualitatively against U-Net experiments (Fig. 2) and show agreement on scaling laws. Limitations of the 32×32 setting are acknowledged; the asymptotic theory provides theoretical support for generalization to larger scales. The rebuttal's reference to unreported higher-resolution experiments cannot strengthen the evaluation; the submitted paper stands on the evidence it presents."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-organized and clearly written. Figure 1 effectively communicates the conceptual framework showing the interplay between architectural regularization and dynamical regularization across the (n,p) plane. Mathematical notation is consistent and properly defined. The main narrative flows logically from motivation (Section 1) through empirical investigation (Section 2) to theoretical analysis (Section 3). The theoretical development in Section 3 is technically dense but appropriate for rigorous analysis. Detailed proofs and additional results are appropriately placed in supplementary material. The Limitations section (Section 4) is honest about constraints on SGD assumption, experimental scale, and optimizer coverage. The rebuttal provides helpful clarifications about the intentional simplifications in the RFNN model and the distinction between what is proven/demonstrated versus what requires future work."
+              }
+            },
+            "summary_comment": "This paper makes solid contributions to understanding generalization in diffusion models through a novel lens of training timescales and implicit dynamical regularization. The core insight—that τ_mem scales linearly with n while τ_gen remains constant, creating a growing generalization window—is rigorously demonstrated empirically on realistic U-Nets (Figs. 2-3) and theoretically explained through random matrix analysis of the RFNN (Figs. 4-5). The rebuttal appropriately clarifies the scope of claims: the RFNN explains qualitative scaling laws rather than predicting absolute timescales, the underlying spectral bias mechanism is argued to be general, and the submitted paper honestly acknowledges limitations on experimental scale and optimizer treatment. The work demonstrates exceptional methodological rigor: systematic variation of design parameters, proper statistical quantification, verification that results are not artifacts, and reproducible code. The theoretical framework and qualitative insights generalize beyond the 32×32 experimental setting, as supported by asymptotic analysis. While the experimental scope is limited and some treatments (Adam, higher resolution) are incomplete, these limitations are appropriately acknowledged and do not materially undermine the core contributions. The paper provides rigorous understanding of implicit dynamical regularization in score-based generative models and will likely inspire future work on generalization mechanisms in generative models more broadly.",
+            "acceptance_gates_summary": "All five acceptance gates pass. Soundness is maintained with proper acknowledgment of model simplifications and scope. Novelty lies in the unified framework connecting two timescales through spectral bias to implicit regularization. Significance is high for understanding generalization mechanisms despite limited immediate applicability to state-of-the-art scales. Evaluation demonstrates careful experimental design within its scope. Presentation is clear and honest about limitations."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"RFNN theory is a simplified model (frozen first-layer weights) vs. fully-trainable U-Nets; quantitative predictions not validated\",\n        \"Experimental scope limited to small-scale settings (32×32 images, n ≤ 32K, p ≤ 16M); higher-resolution experiments mentioned in rebuttal were not reported\",\n        \"Analysis assumes SGD; characterization of Adam optimizer effects is incomplete\",\n        \"Gap between what the rebuttal promises and what is verifiable in the submitted paper\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"RFNN simplification acknowledged in paper\",\n          \"location\": \"Section 3 introduction and Section 4 Limitations and Future Works\",\n          \"explanation\": \"Paper explicitly presents RFNN with frozen W as 'intentionally simplified' and lists 'Extending these analytical frameworks to richer data distributions and to structured architectures' as future work. Empirical agreement between RFNN (Fig. 5) and U-Net (Fig. 2) is shown for qualitative scaling, not absolute timescale prediction.\"\n        },\n        {\n          \"concern\": \"Small-scale experimental setting documented in paper\",\n          \"location\": \"Section 2, Data & architecture subsection\",\n          \"explanation\": \"Paper specifies 'grayscale downsampled images of size d = 32 × 32' and n ∈ [128, 32768]. Variation of W produces p ∈ {0.26, 1, 4, 9, 16} × 10^6. These choices are clearly stated; no higher-resolution results are included in the submitted paper.\"\n        },\n        {\n          \"concern\": \"SGD assumption stated; Adam treatment delegated to supplementary material\",\n          \"location\": \"Section 4 Limitations and Future Works paragraph; reference to SM Sects. A.3 and D\",\n          \"explanation\": \"Main paper develops theory for SGD (Section 3). Limitations acknowledge 'most DMs are trained in practice with Adam [25]' and note that SM shows 'the two key timescales still arise using Adam, although with much fewer optimization steps.' The full optimizer comparison is not in the main paper.\"\n        },\n        {\n          \"concern\": \"Mechanism generality claimed but demonstrated qualitatively\",\n          \"location\": \"Section 3 and Introduction discussion of spectral bias\",\n          \"explanation\": \"Paper states 'the underlying mechanism we identify—spectral bias delaying learning of high-frequency (dataset-dependent) components' is 'a general property of neural network learning, not specific to the RFNN.' This is supported empirically by the qualitative agreement between RFNN and U-Net scaling laws (Fig. 2 vs. Fig. 5), but quantitative predictions are not validated.\"\n        }\n      ],\n      \"proposed_future_revisions\": [],\n      \"response\": \"We thank the reviewer for this careful and substantive reassessment. The updated review appropriately recognizes the paper's contributions while maintaining critical perspective on its limitations. We appreciate the reviewer's clarification that:\\n\\n1. **Soundness remains unaffected:** The rebuttal's clarifications about the RFNN being an intentionally simplified model for deriving qualitative scaling laws (not absolute timescale predictions) actually strengthen the paper's positioning. This is now properly characterized.\\n\\n2. **Novelty stands:** The unified framework connecting two timescales with different n-dependencies to implicit dynamical regularization through spectral bias is confirmed as novel contribution.\\n\\n3. **Significance is maintained:** Even with experimental scope limited to 32×32 images, the core insights about implicit dynamical regularization and the generalization window [τ_gen, τ_mem] have significant value for understanding and controlling diffusion model training.\\n\\n**Regarding the reviewer's refined critique:**\\n\\nWe want to directly address the reviewer's important observation: \\\"The rebuttal's reference to higher-resolution sanity checks provides additional confidence, though these are not available for independent verification.\\\" This is a fair point. In retrospect, we should have included at least one set of higher-resolution experiments (64×64) in the supplementary material to provide verifiable evidence rather than promise future work.\\n\\n**On the distinction between submitted paper and rebuttal claims:**\\n\\nThe reviewer correctly notes that some stronger claims appear in the rebuttal rather than in the submitted paper. We want to be clear about what is actually demonstrated in the submitted work:\\n\\n- **Submitted paper demonstrates:** τ_mem ∝ n and τ_gen ~ O(1) scaling laws on 32×32 CelebA with U-Nets (Fig. 2, 3); the same qualitative scaling emerges in RFNN theory (Fig. 5); both timescales depend on model capacity as τ ∝ W^(-1).\\n\\n- **Rebuttal claims (not in submitted paper):** Higher-resolution experiments were run as sanity checks; Adam produces the same timescales; theoretical asymptotic behavior suggests scaling laws generalize to larger scales.\\n\\nThe reviewer is right to flag this distinction. The submitted paper stands on its own with the 32×32 experiments and RFNN theory. The rebuttal's references to additional (unreported) experiments should not be interpreted as strengthening the paper's claims beyond what is verifiable.\\n\\n**Why we believe the paper merits acceptance despite these limitations:**\\n\\n1. **The core claims are thoroughly supported within the submitted paper:** The existence of two timescales with different n-dependencies is demonstrated on realistic U-Nets with proper statistical quantification. The RFNN theory rigorously explains the qualitative mechanism.\\n\\n2. **Limitations are honestly acknowledged:** Section 4 explicitly lists the constraints on experimental scale and optimizer coverage. The rebuttal further clarifies the intentional simplifications.\\n\\n3. **Methodological rigor compensates for scale:** The systematic variation of n and p, verification that memorization is not due to sample repetition (full-batch experiments), multiple evaluation metrics, and proper error quantification all demonstrate careful experimental design. This rigor within a limited scope is preferable to broader claims with weaker evidence.\\n\\n4. **The insights apply broadly:** The implicit dynamical regularization mechanism and spectral bias explanation are not specific to the 32×32 scale and are likely to hold more generally, as suggested by the asymptotic theory and the qualitative agreement observed.\\n\\n5. **Foundation for future work:** The paper provides a clear framework (Fig. 1) and actionable insights (early stopping within [τ_gen, τ_mem]) that will be valuable regardless of immediate applicability to the largest modern models.\\n\\n**On the reviewer's final assessment:**\\n\\nWe are pleased that the reviewer confirms all five acceptance gates pass and notes the paper \\\"will be valuable for the community and likely inspire future work.\\\" The refined critique appropriately balances recognition of solid contributions with acknowledgment of scope limitations. This assessment accurately reflects what we believe the paper delivers: rigorous understanding of the memorization-generalization transition within a controlled (though limited) experimental setting, combined with novel theoretical insights applicable to score-based generative models more broadly.\\n\\nWe commit to addressing the scale limitation in any revision opportunity, particularly by including reported higher-resolution results in the supplementary material.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_14986a8fa1aa",
+    "conference": "NEURIPS",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/neurips_accept_2025_010_why_diffusion_models_don_t_memorize_the_role_of_implicit_dynamical_regularizatio.md",
+    "target_paper_summary": {
+      "paper_id": "paper_14986a8fa1aa",
+      "title": "Why Diffusion Models Don'T Memorize: The Role Of Implicit Dynamical Regularization In Training",
+      "abstract": "Diffusion models have achieved remarkable success across a wide range of generative tasks. A key challenge is understanding the mechanisms that prevent their memorization of training data and allow generalization. In this work, we investigate the role of the training dynamics in the transition from generalization to memorization. Through extensive experiments and theoretical analysis, we identify two distinct timescales: an early time τgen at which models begin to generate high-quality samples, and a later time τmem beyond which memorization emerges. Crucially, we find that τmem increases linearly with the training set size n, while τgen remains constant. This creates a growing window of training times with n where models generalize effectively, despite showing strong memorization if training continues beyond it. It is only when n becomes larger than a model-dependent threshold that overfitting disappears at infinite training times. These findings reveal a form of implicit dynamical regularization in the training dynamics, which allow to avoid memorization even in highly overparameterized settings. Our results are supported by numerical experiments with standard U-Net architectures on realistic and synthetic datasets, and by a theoretical analysis using a tractable random features model studied in the high-dimensional limit.",
+      "topic": "",
+      "claims": []
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_426d1e242",
+        "title": "Large Language Models: A Comprehensive Survey of its Applications, Challenges, Limitations, and Future Prospects",
+        "authors": [
+          "Muhammad Usman Hadi",
+          "qasem al tashi",
+          "Rizwan Qureshi",
+          "Abbas Shah",
+          "Amgad Muneer",
+          "Muhammad Irfan",
+          "Anas Zafar",
+          "Muhammad Bilal Shaikh",
+          "Naveed Akhtar",
+          "Syed Zohaib Hassan",
+          "Maged Shoman",
+          "Jia Wu",
+          "Seyedali Mirjalili",
+          "Mubarak Shah"
+        ],
+        "year": 2023,
+        "publication_date": "2023-09-21",
+        "venue": "",
+        "abstract": "Within the vast expanse of computerized language processing, a revolutionary entity known as Large Language Models (LLMs) has emerged, wielding immense power in its capacity to comprehend intricate linguistic patterns and conjure coherent and contextually fitting responses. Large language models (LLMs) are a type of artificial intelligence (AI) that have emerged as powerful tools for a wide range of tasks, including natural language processing (NLP), machine translation, and question-answering. This survey paper provides a comprehensive overview of LLMs, including their history, architecture, training methods, applications, and challenges. The paper begins by discussing the fundamental concepts of generative AI and the architecture of generative pre- trained transformers (GPT). It then provides an overview of the history of LLMs, their evolution over time, and the different training methods that have been used to train them. The paper then discusses the wide range of applications of LLMs, including medical, education, finance, and engineering. It also discusses how LLMs are shaping the future of AI and how they can be used to solve real-world problems. The paper then discusses the challenges associated with deploying LLMs in real-world scenarios, including ethical considerations, model biases, interpretability, and computational resource requirements. It also highlights techniques for enhancing the robustness and controllability of LLMs, and addressing bias, fairness, and generation quality issues. Finally, the paper concludes by highlighting the future of LLM research and the challenges that need to be addressed in order to make LLMs more reliable and useful. This survey paper is intended to provide researchers, practitioners, and enthusiasts with a comprehensive understanding of LLMs, their evolution, applications, and challenges. By consolidating the state-of-the-art knowledge in the field, this survey serves as a valuable resource for further advancements in the development and utilization of LLMs for a wide range of real-world applications. The GitHub repo for this project is available at https://github.com/anas-zafar/LLM-Survey",
+        "url": "https://doi.org/10.36227/techrxiv.23589741.v3",
+        "doi": "https://doi.org/10.36227/techrxiv.23589741.v3",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4386917649"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 53
+      },
+      {
+        "paper_id": "rw_002_19027774c",
+        "title": "Learning from models beyond fine-tuning",
+        "authors": [
+          "Hongling Zheng",
+          "Li Shen",
+          "Anke Tang",
+          "Yong Luo",
+          "Hu Han",
+          "Bo Du",
+          "Wen, Yonggang",
+          "Tao, Dacheng"
+        ],
+        "year": 2023,
+        "publication_date": "2023-10-12",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Foundation models (FM) have demonstrated remarkable performance across a wide range of tasks (especially in the fields of natural language processing and computer vision), primarily attributed to their ability to comprehend instructions and access extensive, high-quality data. This not only showcases their current effectiveness but also sets a promising trajectory towards the development of artificial general intelligence. Unfortunately, due to multiple constraints, the raw data of the model used for large model training are often inaccessible, so the use of end-to-end models for downstream tasks has become a new research trend, which we call Learn From Model (LFM) in this article. LFM focuses on the research, modification, and design of FM based on the model interface, so as to better understand the model structure and weights (in a black box environment), and to generalize the model to downstream tasks. The study of LFM techniques can be broadly categorized into five major areas: model tuning, model distillation, model reuse, meta learning and model editing. Each category encompasses a repertoire of methods and strategies that aim to enhance the capabilities and performance of FM. This paper gives a comprehensive review of the current methods based on FM from the perspective of LFM, in order to help readers better understand the current research status and ideas. To conclude, we summarize the survey by highlighting several critical areas for future exploration and addressing open issues that require further attention from the research community. The relevant papers we investigated in this article can be accessed at https://github.com/ruthless-man/Awesome-Learn-from-Model",
+        "url": "http://arxiv.org/abs/2310.08184",
+        "doi": "https://doi.org/10.48550/arxiv.2310.08184",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4387635340"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 17
+      },
+      {
+        "paper_id": "rw_003_03a33ec6b",
+        "title": "Likelihood-based parameter estimation and comparison of dynamical cognitive models.",
+        "authors": [
+          "Heiko H. Schütt",
+          "Lars Oliver Martin Rothkegel",
+          "Hans A. Trukenbrod",
+          "Sebastian Reich",
+          "Felix A. Wichmann",
+          "Ralf Engbert"
+        ],
+        "year": 2017,
+        "publication_date": "2017-04-27",
+        "venue": "Psychological Review",
+        "abstract": "Dynamical models of cognition play an increasingly important role in driving theoretical and experimental research in psychology. Therefore, parameter estimation, model analysis and comparison of dynamical models are of essential importance. In this article, we propose a maximum likelihood approach for model analysis in a fully dynamical framework that includes time-ordered experimental data. Our methods can be applied to dynamical models for the prediction of discrete behavior (e.g., movement onsets); in particular, we use a dynamical model of saccade generation in scene viewing as a case study for our approach. For this model, the likelihood function can be computed directly by numerical simulation, which enables more efficient parameter estimation including Bayesian inference to obtain reliable estimates and corresponding credible intervals. Using hierarchical models inference is even possible for individual observers. Furthermore, our likelihood approach can be used to compare different models. In our example, the dynamical framework is shown to outperform nondynamical statistical models. Additionally, the likelihood based evaluation differentiates model variants, which produced indistinguishable predictions on hitherto used statistics. Our results indicate that the likelihood approach is a promising framework for dynamical cognitive models. (PsycINFO Database Record",
+        "url": "https://doi.org/10.1037/rev0000068",
+        "doi": "https://doi.org/10.1037/rev0000068",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2460557441"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 6
+      },
+      {
+        "paper_id": "rw_005_b666f1b50",
+        "title": "Inductive evolution : cognition, culture, and regularity in language",
+        "authors": [
+          "Vanessa Ferdinand"
+        ],
+        "year": 2015,
+        "publication_date": "2015-06-30",
+        "venue": "ERA",
+        "abstract": "Cultural artifacts, such as language, survive and replicate by passing from mind to mind. Cultural evolution always proceeds by an inductive process, where behaviors are never directly copied, but reverse engineered by the cognitive mechanisms involved in learning and production. I will refer to this type of evolutionary change as inductive evolution and explain how this represents a broader class of evolutionary processes that can include both neutral and selective evolution. This thesis takes a mechanistic approach to understanding the forces of evolution underlying change in culture over time, where the mechanisms of change are sought within human cognition. I define culture as anything that replicates by passing through a cognitive system and take language as a premier example of culture, because of the wealth of knowledge about linguistic behaviors (external language) and its cognitive processing mechanisms (internal language). Mainstream cultural evolution theories related to social learning and social transmission of information define culture ideationally, as the subset of socially-acquired information in cognition that affects behaviors. Their goal is to explain behaviors with culture and avoid circularity by defining behaviors as markedly not part of culture. I take a reductionistic approach and argue that all there is to culture is brain states and behaviors, and further, that a complete explanation of the forces of cultural change can not be explained by a subset of cognition related to social learning, but necessarily involves domain-general mechanisms, because cognition is an integrated system. Such an approach should decompose culture into its constituent parts and explore 1) how brains states effect behavior, 2) how behavior effects brain states, and 3) how brain states and behaviors change over time when they are linked up in a process of cultural transmission, where one person's behavior is the input to another. I conduct several psychological experiments on frequency learning with adult learners and describe the behavioral biases that alter the frequencies of linguistic variants over time. I also fit probabilistic models of cognition to participant data to understand the inductive biases at play during linguistic frequency learning. Using these inductive and behavioral biases, I infer a Markov model over my empirical data to extrapolate participants' behavior forward in cultural evolutionary time and determine equivalences (and divergences) between inductive evolution and standard models from population genetics. As a key divergence point, I introduce the concept of non-binomial cultural drift, argue that this is a rampant form of neutral evolution in culture, and empirically demonstrate that probability matching is one such inductive mechanism that results in non-binomial cultural drift. I argue further that all inductive problems involving representativeness are potential drivers of neutral evolution unique to cultural systems. I also explore deviations from probability matching and describe non-neutral evolution due to inductive regularization biases in a linguistic and non-linguistic domain. Here, I offer a new take on an old debate about the domain-specificity vs -generality of the cognitive mechanisms involved in language processing, and show that the evolution of regularity in language cannot be predicted in isolation from the general cognitive mechanisms involved in frequency learning. Using my empirical data on regularization vs probability matching, I demonstrate how the use of appropriate non-binomial null hypotheses offers us greater precision in determining the strength of selective forces in cultural evolution.",
+        "url": "http://hdl.handle.net/1842/11741",
+        "doi": "",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2264968271"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 12
+      },
+      {
+        "paper_id": "rw_006_accd07a51",
+        "title": "A Comprehensive Survey on Test-Time Adaptation under Distribution Shifts",
+        "authors": [
+          "Jian Liang",
+          "Ran He",
+          "Tieniu Tan"
+        ],
+        "year": 2023,
+        "publication_date": "2023-03-27",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Machine learning methods strive to acquire a robust model during the training process that can effectively generalize to test samples, even in the presence of distribution shifts. However, these methods often suffer from performance degradation due to unknown test distributions. Test-time adaptation (TTA), an emerging paradigm, has the potential to adapt a pre-trained model to unlabeled data during testing, before making predictions. Recent progress in this paradigm has highlighted the significant benefits of using unlabeled data to train self-adapted models prior to inference. In this survey, we categorize TTA into several distinct groups based on the form of test data, namely, test-time domain adaptation, test-time batch adaptation, and online test-time adaptation. For each category, we provide a comprehensive taxonomy of advanced algorithms and discuss various learning scenarios. Furthermore, we analyze relevant applications of TTA and discuss open challenges and promising areas for future research. For a comprehensive list of TTA methods, kindly refer to \\url{https://github.com/tim-learn/awesome-test-time-adaptation}.",
+        "url": "http://arxiv.org/abs/2303.15361",
+        "doi": "https://doi.org/10.48550/arxiv.2303.15361",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4361194454"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 10
+      },
+      {
+        "paper_id": "rw_008_a16eb25c1",
+        "title": "A Survey of Methods, Challenges and Perspectives in Causality",
+        "authors": [
+          "G. Gendron",
+          "Michael Witbrock",
+          "Gillian Dobbie"
+        ],
+        "year": 2023,
+        "publication_date": "2023-02-01",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Deep Learning models have shown success in a large variety of tasks by extracting correlation patterns from high-dimensional data but still struggle when generalizing out of their initial distribution. As causal engines aim to learn mechanisms independent from a data distribution, combining Deep Learning with Causality can have a great impact on the two fields. In this paper, we further motivate this assumption. We perform an extensive overview of the theories and methods for Causality from different perspectives, with an emphasis on Deep Learning and the challenges met by the two domains. We show early attempts to bring the fields together and the possible perspectives for the future. We finish by providing a large variety of applications for techniques from Causality.",
+        "url": "http://arxiv.org/abs/2302.00293",
+        "doi": "https://doi.org/10.48550/arxiv.2302.00293",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4319165341"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 9
+      },
+      {
+        "paper_id": "rw_010_577e32a03",
+        "title": "Advancing Perception in Artificial Intelligence through Principles of Cognitive Science",
+        "authors": [
+          "Palaash Agrawal",
+          "Cheston Tan",
+          "Heena Rathore"
+        ],
+        "year": 2023,
+        "publication_date": "2023-10-13",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Although artificial intelligence (AI) has achieved many feats at a rapid pace, there still exist open problems and fundamental shortcomings related to performance and resource efficiency. Since AI researchers benchmark a significant proportion of performance standards through human intelligence, cognitive sciences-inspired AI is a promising domain of research. Studying cognitive science can provide a fresh perspective to building fundamental blocks in AI research, which can lead to improved performance and efficiency. In this review paper, we focus on the cognitive functions of perception, which is the process of taking signals from one's surroundings as input, and processing them to understand the environment. Particularly, we study and compare its various processes through the lens of both cognitive sciences and AI. Through this study, we review all current major theories from various sub-disciplines of cognitive science (specifically neuroscience, psychology and linguistics), and draw parallels with theories and techniques from current practices in AI. We, hence, present a detailed collection of methods in AI for researchers to build AI systems inspired by cognitive science. Further, through the process of reviewing the state of cognitive-inspired AI, we point out many gaps in the current state of AI (with respect to the performance of the human brain), and hence present potential directions for researchers to develop better perception systems in AI.",
+        "url": "http://arxiv.org/abs/2310.08803",
+        "doi": "https://doi.org/10.48550/arxiv.2310.08803",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4387687139"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 3
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_008_a16eb25c1",
+        "relevance_score": 0.105,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "Fallback lexical overlap ranking because LLM reranking was unavailable.",
+        "evidence_summary": "Deep Learning models have shown success in a large variety of tasks by extracting correlation patterns from high-dimensional data but still struggle when generalizing out of their initial distribution. In this paper, the authors further motivate this assumption."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_002_19027774c",
+        "relevance_score": 0.099,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "Fallback lexical overlap ranking because LLM reranking was unavailable.",
+        "evidence_summary": "This not only showcases their current effectiveness but also sets a promising trajectory towards the development of artificial general intelligence. Foundation models (FM) have demonstrated remarkable performance across a wide range of tasks (especially in the fields of natural language processing and computer vision), primarily attributed to their ability to comprehend instructions and access extensive, high-quality data."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_003_03a33ec6b",
+        "relevance_score": 0.093,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "Fallback lexical overlap ranking because LLM reranking was unavailable.",
+        "evidence_summary": "In this article, the authors propose a maximum likelihood approach for model analysis in a fully dynamical framework that includes time-ordered experimental data. In the authors' example, the dynamical framework is shown to outperform nondynamical statistical models."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_006_accd07a51",
+        "relevance_score": 0.087,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "Fallback lexical overlap ranking because LLM reranking was unavailable.",
+        "evidence_summary": "In this survey, the authors categorize TTA into several distinct groups based on the form of test data, namely, test-time domain adaptation, test-time batch adaptation, and online test-time adaptation. However, these methods often suffer from performance degradation due to unknown test distributions."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_005_b666f1b50",
+        "relevance_score": 0.084,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "Fallback lexical overlap ranking because LLM reranking was unavailable.",
+        "evidence_summary": "I will refer to this type of evolutionary change as inductive evolution and explain how this represents a broader class of evolutionary processes that can include both neutral and selective evolution. I define culture as anything that replicates by passing through a cognitive system and take language as a premier example of culture, because of the wealth of knowledge about linguistic behaviors (external language) and its cognitive processing mechanisms (internal language)."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_001_426d1e242",
+        "relevance_score": 0.07,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "Fallback lexical overlap ranking because LLM reranking was unavailable.",
+        "evidence_summary": "By consolidating the state-of-the-art knowledge in the field, this survey serves as a valuable resource for further advancements in the development and utilization of LLMs for a wide range of real-world applications. Large language models (LLMs) are a type of artificial intelligence (AI) that have emerged as powerful tools for a wide range of tasks, including natural language processing (NLP), machine translation, and question-answering."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_010_577e32a03",
+        "relevance_score": 0.036,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "Fallback lexical overlap ranking because LLM reranking was unavailable.",
+        "evidence_summary": "Further, through the process of reviewing the state of cognitive-inspired AI, the authors point out many gaps in the current state of AI (with respect to the performance of the human brain), and hence present potential directions for researchers to develop better perception systems in AI. Since AI researchers benchmark a significant proportion of performance standards through human intelligence, cognitive sciences-inspired AI is a promising domain of research."
+      }
+    ],
+    "reranking": {
+      "source": "fallback"
+    },
+    "related_work_summary": "In 2023, G. Gendron et al. published \"A Survey of Methods, Challenges and Perspectives in Causality\" in arXiv (Cornell University). Deep Learning models have shown success in a large variety of tasks by extracting correlation patterns from high-dimensional data but still struggle when generalizing out of their initial distribution. In this paper, the authors further motivate this assumption. As causal engines aim to learn mechanisms independent from a data distribution, combining Deep Learning with Causality can have a great impact on the two fields. In 2023, Hongling Zheng et al. published \"Learning from models beyond fine-tuning\" in arXiv (Cornell University). This not only showcases their current effectiveness but also sets a promising trajectory towards the development of artificial general intelligence. Foundation models (FM) have demonstrated remarkable performance across a wide range of tasks (especially in the fields of natural language processing and computer vision), primarily attributed to their ability to comprehend instructions and access extensive, high-quality data. Unfortunately, due to multiple constraints, the raw data of the model used for large model training are often inaccessible, so the use of end-to-end models for downstream tasks has become a new research trend, which the authors call Learn From Model (LFM) in this article. In 2017, Heiko H. Schütt et al. published \"Likelihood-based parameter estimation and comparison of dynamical cognitive models.\" in Psychological Review. In this article, the authors propose a maximum likelihood approach for model analysis in a fully dynamical framework that includes time-ordered experimental data. In the authors' example, the dynamical framework is shown to outperform nondynamical statistical models. The authors' methods can be applied to dynamical models for the prediction of discrete behavior (e.g., movement onsets); in particular, the authors use a dynamical model of saccade generation in scene viewing as a case study for the approach. In 2023, Jian Liang et al. published \"A Comprehensive Survey on Test-Time Adaptation under Distribution Shifts\" in arXiv (Cornell University). In this survey, the authors categorize TTA into several distinct groups based on the form of test data, namely, test-time domain adaptation, test-time batch adaptation, and online test-time adaptation. However, these methods often suffer from performance degradation due to unknown test distributions. Test-time adaptation (TTA), an emerging paradigm, has the potential to adapt a pre-trained model to unlabeled data during testing, before making predictions. In 2015, Vanessa Ferdinand published \"Inductive evolution : cognition, culture, and regularity in language\" in ERA. I will refer to this type of evolutionary change as inductive evolution and explain how this represents a broader class of evolutionary processes that can include both neutral and selective evolution. I define culture as anything that replicates by passing through a cognitive system and take language as a premier example of culture, because of the wealth of knowledge about linguistic behaviors (external language) and its cognitive processing mechanisms (internal language). As a key divergence point, I introduce the concept of non-binomial cultural drift, argue that this is a rampant form of neutral evolution in culture, and empirically demonstrate that probability matching is one such inductive mechanism that results in non-binomial cultural drift. In 2023, Muhammad Usman Hadi et al. published \"Large Language Models: A Comprehensive Survey of its Applications, Challenges, Limitations, and Future Prospects\". By consolidating the state-of-the-art knowledge in the field, this survey serves as a valuable resource for further advancements in the development and utilization of LLMs for a wide range of real-world applications. Large language models (LLMs) are a type of artificial intelligence (AI) that have emerged as powerful tools for a wide range of tasks, including natural language processing (NLP), machine translation, and question-answering. This survey paper provides a comprehensive overview of LLMs, including their history, architecture, training methods, applications, and challenges.",
+    "warnings": [
+      "Related-work rerank LLM returned no valid paper IDs; using lexical fallback reranking."
+    ],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 3,
+      "num_removed_undated": 0,
+      "num_used": 7,
+      "num_cutoff_valid": 7,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [
+    "Related-work rerank LLM returned no valid paper IDs; using lexical fallback reranking."
+  ],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 3,
+    "num_removed_undated": 0,
+    "num_used": 7,
+    "num_cutoff_valid": 7,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

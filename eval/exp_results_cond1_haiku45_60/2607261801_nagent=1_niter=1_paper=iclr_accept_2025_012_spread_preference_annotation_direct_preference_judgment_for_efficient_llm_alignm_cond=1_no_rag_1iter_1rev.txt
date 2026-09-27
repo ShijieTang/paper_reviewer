@@ -1,0 +1,216 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The paper introduces a practical and effective framework (SPA) that achieves strong empirical results with minimal human-annotated preference data. Using only 3.3% of labeled Ultrafeedback data, the method achieves a 21.13% AlpacaEval 2.0 win rate, surpassing Zephyr-7B which uses 100% of labeled data (10.03%), demonstrating substantial practical value.",
+        "The core technical contribution is sound and well-motivated: using the LLM's own logits for direct preference judgment (Eq. 7) is simpler and more effective than external reward models or LLM-as-judge approaches, particularly for mitigating distribution shift during iterative training. The intuition is clearly explained and empirically validated.",
+        "Comprehensive experimental evaluation across multiple dimensions: the paper includes comparisons with strong baselines (PairRM, LLM-as-judge), ablation studies isolating each component (Table 6), generalization tests across different seed data sizes and LLM architectures (Tables 3-5), and thorough analysis of design choices (Table 7). Results consistently demonstrate SPA's effectiveness.",
+        "The de-coupled noise detection technique (Eq. 11-12) using linear extrapolation of logits is a clever lightweight addition requiring minimal computational overhead while improving noise robustness. The connection to RLHF's geometric mixture property (Liu et al., 2024) provides theoretical grounding.",
+        "The paper addresses a practically important problem: reducing annotation cost for LLM alignment while maintaining quality. The framework is simple enough for practitioners to implement (described as 'a few lines of additional code'), making it immediately actionable."
+      ],
+      "weaknesses": [
+        "The theoretical justification for using confidence (Eq. 9) as a proxy for label noise is heuristic rather than principled. The paper lacks formal analysis of when and why this approach works, and no theoretical guarantees about noise detection accuracy are provided.",
+        "The iterative training framework depends on continuous access to new prompt sets (X_i) at each iteration. The experimental setup uses pre-partitioned UltraFeedback data, but the paper provides limited guidance on how to obtain or construct these prompt sets in practice when training from scratch.",
+        "The paper acknowledges that SPA tends to generate longer responses but treats this mainly in the appendix. While length-controlled metrics show improvements, the tendency to produce longer outputs could be problematic for latency-sensitive applications and suggests potential reward model bias toward verbosity.",
+        "The linear extrapolation formula for π_θe (Eq. 12) uses progressively reduced λ values (1/2, 1/4, 1/8) across iterations without principled justification. The sensitivity analysis for these hyperparameter choices is missing, making the method seem somewhat ad-hoc.",
+        "Limited analysis of failure modes or boundary conditions: the paper doesn't discuss scenarios where direct preference judgment might fail (e.g., highly specialized domains, non-English languages) or provide guidance on when practitioners should avoid SPA.",
+        "Evaluation relies primarily on automatic metrics (AlpacaEval 2.0 uses GPT-4 as judge, MT-Bench uses GPT-4 scoring). While practical, these don't provide direct validation that the improvements reflect genuine human preference alignment, particularly for the length bias issue."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The theoretical justification for using confidence (Eq. 9) as a proxy for label noise is heuristic rather than principled. The paper lacks formal analysis of when and why this approach works, and no theoretical guarantees about noise detection accuracy are provided.",
+          "severity": "minor",
+          "evidence": "Section 4.2 states 'we first identify the K% least confident samples' based on intuition that 'low confidence indicates higher probability of labeling noise,' referencing only one recent noisy label learning paper (Han et al., 2018). No formal analysis connects confidence to actual noise rates or provides error bounds.",
+          "affected_claim": "The self-refinement noise detection mechanism is effective at identifying mislabeled preferences",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The iterative training framework depends on continuous access to new prompt sets (X_i) at each iteration. The experimental setup uses pre-partitioned UltraFeedback data, but the paper provides limited guidance on how to obtain or construct these prompt sets in practice when training from scratch.",
+          "severity": "minor",
+          "evidence": "Section 4 assumes 'new prompt set X_i = {x} is available' and Section 5.1 states datasets 'were divided into subsets of 8K, 20K, and 30K samples, leaving only the prompts.' The paper doesn't explain how practitioners should construct these prompt sets when training on new domains or datasets without pre-partitioned data.",
+          "affected_claim": "SPA is practical and generalizable to new domains and datasets",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The paper acknowledges that SPA tends to generate longer responses but treats this mainly in the appendix. While length-controlled metrics show improvements, the tendency to produce longer outputs could be problematic for latency-sensitive applications and suggests potential reward model bias toward verbosity.",
+          "severity": "minor",
+          "evidence": "Appendix A.1 states 'SPA has shown the tendency to increase the responses' length' and Appendix D provides a table (Table 10) showing average character lengths of 2749 (SPA Iter. 2) vs 1552 (Zephyr-7B). A length penalty approach (Eq. 13) is explored only in appendix with limited analysis.",
+          "affected_claim": "SPA improves LLM alignment without problematic side effects",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The linear extrapolation formula for π_θe (Eq. 12) uses progressively reduced λ values (1/2, 1/4, 1/8) across iterations without principled justification. The sensitivity analysis for these hyperparameter choices is missing, making the method seem somewhat ad-hoc.",
+          "severity": "minor",
+          "evidence": "Section 5.1 states 'we utilized the progressively reduced values of 1/2, 1/4, and 1/8 for iterations 1, 2, and 3, respectively' without explanation. No ablation on λ values or sensitivity analysis is provided in the main paper or appendix.",
+          "affected_claim": "The de-coupled noise detection via linear extrapolation is a well-justified and robust component",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Limited analysis of failure modes or boundary conditions: the paper doesn't discuss scenarios where direct preference judgment might fail (e.g., highly specialized domains, non-English languages) or provide guidance on when practitioners should avoid SPA.",
+          "severity": "minor",
+          "evidence": "The paper evaluates SPA only on general-purpose instruction-following tasks using English. No experiments on domain-specific tasks (medical, legal, coding benchmarks), multilingual settings, or challenging domains where preferences are nuanced are provided.",
+          "affected_claim": "SPA is generalizable and robust across diverse use cases",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Evaluation relies primarily on automatic metrics (AlpacaEval 2.0 uses GPT-4 as judge, MT-Bench uses GPT-4 scoring). While practical, these don't provide direct validation that the improvements reflect genuine human preference alignment, particularly for the length bias issue.",
+          "severity": "minor",
+          "evidence": "The paper uses AlpacaEval 2.0 and MT-Bench for evaluation, both of which rely on GPT-4 judgments. While the paper claims to evaluate 'human preference alignment,' no human evaluation or comparison with actual human preferences is provided. Appendix D discusses length bias but doesn't validate whether the improvements correspond to actual user preferences.",
+          "affected_claim": "SPA meaningfully improves LLM alignment with human preferences",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The technical approach is sound. The direct preference judgment using DPO logits (Eq. 7) is mathematically correct, the self-refinement mechanism with label smoothing (Eq. 10) is a reasonable noise mitigation strategy, and the linear extrapolation for de-coupled noise detection (Eq. 12) is motivated by prior work on RLHF geometry. All core components are technically valid, though some design choices (progressive λ values, K% threshold) are empirically motivated rather than theoretically derived. The experimental results consistently validate the approach across multiple settings."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper makes three distinct contributions: (1) using the LLM's own logits for preference judgment rather than external reward models or LLM-as-judge, (2) introducing noise-aware preference learning with label smoothing confidence-based refinement, and (3) de-coupled noise detection via linear extrapolation of logits. While iterative training with self-generated preferences and DPO have been explored (concurrent works like Snorkel, Rosset et al., Wu et al. cite in related work), the combination of direct preference judgment from training model logits + self-refinement + de-coupled noise detection via logit extrapolation is novel. The approach is differentiated from prior work by avoiding external models and handling distribution shift better."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The work addresses a practically important problem: reducing annotation cost for LLM alignment. The results are significant: achieving 21.13% AlpacaEval 2.0 win rate with only 3.3% of labeled data, surpassing Zephyr-7B (10.03%) which uses 100% labeled data, demonstrates meaningful practical impact. The method works across multiple LLM architectures (Phi-2, LLaMA-3, Phi-3) and achieves competitive results even without seed data. This could reduce the barrier to entry for organizations wanting to fine-tune models with limited annotation budgets, contributing to broader adoption of aligned LLMs."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The experimental evaluation is comprehensive and thorough. Strengths: (1) Multiple strong baselines (PairRM reward model, LLM-as-judge, standard DPO), (2) Ablation studies isolating each component showing the importance of de-coupled noise detection, (3) Generalization tests across different seed data amounts (0.8%-10%), different LLM sizes/architectures (Phi-2, LLaMA-3, Phi-3), and different seed samples (Table 4), (4) Analysis of design choices (reference model selection in Table 7), (5) Consistent improvements across both AlpacaEval 2.0 and MT-Bench. Weaknesses: (1) Evaluation relies on GPT-4-based automatic metrics rather than human annotation, (2) Limited analysis of failure modes or domain-specific performance, (3) No statistical significance testing or confidence intervals provided (though Table 4 shows variance). Overall, the evaluation is sufficient for the claims made."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written with good organization. Strengths: (1) Clear motivation explaining limitations of prior work (LLM-as-judge, external reward models), (2) Good use of figures (Figure 1 overview, Figure 3 iteration analysis), (3) Algorithm 1 provides clear pseudocode, (4) Mathematical notation is consistent and well-defined, (5) Experimental setup details are thorough. Weaknesses: (1) Some important details relegated to appendix (length bias discussion, λ sensitivity), (2) The connection between Eq. 12 and RLHF geometry could be explained more clearly, (3) Limited discussion of when practitioners should/shouldn't use SPA. Overall clarity is good and sufficient for understanding and reproducing the work."
+        }
+      },
+      "summary_comment": "This is a well-executed paper presenting SPA, a practical framework for efficient LLM alignment using minimal human-annotated preference data. The key contributions—direct preference judgment using training model logits, noise-aware learning via label smoothing, and de-coupled noise detection through logit extrapolation—are well-motivated and technically sound. The empirical results are impressive: achieving 21.13% AlpacaEval 2.0 win rate using only 3.3% of labeled UltraFeedback data, surpassing Zephyr-7B which uses 100% labeled data (10.03%), demonstrates significant practical value. The evaluation is comprehensive with strong baselines, ablation studies, and generalization tests across different seed data sizes and LLM architectures showing consistent improvements. The method is simple to implement and addresses a practically important problem of reducing annotation costs for alignment. Weaknesses are primarily minor: some design choices lack principled justification (progressive λ values), theoretical analysis of the noise detection approach is limited to intuition, guidance for obtaining new prompt sets in practice is sparse, and evaluation relies on automatic metrics rather than human validation. The acknowledged tendency to generate longer responses is noteworthy but mitigated by length-controlled metrics. These issues do not undermine the core contributions or empirical validity. The paper makes a solid contribution to practical LLM alignment that would be valuable to practitioners and researchers working on efficient preference learning."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"The paper addresses machine learning systems and optimization problems—specifically efficient LLM alignment using minimal annotated data, which aligns with ICML's interest in 'machine learning systems (improved implementation and scalability)' and 'optimization (convex and non-convex optimization)'.\",\n      \"The technical contributions involve iterative learning algorithms (DPO-based preference optimization) and noise-aware training, which fall under ICML's scope of 'general machine learning' and 'evaluation (methodology, replicability and validity)'.\",\n      \"The work demonstrates reproducibility and includes comprehensive ablation studies and experimental analysis across multiple models, which matches ICML's emphasis on methodological rigor and empirical validation.\",\n      \"The practical focus on reducing annotation costs for model alignment addresses ICML's interest in 'application-driven machine learning' and making ML techniques more accessible and scalable.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The paper is fundamentally about LLM fine-tuning and human preference alignment for natural language models, which is not a traditional ICML focus area. ICML emphasizes 'general machine learning' methods with broader applicability beyond language models, whereas this work is deeply specific to LLM alignment.\",\n      \"There is minimal algorithmic or theoretical novelty in core components. The paper reuses existing DPO (Rafailov et al., 2023), applies standard label smoothing for noise handling, and the de-coupled noise detection is a relatively straightforward application of linear extrapolation. ICML typically values novel algorithmic or theoretical contributions.\",\n      \"The evaluation is almost entirely empirical on LLM benchmarks (AlpacaEval 2.0, MT-Bench) using automatic metrics (GPT-4 judgments). ICML values rigorous methodology and theory, but this work lacks theoretical guarantees, formal analysis of the noise detection mechanism, or principled justification for design choices (e.g., progressive λ values).\",\n      \"The paper does not make contributions to core ICML topics like statistical learning theory, bandits, decision theory, probabilistic methods, or reinforcement learning (in the formal sense)—it applies existing RL/preference learning techniques to a specific application domain.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"The paper directly addresses LLM alignment with human feedback, which is a core NeurIPS topic explicitly listed as 'Language and multimodal language models' and closely related to 'Decision-making, reinforcement learning, and control' through preference-based learning.\",\n      \"NeurIPS explicitly welcomes 'in-depth analysis of existing methods that provide new insights in terms of their limitations or behavior beyond the scope of the original work.' This paper extends DPO with practical improvements (de-coupled noise detection, self-refinement) and provides thorough empirical analysis of design choices and failure modes.\",\n      \"The work demonstrates strong empirical results on standard LLM benchmarks (AlpacaEval 2.0, MT-Bench) and shows generalization across multiple LLM architectures (Phi-2, LLaMA-3, Phi-3). NeurIPS values empirical validation and broad applicability across different models.\",\n      \"The paper addresses a significant practical problem (reducing annotation costs for alignment) that has interdisciplinary relevance. NeurIPS encourages 'interdisciplinary submissions' and welcomes application-driven work that doesn't fit neatly into existing categories.\",\n      \"The work is well-executed with comprehensive ablations, sensitivity analyses, and comparisons to strong baselines (PairRM, LLM-as-judge). NeurIPS values thorough experimental methodology and reproducibility, which the paper demonstrates.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"While the paper addresses preference learning, it does not make fundamental contributions to reinforcement learning theory or decision-making. It applies existing preference learning algorithms (DPO) iteratively without new theoretical insights into RL or preference optimization.\",\n      \"The novelty is somewhat incremental—the paper combines existing techniques (DPO, label smoothing for noise, linear extrapolation of logits) rather than introducing fundamentally new methods. The de-coupled noise detection via logit extrapolation, while practical, is not conceptually novel.\",\n      \"The core evaluation relies entirely on automatic metrics (GPT-4-based judging), which NeurIPS increasingly critiques. The paper lacks direct human evaluation to validate that improvements reflect genuine preference alignment, particularly for the acknowledged length bias issue. This weakens claims about 'human preference alignment.'\",\n      \"The paper's scope is narrow—focused specifically on LLM alignment with minimal seed data. It does not engage with broader NeurIPS interests like neuroscience, physical sciences applications, or socio-technical aspects of AI, making it a specialized NeurIPS contribution rather than broadly interesting to the community.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"The paper is directly aligned with ICLR's core focus on 'representation learning' and 'learning from human feedback.' LLM alignment via preference optimization is a central representation learning application that ICLR actively publishes.\",\n      \"ICLR explicitly lists 'reinforcement learning' as a major topic, and the paper's iterative preference learning framework using DPO is a form of offline RL applied to LLMs. The work extends and improves upon prior preference optimization methods (DPO), which is exactly the kind of contribution ICLR values.\",\n      \"The paper demonstrates strong empirical results with rigorous experimental validation: comprehensive ablations (Table 6), sensitivity analyses (Table 7), generalization across model architectures (Table 5), and consistent improvements across benchmarks. ICLR values methodological rigor and thorough empirical analysis.\",\n      \"ICLR welcomes 'in-depth analysis of existing methods that provide new insights,' and this paper does exactly that—it analyzes limitations of external reward models and LLM-as-judge approaches, and proposes practical improvements (de-coupled noise detection, self-refinement) with clear intuition.\",\n      \"The work addresses 'applications to language models' and 'optimization,' both listed as ICLR topics. The practical focus on efficient alignment with minimal annotation is valuable for real-world LLM deployment, which ICLR increasingly emphasizes.\",\n      \"The paper includes discussion of fairness and safety considerations (Appendix A.2), which aligns with ICLR's interest in 'societal considerations including fairness, safety, privacy.'\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The paper lacks theoretical novelty or formal analysis. The noise detection mechanism (using confidence via Eq. 9) is justified only heuristically with no theoretical guarantees about when it works or formal error analysis. ICLR increasingly values papers that combine empirical insights with theoretical understanding.\",\n      \"While the de-coupled noise detection using logit extrapolation (Eq. 12) is motivated by Liu et al. (2024) on RLHF geometry, the paper does not develop or extend the theory—it simply applies existing insights. The progressive λ reduction (1/2, 1/4, 1/8) lacks principled justification, suggesting ad-hoc engineering choices.\",\n      \"The evaluation relies entirely on automatic metrics (GPT-4 judging), which is a known limitation. ICLR increasingly expects human evaluation or at least multiple evaluation approaches to validate claims about preference alignment and quality improvements. The paper relies on surrogate metrics rather than direct validation.\",\n      \"The paper does not make contributions to foundational ICLR topics like causal reasoning, probabilistic methods (Bayesian inference, uncertainty quantification), or learning theory. It applies existing preference learning methods without advancing these core areas.\",\n      \"Limited scope on generalization: the paper only tests on general instruction-following tasks and English. No evaluation on domain-specific tasks (medical, legal, code), multilingual settings, or challenging domains where preference judgments are nuanced, which would strengthen the generalization claims ICLR values.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary for Authors\n\n**Recommendation Overview:**\n\nYour paper presents a solid, well-executed contribution to efficient LLM alignment. Here's how it fits each venue:\n\n**ICLR (Best Fit, Score 8):** This is your strongest match. The paper directly addresses ICLR's core interests in representation learning, reinforcement learning, and LLM applications. Your comprehensive empirical validation, ablations, and practical improvements to DPO align well with what ICLR values. The main limitation is the lack of theoretical grounding for your noise detection mechanism—ICLR increasingly expects at least some theoretical insight alongside strong empirics.\n\n**NeurIPS (Good Fit, Score 7):** A solid choice. NeurIPS welcomes language model research and in-depth analysis of existing methods. Your work fits this profile, and the practical impact across multiple architectures is valuable. However, NeurIPS will expect direct human evaluation (not just GPT-4 metrics) to validate preference alignment claims, particularly given the acknowledged length bias.\n\n**ICML (Borderline Fit, Score 6):** This venue emphasizes general machine learning methods and algorithmic/theoretical novelty. While your work is technically sound and addresses a real problem, it's too application-specific and lacks the theoretical depth or algorithmic novelty ICML typically requires. The reliance on existing components (DPO, label smoothing) and domain-specific focus (LLMs only) works against this venue.\n\n**Strategic Advice:**\n- If you want to strengthen for any venue: conduct human evaluation even on a subset, provide theoretical or formal analysis of the noise detection approach, test on domain-specific tasks.\n- ICLR is the best fit; NeurIPS is strong if you address evaluation concerns; ICML is risky given the specificity to LLMs.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper introduces a practical and effective framework (SPA) that achieves strong empirical results with minimal human-annotated preference data. Using only 3.3% of labeled Ultrafeedback data, the method achieves a 21.13% AlpacaEval 2.0 win rate, surpassing Zephyr-7B which uses 100% of labeled data (10.03%), demonstrating substantial practical value.",
+              "The core technical contribution is sound and well-motivated: using the LLM's own logits for direct preference judgment (Eq. 7) is simpler and more effective than external reward models or LLM-as-judge approaches, particularly for mitigating distribution shift during iterative training. The intuition is clearly explained and empirically validated.",
+              "Comprehensive experimental evaluation across multiple dimensions: the paper includes comparisons with strong baselines (PairRM, LLM-as-judge), ablation studies isolating each component (Table 6), generalization tests across different seed data sizes and LLM architectures (Tables 3-5), and thorough analysis of design choices (Table 7). Results consistently demonstrate SPA's effectiveness.",
+              "The de-coupled noise detection technique (Eq. 11-12) using linear extrapolation of logits is a clever lightweight addition requiring minimal computational overhead while improving noise robustness. The connection to RLHF's geometric mixture property (Liu et al., 2024) provides theoretical grounding.",
+              "The paper addresses a practically important problem: reducing annotation cost for LLM alignment while maintaining quality. The framework is simple enough for practitioners to implement (described as 'a few lines of additional code'), making it immediately actionable."
+            ],
+            "weaknesses": [
+              "The theoretical justification for using confidence (Eq. 9) as a proxy for label noise is heuristic rather than principled. The paper lacks formal analysis of when and why this approach works, and no theoretical guarantees about noise detection accuracy are provided.",
+              "The iterative training framework depends on continuous access to new prompt sets (X_i) at each iteration. The experimental setup uses pre-partitioned UltraFeedback data, but the paper provides limited guidance on how to obtain or construct these prompt sets in practice when training from scratch.",
+              "The paper acknowledges that SPA tends to generate longer responses but treats this mainly in the appendix. While length-controlled metrics show improvements, the tendency to produce longer outputs could be problematic for latency-sensitive applications and suggests potential reward model bias toward verbosity.",
+              "The linear extrapolation formula for π_θe (Eq. 12) uses progressively reduced λ values (1/2, 1/4, 1/8) across iterations without principled justification. The sensitivity analysis for these hyperparameter choices is missing, making the method seem somewhat ad-hoc.",
+              "Limited analysis of failure modes or boundary conditions: the paper doesn't discuss scenarios where direct preference judgment might fail (e.g., highly specialized domains, non-English languages) or provide guidance on when practitioners should avoid SPA.",
+              "Evaluation relies primarily on automatic metrics (AlpacaEval 2.0 uses GPT-4 as judge, MT-Bench uses GPT-4 scoring). While practical, these don't provide direct validation that the improvements reflect genuine human preference alignment, particularly for the length bias issue."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The theoretical justification for using confidence (Eq. 9) as a proxy for label noise is heuristic rather than principled. The paper lacks formal analysis of when and why this approach works, and no theoretical guarantees about noise detection accuracy are provided.",
+                "severity": "minor",
+                "evidence": "Section 4.2 states 'we first identify the K% least confident samples' based on intuition that 'low confidence indicates higher probability of labeling noise,' referencing only one recent noisy label learning paper (Han et al., 2018). No formal analysis connects confidence to actual noise rates or provides error bounds.",
+                "affected_claim": "The self-refinement noise detection mechanism is effective at identifying mislabeled preferences",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The iterative training framework depends on continuous access to new prompt sets (X_i) at each iteration. The experimental setup uses pre-partitioned UltraFeedback data, but the paper provides limited guidance on how to obtain or construct these prompt sets in practice when training from scratch.",
+                "severity": "minor",
+                "evidence": "Section 4 assumes 'new prompt set X_i = {x} is available' and Section 5.1 states datasets 'were divided into subsets of 8K, 20K, and 30K samples, leaving only the prompts.' The paper doesn't explain how practitioners should construct these prompt sets when training on new domains or datasets without pre-partitioned data.",
+                "affected_claim": "SPA is practical and generalizable to new domains and datasets",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The paper acknowledges that SPA tends to generate longer responses but treats this mainly in the appendix. While length-controlled metrics show improvements, the tendency to produce longer outputs could be problematic for latency-sensitive applications and suggests potential reward model bias toward verbosity.",
+                "severity": "minor",
+                "evidence": "Appendix A.1 states 'SPA has shown the tendency to increase the responses' length' and Appendix D provides a table (Table 10) showing average character lengths of 2749 (SPA Iter. 2) vs 1552 (Zephyr-7B). A length penalty approach (Eq. 13) is explored only in appendix with limited analysis.",
+                "affected_claim": "SPA improves LLM alignment without problematic side effects",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The linear extrapolation formula for π_θe (Eq. 12) uses progressively reduced λ values (1/2, 1/4, 1/8) across iterations without principled justification. The sensitivity analysis for these hyperparameter choices is missing, making the method seem somewhat ad-hoc.",
+                "severity": "minor",
+                "evidence": "Section 5.1 states 'we utilized the progressively reduced values of 1/2, 1/4, and 1/8 for iterations 1, 2, and 3, respectively' without explanation. No ablation on λ values or sensitivity analysis is provided in the main paper or appendix.",
+                "affected_claim": "The de-coupled noise detection via linear extrapolation is a well-justified and robust component",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited analysis of failure modes or boundary conditions: the paper doesn't discuss scenarios where direct preference judgment might fail (e.g., highly specialized domains, non-English languages) or provide guidance on when practitioners should avoid SPA.",
+                "severity": "minor",
+                "evidence": "The paper evaluates SPA only on general-purpose instruction-following tasks using English. No experiments on domain-specific tasks (medical, legal, coding benchmarks), multilingual settings, or challenging domains where preferences are nuanced are provided.",
+                "affected_claim": "SPA is generalizable and robust across diverse use cases",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Evaluation relies primarily on automatic metrics (AlpacaEval 2.0 uses GPT-4 as judge, MT-Bench uses GPT-4 scoring). While practical, these don't provide direct validation that the improvements reflect genuine human preference alignment, particularly for the length bias issue.",
+                "severity": "minor",
+                "evidence": "The paper uses AlpacaEval 2.0 and MT-Bench for evaluation, both of which rely on GPT-4 judgments. While the paper claims to evaluate 'human preference alignment,' no human evaluation or comparison with actual human preferences is provided. Appendix D discusses length bias but doesn't validate whether the improvements correspond to actual user preferences.",
+                "affected_claim": "SPA meaningfully improves LLM alignment with human preferences",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical approach is sound. The direct preference judgment using DPO logits (Eq. 7) is mathematically correct, the self-refinement mechanism with label smoothing (Eq. 10) is a reasonable noise mitigation strategy, and the linear extrapolation for de-coupled noise detection (Eq. 12) is motivated by prior work on RLHF geometry. All core components are technically valid, though some design choices (progressive λ values, K% threshold) are empirically motivated rather than theoretically derived. The experimental results consistently validate the approach across multiple settings."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper makes three distinct contributions: (1) using the LLM's own logits for preference judgment rather than external reward models or LLM-as-judge, (2) introducing noise-aware preference learning with label smoothing confidence-based refinement, and (3) de-coupled noise detection via linear extrapolation of logits. While iterative training with self-generated preferences and DPO have been explored (concurrent works like Snorkel, Rosset et al., Wu et al. cite in related work), the combination of direct preference judgment from training model logits + self-refinement + de-coupled noise detection via logit extrapolation is novel. The approach is differentiated from prior work by avoiding external models and handling distribution shift better."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a practically important problem: reducing annotation cost for LLM alignment. The results are significant: achieving 21.13% AlpacaEval 2.0 win rate with only 3.3% of labeled data, surpassing Zephyr-7B (10.03%) which uses 100% labeled data, demonstrates meaningful practical impact. The method works across multiple LLM architectures (Phi-2, LLaMA-3, Phi-3) and achieves competitive results even without seed data. This could reduce the barrier to entry for organizations wanting to fine-tune models with limited annotation budgets, contributing to broader adoption of aligned LLMs."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is comprehensive and thorough. Strengths: (1) Multiple strong baselines (PairRM reward model, LLM-as-judge, standard DPO), (2) Ablation studies isolating each component showing the importance of de-coupled noise detection, (3) Generalization tests across different seed data amounts (0.8%-10%), different LLM sizes/architectures (Phi-2, LLaMA-3, Phi-3), and different seed samples (Table 4), (4) Analysis of design choices (reference model selection in Table 7), (5) Consistent improvements across both AlpacaEval 2.0 and MT-Bench. Weaknesses: (1) Evaluation relies on GPT-4-based automatic metrics rather than human annotation, (2) Limited analysis of failure modes or domain-specific performance, (3) No statistical significance testing or confidence intervals provided (though Table 4 shows variance). Overall, the evaluation is sufficient for the claims made."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with good organization. Strengths: (1) Clear motivation explaining limitations of prior work (LLM-as-judge, external reward models), (2) Good use of figures (Figure 1 overview, Figure 3 iteration analysis), (3) Algorithm 1 provides clear pseudocode, (4) Mathematical notation is consistent and well-defined, (5) Experimental setup details are thorough. Weaknesses: (1) Some important details relegated to appendix (length bias discussion, λ sensitivity), (2) The connection between Eq. 12 and RLHF geometry could be explained more clearly, (3) Limited discussion of when practitioners should/shouldn't use SPA. Overall clarity is good and sufficient for understanding and reproducing the work."
+              }
+            },
+            "summary_comment": "This is a well-executed paper presenting SPA, a practical framework for efficient LLM alignment using minimal human-annotated preference data. The key contributions—direct preference judgment using training model logits, noise-aware learning via label smoothing, and de-coupled noise detection through logit extrapolation—are well-motivated and technically sound. The empirical results are impressive: achieving 21.13% AlpacaEval 2.0 win rate using only 3.3% of labeled UltraFeedback data, surpassing Zephyr-7B which uses 100% labeled data (10.03%), demonstrates significant practical value. The evaluation is comprehensive with strong baselines, ablation studies, and generalization tests across different seed data sizes and LLM architectures showing consistent improvements. The method is simple to implement and addresses a practically important problem of reducing annotation costs for alignment. Weaknesses are primarily minor: some design choices lack principled justification (progressive λ values), theoretical analysis of the noise detection approach is limited to intuition, guidance for obtaining new prompt sets in practice is sparse, and evaluation relies on automatic metrics rather than human validation. The acknowledged tendency to generate longer responses is noteworthy but mitigated by length-controlled metrics. These issues do not undermine the core contributions or empirical validity. The paper makes a solid contribution to practical LLM alignment that would be valuable to practitioners and researchers working on efficient preference learning."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

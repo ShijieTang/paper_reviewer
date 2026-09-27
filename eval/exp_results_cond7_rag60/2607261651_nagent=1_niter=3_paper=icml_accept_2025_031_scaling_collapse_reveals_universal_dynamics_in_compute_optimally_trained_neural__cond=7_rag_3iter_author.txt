@@ -1,0 +1,750 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 3,
+        "clarity": 4
+      },
+      "strengths": [
+        "The paper presents an intriguing and empirically strong finding of 'supercollapse'—loss curves from compute-optimally trained models collapse to a universal shape, with deviations falling below seed-to-seed noise when using learning rate decay. This is a precise and novel empirical observation.",
+        "The work provides a practical diagnostic tool, showing that deviations from collapse indicate suboptimal scaling (e.g., incorrect learning rate scaling or data exponent). This has immediate utility for hyperparameter tuning at scale.",
+        "The paper offers a theoretical grounding, connecting collapse to power-law scaling laws (Section 3.1) and developing a simple but effective noise model (Section 3.2) that quantitatively explains the loss curve shape under different schedules and the variance reduction leading to supercollapse."
+      ],
+      "weaknesses": [
+        "The evaluation is primarily on small-scale models (e.g., transformers up to ~80M parameters, MLPs). While the phenomena are compelling, the paper does not validate supercollapse at the large scales typical of modern large language model training, which limits confidence in its generality for top-tier relevance.",
+        "The theoretical explanations, while insightful, rely on several approximations (e.g., quadratic loss, slowly varying Hessian, schedule-independent gradient noise scaling). The paper acknowledges these approximations, but their validation is incomplete, leaving some uncertainty about the model's robustness across diverse architectures and tasks."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The evaluation is primarily on small-scale models (e.g., transformers up to ~80M parameters, MLPs). While the phenomena are compelling, the paper does not validate supercollapse at the large scales typical of modern large language model training, which limits confidence in its generality for top-tier relevance.",
+          "severity": "major",
+          "evidence": "The experiments involve models with 'about 10M to 80M parameters' (Section 2.1). The datasets are CIFAR-5M, synthetic regression, and a subset of Lichess. The paper acknowledges in Section 4 that 'validating at larger scales and with practical scaling ladders... is important.'",
+          "affected_claim": "Claims of universal dynamics in compute-optimally trained neural networks, and the practical utility of supercollapse as a scaling diagnostic.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The theoretical explanations, while insightful, rely on several approximations (e.g., quadratic loss, slowly varying Hessian, schedule-independent gradient noise scaling). The paper acknowledges these approximations, but their validation is incomplete, leaving some uncertainty about the model's robustness across diverse architectures and tasks.",
+          "severity": "minor",
+          "evidence": "The derivation in Section 3.2 assumes quadratic loss and 'slowly varying' Hessian (Appendix G). The assumption Tr(Σ)/L ≈ h(x) is empirically verified (Figure 7) but not theoretically justified for cross-entropy loss with irreducible loss. The model fits use a shared hyperparameter α, but including the δΣ term sometimes worsens fits (Section 3.2.2).",
+          "affected_claim": "The theory that explains why collapse transfers across learning rate schedules and the origin of supercollapse.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The central claim of scaling collapse/supercollapse is well-supported by experiments across multiple tasks, architectures, and learning rate schedules. The power-law and noise model analyses are logically consistent and provide plausible theoretical explanations, though with approximations."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The precise empirical observation of loss curve collapse below the noise floor (supercollapse) is novel. While scaling laws for final loss are known, the universality of the entire training trajectory under compute-optimal scaling is a distinct and new contribution."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "The authors' rebuttal argues that significance should be based on 'fundamental nature' rather than parameter scale, but for a top-tier ML conference, the practical impact of scaling phenomena must be demonstrated at scales relevant to modern practice. The submitted work's validation on models up to ~80M parameters is insufficient to establish significance for the field where models are orders of magnitude larger."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The evaluation remains limited to small-scale models despite the authors' argument about the phenomenon's fundamental nature. The theoretical model evaluation, while showing promising results, relies on approximations that are not fully validated across the diverse conditions studied. The paper acknowledges these limitations but does not resolve them in the submitted work."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written, with well-structured sections, intuitive figures, and a logical flow from empirics to theory."
+        }
+      },
+      "summary_comment": "The authors' rebuttal emphasizes the fundamental nature of their discovery and argues that significance should not be judged solely by parameter scale. However, for a top-tier machine learning conference where scaling phenomena are of paramount importance, demonstrating results at scales relevant to modern practice is essential. While the paper makes a novel contribution with the supercollapse observation and provides useful theoretical insights, the evaluation on models up to ~80M parameters limits the confidence in its applicability to the billion-parameter regimes that are the focus of contemporary scaling research. The authors acknowledge the need for larger-scale validation but do not provide it in the submitted work. Thus, the significance and evaluation criteria are not met for a top-tier conference, and the decision remains Reject."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "ICML": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "The paper provides a novel and precise empirical observation of scaling collapse in compute-optimally trained models, aligning with ICML's strong interest in scaling laws, optimization, and training dynamics.",
+        "It offers theoretical analysis connecting collapse to power-law scaling (relevant to theory of ML) and a simple SGD noise model (relevant to optimization).",
+        "The work has practical implications for hyperparameter tuning and scaling diagnostics, fitting ICML's application-driven ML focus."
+      ],
+      "why_it_does_not_fit": [
+        "The evaluation is limited to relatively small-scale models (up to ~80M parameters), which may be seen as insufficient for a scaling paper at ICML, where large-scale validation is often expected.",
+        "The theoretical model relies on approximations (quadratic loss, slowly varying Hessian) that are not fully validated, potentially affecting rigor.",
+        "While novel, the work is somewhat incremental to known scaling law literature, focusing on dynamics rather than final loss frontiers."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "The paper studies fundamental training dynamics and scaling, which are core ML topics at NeurIPS.",
+        "It provides empirical evidence across transformers and MLPs, fitting NeurIPS's broad ML scope.",
+        "The practical diagnostic for scaling hyperparameters aligns with NeurIPS's interest in improving large-scale training."
+      ],
+      "why_it_does_not_fit": [
+        "NeurIPS often emphasizes large-scale empirical results; the small-scale experiments may reduce impact.",
+        "The theoretical contribution, while insightful, is not groundbreaking and relies on approximations.",
+        "The paper's focus is narrower (scaling collapse) compared to broader trends in NeurIPS (e.g., AI safety, multimodal learning)."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "The paper studies loss dynamics in deep networks (transformers, MLPs), relevant to deep learning focus of ICLR.",
+        "The analysis of learning rate schedules and optimization noise connects to ICLR's interests in optimization and training dynamics.",
+        "Empirical observations on transformers trained on next-token prediction fit ICLR's application areas."
+      ],
+      "why_it_does_not_fit": [
+        "ICLR strongly emphasizes deep learning innovations, architecture design, or representation learning; this work is more about scaling dynamics, which may be less central.",
+        "The theoretical analysis is not deeply tied to neural network structure (e.g., uses quadratic approximations) and may not align with ICLR's preference for NN-specific theory.",
+        "The small-scale experiments limit relevance to state-of-the-art deep learning models where scaling laws are most critical."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper presents an intriguing and empirically strong finding of 'supercollapse'—loss curves from compute-optimally trained models collapse to a universal shape, with deviations falling below seed-to-seed noise when using learning rate decay. This is a precise and novel empirical observation.",
+              "The work provides a practical diagnostic tool, showing that deviations from collapse indicate suboptimal scaling (e.g., incorrect learning rate scaling or data exponent). This has immediate utility for hyperparameter tuning at scale.",
+              "The paper offers a theoretical grounding, connecting collapse to power-law scaling laws (Section 3.1) and developing a simple but effective noise model (Section 3.2) that quantitatively explains the loss curve shape under different schedules and the variance reduction leading to supercollapse."
+            ],
+            "weaknesses": [
+              "The evaluation is primarily on small-scale models (e.g., transformers up to ~80M parameters, MLPs). While the phenomena are compelling, the paper does not validate supercollapse at the large scales typical of modern large language model training, which limits confidence in its generality for top-tier relevance.",
+              "The theoretical explanations, while insightful, rely on several approximations (e.g., quadratic loss, slowly varying Hessian, schedule-independent gradient noise scaling). The paper acknowledges these approximations, but their validation is incomplete, leaving some uncertainty about the model's robustness across diverse architectures and tasks."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The evaluation is primarily on small-scale models (e.g., transformers up to ~80M parameters, MLPs). While the phenomena are compelling, the paper does not validate supercollapse at the large scales typical of modern large language model training, which limits confidence in its generality for top-tier relevance.",
+                "severity": "major",
+                "evidence": "The experiments involve models with 'about 10M to 80M parameters' (Section 2.1). The datasets are CIFAR-5M, synthetic regression, and a subset of Lichess. The paper acknowledges in Section 4 that 'validating at larger scales and with practical scaling ladders... is important.'",
+                "affected_claim": "Claims of universal dynamics in compute-optimally trained neural networks, and the practical utility of supercollapse as a scaling diagnostic.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The theoretical explanations, while insightful, rely on several approximations (e.g., quadratic loss, slowly varying Hessian, schedule-independent gradient noise scaling). The paper acknowledges these approximations, but their validation is incomplete, leaving some uncertainty about the model's robustness across diverse architectures and tasks.",
+                "severity": "minor",
+                "evidence": "The derivation in Section 3.2 assumes quadratic loss and 'slowly varying' Hessian (Appendix G). The assumption Tr(Σ)/L ≈ h(x) is empirically verified (Figure 7) but not theoretically justified for cross-entropy loss with irreducible loss. The model fits use a shared hyperparameter α, but including the δΣ term sometimes worsens fits (Section 3.2.2).",
+                "affected_claim": "The theory that explains why collapse transfers across learning rate schedules and the origin of supercollapse.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The central claim of scaling collapse/supercollapse is well-supported by experiments across multiple tasks, architectures, and learning rate schedules. The power-law and noise model analyses are logically consistent and provide plausible theoretical explanations, though with approximations."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The precise empirical observation of loss curve collapse below the noise floor (supercollapse) is novel. While scaling laws for final loss are known, the universality of the entire training trajectory under compute-optimal scaling is a distinct and new contribution. The related work in the ###RAG_EVIDENCE### (e.g., on criticality or quantum dynamics) does not preempt this finding."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The empirical findings are significant for understanding scaling dynamics. However, for a top-tier ML conference, the demonstrated impact is mitigated by the small scale of experiments. The paper does not show that supercollapse holds in the billion-parameter regime where scaling insights are most critical, which limits the immediate practical impact and advances the field less than required."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Experiments are convincing for the scales tested but lack validation at large, state-of-the-art scales. The evaluation of the noise model, while promising, is incomplete (e.g., better fits for MLPs than transformers, puzzling behavior with the δΣ term). Comparisons are fair but limited to the authors' own setups; broader comparisons with prior curve prediction methods are brief."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written, with well-structured sections, intuitive figures, and a logical flow from empirics to theory. The definitions of collapse deviation and noise floor are precise, and the theoretical sections are accessible given the complexity."
+              }
+            },
+            "summary_comment": "This paper presents a fascinating empirical discovery—'supercollapse' of loss curves in compute-optimally trained neural networks—and provides initial theoretical explanations linking it to power-law scaling and SGD noise dynamics. The work is novel, sound, and well-presented. However, for a top-tier machine learning conference, the evaluation is not sufficiently convincing due to the small scale of experiments (models up to ~80M parameters) and incomplete validation of the theoretical model's assumptions. The significance of the contribution is therefore limited, as the central claims about universal dynamics and practical diagnostics remain unproven at the large scales most relevant to the field. A major weakness is the lack of large-scale validation, which is essential for a scaling paper. Thus, I recommend rejection."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper presents an intriguing and empirically strong finding of 'supercollapse'—loss curves from compute-optimally trained models collapse to a universal shape, with deviations falling below seed-to-seed noise when using learning rate decay. This is a precise and novel empirical observation.",
+              "The work provides a practical diagnostic tool, showing that deviations from collapse indicate suboptimal scaling (e.g., incorrect learning rate scaling or data exponent). This has immediate utility for hyperparameter tuning at scale.",
+              "The paper offers a theoretical grounding, connecting collapse to power-law scaling laws (Section 3.1) and developing a simple but effective noise model (Section 3.2) that quantitatively explains the loss curve shape under different schedules and the variance reduction leading to supercollapse."
+            ],
+            "weaknesses": [
+              "The evaluation is primarily on small-scale models (e.g., transformers up to ~80M parameters, MLPs). While the phenomena are compelling, the paper does not validate supercollapse at the large scales typical of modern large language model training, which limits confidence in its generality for top-tier relevance.",
+              "The theoretical explanations, while insightful, rely on several approximations (e.g., quadratic loss, slowly varying Hessian, schedule-independent gradient noise scaling). The paper acknowledges these approximations, but their validation is incomplete, leaving some uncertainty about the model's robustness across diverse architectures and tasks."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The evaluation is primarily on small-scale models (e.g., transformers up to ~80M parameters, MLPs). While the phenomena are compelling, the paper does not validate supercollapse at the large scales typical of modern large language model training, which limits confidence in its generality for top-tier relevance.",
+                "severity": "major",
+                "evidence": "The experiments involve models with 'about 10M to 80M parameters' (Section 2.1). The datasets are CIFAR-5M, synthetic regression, and a subset of Lichess. The paper acknowledges in Section 4 that 'validating at larger scales and with practical scaling ladders... is important.'",
+                "affected_claim": "Claims of universal dynamics in compute-optimally trained neural networks, and the practical utility of supercollapse as a scaling diagnostic.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The theoretical explanations, while insightful, rely on several approximations (e.g., quadratic loss, slowly varying Hessian, schedule-independent gradient noise scaling). The paper acknowledges these approximations, but their validation is incomplete, leaving some uncertainty about the model's robustness across diverse architectures and tasks.",
+                "severity": "minor",
+                "evidence": "The derivation in Section 3.2 assumes quadratic loss and 'slowly varying' Hessian (Appendix G). The assumption Tr(Σ)/L ≈ h(x) is empirically verified (Figure 7) but not theoretically justified for cross-entropy loss with irreducible loss. The model fits use a shared hyperparameter α, but including the δΣ term sometimes worsens fits (Section 3.2.2).",
+                "affected_claim": "The theory that explains why collapse transfers across learning rate schedules and the origin of supercollapse.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The central claim of scaling collapse/supercollapse is well-supported by experiments across multiple tasks, architectures, and learning rate schedules. The power-law and noise model analyses are logically consistent and provide plausible theoretical explanations, though with approximations."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The precise empirical observation of loss curve collapse below the noise floor (supercollapse) is novel. While scaling laws for final loss are known, the universality of the entire training trajectory under compute-optimal scaling is a distinct and new contribution."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The authors' rebuttal acknowledges the scale limitation and agrees that large-scale validation is important but not included. The submitted paper's experiments remain on small-scale models. For a top-tier ML conference, demonstrating such a foundational scaling phenomenon primarily on models up to ~80M parameters is insufficient to establish its significance for the field, which is dominated by models orders of magnitude larger."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The authors correctly note that their experiments are on 'controlled academic settings' and that large-scale validation is beyond current compute resources. This admission confirms that the evaluation, as submitted, lacks validation at the scales most relevant to the paper's claims about 'universal dynamics in compute-optimally trained neural networks.' The theoretical model evaluation, while promising, remains incomplete as acknowledged."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written, with well-structured sections, intuitive figures, and a logical flow from empirics to theory."
+              }
+            },
+            "summary_comment": "The authors' rebuttal acknowledges the two main concerns: the lack of large-scale validation and the reliance on theoretical approximations. They correctly point out that the paper already discusses the need for future large-scale validation (Section 4) and transparently describes the approximations. However, the rebuttal does not resolve these concerns; it confirms that the large-scale experiments are absent from the submitted work and that the theoretical model, while effective, is approximate. For a top-tier machine learning conference, the evaluation criterion requires convincing evidence that the phenomenon holds at scales relevant to modern practice. The submitted evidence, while rigorous for small scales, is insufficient to meet this bar. The significance of the contribution is therefore limited by the scale of evaluation. Thus, the decision remains Reject."
+          },
+          "author_response": "{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer - No Persona\",\n      \"main_issues_identified\": [\n        \"Lack of validation at large scales (billion-parameter models)\",\n        \"Theoretical approximations not fully validated across architectures/tasks\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Lack of validation at large scales\",\n          \"location\": \"Section 4, Discussion\",\n          \"explanation\": \"The paper explicitly acknowledges the need for validation at larger scales: 'While small-scale proxies capture certain behaviors in larger systems (Wortsman et al., 2023), validating at larger scales and with practical scaling ladders... is important and may yield new insights.'\"\n        },\n        {\n          \"concern\": \"Theoretical approximations\",\n          \"location\": \"Section 3.2, Appendix G\",\n          \"explanation\": \"The paper transparently discusses approximations in the theoretical model (quadratic loss, slowly varying Hessian) and provides empirical verification of key assumptions (e.g., Tr(Σ)/L ≈ h(x) in Figure 7). The model's predictive accuracy across schedules and model sizes (Figure 6) supports its utility despite approximations.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Lack of validation at large scales\",\n          \"proposed_change\": \"Add a discussion section explicitly addressing the current scale limitations and outlining a concrete plan for large-scale validation in future work, including potential collaborations or compute resources needed.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Theoretical approximations\",\n          \"proposed_change\": \"Expand Appendix G to more thoroughly discuss the limitations of the perturbative model and conditions under which approximations hold, providing additional empirical checks where feasible (e.g., Hessian stability measurements).\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We thank the reviewer for their thoughtful assessment and for recognizing the novelty and empirical strength of our supercollapse discovery. We address the concerns about scale and theoretical validation below.\\n\\nRegarding scale: Our work intentionally focuses on establishing the core phenomenon across multiple architectures (transformers, MLPs), tasks (next-token prediction, regression), and learning rate schedules in controlled academic settings. This approach allows for systematic exploration and theoretical development. We agree that validation at billion-parameter scales is important for full practical impact. While beyond the scope of our current compute resources, we explicitly discuss this limitation and the need for future large-scale validation in Section 4. The phenomenon's robustness across our tested scales (10M-80M params) and its grounding in scaling theory suggest it should hold at larger scales, but we acknowledge this requires empirical confirmation.\\n\\nRegarding theoretical approximations: Our simple noise model is meant to capture essential dynamics rather than provide exact equations of motion. Its surprising predictive accuracy across diverse schedules (Figure 6) and its ability to quantitatively explain supercollapse (Figure 8) support its value as a conceptual tool. We transparently describe all approximations (quadratic loss, slowly varying Hessian) in Section 3.2 and Appendix G. The empirical verification of Tr(Σ)/L ≈ h(x) (Figure 7) further supports key model assumptions. While not all aspects are fully theoretically justified (e.g., for cross-entropy loss), the model's effectiveness suggests it identifies correct scaling relationships.\\n\\nWe believe our work provides a foundation for understanding scaling dynamics that will be valuable at both small and large scales. We will clarify these points in revision.\"\n    }\n  ]\n}",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper presents an intriguing and empirically strong finding of 'supercollapse'—loss curves from compute-optimally trained models collapse to a universal shape, with deviations falling below seed-to-seed noise when using learning rate decay. This is a precise and novel empirical observation.",
+              "The work provides a practical diagnostic tool, showing that deviations from collapse indicate suboptimal scaling (e.g., incorrect learning rate scaling or data exponent). This has immediate utility for hyperparameter tuning at scale.",
+              "The paper offers a theoretical grounding, connecting collapse to power-law scaling laws (Section 3.1) and developing a simple but effective noise model (Section 3.2) that quantitatively explains the loss curve shape under different schedules and the variance reduction leading to supercollapse."
+            ],
+            "weaknesses": [
+              "The evaluation is primarily on small-scale models (e.g., transformers up to ~80M parameters, MLPs). While the phenomena are compelling, the paper does not validate supercollapse at the large scales typical of modern large language model training, which limits confidence in its generality for top-tier relevance.",
+              "The theoretical explanations, while insightful, rely on several approximations (e.g., quadratic loss, slowly varying Hessian, schedule-independent gradient noise scaling). The paper acknowledges these approximations, but their validation is incomplete, leaving some uncertainty about the model's robustness across diverse architectures and tasks."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The evaluation is primarily on small-scale models (e.g., transformers up to ~80M parameters, MLPs). While the phenomena are compelling, the paper does not validate supercollapse at the large scales typical of modern large language model training, which limits confidence in its generality for top-tier relevance.",
+                "severity": "major",
+                "evidence": "The experiments involve models with 'about 10M to 80M parameters' (Section 2.1). The datasets are CIFAR-5M, synthetic regression, and a subset of Lichess. The paper acknowledges in Section 4 that 'validating at larger scales and with practical scaling ladders... is important.'",
+                "affected_claim": "Claims of universal dynamics in compute-optimally trained neural networks, and the practical utility of supercollapse as a scaling diagnostic.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The theoretical explanations, while insightful, rely on several approximations (e.g., quadratic loss, slowly varying Hessian, schedule-independent gradient noise scaling). The paper acknowledges these approximations, but their validation is incomplete, leaving some uncertainty about the model's robustness across diverse architectures and tasks.",
+                "severity": "minor",
+                "evidence": "The derivation in Section 3.2 assumes quadratic loss and 'slowly varying' Hessian (Appendix G). The assumption Tr(Σ)/L ≈ h(x) is empirically verified (Figure 7) but not theoretically justified for cross-entropy loss with irreducible loss. The model fits use a shared hyperparameter α, but including the δΣ term sometimes worsens fits (Section 3.2.2).",
+                "affected_claim": "The theory that explains why collapse transfers across learning rate schedules and the origin of supercollapse.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The central claim of scaling collapse/supercollapse is well-supported by experiments across multiple tasks, architectures, and learning rate schedules. The power-law and noise model analyses are logically consistent and provide plausible theoretical explanations, though with approximations."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The precise empirical observation of loss curve collapse below the noise floor (supercollapse) is novel. While scaling laws for final loss are known, the universality of the entire training trajectory under compute-optimal scaling is a distinct and new contribution."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The authors' rebuttal argues that significance should be based on 'fundamental nature' rather than parameter scale, but for a top-tier ML conference, the practical impact of scaling phenomena must be demonstrated at scales relevant to modern practice. The submitted work's validation on models up to ~80M parameters is insufficient to establish significance for the field where models are orders of magnitude larger."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The evaluation remains limited to small-scale models despite the authors' argument about the phenomenon's fundamental nature. The theoretical model evaluation, while showing promising results, relies on approximations that are not fully validated across the diverse conditions studied. The paper acknowledges these limitations but does not resolve them in the submitted work."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written, with well-structured sections, intuitive figures, and a logical flow from empirics to theory."
+              }
+            },
+            "summary_comment": "The authors' rebuttal emphasizes the fundamental nature of their discovery and argues that significance should not be judged solely by parameter scale. However, for a top-tier machine learning conference where scaling phenomena are of paramount importance, demonstrating results at scales relevant to modern practice is essential. While the paper makes a novel contribution with the supercollapse observation and provides useful theoretical insights, the evaluation on models up to ~80M parameters limits the confidence in its applicability to the billion-parameter regimes that are the focus of contemporary scaling research. The authors acknowledge the need for larger-scale validation but do not provide it in the submitted work. Thus, the significance and evaluation criteria are not met for a top-tier conference, and the decision remains Reject."
+          },
+          "author_response": "{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer - No Persona\",\n      \"main_issues_identified\": [\n        \"Lack of validation at billion-parameter scales limits significance for top-tier conferences\",\n        \"Theoretical model relies on approximations that are not fully validated\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Lack of large-scale validation\",\n          \"location\": \"Section 2.1, Section 4\",\n          \"explanation\": \"The paper demonstrates supercollapse across multiple architectures (transformers, MLPs), tasks (CIFAR-5M, Lichess, synthetic regression), and learning rate schedules. While limited to ~80M parameters, this systematic multi-faceted validation provides strong evidence for the phenomenon's generality within the studied scale regime.\"\n        },\n        {\n          \"concern\": \"Theoretical approximations\",\n          \"location\": \"Section 3.2, Appendix G\",\n          \"explanation\": \"The paper provides empirical validation of key theoretical assumptions (Figure 7 shows Tr(Σ)/L ≈ h(x) holds empirically) and demonstrates the model's predictive power across diverse conditions (Figure 6). The approximations are clearly stated and their limitations discussed.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Scale limitations affecting significance assessment\",\n          \"proposed_change\": \"Add a dedicated subsection in Section 4 discussing the evidence for scalability from observed scaling behavior, theoretical foundations, and connections to known scaling principles, while clearly acknowledging current experimental limitations.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Theoretical model validation\",\n          \"proposed_change\": \"Expand the discussion in Section 3.2.2 to more explicitly address the model's limitations and the conditions under which approximations hold, based on the empirical evidence presented.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We appreciate the reviewer's engagement with our work and acknowledge that large-scale validation would strengthen our claims. However, we believe the significance of our contribution should be evaluated based on the fundamental nature of the discovered phenomenon rather than solely on parameter scale.\\n\\nOur work identifies a precise scaling symmetry that emerges under compute-optimal training - the entire loss trajectory follows a universal shape across models when appropriately normalized. This represents a fundamental advance in understanding neural network training dynamics beyond final loss scaling laws. The phenomenon is demonstrated across architectures (transformers, MLPs), tasks (language modeling, image generation, regression), and learning rate schedules, providing robust evidence of its generality.\\n\\nWhile billion-parameter validation would be valuable, the consistent behavior across our systematic scaling studies (covering an order of magnitude in model size) and the theoretical connection to established scaling principles suggest the phenomenon should hold at larger scales. Our work provides both the conceptual framework and empirical evidence to motivate such large-scale studies.\\n\\nRegarding theoretical approximations: Our simple noise model successfully predicts loss curves across schedules (Figure 6) and quantitatively explains supercollapse (Figure 8), demonstrating its value despite approximations. The key assumption Tr(Σ)/L ≈ h(x) is empirically verified (Figure 7), and the model's effectiveness across conditions supports its utility for understanding learning rate schedule effects.\\n\\nWe will revise to more explicitly discuss the evidence for scalability and the theoretical model's domain of applicability, while maintaining that our contributions provide significant advances in understanding scaling dynamics.\"\n    }\n  ]\n}",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_52942f095ddd",
+    "conference": "ICML",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/icml_accept_2025_031_scaling_collapse_reveals_universal_dynamics_in_compute_optimally_trained_neural_.md",
+    "target_paper_summary": {
+      "paper_id": "paper_52942f095ddd",
+      "title": "Scaling Collapse Reveals Universal Dynamics In Compute-Optimally Trained Neural Networks",
+      "abstract": "What scaling limits govern neural network training dynamics when model size and training time grow in tandem? We show that despite the complex interactions between architecture, training algorithms, and data, compute-optimally trained models exhibit a remarkably precise universality. Specifically, loss curves from models of varying sizes collapse onto a single universal curve when training compute and loss are normalized to unity at the end of training. With learning rate decay, the collapse becomes so tight that differences in the normalized curves across models fall below the noise floor of individual loss curves across random seeds, a phenomenon we term supercollapse. We observe supercollapse across learning rate schedules, datasets, and architectures, including transformers trained on next-token prediction, and find it breaks down when hyperparameters are scaled suboptimally, providing a precise and practical indicator of good scaling. We explain these phenomena by connecting collapse to the power-law structure in typical neural scaling laws, and analyzing a simple yet surprisingly effective model of SGD noise dynamics that accurately predicts loss curves across various learning rate schedules and quantitatively explains the origin of supercollapse.",
+      "topic": "",
+      "claims": [
+        "We show that despite the complex interactions between architecture, training algorithms, and data, compute-optimally trained models exhibit a remarkably precise universality."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_d768a1685",
+        "title": "Reservoir Computing Properties of Neural Dynamics in Prefrontal Cortex",
+        "authors": [
+          "Pierre Enel",
+          "Emmanuel Procyk",
+          "René Quilodran",
+          "Peter Ford Dominey"
+        ],
+        "year": 2016,
+        "publication_date": "2016-06-10",
+        "venue": "PLoS Computational Biology",
+        "abstract": "Primates display a remarkable ability to adapt to novel situations. Determining what is most pertinent in these situations is not always possible based only on the current sensory inputs, and often also depends on recent inputs and behavioral outputs that contribute to internal states. Thus, one can ask how cortical dynamics generate representations of these complex situations. It has been observed that mixed selectivity in cortical neurons contributes to represent diverse situations defined by a combination of the current stimuli, and that mixed selectivity is readily obtained in randomly connected recurrent networks. In this context, these reservoir networks reproduce the highly recurrent nature of local cortical connectivity. Recombining present and past inputs, random recurrent networks from the reservoir computing framework generate mixed selectivity which provides pre-coded representations of an essentially universal set of contexts. These representations can then be selectively amplified through learning to solve the task at hand. We thus explored their representational power and dynamical properties after training a reservoir to perform a complex cognitive task initially developed for monkeys. The reservoir model inherently displayed a dynamic form of mixed selectivity, key to the representation of the behavioral context over time. The pre-coded representation of context was amplified by training a feedback neuron to explicitly represent this context, thereby reproducing the effect of learning and allowing the model to perform more robustly. This second version of the model demonstrates how a hybrid dynamical regime combining spatio-temporal processing of reservoirs, and input driven attracting dynamics generated by the feedback neuron, can be used to solve a complex cognitive task. We compared reservoir activity to neural activity of dorsal anterior cingulate cortex of monkeys which revealed similar network dynamics. We argue that reservoir computing is a pertinent framework to model local cortical dynamics and their contribution to higher cognitive function.",
+        "url": "https://doi.org/10.1371/journal.pcbi.1004967",
+        "doi": "https://doi.org/10.1371/journal.pcbi.1004967",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2414006382"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 203
+      },
+      {
+        "paper_id": "rw_002_40ddf8b42",
+        "title": "Quantum Many-Body Dynamics in Two Dimensions with Artificial Neural Networks",
+        "authors": [
+          "Markus Schmitt",
+          "Markus Heyl"
+        ],
+        "year": 2020,
+        "publication_date": "2020-09-02",
+        "venue": "Physical Review Letters",
+        "abstract": "The efficient numerical simulation of nonequilibrium real-time evolution in isolated quantum matter constitutes a key challenge for current computational methods. This holds in particular in the regime of two spatial dimensions, whose experimental exploration is currently pursued with strong efforts in quantum simulators. In this work we present a versatile and efficient machine learning inspired approach based on a recently introduced artificial neural network encoding of quantum many-body wave functions. We identify and resolve key challenges for the simulation of time evolution, which previously imposed significant limitations on the accurate description of large systems and long-time dynamics. As a concrete example, we study the dynamics of the paradigmatic two-dimensional transverse-field Ising model, as recently also realized experimentally in systems of Rydberg atoms. Calculating the nonequilibrium real-time evolution across a broad range of parameters, we, for instance, observe collapse and revival oscillations of ferromagnetic order and demonstrate that the reached timescales are comparable to or exceed the capabilities of state-of-the-art tensor network methods.",
+        "url": "https://doi.org/10.1103/physrevlett.125.100503",
+        "doi": "https://doi.org/10.1103/physrevlett.125.100503",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2995786632"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 227
+      },
+      {
+        "paper_id": "rw_003_01f910d05",
+        "title": "Transcranial Alternating Current Stimulation Modulates Large-Scale Cortical Network Activity by Network Resonance",
+        "authors": [
+          "M. M. Ali",
+          "Kristin K. Sellers",
+          "Flavio Frӧhlich"
+        ],
+        "year": 2013,
+        "publication_date": "2013-07-03",
+        "venue": "Journal of Neuroscience",
+        "abstract": "Transcranial direct current stimulation (tDCS) has emerged as a potentially safe and effective brain stimulation modality that alters cortical excitability by passing a small, constant electric current through the scalp. tDCS creates an electric field that weakly modulates the membrane voltage of a large number of cortical neurons. Recent human studies have suggested that sine-wave stimulation waveforms [transcranial alternating current stimulation (tACS)] represent a more targeted stimulation paradigm for the enhancement of cortical oscillations. Yet, the underlying mechanisms of how periodic, weak global perturbations alter the spatiotemporal dynamics of large-scale cortical network dynamics remain a matter of debate. Here, we simulated large-scale networks of spiking neuron models to address this question in endogenously rhythmic networks. We identified distinct roles of the depolarizing and hyperpolarizing phases of tACS in entrainment, which entailed moving network activity toward and away from a strong nonlinearity provided by the local excitatory coupling of pyramidal cells. Together, these mechanisms gave rise to resonance dynamics characterized by an Arnold tongue centered on the resonance frequency of the network. We then performed multichannel extracellular recordings of multiunit firing activity during tACS in anesthetized ferrets (Mustela putoris furo), a model species with a gyrencephalic brain, to verify that weak global perturbations can selectively enhance oscillations at the applied stimulation frequency. Together, these results provide a detailed mechanistic understanding of tACS at the level of large-scale network dynamics and support the future design of activity-dependent feedback tACS paradigms that dynamically tailor stimulation frequency to the spectral peak of ongoing brain activity.",
+        "url": "https://doi.org/10.1523/jneurosci.5867-12.2013",
+        "doi": "https://doi.org/10.1523/jneurosci.5867-12.2013",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2124818028"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 499
+      },
+      {
+        "paper_id": "rw_004_ed1637fa8",
+        "title": "“Economic man” in cross-cultural perspective: Behavioral experiments in 15 small-scale societies",
+        "authors": [
+          "Joseph Henrich",
+          "Robert Boyd",
+          "Samuel Bowles",
+          "Colin F. Camerer",
+          "Ernst Fehr",
+          "Herbert Gintis",
+          "Richard McElreath",
+          "Michael Alvard",
+          "Abigail Barr",
+          "Jean Ensminger",
+          "Natalie Henrich",
+          "Kim Hill",
+          "Francisco Gil-White",
+          "Michael Gurven",
+          "Frank W. Marlowe",
+          "John Q. Patton",
+          "David P. Tracer"
+        ],
+        "year": 2005,
+        "publication_date": "2005-12-01",
+        "venue": "Behavioral and Brain Sciences",
+        "abstract": "Researchers from across the social sciences have found consistent deviations from the predictions of the canonical model of self-interest in hundreds of experiments from around the world. This research, however, cannot determine whether the uniformity results from universal patterns of human behavior or from the limited cultural variation available among the university students used in virtually all prior experimental work. To address this, we undertook a cross-cultural study of behavior in ultimatum, public goods, and dictator games in a range of small-scale societies exhibiting a wide variety of economic and cultural conditions. We found, first, that the canonical model - based on self-interest - fails in all of the societies studied. Second, our data reveal substantially more behavioral variability across social groups than has been found in previous research. Third, group-level differences in economic organization and the structure of social interactions explain a substantial portion of the behavioral variation across societies: the higher the degree of market integration and the higher the payoffs to cooperation in everyday life, the greater the level of prosociality expressed in experimental games. Fourth, the available individual-level economic and demographic variables do not consistently explain game behavior, either within or across groups. Fifth, in many cases experimental play appears to reflect the common interactional patterns of everyday life.",
+        "url": "https://doi.org/10.1017/s0140525x05000142",
+        "doi": "https://doi.org/10.1017/s0140525x05000142",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2125976408"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1932
+      },
+      {
+        "paper_id": "rw_005_98e54c956",
+        "title": "A mathematical theory of semantic development in deep neural networks",
+        "authors": [
+          "Andrew Saxe",
+          "James L. McClelland",
+          "Surya Ganguli"
+        ],
+        "year": 2019,
+        "publication_date": "2019-05-17",
+        "venue": "Proceedings of the National Academy of Sciences",
+        "abstract": "An extensive body of empirical research has revealed remarkable regularities in the acquisition, organization, deployment, and neural representation of human semantic knowledge, thereby raising a fundamental conceptual question: What are the theoretical principles governing the ability of neural networks to acquire, organize, and deploy abstract knowledge by integrating across many individual experiences? We address this question by mathematically analyzing the nonlinear dynamics of learning in deep linear networks. We find exact solutions to this learning dynamics that yield a conceptual explanation for the prevalence of many disparate phenomena in semantic cognition, including the hierarchical differentiation of concepts through rapid developmental transitions, the ubiquity of semantic illusions between such transitions, the emergence of item typicality and category coherence as factors controlling the speed of semantic processing, changing patterns of inductive projection over development, and the conservation of semantic similarity in neural representations across species. Thus, surprisingly, our simple neural model qualitatively recapitulates many diverse regularities underlying semantic development, while providing analytic insight into how the statistical structure of an environment can interact with nonlinear deep-learning dynamics to give rise to these regularities.",
+        "url": "https://doi.org/10.1073/pnas.1820226116",
+        "doi": "https://doi.org/10.1073/pnas.1820226116",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2898365215"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 250
+      },
+      {
+        "paper_id": "rw_006_b383c9041",
+        "title": "Self-organized criticality as a fundamental property of neural systems",
+        "authors": [
+          "Janina Hesse",
+          "Thilo Groß"
+        ],
+        "year": 2014,
+        "publication_date": "2014-09-23",
+        "venue": "Frontiers in Systems Neuroscience",
+        "abstract": "The neural criticality hypothesis states that the brain may be poised in a critical state at a boundary between different types of dynamics. Theoretical and experimental studies show that critical systems often exhibit optimal computational properties, suggesting the possibility that criticality has been evolutionarily selected as a useful trait for our nervous system. Evidence for criticality has been found in cell cultures, brain slices, and anesthetized animals. Yet, inconsistent results were reported for recordings in awake animals and humans, and current results point to open questions about the exact nature and mechanism of criticality, as well as its functional role. Therefore, the criticality hypothesis has remained a controversial proposition. Here, we provide an account of the mathematical and physical foundations of criticality. In the light of this conceptual framework, we then review and discuss recent experimental studies with the aim of identifying important next steps to be taken and connections to other fields that should be explored.",
+        "url": "https://doi.org/10.3389/fnsys.2014.00166",
+        "doi": "https://doi.org/10.3389/fnsys.2014.00166",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W1967604241"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 464
+      },
+      {
+        "paper_id": "rw_007_921873dc8",
+        "title": "Reinforcement Learning with Neural Networks for Quantum Feedback",
+        "authors": [
+          "Thomas Fösel",
+          "Petru Tighineanu",
+          "Talitha Weiss",
+          "Florian Marquardt"
+        ],
+        "year": 2018,
+        "publication_date": "2018-09-27",
+        "venue": "Physical Review X",
+        "abstract": "Machine learning with artificial neural networks is revolutionizing science. The most advanced challenges require discovering answers autonomously. In the domain of reinforcement learning, control strategies are improved according to a reward function. The power of neural-network-based reinforcement learning has been highlighted by spectacular recent successes such as playing Go, but its benefits for physics are yet to be demonstrated. Here, we show how a network-based \"agent\" can discover complete quantum-error-correction strategies, protecting a collection of qubits against noise. These strategies require feedback adapted to measurement outcomes. Finding them from scratch without human guidance and tailored to different hardware resources is a formidable challenge due to the combinatorially large search space. To solve this challenge, we develop two ideas: two-stage learning with teacher and student networks and a reward quantifying the capability to recover the quantum information stored in a multiqubit system. Beyond its immediate impact on quantum computation, our work more generally demonstrates the promise of neural-network-based reinforcement learning in physics.",
+        "url": "https://doi.org/10.1103/physrevx.8.031084",
+        "doi": "https://doi.org/10.1103/physrevx.8.031084",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2786295636"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 221
+      },
+      {
+        "paper_id": "rw_008_e24b514da",
+        "title": "Seismic fragility analysis with artificial neural networks: Application to nuclear power plant equipment",
+        "authors": [
+          "Zhiyi Wang",
+          "Nicola Pedroni",
+          "Irmela Zentner",
+          "Enrico Zio"
+        ],
+        "year": 2018,
+        "publication_date": "2018-02-17",
+        "venue": "Engineering Structures",
+        "abstract": "",
+        "url": "https://doi.org/10.1016/j.engstruct.2018.02.024",
+        "doi": "https://doi.org/10.1016/j.engstruct.2018.02.024",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2789135478"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 162
+      },
+      {
+        "paper_id": "rw_009_3c46fbe4b",
+        "title": "Deep learning modelling techniques: current progress, applications, advantages, and challenges",
+        "authors": [
+          "Shams Forruque Ahmed",
+          "Md. Sakib Bin Alam",
+          "Maruf Hassan",
+          "Mahtabin Rodela Rozbu",
+          "Taoseef Ishtiak",
+          "Nazifa Rafa",
+          "M. Mofijur",
+          "A. B. M. Shawkat Ali",
+          "Amir H. Gandomi"
+        ],
+        "year": 2023,
+        "publication_date": "2023-04-17",
+        "venue": "Artificial Intelligence Review",
+        "abstract": "Abstract Deep learning (DL) is revolutionizing evidence-based decision-making techniques that can be applied across various sectors. Specifically, it possesses the ability to utilize two or more levels of non-linear feature transformation of the given data via representation learning in order to overcome limitations posed by large datasets. As a multidisciplinary field that is still in its nascent phase, articles that survey DL architectures encompassing the full scope of the field are rather limited. Thus, this paper comprehensively reviews the state-of-art DL modelling techniques and provides insights into their advantages and challenges. It was found that many of the models exhibit a highly domain-specific efficiency and could be trained by two or more methods. However, training DL models can be very time-consuming, expensive, and requires huge samples for better accuracy. Since DL is also susceptible to deception and misclassification and tends to get stuck on local minima, improved optimization of parameters is required to create more robust models. Regardless, DL has already been leading to groundbreaking results in the healthcare, education, security, commercial, industrial, as well as government sectors. Some models, like the convolutional neural network (CNN), generative adversarial networks (GAN), recurrent neural network (RNN), recursive neural networks, and autoencoders, are frequently used, while the potential of other models remains widely unexplored. Pertinently, hybrid conventional DL architectures have the capacity to overcome the challenges experienced by conventional models. Considering that capsule architectures may dominate future DL models, this work aimed to compile information for stakeholders involved in the development and use of DL models in the contemporary world.",
+        "url": "https://doi.org/10.1007/s10462-023-10466-8",
+        "doi": "https://doi.org/10.1007/s10462-023-10466-8",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4366091323"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 997
+      },
+      {
+        "paper_id": "rw_010_d3ddb6c4b",
+        "title": "Generalization properties of feed-forward neural networks trained on Lorenz systems",
+        "authors": [
+          "Sebastian Scher",
+          "Gabriele Messori"
+        ],
+        "year": 2019,
+        "publication_date": "2019-11-05",
+        "venue": "Nonlinear processes in geophysics",
+        "abstract": "Abstract. Neural networks are able to approximate chaotic dynamical systems when provided with training data that cover all relevant regions of the system's phase space. However, many practical applications diverge from this idealized scenario. Here, we investigate the ability of feed-forward neural networks to (1) learn the behavior of dynamical systems from incomplete training data and (2) learn the influence of an external forcing on the dynamics. Climate science is a real-world example where these questions may be relevant: it is concerned with a non-stationary chaotic system subject to external forcing and whose behavior is known only through comparatively short data series. Our analysis is performed on the Lorenz63 and Lorenz95 models. We show that for the Lorenz63 system, neural networks trained on data covering only part of the system's phase space struggle to make skillful short-term forecasts in the regions excluded from the training. Additionally, when making long series of consecutive forecasts, the networks struggle to reproduce trajectories exploring regions beyond those seen in the training data, except for cases where only small parts are left out during training. We find this is due to the neural network learning a localized mapping for each region of phase space in the training data rather than a global mapping. This manifests itself in that parts of the networks learn only particular parts of the phase space. In contrast, for the Lorenz95 system the networks succeed in generalizing to new parts of the phase space not seen in the training data. We also find that the networks are able to learn the influence of an external forcing, but only when given relatively large ranges of the forcing in the training. These results point to potential limitations of feed-forward neural networks in generalizing a system's behavior given limited initial information. Much attention must therefore be given to designing appropriate train-test splits for real-world applications.",
+        "url": "https://doi.org/10.5194/npg-26-381-2019",
+        "doi": "https://doi.org/10.5194/npg-26-381-2019",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2985916778"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 64
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_009_3c46fbe4b",
+        "relevance_score": 0.72,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "It reviews deep learning architectures including training methods and challenges relevant to neural network dynamics.",
+        "evidence_summary": "In 2023, Ahmed et al. published 'Deep learning modelling techniques: current progress, applications, advantages, and challenges', which comprehensively reviews state-of-the-art deep learning modeling techniques. The review covers architectures like convolutional neural networks, generative adversarial networks, and recurrent neural networks, and notes that training deep learning models can be time-consuming, expensive, and require large samples for accuracy, with susceptibility to deception and misclassification."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_010_d3ddb6c4b",
+        "relevance_score": 0.65,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "It investigates generalization properties of neural networks trained on dynamical systems, addressing limitations in phase space coverage.",
+        "evidence_summary": "In 2019, Scher and Messori published 'Generalization properties of feed-forward neural networks trained on Lorenz systems', which examines the ability of neural networks to learn dynamical systems from incomplete training data. The study uses the Lorenz63 and Lorenz95 models and finds that networks struggle with generalization to unseen phase space regions, learning localized mappings rather than global ones, except for the Lorenz95 system where generalization succeeds."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_006_b383c9041",
+        "relevance_score": 0.58,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "It discusses self-organized criticality in neural systems, a property related to dynamics and computational optimization.",
+        "evidence_summary": "In 2014, Hesse and Gro published 'Self-organized criticality as a fundamental property of neural systems', which reviews the hypothesis that the brain operates near a critical state for optimal computational properties. The article discusses mathematical foundations and experimental evidence, noting inconsistent results in awake animals and humans and unresolved questions about mechanisms and functional roles."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_002_40ddf8b42",
+        "relevance_score": 0.52,
+        "relevance_types": [
+          "same_method",
+          "same_problem"
+        ],
+        "rationale": "It uses neural networks to simulate quantum many-body dynamics, involving time evolution and large-scale systems.",
+        "evidence_summary": "In 2020, Schmitt and Heyl published 'Quantum Many-Body Dynamics in Two Dimensions with Artificial Neural Networks', which presents a machine learning approach using artificial neural networks to simulate nonequilibrium real-time evolution in quantum systems. The method is applied to the two-dimensional transverse-field Ising model, achieving timescales comparable to tensor network methods and observing dynamics like collapse and revival of ferromagnetic order."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_001_d768a1685",
+        "relevance_score": 0.48,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "It applies reservoir computing with recurrent networks to model neural dynamics, relevant to network architectures and training.",
+        "evidence_summary": "In 2016, Enel et al. published 'Reservoir Computing Properties of Neural Dynamics in Prefrontal Cortex', which explores reservoir networks to model cortical dynamics in a cognitive task. The networks exhibit dynamic mixed selectivity and are trained with feedback to enhance robustness, using a task initially developed for monkeys."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_003_01f910d05",
+        "relevance_score": 0.42,
+        "relevance_types": [
+          "same_problem"
+        ],
+        "rationale": "It studies modulation of large-scale cortical network dynamics, involving resonance and perturbation effects.",
+        "evidence_summary": "In 2013, Ali et al. published 'Transcranial Alternating Current Stimulation Modulates Large-Scale Cortical Network Activity by Network Resonance', which simulates and experiments with spiking neuron networks to show how weak global perturbations enhance oscillations. The study identifies resonance dynamics and uses multichannel recordings in ferrets to verify frequency-specific enhancement."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_007_921873dc8",
+        "relevance_score": 0.4,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "It uses neural networks for reinforcement learning in a physics context, involving feedback and optimization.",
+        "evidence_summary": "In 2018, Fsel et al. published 'Reinforcement Learning with Neural Networks for Quantum Feedback', which applies neural-network-based reinforcement learning to discover quantum-error-correction strategies. The approach uses teacher and student networks and a reward function to protect qubits against noise, demonstrating autonomous strategy discovery."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_008_e24b514da",
+        "relevance_score": 0.38,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "It applies artificial neural networks to seismic fragility analysis, a technical use case.",
+        "evidence_summary": "In 2018, Wang et al. published 'Seismic fragility analysis with artificial neural networks: Application to nuclear power plant equipment', which uses artificial neural networks for fragility analysis in nuclear safety. No abstract details are provided in the metadata."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_004_ed1637fa8",
+        "relevance_score": 0.25,
+        "relevance_types": [],
+        "rationale": "It studies behavioral economics in societies, with no direct relevance to neural network dynamics.",
+        "evidence_summary": "In 2005, Henrich et al. published '“Economic man” in cross-cultural perspective: Behavioral experiments in 15 small-scale societies', which examines deviations from self-interest models in economic games across diverse societies. The study finds that market integration and cooperation payoffs influence prosociality, with individual-level variables not consistently explaining behavior."
+      },
+      {
+        "rank": 10,
+        "paper_id": "rw_005_98e54c956",
+        "relevance_score": 0.114,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "LLM omitted this candidate; appended in cleaned candidate order to preserve the rerank input set.",
+        "evidence_summary": "The authors find exact solutions to this learning dynamics that yield a conceptual explanation for the prevalence of many disparate phenomena in semantic cognition, including the hierarchical differentiation of concepts through rapid developmental transitions, the ubiquity of semantic illusions between such transitions, the emergence of item typicality and category coherence as factors controlling the speed of semantic processing, changing patterns of inductive projection over development... Thus, surprisingly, the authors' simple neural model qualitatively recapitulates many diverse regularities underlying semantic development, while providing analytic insight into how the statistical structure of an environment can interact with nonlinear deep-learning dynamics to give rise to these regularities."
+      }
+    ],
+    "reranking": {
+      "source": "mixed"
+    },
+    "related_work_summary": "In 2023, Shams Forruque Ahmed et al. published \"Deep learning modelling techniques: current progress, applications, advantages, and challenges\" in Artificial Intelligence Review. Specifically, it possesses the ability to utilize two or more levels of non-linear feature transformation of the given data via representation learning in order to overcome limitations posed by large datasets. However, training DL models can be very time-consuming, expensive, and requires huge samples for better accuracy. Since DL is also susceptible to deception and misclassification and tends to get stuck on local minima, improved optimization of parameters is required to create more robust models. In 2019, Sebastian Scher and Gabriele Messori published \"Generalization properties of feed-forward neural networks trained on Lorenz systems\" in Nonlinear processes in geophysics. In contrast, for the Lorenz95 system the networks succeed in generalizing to new parts of the phase space not seen in the training data. These results point to potential limitations of feed-forward neural networks in generalizing a system's behavior given limited initial information. The authors' analysis is performed on the Lorenz63 and Lorenz95 models. In 2014, Janina Hesse and Thilo Groß published \"Self-organized criticality as a fundamental property of neural systems\" in Frontiers in Systems Neuroscience. Yet, inconsistent results were reported for recordings in awake animals and humans, and current results point to open questions about the exact nature and mechanism of criticality, as well as its functional role. The neural criticality hypothesis states that the brain may be poised in a critical state at a boundary between different types of dynamics. In the light of this conceptual framework, the authors then review and discuss recent experimental studies with the aim of identifying important next steps to be taken and connections to other fields that should be explored. In 2020, Markus Schmitt and Markus Heyl published \"Quantum Many-Body Dynamics in Two Dimensions with Artificial Neural Networks\" in Physical Review Letters. In this work the authors present a versatile and efficient machine learning inspired approach based on a recently introduced artificial neural network encoding of quantum many-body wave functions. As a concrete example, the authors study the dynamics of the paradigmatic two-dimensional transverse-field Ising model, as recently also realized experimentally in systems of Rydberg atoms. Calculating the nonequilibrium real-time evolution across a broad range of parameters, the authors, for instance, observe collapse and revival oscillations of ferromagnetic order and demonstrate that the reached timescales are comparable to or exceed the capabilities of state-of-the-art tensor network methods. In 2016, Pierre Enel et al. published \"Reservoir Computing Properties of Neural Dynamics in Prefrontal Cortex\" in PLoS Computational Biology. Recombining present and past inputs, random recurrent networks from the reservoir computing framework generate mixed selectivity which provides pre-coded representations of an essentially universal set of contexts. These representations can then be selectively amplified through learning to solve the task at hand. The authors thus explored their representational power and dynamical properties after training a reservoir to perform a complex cognitive task initially developed for monkeys. In 2013, M. M. Ali et al. published \"Transcranial Alternating Current Stimulation Modulates Large-Scale Cortical Network Activity by Network Resonance\" in Journal of Neuroscience. Transcranial direct current stimulation (tDCS) has emerged as a potentially safe and effective brain stimulation modality that alters cortical excitability by passing a small, constant electric current through the scalp. tDCS creates an electric field that weakly modulates the membrane voltage of a large number of cortical neurons. Together, these results provide a detailed mechanistic understanding of tACS at the level of large-scale network dynamics and support the future design of activity-dependent feedback tACS paradigms that dynamically tailor stimulation frequency to the spectral peak of ongoing brain activity. Yet, the underlying mechanisms of how periodic, weak global perturbations alter the spatiotemporal dynamics of large-scale cortical network dynamics remain a matter of debate.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 0,
+      "num_removed_undated": 0,
+      "num_used": 10,
+      "num_cutoff_valid": 10,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 0,
+    "num_removed_undated": 0,
+    "num_used": 10,
+    "num_cutoff_valid": 10,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

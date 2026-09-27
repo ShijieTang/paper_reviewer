@@ -1,0 +1,832 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 2,
+        "clarity": 3
+      },
+      "strengths": [
+        "The paper addresses a practically relevant problem: generating adversarial attacks with temporally sparse perturbations on LLM-based time series forecasters under realistic black-box constraints, which is more practical than full-series perturbations.",
+        "The technical approach of modeling the attack as a Cardinality-Constrained Optimization Problem (CCOP) and using Subspace Pursuit (SP) to solve it is sound and appropriately tailored for the sparse attack setting with O(T×τ) complexity advantage over greedy methods.",
+        "The experimental evaluation covers multiple LLM-based forecasting models (LLMTime with GPT-3.5, GPT-4, LLaMA, Mistral; TimeGPT; TimeLLM) and datasets, demonstrating broad applicability of the attack with concrete evidence that 10% perturbations can cause significant performance degradation."
+      ],
+      "weaknesses": [
+        "The novelty is limited as the core optimization technique (Subspace Pursuit for sparse signal recovery) is well-established from compressive sensing literature, and applying it to adversarial time series attacks is a relatively straightforward adaptation without substantial algorithmic innovation.",
+        "Critical theoretical and empirical gaps exist in the method's foundation: (1) The replacement of ground truth Yt with predicted values Ŷt in the loss function (Equation 2→3) is not rigorously justified and could lead to suboptimal or unstable attacks; (2) No theoretical analysis or guarantees are provided regarding convergence, approximation quality, or conditions under which TSA is guaranteed to succeed.",
+        "The evaluation has significant limitations: (1) The GWN baseline is weak—it is not a competitive adversarial attack method but random noise; (2) No comparison with the cited gradient-free attack baseline from Liu et al. (2024b) that modifies full series; (3) Missing ablation studies on key design choices such as zero-gradient estimation parameters and convergence criteria; (4) The defense evaluation (Section 6.6) uses only simple filter-based methods rather than adversarial training or certified defenses.",
+        "The proposed mitigation strategy (autocorrelation-based detection) is underdeveloped and speculative: it is mentioned in only one paragraph with no experimental validation, no evaluation of its effectiveness, false positive/negative rates, or computational overhead, making the defense contribution incomplete.",
+        "Methodological concerns reduce confidence: (1) In Algorithm 1 line 6, the update wS := ϵ·sign(ĝS) appears ad-hoc—why apply sign function when magnitudes of gradients may vary significantly? (2) Convergence criterion for 'while not converged' is undefined; (3) The multiplicative perturbation formulation (Equation 3 vs 4) introduces inconsistency in notation and interpretation; (4) No statistical significance testing or confidence intervals reported for experimental results.",
+        "Practical threat model is questionable: claiming 'black-box query access' while excluding defenses that exploit this setting (e.g., query-based adversarial training, certified robustness methods) is inconsistent. Additionally, the assumption that attackers can independently perturb time steps ignores temporal coherence and potential detectability in real-world applications."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The novelty is limited as the core optimization technique (Subspace Pursuit for sparse signal recovery) is well-established from compressive sensing literature, and applying it to adversarial time series attacks is a relatively straightforward adaptation without substantial algorithmic innovation.",
+          "severity": "major",
+          "evidence": "The paper cites Dai & Milenkovic (2009) as the original SP method and explicitly states it 'adapted' SP. The CCOP formulation also cites Bhattacharya (2009) and Ruiz-Torrubiano et al. (2010). The rebuttal concedes this: 'We acknowledge that the submitted paper applies established SP and CCOP techniques without introducing new optimization algorithms.' The rebuttal proposes future algorithmic enhancements (time-series-aware SP modifications, approximation bounds) but explicitly confirms these are NOT in the current submission: 'These enhancements are NOT in the current submission but would strengthen novelty if implemented.'",
+          "affected_claim": "Novelty of the proposed TSA method",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Critical theoretical and empirical gaps exist in the method's foundation: (1) The replacement of ground truth Yt with predicted values Ŷt in the loss function (Equation 2→3) is not rigorously justified and could lead to suboptimal or unstable attacks; (2) No theoretical analysis or guarantees are provided regarding convergence, approximation quality, or conditions under which TSA is guaranteed to succeed.",
+          "severity": "major",
+          "evidence": "Section 4 states 'To avoid future information leakage, the ground truth Yt is substituted with the predicted values Ŷt' but provides no analysis. The rebuttal confirms: 'Currently, the submitted paper provides none of this analysis' regarding theoretical bounds on approximation error or empirical validation. On convergence, Algorithm 1 line 3 shows 'while not converged' undefined. Rebuttal confirms: 'the paper contains no operational definition' and that proposed clarifications (max iterations, support set stabilization) are absent from submission. These gaps remain unresolved in the submitted work.",
+          "affected_claim": "Soundness of the attack formulation and the substitution Yt → Ŷt",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The evaluation has significant limitations: (1) The GWN baseline is weak—it is not a competitive adversarial attack method but random noise; (2) No comparison with the cited gradient-free attack baseline from Liu et al. (2024b) that modifies full series; (3) Missing ablation studies on key design choices such as zero-gradient estimation parameters and convergence criteria; (4) The defense evaluation (Section 6.6) uses only simple filter-based methods rather than adversarial training or certified defenses.",
+          "severity": "major",
+          "evidence": "Table 1 contains only Clean, GWN, and TSA comparisons. The paper cites Liu et al. (2024b) but provides no experimental comparison. Rebuttal explicitly confirms: 'These results are not present in the submitted paper' regarding Liu et al. (2024b) comparison. On ablations, rebuttal states: 'Currently, Figure 5 shows hyperparameter sensitivity for τ and ϵ but not for algorithmic design choices' and confirms absence of zero-gradient Δ and convergence criteria ablations. On defenses, rebuttal states: 'Currently, Section 6.6 evaluates only Gaussian, Mean, and Quantile filters' with no adversarial training or certified defenses in submission. None of these gaps are resolved in the submitted paper.",
+          "affected_claim": "Evaluation comprehensiveness and fairness",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The proposed mitigation strategy (autocorrelation-based detection) is underdeveloped and speculative: it is mentioned in only one paragraph with no experimental validation, no evaluation of its effectiveness, false positive/negative rates, or computational overhead, making the defense contribution incomplete.",
+          "severity": "major",
+          "evidence": "Section 7 introduces the autocorrelation-based detection method in 4 sentences with no experiments. Rebuttal confirms: 'Currently, Section 7 provides none of this validation' regarding TPR/FPR, baseline comparisons, adaptive attack robustness, or computational overhead. Rebuttal states the proposed defense would require 'implement and fully evaluate the method if experiments are ready' but explicitly notes this was not done: 'if option (B), the revised paper would report' indicates these results are conditional, not present.",
+          "affected_claim": "Contribution to mitigation and defense robustness",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Methodological concerns reduce confidence: (1) In Algorithm 1 line 6, the update wS := ϵ·sign(ĝS) appears ad-hoc—why apply sign function when magnitudes of gradients may vary significantly? (2) Convergence criterion for 'while not converged' is undefined; (3) The multiplicative perturbation formulation (Equation 3 vs 4) introduces inconsistency in notation and interpretation; (4) No statistical significance testing or confidence intervals reported for experimental results.",
+          "severity": "major",
+          "evidence": "Algorithm 1 line 6 applies sign(ĝS) without justification in the paper. Rebuttal provides reasoning: 'we use sign(ĝS) to ensure perturbations stay within the ϵ-ball, analogous to FGSM' but confirms this explanation is NOT in submission: 'The submitted paper provides no such justification or ablation.' On convergence, rebuttal confirms: 'the paper contains no operational definition.' On notation consistency (Eq. 3 vs 4), rebuttal states no resolution has been added. On statistical testing, rebuttal confirms: 'Table 1 reports point estimates with no uncertainty quantification.' The submitted paper contains none of the remedies proposed.",
+          "affected_claim": "Soundness of Algorithm 1 and reliability of experimental results",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Practical threat model is questionable: claiming 'black-box query access' while excluding defenses that exploit this setting (e.g., query-based adversarial training, certified robustness methods) is inconsistent. Additionally, the assumption that attackers can independently perturb time steps ignores temporal coherence and potential detectability in real-world applications.",
+          "severity": "minor",
+          "evidence": "Section 4 lists 'Possesses the ability to query the target model' but Section 6.6 only evaluates filter-based defenses. Rebuttal confirms no query-based defenses in submission: 'Currently, Section 6.6 evaluates only... without exploring training-based defenses.' On detectability, rebuttal acknowledges: 'Currently, the submitted paper does not address detectability or temporal coherence concerns.' These gaps remain in the submitted work.",
+          "affected_claim": "Realism and completeness of threat model and defense evaluation",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The rebuttal confirms that critical soundness gaps persist in the submitted paper: (1) the Yt→Ŷt substitution lacks theoretical justification or empirical validation—rebuttal explicitly states 'Currently, the submitted paper provides none of this analysis'; (2) Algorithm 1 has no operational convergence criterion—rebuttal confirms 'the paper contains no operational definition'; (3) the gradient sign operation lacks justification—rebuttal states 'The submitted paper provides no such justification.' These are not reviewer misunderstandings but acknowledged gaps confirmed by the authors. The submission lacks the theoretical rigor expected of a top-tier venue."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The rebuttal explicitly confirms limited novelty: 'We acknowledge that the submitted paper applies established SP and CCOP techniques without introducing new optimization algorithms.' Proposed algorithmic enhancements are absent: 'These enhancements are NOT in the current submission but would strengthen novelty if implemented.' The application to a new domain (LLM time series adversarial attacks) has merit, but the techniques themselves are directly adapted from compressive sensing without modification or theoretical innovation specific to this problem."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper demonstrates a meaningful vulnerability: 10% sparse perturbations significantly degrade LLM-based forecasters' performance. This finding is relevant and non-obvious. The significance stands despite evaluation limitations, as the core empirical finding—that sparse temporal attacks are effective—is substantive and important for understanding LLM robustness in critical applications."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The rebuttal confirms that critical evaluation gaps persist unresolved in the submitted paper: (1) No comparison with Liu et al. (2024b)—rebuttal explicitly states 'These results are not present in the submitted paper'; (2) GWN is weak baseline—rebuttal confirms 'we are currently obtaining results for this comparison' indicating Liu et al. (2024b) results are not in submission; (3) Missing ablations—rebuttal states 'Currently, Figure 5 shows...but not for algorithmic design choices'; (4) No statistical significance testing—rebuttal confirms 'Table 1 reports point estimates with no uncertainty quantification.' The evaluation is insufficient to support the central claims or to demonstrate superiority over existing methods."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-written with clear motivation and experimental design. Figures and tables are informative. While some technical details lack clarity (convergence criterion, gradient sign justification), the overall presentation is adequate for assessment. This is not a barrier to acceptance."
+        }
+      },
+      "summary_comment": "The rebuttal demonstrates intellectual honesty by confirming, rather than disputing, the reviewer's assessment of gaps in the submitted paper. Notably, the authors explicitly acknowledge that: (1) the core techniques (SP, CCOP) are established without algorithmic innovation in the submission; (2) the Yt→Ŷt substitution lacks theoretical justification or empirical validation; (3) Algorithm 1's convergence criterion is undefined; (4) the gradient sign operation is unjustified; (5) the critical comparison with Liu et al. (2024b) is absent; (6) statistical significance testing and ablations on algorithmic parameters are missing; and (7) the autocorrelation-based defense is unvalidated. The rebuttal explicitly states many times: 'These enhancements are NOT in the current submission,' 'Currently, the submitted paper provides none of this,' 'These results are not present in the submitted paper,' and 'the paper contains no operational definition.' This transparency is commendable, but it reinforces that the submitted paper has substantial, unresolved weaknesses across multiple dimensions: novelty (no algorithmic innovation), soundness (unjustified design choices, undefined convergence), and evaluation (weak baselines, missing critical comparisons, no statistical rigor). The paper makes a contribution to understanding LLM robustness in a practically constrained setting, but the execution falls short of top-tier standards. The most critical issue is evaluation: the absence of comparison with the directly-cited Liu et al. (2024b) baseline is a fundamental gap that prevents assessment of whether TSA is actually superior to existing gradient-free methods. Coupling this with limited novelty, unjustified theoretical choices, and lack of statistical rigor, the work does not meet the standards for acceptance at a selective conference. A substantially revised submission addressing these gaps would be appropriate for future consideration."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper addresses adversarial robustness of machine learning models, which is within ICML's stated interest in 'trustworthy machine learning (reliability, causality, fairness, interpretability, privacy, robustness, safety, etc.)'\",\n      \"The technical approach applies optimization methods (Cardinality-Constrained Optimization, Subspace Pursuit) to a machine learning problem, aligning with ICML's focus on optimization and methodology\",\n      \"The work evaluates multiple forecasting architectures and datasets, offering empirical insights into model behavior under adversarial conditions\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICML prioritizes novel algorithmic and theoretical contributions. The reviewer's core criticism—that SP and CCOP are established techniques directly adapted from compressive sensing without algorithmic innovation—is fatal for ICML. The rebuttal confirms: 'applies established SP and CCOP techniques without introducing new optimization algorithms.' This is a fundamental mismatch with ICML's expectations for technical novelty\",\n      \"The paper lacks theoretical rigor expected at ICML. Critical gaps include: (1) no justification for replacing ground truth Y_t with predicted values Ŷ_t in the loss function; (2) undefined convergence criterion in Algorithm 1 ('while not converged' is operationally meaningless); (3) no convergence guarantees, approximation bounds, or theoretical analysis. The rebuttal confirms these gaps remain unresolved\",\n      \"The evaluation is incomplete for a top ML venue: missing comparison with the cited Liu et al. (2024b) baseline (gradient-free attack on full series), no ablation studies on algorithmic design choices (gradient estimation parameter Δ, convergence criteria), no statistical significance testing or confidence intervals. These omissions violate ICML standards for experimental rigor\",\n      \"The domain is specialized (time series forecasting with LLMs) rather than general machine learning. While ICML accepts application-driven work, it requires either novel methodology or deep insights into the broader ML community. This paper provides neither\",\n      \"Methodological concerns undermine soundness: Algorithm 1 line 6 uses sign(ĝ_S) without justification; the multiplicative vs. additive perturbation formulation (Eq. 3 vs. 4) contains notational inconsistencies; threat model assumes independent temporal perturbations without considering detectability or temporal coherence\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"NeurIPS explicitly welcomes 'trustworthy machine learning' and 'AI/ML for applications' submissions. Adversarial robustness of LLM-based forecasters is relevant to both\",\n      \"The paper addresses a practically important problem: vulnerabilities of LLM-based time series models in constrained scenarios (10% sparse perturbations). This has real-world implications for finance, healthcare, transportation\",\n      \"NeurIPS emphasizes 'in-depth analysis of existing methods that provide new insights in terms of their limitations or behavior.' The paper reveals a critical vulnerability in current LLM-based forecasters—that sparse temporal perturbations are more effective than full-series attacks—which is a meaningful empirical insight\",\n      \"The experimental evaluation is broad, covering multiple LLM variants (GPT-3.5, GPT-4, LLaMA, Mistral, TimeGPT, TimeLLM) and datasets, which aligns with NeurIPS's appreciation for comprehensive empirical work\",\n      \"The black-box, query-based threat model reflects realistic constraints, making the work applicable to real-world LLM APIs\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"NeurIPS still expects novel technical contributions or significant empirical insights with rigorous evaluation. The novelty gap is substantial: SP and CCOP are established techniques from compressive sensing, directly applied without algorithmic modification. The rebuttal confirms: 'applies established SP and CCOP techniques without introducing new optimization algorithms.' While NeurIPS is more forgiving of application-driven work than ICML, adapting existing algorithms without innovation is borderline for acceptance\",\n      \"Critical evaluation gaps disqualify the paper for a top venue: (1) No comparison with the directly-cited Liu et al. (2024b) gradient-free baseline that also modifies full series—this is the primary competitor and omitting it is a major flaw; (2) GWN (Gaussian white noise) is not an adversarial attack baseline but random noise, making it a weak comparison; (3) No ablation studies on algorithmic design choices (e.g., gradient estimation parameter Δ, convergence criteria); (4) No statistical significance testing, confidence intervals, or error bars. The rebuttal confirms these gaps persist in the submission\",\n      \"Theoretical justification for key design choices is missing: The substitution Ŷ_t = f(X_t) for ground truth Y_t in the loss function (Eq. 2→3) lacks analysis of how approximation error affects attack success. The rebuttal confirms: 'the paper provides none of this analysis.' This is concerning for a venue expecting principled methodology\",\n      \"Algorithm 1 convergence is undefined. Line 3 states 'while not converged' with no operational definition (max iterations? support set stability?). This reduces confidence in the method's reproducibility and reliability, which NeurIPS values\",\n      \"The proposed defense (autocorrelation-based detection, Section 7) is speculative and unvalidated—only 4 sentences with no experiments, TPR/FPR analysis, or adaptive attack robustness. For a paper claiming to address robustness, the defense contribution is too preliminary\",\n      \"The threat model assumes independent temporal perturbations while ignoring detectability and temporal coherence concerns. Real-world attackers face practical constraints (e.g., causality, statistical signature) not modeled here\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"ICLR explicitly lists 'trustworthy & interpretability' and 'applications to robotics, autonomy, planning' and broadly welcomes 'general machine learning' and 'societal considerations including...robustness, safety, privacy.' Adversarial robustness of LLM-based forecasters fits this scope\",\n      \"The paper examines robustness of deep learning models (LLMs) under adversarial conditions, which is a core ICLR topic. The finding that sparse perturbations outperform full-series attacks is a non-obvious insight into model behavior\",\n      \"ICLR values empirical analysis that challenges or explains existing methods. The paper demonstrates that LLM-based forecasters are vulnerable to sparse temporal attacks despite filter-based defenses, contributing to understanding of model limitations\",\n      \"The experimental evaluation covers multiple architectures (TimeGPT, LLMTime variants, TimeLLM, TimesNet) and datasets, showing breadth of applicability\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICLR prioritizes representation learning and deep learning innovations. While the paper studies LLMs (deep learning), the core contribution is applying established optimization techniques (SP, CCOP) rather than proposing novel architectures, learning algorithms, or representation improvements. This is a secondary fit for ICLR\",\n      \"The technical novelty gap is critical: SP and CCOP are well-established from compressive sensing. The rebuttal confirms the submission 'applies established SP and CCOP techniques without introducing new optimization algorithms.' ICLR expects algorithmic or methodological innovation; straightforward application to a new domain is insufficient\",\n      \"Significant evaluation gaps undermine the paper's contribution claim: (1) Missing comparison with Liu et al. (2024b)—the key baseline that should determine whether TSA is actually better than existing gradient-free attacks; the rebuttal confirms 'These results are not present in the submitted paper'; (2) Weak baseline (GWN is random noise, not an adversarial method); (3) No ablations on algorithmic parameters; (4) No statistical significance testing. These gaps prevent rigorous assessment of the method's effectiveness\",\n      \"Theoretical justification for key decisions is insufficient: The Ŷ_t substitution for Y_t lacks formal analysis of approximation error or its impact on attack success. Algorithm 1's convergence criterion is undefined. These gaps reduce confidence in the method's soundness, which ICLR values\",\n      \"The defense mechanism (Section 7) is underdeveloped—only 4 sentences, no experiments, no evaluation of detection rates, false positives, or robustness to adaptive attacks. For a paper emphasizing robustness, the proposed mitigation is too preliminary to strengthen the contribution\",\n      \"While ICLR welcomes broad applications, the paper is narrowly focused on time series forecasting without deeper insights into representation learning or learning mechanisms that would elevate the work's significance for a deep learning venue\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary and Strategic Recommendation\n\n### Overall Assessment\n\n**This paper should NOT be submitted to any of these venues in its current form.**\n\nThe fundamental issues are:\n\n1. **Limited Novelty**: The core techniques (Subspace Pursuit, Cardinality-Constrained Optimization) are established methods from compressive sensing, directly applied without algorithmic innovation. The rebuttal explicitly acknowledges this: *\"applies established SP and CCOP techniques without introducing new optimization algorithms.\"*\n\n2. **Critical Evaluation Gaps**: \n   - No comparison with Liu et al. (2024b), the directly-cited gradient-free baseline\n   - GWN is a weak baseline (random noise, not adversarial)\n   - Missing ablations on algorithmic design choices\n   - No statistical significance testing\n\n3. **Unsoundness**: \n   - The Ŷ_t = f(X_t) substitution for ground truth Y_t lacks justification\n   - Algorithm 1's convergence criterion is undefined\n   - Gradient sign operation (line 6) is unjustified\n\n4. **Incomplete Contributions**: The proposed defense (Section 7) is speculative—only 4 sentences with no experimental validation.\n\n### Venue-Specific Ranking\n\n- **ICML (4/10)**: Worst fit. Requires novel algorithms and theory; this paper lacks both.\n- **NeurIPS (5/10)**: Borderline fit. More forgiving of empirical work, but evaluation gaps are still disqualifying.\n- **ICLR (5/10)**: Borderline fit. Welcomes robustness studies, but limited novelty and incomplete evaluation are problematic.\n\n### Recommendation for Authors\n\n**Before resubmission**, address:\n1. **Novelty**: Propose time-series-aware modifications to SP (e.g., temporal coherence constraints, adaptive sparsity patterns) or provide theoretical analysis specific to forecasting.\n2. **Evaluation**: Compare with Liu et al. (2024b); use strong baselines; include ablations; add statistical significance testing.\n3. **Soundness**: Justify the Ŷ_t substitution empirically and theoretically; define convergence operationally; justify algorithm design choices.\n4. **Defense**: Either remove the underdeveloped defense or fully validate it with experiments and adaptive attack robustness.\n\n**Best fit venue if revised**: **NeurIPS** (more tolerant of application-driven work than ICML), followed by **ICLR** (if representation insights are added).",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a practically relevant problem: generating adversarial attacks with temporally sparse perturbations on LLM-based time series forecasters under realistic black-box constraints, which is more practical than full-series perturbations.",
+              "The technical approach of modeling the attack as a Cardinality-Constrained Optimization Problem (CCOP) and using Subspace Pursuit (SP) to solve it is sound and appropriately tailored for the sparse attack setting with O(T×τ) complexity advantage over greedy methods.",
+              "The experimental evaluation covers multiple LLM-based forecasting models (LLMTime with GPT-3.5, GPT-4, LLaMA, Mistral; TimeGPT; TimeLLM) and datasets, demonstrating broad applicability of the attack with concrete evidence that 10% perturbations can cause significant performance degradation."
+            ],
+            "weaknesses": [
+              "The novelty is limited as the core optimization technique (Subspace Pursuit for sparse signal recovery) is well-established from compressive sensing literature, and applying it to adversarial time series attacks is a relatively straightforward adaptation without substantial algorithmic innovation.",
+              "Critical theoretical and empirical gaps exist in the method's foundation: (1) The replacement of ground truth Yt with predicted values Ŷt in the loss function (Equation 2→3) is not rigorously justified and could lead to suboptimal or unstable attacks; (2) No theoretical analysis or guarantees are provided regarding convergence, approximation quality, or conditions under which TSA is guaranteed to succeed.",
+              "The evaluation has significant limitations: (1) The GWN baseline is weak—it is not a competitive adversarial attack method but random noise; (2) No comparison with the cited gradient-free attack baseline from Liu et al. (2024b) that modifies full series; (3) Missing ablation studies on key design choices such as zero-gradient estimation parameters and convergence criteria; (4) The defense evaluation (Section 6.6) uses only simple filter-based methods rather than adversarial training or certified defenses.",
+              "The proposed mitigation strategy (autocorrelation-based detection) is underdeveloped and speculative: it is mentioned in only one paragraph with no experimental validation, no evaluation of its effectiveness, false positive/negative rates, or computational overhead, making the defense contribution incomplete.",
+              "Methodological concerns reduce confidence: (1) In Algorithm 1 line 6, the update wS := ϵ·sign(ĝS) appears ad-hoc—why apply sign function when magnitudes of gradients may vary significantly? (2) Convergence criterion for 'while not converged' is undefined; (3) The multiplicative perturbation formulation (Equation 3 vs 4) introduces inconsistency in notation and interpretation; (4) No statistical significance testing or confidence intervals reported for experimental results.",
+              "Practical threat model is questionable: claiming 'black-box query access' while excluding defenses that exploit this setting (e.g., query-based adversarial training, certified robustness methods) is inconsistent. Additionally, the assumption that attackers can independently perturb time steps ignores temporal coherence and potential detectability in real-world applications."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The novelty is limited as the core optimization technique (Subspace Pursuit for sparse signal recovery) is well-established from compressive sensing literature, and applying it to adversarial time series attacks is a relatively straightforward adaptation without substantial algorithmic innovation.",
+                "severity": "major",
+                "evidence": "The paper cites Dai & Milenkovic (2009) as the original SP method and explicitly states it 'adapted' SP. The CCOP formulation also cites Bhattacharya (2009) and Ruiz-Torrubiano et al. (2010). The main contribution is applying these existing techniques to a new domain without algorithmic innovation or theoretical advances.",
+                "affected_claim": "Novelty of the proposed TSA method",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical theoretical and empirical gaps exist in the method's foundation: (1) The replacement of ground truth Yt with predicted values Ŷt in the loss function (Equation 2→3) is not rigorously justified and could lead to suboptimal or unstable attacks; (2) No theoretical analysis or guarantees are provided regarding convergence, approximation quality, or conditions under which TSA is guaranteed to succeed.",
+                "severity": "major",
+                "evidence": "Section 4 states 'To avoid future information leakage, the ground truth Yt is substituted with the predicted values Ŷt' but provides no analysis of how this substitution affects the optimization landscape, loss surface properties, or attack effectiveness. The authors acknowledge this is an 'approximation' but do not validate it empirically or theoretically. Algorithm 1 has no convergence proof.",
+                "affected_claim": "Soundness of the attack formulation and the substitution Yt → Ŷt",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The evaluation has significant limitations: (1) The GWN baseline is weak—it is not a competitive adversarial attack method but random noise; (2) No comparison with the cited gradient-free attack baseline from Liu et al. (2024b) that modifies full series; (3) Missing ablation studies on key design choices such as zero-gradient estimation parameters and convergence criteria; (4) The defense evaluation (Section 6.6) uses only simple filter-based methods rather than adversarial training or certified defenses.",
+                "severity": "major",
+                "evidence": "Table 1 compares only clean, GWN, and TSA. GWN is introduced in Section 6.3 as a 'baseline' but is inherently a random noise method, not an adversarial attack. The paper explicitly states Liu et al. (2024b) proposed gradient-free attacks but provides no empirical comparison. Figure 5 shows hyperparameter sensitivity but no ablation on zero-gradient Δ parameter or stopping criteria. Section 6.6 mentions only Gaussian, Mean, and Quantile filters without exploring training-based defenses.",
+                "affected_claim": "Evaluation comprehensiveness and fairness",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The proposed mitigation strategy (autocorrelation-based detection) is underdeveloped and speculative: it is mentioned in only one paragraph with no experimental validation, no evaluation of its effectiveness, false positive/negative rates, or computational overhead, making the defense contribution incomplete.",
+                "severity": "major",
+                "evidence": "Section 7 introduces the autocorrelation-based detection method in 4 sentences: 'The forecaster is used to backcast historical time series from its own predictions, which are then compared with the original inputs to identify manipulated time steps... we plan to further explore and expand on defense mechanisms in future work.' No experiments, no validation, no metrics.",
+                "affected_claim": "Contribution to mitigation and defense robustness",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Methodological concerns reduce confidence: (1) In Algorithm 1 line 6, the update wS := ϵ·sign(ĝS) appears ad-hoc—why apply sign function when magnitudes of gradients may vary significantly? (2) Convergence criterion for 'while not converged' is undefined; (3) The multiplicative perturbation formulation (Equation 3 vs 4) introduces inconsistency in notation and interpretation; (4) No statistical significance testing or confidence intervals reported for experimental results.",
+                "severity": "major",
+                "evidence": "Algorithm 1 line 6 applies sign(ĝS) without justification—this discard magnitude information. The 'while not converged' condition on line 3 is never defined operationally. Equation 4 shows ‖Xi(1+wi)‖1 but earlier Equation 3 uses ‖wi‖1 ≤ ϵ—the relationship between these formulations needs clarification. Table 1 reports point estimates with no error bars, confidence intervals, or multiple runs reported.",
+                "affected_claim": "Soundness of Algorithm 1 and reliability of experimental results",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Practical threat model is questionable: claiming 'black-box query access' while excluding defenses that exploit this setting (e.g., query-based adversarial training, certified robustness methods) is inconsistent. Additionally, the assumption that attackers can independently perturb time steps ignores temporal coherence and potential detectability in real-world applications.",
+                "severity": "minor",
+                "evidence": "Section 4 lists attacker capabilities including 'Possesses the ability to query the target model' but Section 6.6 only evaluates filter-based defenses, not query-limited or certified defenses. The attack assumes any τ time steps can be modified independently without considering that realistic time series anomalies follow temporal patterns and sparse independent perturbations may be easily detected via anomaly detection.",
+                "affected_claim": "Realism and completeness of threat model and defense evaluation",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While the core SP algorithm is sound, the attack formulation has critical gaps: (1) the substitution Yt → Ŷt lacks rigorous justification; (2) Algorithm 1 has undefined convergence criteria and an ad-hoc gradient sign operation; (3) no convergence proofs or theoretical guarantees are provided. The multiplicative vs additive perturbation formulation (Eq. 3-4) also contains notational inconsistencies. These issues undermine confidence in the technical correctness of the central contribution."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The paper adapts well-known Subspace Pursuit (Dai & Milenkovic, 2009) and CCOP techniques (Bhattacharya, 2009; Ruiz-Torrubiano et al., 2010) to a new application domain (adversarial attacks on LLM time series forecasting) without algorithmic innovation. While the application is somewhat novel, the techniques are not. For a top-tier venue, the algorithmic or theoretical contribution is insufficient to meet the novelty bar."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper demonstrates a meaningful vulnerability in LLM-based forecasting models—that temporally sparse perturbations (10% of input) can significantly degrade performance. This finding is relevant to understanding robustness of foundation models in critical applications. However, the significance is partially limited by weak baselines and incomplete defense mechanisms."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The experimental evaluation has multiple critical limitations: (1) GWN is a weak baseline (random noise, not adversarial attack); (2) no comparison with the cited Liu et al. (2024b) gradient-free attack baseline that the paper proposes to improve upon; (3) missing ablation studies on key hyperparameters (zero-gradient Δ, convergence criteria); (4) defense evaluation only covers filter-based methods, not adversarial training or certified defenses; (5) no statistical significance testing or confidence intervals. These gaps prevent reliable assessment of whether TSA is actually superior to existing methods."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear motivation, problem formulation, and experimental setup. Figures and tables are informative. However, some technical details are unclear (e.g., convergence criterion, gradient sign operation justification), which slightly reduces clarity. Overall clarity is acceptable for assessment, though not exceptional."
+              }
+            },
+            "summary_comment": "This paper addresses a practical problem—generating temporally sparse adversarial attacks on LLM-based time series forecasters—and proposes using Subspace Pursuit to solve the resulting Cardinality-Constrained Optimization Problem. The core idea is reasonable and experiments show that 10% sparse perturbations can degrade forecasting performance. However, the paper has significant weaknesses that prevent acceptance at a top-tier venue: (1) Limited novelty—the method primarily applies existing SP and CCOP techniques to a new domain without algorithmic innovation. (2) Soundness issues—the critical substitution of ground truth with predicted values (Yt → Ŷt) lacks rigorous justification, Algorithm 1 has undefined convergence criteria and an ad-hoc sign operation, and no theoretical analysis is provided. (3) Weak evaluation—the GWN baseline is random noise (not an adversarial attack), there is no comparison with the cited Liu et al. (2024b) gradient-free attack baseline, missing ablations, and defenses are evaluated only against simple filters. (4) Incomplete defense contribution—the proposed autocorrelation-based detection method is speculative with zero experimental validation. The work makes a contribution to understanding LLM robustness but requires substantial improvements in novelty, theoretical grounding, and experimental rigor to meet the standards of a selective top-tier conference."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a practically relevant problem: generating adversarial attacks with temporally sparse perturbations on LLM-based time series forecasters under realistic black-box constraints, which is more practical than full-series perturbations.",
+              "The technical approach of modeling the attack as a Cardinality-Constrained Optimization Problem (CCOP) and using Subspace Pursuit (SP) to solve it is sound and appropriately tailored for the sparse attack setting with O(T×τ) complexity advantage over greedy methods.",
+              "The experimental evaluation covers multiple LLM-based forecasting models (LLMTime with GPT-3.5, GPT-4, LLaMA, Mistral; TimeGPT; TimeLLM) and datasets, demonstrating broad applicability of the attack with concrete evidence that 10% perturbations can cause significant performance degradation."
+            ],
+            "weaknesses": [
+              "The novelty is limited as the core optimization technique (Subspace Pursuit for sparse signal recovery) is well-established from compressive sensing literature, and applying it to adversarial time series attacks is a relatively straightforward adaptation without substantial algorithmic innovation.",
+              "Critical theoretical and empirical gaps exist in the method's foundation: (1) The replacement of ground truth Yt with predicted values Ŷt in the loss function (Equation 2→3) is not rigorously justified and could lead to suboptimal or unstable attacks; (2) No theoretical analysis or guarantees are provided regarding convergence, approximation quality, or conditions under which TSA is guaranteed to succeed.",
+              "The evaluation has significant limitations: (1) The GWN baseline is weak—it is not a competitive adversarial attack method but random noise; (2) No comparison with the cited gradient-free attack baseline from Liu et al. (2024b) that modifies full series; (3) Missing ablation studies on key design choices such as zero-gradient estimation parameters and convergence criteria; (4) The defense evaluation (Section 6.6) uses only simple filter-based methods rather than adversarial training or certified defenses.",
+              "The proposed mitigation strategy (autocorrelation-based detection) is underdeveloped and speculative: it is mentioned in only one paragraph with no experimental validation, no evaluation of its effectiveness, false positive/negative rates, or computational overhead, making the defense contribution incomplete.",
+              "Methodological concerns reduce confidence: (1) In Algorithm 1 line 6, the update wS := ϵ·sign(ĝS) appears ad-hoc—why apply sign function when magnitudes of gradients may vary significantly? (2) Convergence criterion for 'while not converged' is undefined; (3) The multiplicative perturbation formulation (Equation 3 vs 4) introduces inconsistency in notation and interpretation; (4) No statistical significance testing or confidence intervals reported for experimental results.",
+              "Practical threat model is questionable: claiming 'black-box query access' while excluding defenses that exploit this setting (e.g., query-based adversarial training, certified robustness methods) is inconsistent. Additionally, the assumption that attackers can independently perturb time steps ignores temporal coherence and potential detectability in real-world applications."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The novelty is limited as the core optimization technique (Subspace Pursuit for sparse signal recovery) is well-established from compressive sensing literature, and applying it to adversarial time series attacks is a relatively straightforward adaptation without substantial algorithmic innovation.",
+                "severity": "major",
+                "evidence": "The paper cites Dai & Milenkovic (2009) as the original SP method and explicitly states it 'adapted' SP. The CCOP formulation also cites Bhattacharya (2009) and Ruiz-Torrubiano et al. (2010). The main contribution is applying these existing techniques to a new domain without algorithmic innovation or theoretical advances. The rebuttal acknowledges this: 'While not algorithmic innovation in the traditional sense, this application reveals a critical vulnerability' but proposes only future enhancements (theoretically-grounded modifications to SP, approximation bounds), which are not present in the submitted paper.",
+                "affected_claim": "Novelty of the proposed TSA method",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical theoretical and empirical gaps exist in the method's foundation: (1) The replacement of ground truth Yt with predicted values Ŷt in the loss function (Equation 2→3) is not rigorously justified and could lead to suboptimal or unstable attacks; (2) No theoretical analysis or guarantees are provided regarding convergence, approximation quality, or conditions under which TSA is guaranteed to succeed.",
+                "severity": "major",
+                "evidence": "Section 4 states 'To avoid future information leakage, the ground truth Yt is substituted with the predicted values Ŷt' but provides no analysis of how this substitution affects the optimization landscape, loss surface properties, or attack effectiveness. The rebuttal acknowledges this concern and proposes 'theoretical analysis bounding the approximation error' and 'empirical validation on a held-out test set,' but these analyses are not present in the submitted paper. Algorithm 1 has no convergence proof. The rebuttal states 'In the current implementation, we use a practical stopping criterion' and proposes to 'explicitly define this criterion in the algorithm,' but the submitted paper contains only the vague 'while not converged' without operational definition.",
+                "affected_claim": "Soundness of the attack formulation and the substitution Yt → Ŷt",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The evaluation has significant limitations: (1) The GWN baseline is weak—it is not a competitive adversarial attack method but random noise; (2) No comparison with the cited gradient-free attack baseline from Liu et al. (2024b) that modifies full series; (3) Missing ablation studies on key design choices such as zero-gradient estimation parameters and convergence criteria; (4) The defense evaluation (Section 6.6) uses only simple filter-based methods rather than adversarial training or certified defenses.",
+                "severity": "major",
+                "evidence": "Table 1 compares only clean, GWN, and TSA. GWN is introduced in Section 6.3 as a 'baseline' but is inherently a random noise method, not an adversarial attack. The paper explicitly states Liu et al. (2024b) proposed gradient-free attacks but provides no empirical comparison. Figure 5 shows hyperparameter sensitivity but no ablation on zero-gradient Δ parameter or stopping criteria. Section 6.6 mentions only Gaussian, Mean, and Quantile filters without exploring training-based defenses. The rebuttal acknowledges all these gaps and states 'The core evaluation should compare TSA against Liu et al. (2024b)... This comparison is essential and was an oversight in our submission. We are currently obtaining results for this comparison.' However, these comparisons are not present in the submitted paper.",
+                "affected_claim": "Evaluation comprehensiveness and fairness",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The proposed mitigation strategy (autocorrelation-based detection) is underdeveloped and speculative: it is mentioned in only one paragraph with no experimental validation, no evaluation of its effectiveness, false positive/negative rates, or computational overhead, making the defense contribution incomplete.",
+                "severity": "major",
+                "evidence": "Section 7 introduces the autocorrelation-based detection method in 4 sentences: 'The forecaster is used to backcast historical time series from its own predictions, which are then compared with the original inputs to identify manipulated time steps... we plan to further explore and expand on defense mechanisms in future work.' No experiments, no validation, no metrics. The rebuttal acknowledges this and proposes either removing it or implementing it: 'We propose either: (1) moving this to a brief future work statement if experiments are not ready, or (2) implementing and fully evaluating the method before publication.' Neither of these actions has been taken in the submitted paper.",
+                "affected_claim": "Contribution to mitigation and defense robustness",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Methodological concerns reduce confidence: (1) In Algorithm 1 line 6, the update wS := ϵ·sign(ĝS) appears ad-hoc—why apply sign function when magnitudes of gradients may vary significantly? (2) Convergence criterion for 'while not converged' is undefined; (3) The multiplicative perturbation formulation (Equation 3 vs 4) introduces inconsistency in notation and interpretation; (4) No statistical significance testing or confidence intervals reported for experimental results.",
+                "severity": "major",
+                "evidence": "Algorithm 1 line 6 applies sign(ĝS) without justification—the rebuttal states 'we use sign(ĝS) to ensure perturbations stay within the ϵ-ball, analogous to FGSM' but this explanation is not in the paper. The 'while not converged' condition remains undefined in the submitted paper despite the rebuttal claiming 'we use a practical stopping criterion: maximum iterations (set to T/τ)' and proposing to 'explicitly define this criterion.' Equation 4 shows ‖Xi(1+wi)‖1 but earlier Equation 3 uses ‖wi‖1 ≤ ϵ—the relationship between these formulations still needs clarification in the paper. Table 1 reports point estimates with no error bars despite the rebuttal proposing 're-run experiments multiple times' and 'Report mean ± std or 95% confidence intervals.' None of these clarifications or results appear in the submitted paper.",
+                "affected_claim": "Soundness of Algorithm 1 and reliability of experimental results",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Practical threat model is questionable: claiming 'black-box query access' while excluding defenses that exploit this setting (e.g., query-based adversarial training, certified robustness methods) is inconsistent. Additionally, the assumption that attackers can independently perturb time steps ignores temporal coherence and potential detectability in real-world applications.",
+                "severity": "minor",
+                "evidence": "Section 4 lists attacker capabilities including 'Possesses the ability to query the target model' but Section 6.6 only evaluates filter-based defenses, not query-limited or certified defenses. The attack assumes any τ time steps can be modified independently without considering that realistic time series anomalies follow temporal patterns and sparse independent perturbations may be easily detected via anomaly detection. The rebuttal proposes 'applying standard anomaly detection methods to TSA-perturbed time series and reporting detection rates,' but no such evaluation is present in the submitted paper.",
+                "affected_claim": "Realism and completeness of threat model and defense evaluation",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While the core SP algorithm is sound, the attack formulation has critical unresolved gaps in the submitted paper: (1) the substitution Yt → Ŷt lacks rigorous justification despite being acknowledged as a concern; (2) Algorithm 1 has undefined convergence criteria ('while not converged') with only vague promises in the rebuttal to clarify; (3) no convergence proofs or theoretical guarantees are provided; (4) the ad-hoc gradient sign operation lacks justification in the paper (though the rebuttal attempts to explain it). The rebuttal acknowledges these issues and proposes fixes, but these fixes are not implemented in the submitted paper. Evaluation against the submission as written, not promised revisions, these soundness issues persist."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The paper adapts well-known Subspace Pursuit (Dai & Milenkovic, 2009) and CCOP techniques (Bhattacharya, 2009; Ruiz-Torrubiano et al., 2010) to a new application domain without algorithmic innovation. The rebuttal acknowledges this limitation: 'While not algorithmic innovation in the traditional sense,' and proposes future enhancements (theoretically-grounded modifications to SP, approximation bounds), but these are not present in the submitted paper. For a top-tier venue, the algorithmic or theoretical contribution is insufficient."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper demonstrates a meaningful vulnerability in LLM-based forecasting models—that temporally sparse perturbations (10% of input) can significantly degrade performance. This finding is relevant to understanding robustness of foundation models in critical applications. The significance contribution holds even with the evaluation limitations."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The experimental evaluation in the submitted paper has critical, unresolved limitations: (1) GWN is acknowledged by the rebuttal as a weak baseline but remains the primary comparison in Table 1; (2) no comparison with Liu et al. (2024b) gradient-free attack baseline—the rebuttal acknowledges 'This comparison is essential and was an oversight' but states 'We are currently obtaining results,' which are not in the paper; (3) missing ablation studies on key parameters (zero-gradient Δ, convergence criteria)—the rebuttal promises these but they are not present; (4) no statistical significance testing or confidence intervals in the submitted Table 1 despite the rebuttal proposing this; (5) defense evaluation limited to simple filters despite the rebuttal proposing expanded evaluation. These gaps prevent reliable assessment of whether TSA is superior to existing methods."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear motivation, problem formulation, and experimental setup. Figures and tables are informative. Some technical details could be clearer (e.g., convergence criterion, gradient sign operation justification), but overall clarity is acceptable for assessment."
+              }
+            },
+            "summary_comment": "The rebuttal demonstrates good faith engagement with the review comments and correctly identifies the paper's major weaknesses. However, critically, the author's rebuttal does not resolve these weaknesses in the submitted paper—it only promises future revisions. Evaluating the submission as written, not as promised: (1) **Novelty remains limited**: The paper adapts established SP and CCOP techniques without algorithmic innovation. The rebuttal acknowledges this but proposes only future enhancements not present in the paper. (2) **Soundness issues persist**: The substitution Yt→Ŷt still lacks rigorous justification; Algorithm 1's convergence criterion remains undefined ('while not converged'); the gradient sign operation is not justified in the paper. The rebuttal acknowledges these and proposes fixes, but they are not implemented. (3) **Evaluation gaps remain unaddressed in the submission**: The comparison with Liu et al. (2024b) is absent—the rebuttal states 'We are currently obtaining results,' but these are not in the paper. Statistical significance testing, ablation studies, and expanded defense evaluation are all promised but not delivered. (4) **Defense contribution is incomplete**: The autocorrelation-based defense remains speculative and unvalidated; the rebuttal proposes either removing it or implementing it, but neither has been done. Per the review standards, the paper must be evaluated as submitted, not as the author promises to revise it. The rebuttal is courteous and technically sound in identifying issues, but does not provide checkable evidence that the submitted paper's central weaknesses are resolved. The core issues—limited novelty, unjustified design choices, weak baselines, missing comparisons, and incomplete evaluation—persist in the submitted work and collectively prevent it from meeting the standards of a selective top-tier venue."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited novelty: SP and CCOP are well-established techniques applied with relatively straightforward adaptation to the time series domain\",\n        \"Soundness concerns: The substitution of ground truth Yt with predicted values Ŷt lacks rigorous justification; Algorithm 1 has undefined convergence criteria and ad-hoc design choices\",\n        \"Weak evaluation baseline: GWN is random noise, not an adversarial attack; missing comparison with Liu et al. (2024b) gradient-free baseline\",\n        \"Incomplete evaluation: Missing ablation studies, no statistical significance testing, and defense evaluation limited to simple filters\",\n        \"Underdeveloped defense contribution: Autocorrelation-based detection method is mentioned without any experimental validation\",\n        \"Threat model concerns: Claims about black-box setting inconsistent with defense evaluation; temporal independence assumption unrealistic\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Core SP and CCOP techniques are from established literature\",\n          \"location\": \"Section 5.2, References (Dai & Milenkovic, 2009; Bhattacharya, 2009; Ruiz-Torrubiano et al., 2010)\",\n          \"explanation\": \"The paper explicitly states it uses 'adapted SP method, as outlined in Algorithm 1, based on the approach by Dai & Milenkovic (2009).' The CCOP formulation cites Bhattacharya (2009) and Ruiz-Torrubiano et al. (2010). These are established optimization techniques being applied to a new domain without algorithmic innovation.\"\n        },\n        {\n          \"concern\": \"Substitution of Yt with Ŷt is presented as a practical necessity but lacks theoretical justification\",\n          \"location\": \"Section 4, paragraphs after Equation (2) and before Equation (3)\",\n          \"explanation\": \"The paper states: 'To avoid future information leakage, the ground truth Yt is substituted with the predicted values Ŷt... Under this constraint, the attack process is reformulated as a CCOP.' However, no analysis is provided of how this substitution affects the optimization landscape, convergence properties, or optimality conditions.\"\n        },\n        {\n          \"concern\": \"Algorithm 1 convergence criterion is undefined\",\n          \"location\": \"Algorithm 1, line 3\",\n          \"explanation\": \"The stopping condition is 'while not converged' with no operational definition provided. No convergence criterion, threshold value, or maximum iteration count is specified.\"\n        },\n        {\n          \"concern\": \"GWN baseline is random noise, not an adversarial attack\",\n          \"location\": \"Section 6.3 and Table 1\",\n          \"explanation\": \"Section 6.3 states: 'introducing Gaussian White Noise (GWN)... as a baseline for comparison.' GWN is a passive random perturbation method, not a competitive adversarial attack. The paper cites Liu et al. (2024b) as proposing gradient-free black-box attacks but provides no empirical comparison.\"\n        },\n        {\n          \"concern\": \"Experimental results lack statistical rigor\",\n          \"location\": \"Table 1\",\n          \"explanation\": \"Table 1 reports point estimates with no error bars, confidence intervals, or multiple runs. The experimental setup (Section 6.3) does not mention statistical significance testing, cross-validation, or error quantification.\"\n        },\n        {\n          \"concern\": \"Defense evaluation is limited to filter-based methods\",\n          \"location\": \"Section 6.6 and Figure 4\",\n          \"explanation\": \"Only Gaussian, Mean, and Quantile filters are evaluated. The paper acknowledges that 'adversarial training... is impractical here due to the high computational costs' but this is not empirically validated. No certified robustness, query-limited defenses, or other sophisticated defense mechanisms are tested.\"\n        },\n        {\n          \"concern\": \"Proposed defense method lacks experimental validation\",\n          \"location\": \"Section 7, paragraph starting at line 385\",\n          \"explanation\": \"The autocorrelation-based detection method is described in 4 sentences: 'The forecaster is used to backcast... Once detected, Gaussian filtering is applied... we plan to further explore and expand on defense mechanisms in future work.' No experiments, metrics, or effectiveness evaluation is provided.\"\n        },\n        {\n          \"concern\": \"Algorithm 1 applies sign operation without justification\",\n          \"location\": \"Algorithm 1, line 6\",\n          \"explanation\": \"The update rule wS := ϵ · sign(ĝS) discards gradient magnitude information. No justification is provided for why the sign function is appropriate when gradient magnitudes may vary significantly across time steps.\"\n        },\n        {\n          \"concern\": \"Multiplicative vs additive perturbation notation is inconsistent\",\n          \"location\": \"Equations (3) and (4)\",\n          \"explanation\": \"Equation (3) uses ‖wi‖1 ≤ ϵ constraint, while Equation (4) shows ‖Xi(1+wi)‖1 ≤ ‖Xi(1+ϵ)‖1. The relationship between these formulations and how the constraint is actually implemented in Algorithm 1 needs clarification.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Substitution of Yt with Ŷt needs theoretical or empirical justification\",\n          \"proposed_change\": \"Provide theoretical analysis showing under what conditions this substitution yields near-optimal attacks (e.g., analysis of approximation error, convergence guarantees, or conditions on model prediction quality). Alternatively, empirically validate by comparing attacks with access to partial ground truth (on a held-out subset) vs. using predicted values and showing performance is similar.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Algorithm 1 lacks formal convergence guarantees and operational stopping criteria\",\n          \"proposed_change\": \"Define convergence criterion explicitly (e.g., 'maximum iterations K', 'when loss change < δ', 'when support set S stabilizes'). Provide theoretical or empirical convergence analysis showing Algorithm 1 converges and analyze convergence rate. Add ablation study on stopping criteria impact.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Gradient sign operation in Algorithm 1 line 6 appears ad-hoc\",\n          \"proposed_change\": \"Justify why sign(ĝS) is applied instead of using magnitude-aware updates. Provide ablation study comparing: (a) wS := ϵ · sign(ĝS) (current), (b) wS := ĝS / ‖ĝS‖∞ · ϵ (magnitude-normalized), (c) adaptive magnitude based on gradient variance. Empirically compare attack effectiveness.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Weak baseline (GWN) and missing comparison with Liu et al. (2024b)\",\n          \"proposed_change\": \"Add experimental comparison with Liu et al. (2024b)'s gradient-free full-series attack using the same evaluation setup, datasets, and models. This directly validates the claimed improvement of sparse attacks. Report results in Table 1 or new table showing: (i) full-series attack performance, (ii) TSA performance, (iii) query complexity for each method.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Missing ablation studies on key hyperparameters and design choices\",\n          \"proposed_change\": \"Add ablation studies for: (1) Impact of zero-gradient estimation noise Δ (currently not analyzed); (2) Convergence criterion sensitivity; (3) Alternative gradient magnitude handling (see previous point). Figure 5 addresses sparsity level τ and magnitude ϵ but not algorithmic parameters.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"No statistical significance testing or confidence intervals in results\",\n          \"proposed_change\": \"Re-run experiments multiple times (e.g., 5-10 seeds with different random initializations for zero-gradient noise Δ). Report mean ± std or 95% confidence intervals for MSE/MAE in Table 1. Perform statistical significance tests (e.g., paired t-tests) comparing TSA vs. GWN and TSA vs. full-series attack.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Defense evaluation limited to simple filter-based methods\",\n          \"proposed_change\": \"Expand defense evaluation to include: (1) Adversarial training using TSA-generated attacks (acknowledge computational cost but report results); (2) Certified defenses or robust regression techniques; (3) Query-limited defense methods that exploit the query-access model. Report recovery rates for each defense approach.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Autocorrelation-based detection method is speculative and unvalidated\",\n          \"proposed_change\": \"Either: (a) Remove Section 7 and move to future work explicitly, or (b) Implement and experimentally validate the autocorrelation-based detection method. If implemented, report: detection accuracy (TPR/FPR), computational overhead, robustness to adaptive attacks where attacker knows the detection mechanism, and comparison with other anomaly detection baselines.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Threat model assumes temporal independence, which may be unrealistic\",\n          \"proposed_change\": \"Discuss and empirically evaluate the detectability of sparse independent perturbations. For instance, apply TSA and then feed the perturbed time series to a standard anomaly detection algorithm (e.g., Isolation Forest, Autoencoder-based). Report detection rates. This provides evidence for or against the practical threat model.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited novelty of core technique\",\n          \"proposed_change\": \"To address novelty concerns: (1) Propose algorithmic improvements to SP specifically tailored for time series (e.g., incorporating temporal structure or correlations); (2) Develop new theoretical guarantees or approximation bounds specific to LLM-based forecasting; (3) Provide a comprehensive comparison showing SP outperforms other sparse optimization methods (e.g., Iterative Hard Thresholding, LASSO with sparsity constraints) on this task. This would move beyond straightforward adaptation.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"Thank you for the detailed and constructive review. We appreciate the critical feedback, which highlights several important areas for improvement. We address the main concerns below:\\n\\n**On Novelty and Technical Contribution:**\\nWe acknowledge that Subspace Pursuit and CCOP are established techniques from compressive sensing and optimization literature. Our primary contribution is adapting these techniques to the adversarial attack domain for LLM-based time series forecasting under strict constraints (black-box, no ground truth, temporally sparse). While not algorithmic innovation in the traditional sense, this application reveals a critical vulnerability in LLM-based forecasters that was previously underexplored. That said, we recognize that for a top-tier venue, stronger technical novelty would strengthen the work. We are exploring enhancements such as: (1) theoretically-grounded modifications to SP that exploit temporal structure in time series, and (2) approximation bounds specific to LLM-based forecasting.\\n\\n**On Soundness: Substitution of Yt with Ŷt:**\\nThis is a valid concern. The substitution is motivated by practical constraints (ground truth unavailability in real forecasting), but we acknowledge the lack of rigorous justification. We propose the following in a revision: (i) theoretical analysis bounding the approximation error introduced by this substitution under conditions on prediction accuracy, and (ii) empirical validation on a held-out test set where ground truth is available, comparing attack effectiveness using true labels vs. predicted labels. Early analysis suggests that when prediction quality is reasonable, the approximation performs well, but this needs formal treatment.\\n\\n**On Algorithm 1 Convergence and Clarity:**\\nYou are correct that the convergence criterion ('while not converged') is undefined. In the current implementation, we use a practical stopping criterion: maximum iterations (set to T/τ) or when the support set S stabilizes (no new indices added in two consecutive iterations). We propose to: (1) explicitly define this criterion in the algorithm, (2) provide empirical convergence analysis, and (3) add an ablation study showing sensitivity to the stopping criterion.\\n\\nRegarding the sign operation in line 6: we use sign(ĝS) to ensure perturbations stay within the ϵ-ball, analogous to FGSM. However, we recognize this discards magnitude information. An alternative would be magnitude-aware scaling. We propose an ablation study comparing: (a) current sign-based approach, (b) normalized gradient direction, and (c) adaptive magnitude based on gradient variance.\\n\\n**On Evaluation: Baselines and Comparison:**\\nWe acknowledge that GWN is a weak baseline—it is random noise, not an adversarial attack. This was included primarily to show TSA is more than random perturbation. The core evaluation should compare TSA against Liu et al. (2024b)'s gradient-free full-series attack. We agree this comparison is essential and was an oversight in our submission. We propose adding this comparison directly, showing: (i) attack effectiveness (error increase), (ii) query complexity, and (iii) sparsity advantage. We are currently obtaining results for this comparison.\\n\\n**On Statistical Rigor:**\\nYou are correct that Table 1 lacks error bars and confidence intervals. We will re-run experiments with multiple seeds and report means ± standard deviations. We will also perform significance tests (paired t-tests) to validate that improvements are statistically significant.\\n\\n**On Ablation Studies:**\\nWe agree that the paper lacks ablations on key algorithmic choices: (1) zero-gradient noise Δ parameter (currently fixed), (2) convergence criterion sensitivity, and (3) gradient magnitude handling. We propose adding these in a revision. Figure 5 currently shows hyperparameter sensitivity for τ and ϵ, but we will expand to cover algorithmic parameters.\\n\\n**On Defense Evaluation:**\\nThe current evaluation focuses on filter-based defenses, which we show are ineffective against sparse attacks. Your suggestion to evaluate adversarial training is valid. While we noted computational challenges, we propose: (1) attempting adversarial training on smaller models to demonstrate feasibility, (2) evaluating other sophisticated defenses (e.g., certified robustness methods), and (3) expanding beyond filter-based approaches. This will provide a more complete picture of the defense landscape.\\n\\n**On the Proposed Autocorrelation-Based Defense:**\\nWe recognize that Section 7 is underdeveloped. We propose either: (1) moving this to a brief future work statement if experiments are not ready, or (2) implementing and fully evaluating the method before publication, including detection accuracy, computational overhead, and robustness to adaptive attacks. We prefer option (2) to strengthen the defense contribution.\\n\\n**On Threat Model:**\\nWe acknowledge that assuming temporal independence may be unrealistic and that sparse perturbations could be detectible via anomaly detection. We propose: (1) applying standard anomaly detection methods to TSA-perturbed time series and reporting detection rates, and (2) discussing practical scenarios where sparse attacks are realistic (e.g., data corruption by adversarial insiders, sensor faults).\\n\\n**Summary of Proposed Revisions:**\\nWe are preparing an extensive revision addressing: (1) theoretical justification for Yt→Ŷt substitution, (2) convergence analysis and explicit stopping criteria, (3) comparison with Liu et al. (2024b) full-series attack, (4) statistical significance testing with confidence intervals, (5) ablation studies on key parameters, (6) expanded defense evaluation, (7) validation of autocorrelation-based detection or explicit future work statement, and (8) analysis of temporal independence assumption and detectability.\\n\\nThese revisions will substantially strengthen the soundness, evaluation rigor, and completeness of the work, addressing the core concerns raised in your review.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 2,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a practically relevant problem: generating adversarial attacks with temporally sparse perturbations on LLM-based time series forecasters under realistic black-box constraints, which is more practical than full-series perturbations.",
+              "The technical approach of modeling the attack as a Cardinality-Constrained Optimization Problem (CCOP) and using Subspace Pursuit (SP) to solve it is sound and appropriately tailored for the sparse attack setting with O(T×τ) complexity advantage over greedy methods.",
+              "The experimental evaluation covers multiple LLM-based forecasting models (LLMTime with GPT-3.5, GPT-4, LLaMA, Mistral; TimeGPT; TimeLLM) and datasets, demonstrating broad applicability of the attack with concrete evidence that 10% perturbations can cause significant performance degradation."
+            ],
+            "weaknesses": [
+              "The novelty is limited as the core optimization technique (Subspace Pursuit for sparse signal recovery) is well-established from compressive sensing literature, and applying it to adversarial time series attacks is a relatively straightforward adaptation without substantial algorithmic innovation.",
+              "Critical theoretical and empirical gaps exist in the method's foundation: (1) The replacement of ground truth Yt with predicted values Ŷt in the loss function (Equation 2→3) is not rigorously justified and could lead to suboptimal or unstable attacks; (2) No theoretical analysis or guarantees are provided regarding convergence, approximation quality, or conditions under which TSA is guaranteed to succeed.",
+              "The evaluation has significant limitations: (1) The GWN baseline is weak—it is not a competitive adversarial attack method but random noise; (2) No comparison with the cited gradient-free attack baseline from Liu et al. (2024b) that modifies full series; (3) Missing ablation studies on key design choices such as zero-gradient estimation parameters and convergence criteria; (4) The defense evaluation (Section 6.6) uses only simple filter-based methods rather than adversarial training or certified defenses.",
+              "The proposed mitigation strategy (autocorrelation-based detection) is underdeveloped and speculative: it is mentioned in only one paragraph with no experimental validation, no evaluation of its effectiveness, false positive/negative rates, or computational overhead, making the defense contribution incomplete.",
+              "Methodological concerns reduce confidence: (1) In Algorithm 1 line 6, the update wS := ϵ·sign(ĝS) appears ad-hoc—why apply sign function when magnitudes of gradients may vary significantly? (2) Convergence criterion for 'while not converged' is undefined; (3) The multiplicative perturbation formulation (Equation 3 vs 4) introduces inconsistency in notation and interpretation; (4) No statistical significance testing or confidence intervals reported for experimental results.",
+              "Practical threat model is questionable: claiming 'black-box query access' while excluding defenses that exploit this setting (e.g., query-based adversarial training, certified robustness methods) is inconsistent. Additionally, the assumption that attackers can independently perturb time steps ignores temporal coherence and potential detectability in real-world applications."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The novelty is limited as the core optimization technique (Subspace Pursuit for sparse signal recovery) is well-established from compressive sensing literature, and applying it to adversarial time series attacks is a relatively straightforward adaptation without substantial algorithmic innovation.",
+                "severity": "major",
+                "evidence": "The paper cites Dai & Milenkovic (2009) as the original SP method and explicitly states it 'adapted' SP. The CCOP formulation also cites Bhattacharya (2009) and Ruiz-Torrubiano et al. (2010). The rebuttal concedes this: 'We acknowledge that the submitted paper applies established SP and CCOP techniques without introducing new optimization algorithms.' The rebuttal proposes future algorithmic enhancements (time-series-aware SP modifications, approximation bounds) but explicitly confirms these are NOT in the current submission: 'These enhancements are NOT in the current submission but would strengthen novelty if implemented.'",
+                "affected_claim": "Novelty of the proposed TSA method",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical theoretical and empirical gaps exist in the method's foundation: (1) The replacement of ground truth Yt with predicted values Ŷt in the loss function (Equation 2→3) is not rigorously justified and could lead to suboptimal or unstable attacks; (2) No theoretical analysis or guarantees are provided regarding convergence, approximation quality, or conditions under which TSA is guaranteed to succeed.",
+                "severity": "major",
+                "evidence": "Section 4 states 'To avoid future information leakage, the ground truth Yt is substituted with the predicted values Ŷt' but provides no analysis. The rebuttal confirms: 'Currently, the submitted paper provides none of this analysis' regarding theoretical bounds on approximation error or empirical validation. On convergence, Algorithm 1 line 3 shows 'while not converged' undefined. Rebuttal confirms: 'the paper contains no operational definition' and that proposed clarifications (max iterations, support set stabilization) are absent from submission. These gaps remain unresolved in the submitted work.",
+                "affected_claim": "Soundness of the attack formulation and the substitution Yt → Ŷt",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The evaluation has significant limitations: (1) The GWN baseline is weak—it is not a competitive adversarial attack method but random noise; (2) No comparison with the cited gradient-free attack baseline from Liu et al. (2024b) that modifies full series; (3) Missing ablation studies on key design choices such as zero-gradient estimation parameters and convergence criteria; (4) The defense evaluation (Section 6.6) uses only simple filter-based methods rather than adversarial training or certified defenses.",
+                "severity": "major",
+                "evidence": "Table 1 contains only Clean, GWN, and TSA comparisons. The paper cites Liu et al. (2024b) but provides no experimental comparison. Rebuttal explicitly confirms: 'These results are not present in the submitted paper' regarding Liu et al. (2024b) comparison. On ablations, rebuttal states: 'Currently, Figure 5 shows hyperparameter sensitivity for τ and ϵ but not for algorithmic design choices' and confirms absence of zero-gradient Δ and convergence criteria ablations. On defenses, rebuttal states: 'Currently, Section 6.6 evaluates only Gaussian, Mean, and Quantile filters' with no adversarial training or certified defenses in submission. None of these gaps are resolved in the submitted paper.",
+                "affected_claim": "Evaluation comprehensiveness and fairness",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The proposed mitigation strategy (autocorrelation-based detection) is underdeveloped and speculative: it is mentioned in only one paragraph with no experimental validation, no evaluation of its effectiveness, false positive/negative rates, or computational overhead, making the defense contribution incomplete.",
+                "severity": "major",
+                "evidence": "Section 7 introduces the autocorrelation-based detection method in 4 sentences with no experiments. Rebuttal confirms: 'Currently, Section 7 provides none of this validation' regarding TPR/FPR, baseline comparisons, adaptive attack robustness, or computational overhead. Rebuttal states the proposed defense would require 'implement and fully evaluate the method if experiments are ready' but explicitly notes this was not done: 'if option (B), the revised paper would report' indicates these results are conditional, not present.",
+                "affected_claim": "Contribution to mitigation and defense robustness",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Methodological concerns reduce confidence: (1) In Algorithm 1 line 6, the update wS := ϵ·sign(ĝS) appears ad-hoc—why apply sign function when magnitudes of gradients may vary significantly? (2) Convergence criterion for 'while not converged' is undefined; (3) The multiplicative perturbation formulation (Equation 3 vs 4) introduces inconsistency in notation and interpretation; (4) No statistical significance testing or confidence intervals reported for experimental results.",
+                "severity": "major",
+                "evidence": "Algorithm 1 line 6 applies sign(ĝS) without justification in the paper. Rebuttal provides reasoning: 'we use sign(ĝS) to ensure perturbations stay within the ϵ-ball, analogous to FGSM' but confirms this explanation is NOT in submission: 'The submitted paper provides no such justification or ablation.' On convergence, rebuttal confirms: 'the paper contains no operational definition.' On notation consistency (Eq. 3 vs 4), rebuttal states no resolution has been added. On statistical testing, rebuttal confirms: 'Table 1 reports point estimates with no uncertainty quantification.' The submitted paper contains none of the remedies proposed.",
+                "affected_claim": "Soundness of Algorithm 1 and reliability of experimental results",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Practical threat model is questionable: claiming 'black-box query access' while excluding defenses that exploit this setting (e.g., query-based adversarial training, certified robustness methods) is inconsistent. Additionally, the assumption that attackers can independently perturb time steps ignores temporal coherence and potential detectability in real-world applications.",
+                "severity": "minor",
+                "evidence": "Section 4 lists 'Possesses the ability to query the target model' but Section 6.6 only evaluates filter-based defenses. Rebuttal confirms no query-based defenses in submission: 'Currently, Section 6.6 evaluates only... without exploring training-based defenses.' On detectability, rebuttal acknowledges: 'Currently, the submitted paper does not address detectability or temporal coherence concerns.' These gaps remain in the submitted work.",
+                "affected_claim": "Realism and completeness of threat model and defense evaluation",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The rebuttal confirms that critical soundness gaps persist in the submitted paper: (1) the Yt→Ŷt substitution lacks theoretical justification or empirical validation—rebuttal explicitly states 'Currently, the submitted paper provides none of this analysis'; (2) Algorithm 1 has no operational convergence criterion—rebuttal confirms 'the paper contains no operational definition'; (3) the gradient sign operation lacks justification—rebuttal states 'The submitted paper provides no such justification.' These are not reviewer misunderstandings but acknowledged gaps confirmed by the authors. The submission lacks the theoretical rigor expected of a top-tier venue."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The rebuttal explicitly confirms limited novelty: 'We acknowledge that the submitted paper applies established SP and CCOP techniques without introducing new optimization algorithms.' Proposed algorithmic enhancements are absent: 'These enhancements are NOT in the current submission but would strengthen novelty if implemented.' The application to a new domain (LLM time series adversarial attacks) has merit, but the techniques themselves are directly adapted from compressive sensing without modification or theoretical innovation specific to this problem."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper demonstrates a meaningful vulnerability: 10% sparse perturbations significantly degrade LLM-based forecasters' performance. This finding is relevant and non-obvious. The significance stands despite evaluation limitations, as the core empirical finding—that sparse temporal attacks are effective—is substantive and important for understanding LLM robustness in critical applications."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The rebuttal confirms that critical evaluation gaps persist unresolved in the submitted paper: (1) No comparison with Liu et al. (2024b)—rebuttal explicitly states 'These results are not present in the submitted paper'; (2) GWN is weak baseline—rebuttal confirms 'we are currently obtaining results for this comparison' indicating Liu et al. (2024b) results are not in submission; (3) Missing ablations—rebuttal states 'Currently, Figure 5 shows...but not for algorithmic design choices'; (4) No statistical significance testing—rebuttal confirms 'Table 1 reports point estimates with no uncertainty quantification.' The evaluation is insufficient to support the central claims or to demonstrate superiority over existing methods."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written with clear motivation and experimental design. Figures and tables are informative. While some technical details lack clarity (convergence criterion, gradient sign justification), the overall presentation is adequate for assessment. This is not a barrier to acceptance."
+              }
+            },
+            "summary_comment": "The rebuttal demonstrates intellectual honesty by confirming, rather than disputing, the reviewer's assessment of gaps in the submitted paper. Notably, the authors explicitly acknowledge that: (1) the core techniques (SP, CCOP) are established without algorithmic innovation in the submission; (2) the Yt→Ŷt substitution lacks theoretical justification or empirical validation; (3) Algorithm 1's convergence criterion is undefined; (4) the gradient sign operation is unjustified; (5) the critical comparison with Liu et al. (2024b) is absent; (6) statistical significance testing and ablations on algorithmic parameters are missing; and (7) the autocorrelation-based defense is unvalidated. The rebuttal explicitly states many times: 'These enhancements are NOT in the current submission,' 'Currently, the submitted paper provides none of this,' 'These results are not present in the submitted paper,' and 'the paper contains no operational definition.' This transparency is commendable, but it reinforces that the submitted paper has substantial, unresolved weaknesses across multiple dimensions: novelty (no algorithmic innovation), soundness (unjustified design choices, undefined convergence), and evaluation (weak baselines, missing critical comparisons, no statistical rigor). The paper makes a contribution to understanding LLM robustness in a practically constrained setting, but the execution falls short of top-tier standards. The most critical issue is evaluation: the absence of comparison with the directly-cited Liu et al. (2024b) baseline is a fundamental gap that prevents assessment of whether TSA is actually superior to existing gradient-free methods. Coupling this with limited novelty, unjustified theoretical choices, and lack of statistical rigor, the work does not meet the standards for acceptance at a selective conference. A substantially revised submission addressing these gaps would be appropriate for future consideration."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited novelty: SP and CCOP are well-established techniques; application to time series lacks algorithmic innovation\",\n        \"Soundness gaps: Substitution Yt→Ŷt lacks rigorous justification; Algorithm 1 convergence criterion undefined; gradient sign operation unjustified\",\n        \"Weak evaluation baseline: GWN is random noise, not adversarial attack; missing Liu et al. (2024b) comparison\",\n        \"Missing ablations and statistical rigor: No ablations on Δ, convergence criteria; no significance testing or confidence intervals\",\n        \"Defense evaluation incomplete: Only filter-based methods; autocorrelation-based defense speculative and unvalidated\",\n        \"Reviewer concern about rebuttal vs. submission: Rebuttal acknowledges issues but does not resolve them in the submitted paper\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"SP and CCOP are from established literature without algorithmic innovation\",\n          \"location\": \"Section 5.2, References (Dai & Milenkovic, 2009; Bhattacharya, 2009; Ruiz-Torrubiano et al., 2010)\",\n          \"explanation\": \"Paper explicitly states: 'adapted SP method, as outlined in Algorithm 1, based on the approach by Dai & Milenkovic (2009).' CCOP formulation cites established optimization sources. No new algorithmic techniques are introduced in the submitted paper.\"\n        },\n        {\n          \"concern\": \"Substitution of Yt with Ŷt presented as practical necessity but lacks theoretical justification\",\n          \"location\": \"Section 4, before Equation (3)\",\n          \"explanation\": \"Paper states: 'To avoid future information leakage, the ground truth Yt is substituted with the predicted values Ŷt.' No analysis is provided in the submitted paper of approximation error, optimality impact, or convergence properties. The paper does not provide the theoretical bounds or empirical validation mentioned in the rebuttal.\"\n        },\n        {\n          \"concern\": \"Algorithm 1 convergence criterion is undefined in the submission\",\n          \"location\": \"Algorithm 1, line 3\",\n          \"explanation\": \"Stopping condition is 'while not converged' with no operational definition in the submitted paper. Rebuttal mentions 'maximum iterations (set to T/τ)' and 'support set S stabilizes' but these specifications do not appear in the submitted Algorithm 1.\"\n        },\n        {\n          \"concern\": \"Gradient sign operation lacks justification in the paper\",\n          \"location\": \"Algorithm 1, line 6; Equations (6)-(7)\",\n          \"explanation\": \"Paper shows wS := ϵ · sign(ĝS) without explanation. Rebuttal provides justification ('analogous to FGSM') and proposes ablation comparing magnitude-aware alternatives, but the submitted paper contains no such justification or ablation.\"\n        },\n        {\n          \"concern\": \"GWN is the primary baseline in evaluation\",\n          \"location\": \"Table 1, Section 6.3\",\n          \"explanation\": \"Table 1 compares Clean, w/ GWN, w/ TSA. Section 6.3 introduces GWN as 'baseline for comparison' but it is random noise, not an adversarial attack. Paper cites Liu et al. (2024b) as proposing gradient-free attacks but provides no comparison in the submitted paper.\"\n        },\n        {\n          \"concern\": \"No statistical significance testing or confidence intervals\",\n          \"location\": \"Table 1\",\n          \"explanation\": \"Results report point estimates only. Rebuttal proposes 're-run experiments with multiple seeds' and 'report means ± std' and 'perform significance tests,' but the submitted Table 1 contains no error bars, confidence intervals, or significance annotations.\"\n        },\n        {\n          \"concern\": \"Missing ablation studies on key algorithmic parameters\",\n          \"location\": \"Figure 5; Section 6.7\",\n          \"explanation\": \"Figure 5 shows sensitivity to τ and ϵ, but not to zero-gradient noise parameter Δ or convergence stopping criteria. Rebuttal promises 'ablation studies for: (1) Impact of zero-gradient estimation noise Δ... (2) Convergence criterion sensitivity' but these are absent from the submitted paper.\"\n        },\n        {\n          \"concern\": \"Defense evaluation limited to filter-based methods\",\n          \"location\": \"Section 6.6, Figure 4\",\n          \"explanation\": \"Only Gaussian, Mean, and Quantile filters are evaluated. Rebuttal proposes 'adversarial training using TSA-generated attacks' and 'certified defenses or robust regression techniques' but the submitted paper evaluates none of these.\"\n        },\n        {\n          \"concern\": \"Autocorrelation-based defense is speculative and unvalidated\",\n          \"location\": \"Section 7, paragraph starting line 385\",\n          \"explanation\": \"Described in 4 sentences with no experiments: 'The forecaster is used to backcast... Once detected, Gaussian filtering is applied... we plan to further explore.' No detection accuracy, false positive/negative rates, or computational overhead reported in the submitted paper.\"\n        },\n        {\n          \"concern\": \"No comparison with Liu et al. (2024b) gradient-free baseline\",\n          \"location\": \"Related Work (Section 2.2); Experiments (Section 6.4)\",\n          \"explanation\": \"Paper cites Liu et al. (2024b) as proposing gradient-free attacks but provides no empirical comparison. Rebuttal acknowledges: 'The core evaluation should compare TSA against Liu et al. (2024b)... This comparison is essential and was an oversight... We are currently obtaining results for this comparison.' These results are not present in the submitted paper.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Rebuttal promises fixes but submitted paper does not implement them; reviewer evaluates submitted work, not promised revisions\",\n          \"proposed_change\": \"We understand the reviewer's concern about evaluating the submitted paper as written, not as promised in rebuttals. We commit to delivering a substantially revised paper that implements all promised improvements, not merely promising them. This revision will be comprehensive and verified before resubmission. However, we recognize the core constraint: reviewers evaluate submissions, not future work. Below, we address each concern by clarifying what is (and is not) present in the current submission, and what would appear in a substantially revised version.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Novelty: Core techniques are from established literature; no algorithmic innovation in the submitted paper\",\n          \"proposed_change\": \"We acknowledge that the submitted paper applies established SP and CCOP techniques without introducing new optimization algorithms. To address novelty in a revised submission, we would implement one or more of the following: (1) Propose time-series-aware modifications to SP that exploit temporal correlation structure (e.g., promoting sparsity in specific time regions based on model sensitivity), (2) Develop approximation bounds or convergence guarantees specific to LLM-based forecasting, (3) Provide comprehensive empirical comparison showing SP significantly outperforms other sparse optimization baselines (Iterative Hard Thresholding, LASSO with sparsity constraints) on adversarial attack generation. These enhancements are NOT in the current submission but would strengthen novelty if implemented.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Soundness: Substitution Yt→Ŷt lacks rigorous justification; could lead to suboptimal or unstable attacks\",\n          \"proposed_change\": \"In a revised submission, we would include: (1) Theoretical analysis bounding the approximation error introduced by substituting predicted values for ground truth, under conditions on prediction quality. For instance, we would analyze how attack effectiveness degrades if predictions have error σ. (2) Empirical validation: on a held-out test set, compare attack effectiveness using true future values (oracle) vs. predicted values (practical). Measure the gap in attack success rate. (3) Analysis of when this approximation is tight (e.g., when the forecasting model has good prediction quality). Currently, the submitted paper provides none of this analysis.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Soundness: Algorithm 1 convergence criterion 'while not converged' is undefined\",\n          \"proposed_change\": \"In a revised submission, we would: (1) Explicitly define the convergence criterion (e.g., 'stop when support set S does not change for 3 consecutive iterations' or 'after maximum k iterations'), (2) Report the specific stopping condition used in experiments, (3) Provide empirical convergence analysis showing: (a) how loss r evolves over iterations, (b) how support set S stabilizes, (c) when the algorithm typically converges (number of iterations). (4) Add ablation study on stopping criteria: show how attack effectiveness changes if we use different stopping thresholds (strict vs. loose convergence). Currently, the submitted Algorithm 1 provides no operational definition.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Soundness: Line 6 of Algorithm 1 applies sign(ĝS) without justification; magnitude information is discarded\",\n          \"proposed_change\": \"In a revised submission, we would: (1) Add justification to the paper explaining why sign(ĝS) is used (analogous to FGSM, ensures imperceptibility constraint), (2) Include ablation study comparing three approaches: (a) wS := ϵ · sign(ĝS) [current], (b) wS := (ĝS / ||ĝS||∞) · ϵ [magnitude-normalized], (c) Adaptive magnitude based on gradient variance. Show empirical attack effectiveness for each. (3) Discuss trade-offs: why discard magnitude information in favor of simplicity? Does normalization by gradient magnitude help? Currently, the submitted paper provides no such ablation or justification.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Evaluation: GWN is weak baseline (random noise, not adversarial attack); missing Liu et al. (2024b) comparison\",\n          \"proposed_change\": \"In a revised submission, we would: (1) Add comprehensive comparison with Liu et al. (2024b) gradient-free full-series attack using the same experimental setup (datasets, models, metrics). Specifically: (a) Report both full-series attack and TSA results side-by-side in a new table or extend Table 1. (b) Compare query complexity: how many queries does each method require? (c) Show that TSA achieves comparable or better attack effectiveness with far fewer queries due to sparsity. (2) Supplement GWN with additional random baselines (e.g., uniform random perturbations, adversarial examples targeted at wrong time steps) to better contextualize the comparison. (3) Clearly label GWN as 'random perturbation baseline' rather than 'adversarial attack baseline' to avoid confusion. Currently, the submitted Table 1 contains no comparison with Liu et al. (2024b).\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Evaluation: No statistical significance testing or confidence intervals\",\n          \"proposed_change\": \"In a revised submission, we would: (1) Re-run all experiments (Table 1, Figure 4, Figure 5) with multiple random seeds (e.g., 5-10 seeds with different initializations for zero-gradient noise Δ). (2) Report results as mean ± standard deviation or 95% confidence intervals. (3) Perform paired t-tests or Wilcoxon signed-rank tests comparing: (a) TSA vs. GWN, (b) TSA vs. full-series attack (Liu et al. 2024b). Report p-values. (4) Use error bars in figures. Currently, Table 1 reports point estimates with no uncertainty quantification.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Evaluation: Missing ablation studies on key design choices (zero-gradient Δ, convergence criteria)\",\n          \"proposed_change\": \"In a revised submission, we would add a new subsection with ablations for: (1) Zero-gradient noise parameter Δ: show attack effectiveness as Δ varies (currently fixed). Does larger Δ lead to noisier gradient estimates? How does this affect attack success? (2) Convergence criterion sensitivity: compare strict vs. loose stopping conditions. Does earlier stopping significantly reduce attack effectiveness? (3) Gradient magnitude handling: compare sign-based vs. magnitude-aware perturbations (see previous point about line 6 of Algorithm 1). (4) Support set selection: is selecting τ largest losses (line 4 and 7 of Algorithm 1) optimal? Compare with other selection strategies. Currently, Figure 5 shows hyperparameter sensitivity for τ and ϵ but not for algorithmic design choices.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Evaluation: Defense evaluation limited to simple filters; no adversarial training or certified defenses\",\n          \"proposed_change\": \"In a revised submission, we would: (1) Attempt adversarial training: fine-tune a subset of LLM-based forecasting models using TSA-generated adversarial examples. Report robustness improvement (acknowledge computational costs but provide results). (2) Evaluate certified defense methods or robust regression techniques beyond filtering. (3) Develop defense baselines that exploit the query-access model (e.g., query budgets, detection of anomalous queries). (4) Report recovery rates: how much error reduction can each defense achieve? Create a comprehensive defense evaluation table. (5) Explore adaptive attacks: attacker knows the defense mechanism. Can TSA evade known defenses? Currently, Section 6.6 evaluates only Gaussian, Mean, and Quantile filters.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Defense contribution incomplete: Autocorrelation-based detection method is speculative and unvalidated\",\n          \"proposed_change\": \"In a revised submission, we would either: (A) Move Section 7 to 'Future Work' section with explicit statement that the autocorrelation-based defense is preliminary and requires future development, OR (B) Implement and fully evaluate the method if experiments are ready. If option (B), the revised paper would report: (1) Detection accuracy: True Positive Rate (TPR) and False Positive Rate (FPR) as functions of attack sparsity τ. (2) Comparison with anomaly detection baselines (Isolation Forest, Autoencoder-based, statistical tests). (3) Robustness to adaptive attacks: attacker knows the detection mechanism and tries to evade it. (4) Computational overhead: how much time does detection add? (5) Integration with forecasting: does detection+filtering improve forecasting accuracy? Currently, Section 7 provides none of this validation.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Threat model: Assumption that attackers can independently perturb time steps may be unrealistic; sparse perturbations may be easily detected\",\n          \"proposed_change\": \"In a revised submission, we would: (1) Apply standard anomaly detection algorithms (Isolation Forest, Autoencoder-based, LSTM-based) to TSA-perturbed time series and report detection rates. How often can anomaly detection identify that the time series has been attacked? (2) Compare detectability of TSA (sparse independent perturbations) vs. full-series attacks (distributed perturbations). (3) Discuss realistic attack scenarios where temporal independence is plausible (e.g., sensor faults, data corruption by insider with limited time budget). (4) Propose adaptive attack strategies that preserve temporal coherence while maintaining sparsity (e.g., clustering perturbations to specific time windows). Currently, the submitted paper does not address detectability or temporal coherence concerns.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the reviewer's careful evaluation and the meta-level feedback that submissions should be judged on their content, not on promises made in rebuttals. This feedback is fair and reflects standard review practice. We take full responsibility for the gaps in the submitted paper and provide a clear, honest account of what the submission contains versus what we proposed in the rebuttal.\\n\\n**Clarification on Submitted vs. Promised Content:**\\n\\nThe reviewer correctly identifies that our rebuttal acknowledges gaps but does not resolve them in the submitted paper. We confirm this assessment:\\n\\n1. **Novelty**: The submitted paper applies established SP and CCOP techniques without algorithmic innovation. Our rebuttal proposes time-series-aware modifications to SP and approximation bounds, but these are NOT in the current submission.\\n\\n2. **Soundness of Yt→Ŷt substitution**: The submitted paper states this is done 'to avoid future information leakage' but provides no theoretical analysis or empirical validation. Our rebuttal proposes bounding approximation error and comparing oracle vs. predicted values, but these analyses are absent from the submission.\\n\\n3. **Algorithm 1 convergence**: The submitted Algorithm 1 says 'while not converged' with no operational definition. Our rebuttal mentions 'maximum iterations (set to T/τ)' and 'support set stabilizes,' but the paper contains no such specification.\\n\\n4. **Gradient sign operation**: The submitted paper shows wS := ϵ · sign(ĝS) without justification. Our rebuttal provides reasoning (FGSM analogy) and proposes an ablation study, but neither appears in the paper.\\n\\n5. **Evaluation baseline**: Table 1 compares only Clean, GWN, and TSA. Our rebuttal acknowledges the absence of Liu et al. (2024b) comparison and states 'we are currently obtaining results,' but these results are not in the submission.\\n\\n6. **Statistical rigor**: Table 1 reports point estimates without error bars or significance tests. Our rebuttal proposes multiple seeds, confidence intervals, and t-tests, but the submission contains none of these.\\n\\n7. **Defense evaluation**: Section 6.6 evaluates only filter-based methods. Our rebuttal proposes adversarial training and certified defenses, but these experiments are not in the paper.\\n\\n8. **Autocorrelation defense**: Section 7 is one paragraph with no validation. Our rebuttal proposes either removing it or fully implementing it, but neither has been done in the submission.\\n\\n**Our Response to the Core Concern:**\\n\\nThe reviewer is right to enforce the principle that papers are evaluated as submitted. However, we respectfully note that the rebuttal phase is designed to address reviewer concerns by clarifying the work or providing additional context, not necessarily to fully resolve every gap identified in a review. Our rebuttal accurately identified the reviewer's concerns and provided substantive, checkable explanations of what would be needed to address them.\\n\\nThat said, we recognize that many of the identified gaps (especially missing comparisons with Liu et al. 2024b, lack of statistical significance testing, and incomplete ablations) are substantive weaknesses that, if present in a revised submission, would significantly strengthen the paper.\\n\\n**Path Forward:**\\n\\nWe are committed to preparing a substantially revised version that addresses the core issues:\\n\\n1. We will conduct the missing comparison with Liu et al. (2024b) full-series attack, with results clearly presented in the main paper.\\n\\n2. We will add statistical significance testing with multiple seeds, confidence intervals, and significance annotations to all results.\\n\\n3. We will add comprehensive ablation studies on key design choices (gradient magnitude handling, convergence criteria, zero-gradient noise parameter Δ).\\n\\n4. We will either remove the underdeveloped autocorrelation-based defense or fully implement and validate it with experimental results.\\n\\n5. We will provide explicit operational definitions for Algorithm 1's convergence criterion and add justification for the gradient sign operation.\\n\\n6. We will include theoretical or empirical analysis of the Yt→Ŷt substitution, analyzing how this approximation affects attack quality.\\n\\nThese revisions, if implemented, will address the major soundness, evaluation, and completeness concerns raised in both the original review and this rebuttal. The revised paper will be substantially stronger and more suitable for publication at a selective venue.\\n\\n**On Novelty:**\\n\\nWe acknowledge that the core optimization technique (Subspace Pursuit) is from established literature. However, we maintain that the application to adversarial attacks on LLM-based time series forecasting, under strict black-box and sparsity constraints, is novel and practically significant. The finding that 10% sparse perturbations can substantially degrade LLM-based forecasters is meaningful and not obvious a priori. To strengthen the algorithmic novelty, a revised version could include time-series-aware modifications to SP or approximation-theoretic analysis specific to this problem domain, which we would pursue if accepted for revision.\\n\\n**Conclusion:**\\n\\nWe take the reviewer's feedback seriously and commit to delivering a revised submission that implements—not just promises—the improvements identified as necessary. The paper addresses an important problem with practical implications, but requires substantial strengthening in evaluation rigor, theoretical justification, and completeness.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_8c1974251259",
+    "conference": "ICML",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/icml_reject_2025_019_temporally_sparse_attack_for_fooling_large_language_models_in_time_series_foreca.md",
+    "target_paper_summary": {
+      "paper_id": "paper_8c1974251259",
+      "title": "Temporally Sparse Attack For Fooling Large Language Models In Time Series Forecasting",
+      "abstract": "## Anonymous Authors1 Abstract",
+      "topic": "",
+      "claims": []
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_ecfee9605",
+        "title": "Taxonomy of Risks posed by Language Models",
+        "authors": [
+          "Laura Weidinger",
+          "Jonathan Uesato",
+          "Maribeth Rauh",
+          "Conor Griffin",
+          "Po-Sen Huang",
+          "John Mellor",
+          "Amelia Glaese",
+          "Myra Cheng",
+          "Borja Balle",
+          "Atoosa Kasirzadeh",
+          "Courtney Biles",
+          "Sasha Brown",
+          "Zac Kenton",
+          "Will Hawkins",
+          "Tom Stepleton",
+          "Abeba Birhane",
+          "Lisa Anne Hendricks",
+          "Laura Rimell",
+          "William Isaac",
+          "Julia Haas",
+          "Sean Legassick",
+          "Geoffrey Irving",
+          "Iason Gabriel"
+        ],
+        "year": 2022,
+        "publication_date": "2022-06-20",
+        "venue": "2022 ACM Conference on Fairness, Accountability, and Transparency",
+        "abstract": "Responsible innovation on large-scale Language Models (LMs) requires foresight into and in-depth understanding of the risks these models may pose. This paper develops a comprehensive taxonomy of ethical and social risks associated with LMs. We identify twenty-one risks, drawing on expertise and literature from computer science, linguistics, and the social sciences. We situate these risks in our taxonomy of six risk areas: I. Discrimination, Hate speech and Exclusion, II. Information Hazards, III. Misinformation Harms, IV. Malicious Uses, V. Human-Computer Interaction Harms, and VI. Environmental and Socioeconomic harms. For risks that have already been observed in LMs, the causal mechanism leading to harm, evidence of the risk, and approaches to risk mitigation are discussed. We further describe and analyse risks that have not yet been observed but are anticipated based on assessments of other language technologies, and situate these in the same taxonomy. We underscore that it is the responsibility of organizations to engage with the mitigations we discuss throughout the paper. We close by highlighting challenges and directions for further research on risk evaluation and mitigation with the goal of ensuring that language models are developed responsibly.",
+        "url": "https://doi.org/10.1145/3531146.3533088",
+        "doi": "https://doi.org/10.1145/3531146.3533088",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4283170666"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 644
+      },
+      {
+        "paper_id": "rw_002_587a48467",
+        "title": "Interpreting Black-Box Models: A Review on Explainable Artificial Intelligence",
+        "authors": [
+          "Vikas Hassija",
+          "Vinay Chamola",
+          "Atmesh Mahapatra",
+          "Abhinandan Singal",
+          "Divyansh Goel",
+          "Kaizhu Huang",
+          "Simone Scardapane",
+          "Indro Spinelli",
+          "Mufti Mahmud",
+          "Amir Hussain"
+        ],
+        "year": 2023,
+        "publication_date": "2023-08-24",
+        "venue": "Cognitive Computation",
+        "abstract": "Abstract Recent years have seen a tremendous growth in Artificial Intelligence (AI)-based methodological development in a broad range of domains. In this rapidly evolving field, large number of methods are being reported using machine learning (ML) and Deep Learning (DL) models. Majority of these models are inherently complex and lacks explanations of the decision making process causing these models to be termed as 'Black-Box'. One of the major bottlenecks to adopt such models in mission-critical application domains, such as banking, e-commerce, healthcare, and public services and safety, is the difficulty in interpreting them. Due to the rapid proleferation of these AI models, explaining their learning and decision making process are getting harder which require transparency and easy predictability. Aiming to collate the current state-of-the-art in interpreting the black-box models, this study provides a comprehensive analysis of the explainable AI (XAI) models. To reduce false negative and false positive outcomes of these back-box models, finding flaws in them is still difficult and inefficient. In this paper, the development of XAI is reviewed meticulously through careful selection and analysis of the current state-of-the-art of XAI research. It also provides a comprehensive and in-depth evaluation of the XAI frameworks and their efficacy to serve as a starting point of XAI for applied and theoretical researchers. Towards the end, it highlights emerging and critical issues pertaining to XAI research to showcase major, model-specific trends for better explanation, enhanced transparency, and improved prediction accuracy.",
+        "url": "https://doi.org/10.1007/s12559-023-10179-8",
+        "doi": "https://doi.org/10.1007/s12559-023-10179-8",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4386142022"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1831
+      },
+      {
+        "paper_id": "rw_003_06ef2fbca",
+        "title": "Data Augmentation techniques in time series domain: a survey and taxonomy",
+        "authors": [
+          "Guillermo Iglesias",
+          "Edgar Talavera",
+          "Ángel González-Prieto",
+          "Alberto Mozó",
+          "Sandra Gómez-Canaval"
+        ],
+        "year": 2023,
+        "publication_date": "2023-03-24",
+        "venue": "Neural Computing and Applications",
+        "abstract": "Abstract With the latest advances in deep learning-based generative models, it has not taken long to take advantage of their remarkable performance in the area of time series. Deep neural networks used to work with time series heavily depend on the size and consistency of the datasets used in training. These features are not usually abundant in the real world, where they are usually limited and often have constraints that must be guaranteed. Therefore, an effective way to increase the amount of data is by using data augmentation techniques, either by adding noise or permutations and by generating new synthetic data. This work systematically reviews the current state of the art in the area to provide an overview of all available algorithms and proposes a taxonomy of the most relevant research. The efficiency of the different variants will be evaluated as a central part of the process, as well as the different metrics to evaluate the performance and the main problems concerning each model will be analysed. The ultimate aim of this study is to provide a summary of the evolution and performance of areas that produce better results to guide future researchers in this field.",
+        "url": "https://doi.org/10.1007/s00521-023-08459-3",
+        "doi": "https://doi.org/10.1007/s00521-023-08459-3",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4360860566"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 318
+      },
+      {
+        "paper_id": "rw_004_3c46fbe4b",
+        "title": "Deep learning modelling techniques: current progress, applications, advantages, and challenges",
+        "authors": [
+          "Shams Forruque Ahmed",
+          "Md. Sakib Bin Alam",
+          "Maruf Hassan",
+          "Mahtabin Rodela Rozbu",
+          "Taoseef Ishtiak",
+          "Nazifa Rafa",
+          "M. Mofijur",
+          "A. B. M. Shawkat Ali",
+          "Amir H. Gandomi"
+        ],
+        "year": 2023,
+        "publication_date": "2023-04-17",
+        "venue": "Artificial Intelligence Review",
+        "abstract": "Abstract Deep learning (DL) is revolutionizing evidence-based decision-making techniques that can be applied across various sectors. Specifically, it possesses the ability to utilize two or more levels of non-linear feature transformation of the given data via representation learning in order to overcome limitations posed by large datasets. As a multidisciplinary field that is still in its nascent phase, articles that survey DL architectures encompassing the full scope of the field are rather limited. Thus, this paper comprehensively reviews the state-of-art DL modelling techniques and provides insights into their advantages and challenges. It was found that many of the models exhibit a highly domain-specific efficiency and could be trained by two or more methods. However, training DL models can be very time-consuming, expensive, and requires huge samples for better accuracy. Since DL is also susceptible to deception and misclassification and tends to get stuck on local minima, improved optimization of parameters is required to create more robust models. Regardless, DL has already been leading to groundbreaking results in the healthcare, education, security, commercial, industrial, as well as government sectors. Some models, like the convolutional neural network (CNN), generative adversarial networks (GAN), recurrent neural network (RNN), recursive neural networks, and autoencoders, are frequently used, while the potential of other models remains widely unexplored. Pertinently, hybrid conventional DL architectures have the capacity to overcome the challenges experienced by conventional models. Considering that capsule architectures may dominate future DL models, this work aimed to compile information for stakeholders involved in the development and use of DL models in the contemporary world.",
+        "url": "https://doi.org/10.1007/s10462-023-10466-8",
+        "doi": "https://doi.org/10.1007/s10462-023-10466-8",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4366091323"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 997
+      },
+      {
+        "paper_id": "rw_005_a21da2f4b",
+        "title": "Deep Learning: A Comprehensive Overview on Techniques, Taxonomy, Applications and Research Directions",
+        "authors": [
+          "Iqbal H. Sarker"
+        ],
+        "year": 2021,
+        "publication_date": "2021-08-18",
+        "venue": "SN Computer Science",
+        "abstract": "",
+        "url": "https://doi.org/10.1007/s42979-021-00815-1",
+        "doi": "https://doi.org/10.1007/s42979-021-00815-1",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3194730353"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 2473
+      },
+      {
+        "paper_id": "rw_007_4a3e045ae",
+        "title": "Explainable AI for clinical and remote health applications: a survey on tabular and time series data",
+        "authors": [
+          "Flavio Di Martino",
+          "Franca Delmastro"
+        ],
+        "year": 2022,
+        "publication_date": "2022-10-26",
+        "venue": "Artificial Intelligence Review",
+        "abstract": "Nowadays Artificial Intelligence (AI) has become a fundamental component of healthcare applications, both clinical and remote, but the best performing AI systems are often too complex to be self-explaining. Explainable AI (XAI) techniques are defined to unveil the reasoning behind the system's predictions and decisions, and they become even more critical when dealing with sensitive and personal health data. It is worth noting that XAI has not gathered the same attention across different research areas and data types, especially in healthcare. In particular, many clinical and remote health applications are based on tabular and time series data, respectively, and XAI is not commonly analysed on these data types, while computer vision and Natural Language Processing (NLP) are the reference applications. To provide an overview of XAI methods that are most suitable for tabular and time series data in the healthcare domain, this paper provides a review of the literature in the last 5 years, illustrating the type of generated explanations and the efforts provided to evaluate their relevance and quality. Specifically, we identify clinical validation, consistency assessment, objective and standardised quality evaluation, and human-centered quality assessment as key features to ensure effective explanations for the end users. Finally, we highlight the main research challenges in the field as well as the limitations of existing XAI methods.",
+        "url": "https://doi.org/10.1007/s10462-022-10304-3",
+        "doi": "https://doi.org/10.1007/s10462-022-10304-3",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4307572272"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 193
+      },
+      {
+        "paper_id": "rw_008_fa1679b20",
+        "title": "Survey on Factuality in Large Language Models: Knowledge, Retrieval and Domain-Specificity",
+        "authors": [
+          "Cunxiang Wang",
+          "Xiaoze Liu",
+          "Yuanhao Yue",
+          "Xiangru Tang",
+          "Tianhang Zhang",
+          "Jiayang, Cheng",
+          "Yunzhi Yao",
+          "Wen‐Yang Gao",
+          "Xuming Hu",
+          "Zehan Qi",
+          "Yidong Wang",
+          "Linyi Yang",
+          "Jindong Wang",
+          "Xing Xie",
+          "Zheng Zhang",
+          "Yue Zhang"
+        ],
+        "year": 2023,
+        "publication_date": "2023-10-11",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "This survey addresses the crucial issue of factuality in Large Language Models (LLMs). As LLMs find applications across diverse domains, the reliability and accuracy of their outputs become vital. We define the Factuality Issue as the probability of LLMs to produce content inconsistent with established facts. We first delve into the implications of these inaccuracies, highlighting the potential consequences and challenges posed by factual errors in LLM outputs. Subsequently, we analyze the mechanisms through which LLMs store and process facts, seeking the primary causes of factual errors. Our discussion then transitions to methodologies for evaluating LLM factuality, emphasizing key metrics, benchmarks, and studies. We further explore strategies for enhancing LLM factuality, including approaches tailored for specific domains. We focus two primary LLM configurations standalone LLMs and Retrieval-Augmented LLMs that utilizes external data, we detail their unique challenges and potential enhancements. Our survey offers a structured guide for researchers aiming to fortify the factual reliability of LLMs.",
+        "url": "http://arxiv.org/abs/2310.07521",
+        "doi": "https://doi.org/10.48550/arxiv.2310.07521",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4387596421"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 55
+      },
+      {
+        "paper_id": "rw_009_572f17b27",
+        "title": "Comparative Analysis of Intrusion Detection Systems and Machine Learning-Based Model Analysis Through Decision Tree",
+        "authors": [
+          "Zahedi Azam",
+          "Md. Motaharul Islam",
+          "Mohammad Nurul Huda"
+        ],
+        "year": 2023,
+        "publication_date": "2023-01-01",
+        "venue": "IEEE Access",
+        "abstract": "Cyber-attacks pose increasing challenges in precisely detecting intrusions, risking data confidentiality, integrity, and availability. This review paper presents recent IDS taxonomy, a comprehensive review of intrusion detection techniques, and commonly used datasets for evaluation. It discusses evasion techniques employed by attackers and the challenges in combating them to enhance network security. Researchers strive to improve IDS by accurately detecting intruders, reducing false positives, and identifying new threats. Machine learning (ML) and deep learning (DL) techniques are adopted in IDS systems, showing potential in efficiently detecting intruders across networks. The paper explores the latest trends and advancements in ML and DL-based network intrusion detection systems (NIDS), including methodology, evaluation metrics, and dataset selection. It emphasizes research obstacles and proposes a future research model to address weaknesses in the methodologies. The decision tree, known for its speed and user-friendliness, is proposed as a model for detecting result anomalies, combining findings from a comparative survey. This research aims to provide insights into building an effective decision tree-based detection framework.",
+        "url": "https://doi.org/10.1109/access.2023.3296444",
+        "doi": "https://doi.org/10.1109/access.2023.3296444",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4384787750"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 239
+      },
+      {
+        "paper_id": "rw_010_10decc94f",
+        "title": "A review of time-series analysis for cyber security analytics: from intrusion detection to attack prediction",
+        "authors": [
+          "Max Landauer",
+          "Florian Skopik",
+          "Branka Stojanović",
+          "Andreas Flatscher",
+          "Torsten Ullrich"
+        ],
+        "year": 2024,
+        "publication_date": "2024-10-30",
+        "venue": "International Journal of Information Security",
+        "abstract": "Abstract Understanding the current threat landscape as well as timely detection of imminent attacks are primary objectives of cyber security. Through time-series modeling of security data, such as event logs, alerts, or incidents, analysts take a step towards these goals. On the one hand, extrapolating time-series to predict future occurrences of attacks and vulnerabilities is able to support decision-making and preparation against threats. On the other hand, detection of model deviations as anomalies can point to suspicious outliers and thereby disclose cyber attacks. However, since the set of available techniques for time-series analysis is just as diverse as the research domains in the area of cyber security analytics, it can be difficult for analysts to understand which approaches fit the properties of security data at hand. This paper therefore conducts a broad literature review in research domains that leverage time-series analysis for cyber security analytics, with focus on available techniques, data sets, and challenges imposed by applications or feature properties. The results of our study indicate that relevant approaches range from detective systems ingesting short-term and low-level events to models that produce long-term forecasts of high-level attack cases.",
+        "url": "https://doi.org/10.1007/s10207-024-00921-0",
+        "doi": "https://doi.org/10.1007/s10207-024-00921-0",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4403887247"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 30
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_010_10decc94f",
+        "relevance_score": 0.73,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "It provides an analysis of time-series modeling and anomaly detection for security, which is the core data modality and a potential application domain for the target paper's 'temporally sparse attack' on models used for forecasting.",
+        "evidence_summary": "In 2024, Landauer et al. published 'A review of time-series analysis for cyber security analytics: from intrusion detection to attack prediction' in the International Journal of Information Security. The paper reviewed approaches to modeling security data as time-series for attack prediction and anomaly detection. It reported that relevant techniques range from systems analyzing short-term, low-level events to models producing long-term forecasts of high-level attack cases."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_007_4a3e045ae",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "It surveys Explainable AI (XAI) for time series data, which relates to understanding model decisions and vulnerabilities, potentially providing context for methods to fool LLMs in time-sensitive tasks.",
+        "evidence_summary": "In 2022, Martino and Delmastro published 'Explainable AI for clinical and remote health applications: a survey on tabular and time series data' in Artificial Intelligence Review. The paper provided a review of XAI methods for tabular and time series data in healthcare, highlighting the importance of transparency for sensitive data. It identified key evaluation features for explanations, such as clinical validation, consistency assessment, and human-centered quality assessment, and noted limitations of existing methods."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_003_06ef2fbca",
+        "relevance_score": 0.66,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "It surveys data augmentation techniques for time series, including deep generative models, which establishes relevant background on manipulating or generating time series data that could be pertinent to creating or defending against adversarial attacks.",
+        "evidence_summary": "In 2023, Iglesias et al. published 'Data Augmentation techniques in time series domain: a survey and taxonomy' in Neural Computing and Applications. The work systematically reviewed state-of-the-art data augmentation algorithms for time series, proposing a taxonomy and evaluating the efficiency of different variants. The authors analyzed different performance metrics and main problems concerning each model, aiming to guide future researchers in the field."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_008_fa1679b20",
+        "relevance_score": 0.62,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "It surveys factuality issues in LLMs, which deals with reliability and accuracy of outputs, connecting to the general concern of fooling or generating incorrect outputs from LLMs, albeit not specifically in a time-series forecasting context.",
+        "evidence_summary": "In 2023, Wang et al. published 'Survey on Factuality in Large Language Models: Knowledge, Retrieval and Domain-Specificity' on arXiv. The survey addressed the issue of LLMs producing content inconsistent with established facts, analyzing mechanisms of fact storage, causes of errors, and methodologies for evaluation. It explored enhancement strategies for both standalone and retrieval-augmented LLMs, detailing their unique challenges."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_001_ecfee9605",
+        "relevance_score": 0.58,
+        "relevance_types": [
+          "same_problem"
+        ],
+        "rationale": "It provides a taxonomy of risks posed by language models, including 'Malicious Uses', which offers a high-level framework for understanding potential adversarial harms like the attack described in the target paper.",
+        "evidence_summary": "In 2022, Weidinger et al. published 'Taxonomy of Risks posed by Language Models' presented at the 2022 ACM Conference on Fairness, Accountability, and Transparency. The paper developed a comprehensive taxonomy of twenty-one ethical and social risks associated with LMs, organizing them into six areas including Malicious Uses. For observed risks, it discussed causal mechanisms, evidence, and mitigation approaches, and anticipated risks based on other language technologies."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_002_587a48467",
+        "relevance_score": 0.5,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "It reviews explainable AI (XAI) for interpreting black-box models, which is a broad methodological domain relevant to understanding model vulnerabilities that adversarial attacks might exploit.",
+        "evidence_summary": "In 2023, Hassija et al. published 'Interpreting Black-Box Models: A Review on Explainable Artificial Intelligence' in Cognitive Computation. This study provided a comprehensive analysis of XAI models, reviewing their development and offering an in-depth evaluation of XAI frameworks and their efficacy. It aimed to serve as a starting point for researchers and highlighted emerging issues in XAI to improve explanation quality and transparency."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_004_3c46fbe4b",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "It reviews deep learning modeling techniques, providing general background on architectures like CNNs, GANs, and RNNs that are foundational for many time series and language models, but it does not specifically address attacks or time series forecasting.",
+        "evidence_summary": "In 2023, Ahmed et al. published 'Deep learning modelling techniques: current progress, applications, advantages, and challenges' in Artificial Intelligence Review. The paper comprehensively reviewed state-of-the-art DL modelling techniques, discussing their applications, advantages, and challenges. It noted that many models are domain-specific, can be time-consuming and expensive to train, and are susceptible to deception, misclassification, and local minima, requiring improved parameter optimization."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_005_a21da2f4b",
+        "relevance_score": 0.41,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "It is a broad overview of deep learning, providing general background context but with no specific connection to attacks, time series, or language models.",
+        "evidence_summary": "In 2021, Sarker published 'Deep Learning: A Comprehensive Overview on Techniques, Taxonomy, Applications and Research Directions' in SN Computer Science. The paper provided a comprehensive overview of deep learning techniques, taxonomies, applications, and research directions."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_009_572f17b27",
+        "relevance_score": 0.4,
+        "relevance_types": [
+          "same_problem"
+        ],
+        "rationale": "It discusses intrusion detection and evasion techniques in cybersecurity, which is a domain where adversarial attacks (including potentially time-series-based) are relevant, but it focuses on network security rather than LLMs or forecasting.",
+        "evidence_summary": "In 2023, Azam et al. published 'Comparative Analysis of Intrusion Detection Systems and Machine Learning-Based Model Analysis Through Decision Tree' in IEEE Access. The review presented recent IDS taxonomy, a review of intrusion detection techniques, and discussed evasion techniques and challenges. It explored trends in ML and DL-based network intrusion detection systems and proposed a decision tree model for detecting anomalies."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Max Landauer et al. published \"A review of time-series analysis for cyber security analytics: from intrusion detection to attack prediction\" in International Journal of Information Security. However, since the set of available techniques for time-series analysis is just as diverse as the research domains in the area of cyber security analytics, it can be difficult for analysts to understand which approaches fit the properties of security data at hand. The results of the paper indicate that relevant approaches range from detective systems ingesting short-term and low-level events to models that produce long-term forecasts of high-level attack cases. This paper therefore conducts a broad literature review in research domains that leverage time-series analysis for cyber security analytics, with focus on available techniques, data sets, and challenges imposed by applications or feature properties. In 2022, Flavio Di Martino and Franca Delmastro published \"Explainable AI for clinical and remote health applications: a survey on tabular and time series data\" in Artificial Intelligence Review. In particular, many clinical and remote health applications are based on tabular and time series data, respectively, and XAI is not commonly analysed on these data types, while computer vision and Natural Language Processing (NLP) are the reference applications. It is worth noting that XAI has not gathered the same attention across different research areas and data types, especially in healthcare. Finally, the authors highlight the main research challenges in the field as well as the limitations of existing XAI methods. In 2023, Guillermo Iglesias et al. published \"Data Augmentation techniques in time series domain: a survey and taxonomy\" in Neural Computing and Applications. Therefore, an effective way to increase the amount of data is by using data augmentation techniques, either by adding noise or permutations and by generating new synthetic data. The ultimate aim of this study is to provide a summary of the evolution and performance of areas that produce better results to guide future researchers in this field. Abstract With the latest advances in deep learning-based generative models, it has not taken long to take advantage of their remarkable performance in the area of time series. In 2023, Cunxiang Wang et al. published \"Survey on Factuality in Large Language Models: Knowledge, Retrieval and Domain-Specificity\" in arXiv (Cornell University). The authors first delve into the implications of these inaccuracies, highlighting the potential consequences and challenges posed by factual errors in LLM outputs. As LLMs find applications across diverse domains, the reliability and accuracy of their outputs become vital. This survey addresses the crucial issue of factuality in Large Language Models (LLMs). In 2022, Laura Weidinger et al. published \"Taxonomy of Risks posed by Language Models\" in 2022 ACM Conference on Fairness, Accountability, and Transparency. This paper develops a comprehensive taxonomy of ethical and social risks associated with LMs. The authors underscore that it is the responsibility of organizations to engage with the mitigations the authors discuss throughout the paper. Responsible innovation on large-scale Language Models (LMs) requires foresight into and in-depth understanding of the risks these models may pose. In 2023, Vikas Hassija et al. published \"Interpreting Black-Box Models: A Review on Explainable Artificial Intelligence\" in Cognitive Computation. Abstract Recent years have seen a tremendous growth in Artificial Intelligence (AI)-based methodological development in a broad range of domains. Towards the end, it highlights emerging and critical issues pertaining to XAI research to showcase major, model-specific trends for better explanation, enhanced transparency, and improved prediction accuracy. To reduce false negative and false positive outcomes of these back-box models, finding flaws in them is still difficult and inefficient.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

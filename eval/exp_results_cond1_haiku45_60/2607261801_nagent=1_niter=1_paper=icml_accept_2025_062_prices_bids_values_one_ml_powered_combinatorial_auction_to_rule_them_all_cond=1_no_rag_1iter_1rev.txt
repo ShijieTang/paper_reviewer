@@ -1,0 +1,218 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Novel theoretical framework establishing when and why demand queries (DQs) vs value queries (VQs) are beneficial, with formal results (Proposition 3.1, Theorem 3.2) proving complementary strengths of each query type and the importance of ordering.",
+        "Well-designed mixed training algorithm (Section 4) that provably leverages information from both query types, with empirical validation (Table 1) showing marked improvements in learning performance, particularly for utility-maximizing bundles.",
+        "Significant empirical improvements demonstrating practical impact: MLHCA reduces efficiency loss by up to 10x compared to SOTA (BOCA in LSVM), achieves perfect 100% efficiency in SRVM with fewer queries than competitors, and outperforms all baselines across all four tested domains while using fewer total queries.",
+        "Introduction of the 'bridge bid' mechanism (Definition D.8, Lemma D.9) as an elegant solution to the non-monotonicity problem when transitioning from DQs to VQs, with clear theoretical guarantees and strong empirical validation in Section 6.3.",
+        "Comprehensive treatment of practical considerations including activity rules, payment mechanisms, incentive analysis, and detection of inconsistent reports (Appendices B.3-B.5), demonstrating readiness for real-world deployment.",
+        "Strong alignment between theoretical predictions and experimental results: efficiency losses in CCA/ML-CCA show predicted non-monotonicity (Proposition 3.3), random VQs show early inefficiency (Proposition 3.1), and inverse query ordering performs worse (Appendix G.9), validating core theoretical claims."
+      ],
+      "weaknesses": [
+        "Limited experimental scope: evaluation restricted to synthetic SATS domains without real bidder data; generalization to actual spectrum auctions or other domains remains untested, raising questions about robustness to real-world preference distributions.",
+        "Incomplete incentive analysis: while Appendices B.3-B.5 provide extensive discussion, truthful bidding is only proven to be an ex-post Nash equilibrium under strong assumptions (Assumptions 1-2) that may not hold in practice; the VQ phase lacks full strategyproofness despite practical arguments.",
+        "Hyperparameter optimization advantage not fully isolated: MLHCA's VQ rounds underwent domain-specific HPO (Appendix E.2) while baselines used fixed configurations from prior papers, creating potential bias that could inflate relative performance claims.",
+        "Missing ablation studies on critical design choices: no systematic study of QCCA (initial CCA rounds) and QDQ (ML-powered DQ rounds) sensitivity; query budget allocation (40 DQs + 60 VQs) appears somewhat arbitrary despite strong results.",
+        "Scalability and computational complexity not thoroughly addressed despite claims of low computational costs (relegated to Appendix G.4); missing analysis of how approach scales to real large-scale spectrum auctions with hundreds of items and bidders.",
+        "Bridge bid necessity understated: while Figure 2 shows 7.3 percentage point efficiency drop without it and requires 20 additional VQs to recover, the paper doesn't fully quantify how often and how severely this issue manifests across different domain types and value distributions."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited experimental scope: evaluation restricted to synthetic SATS domains without real bidder data; generalization to actual spectrum auctions or other domains remains untested, raising questions about robustness to real-world preference distributions.",
+          "severity": "major",
+          "evidence": "Section 6.1 states experiments are on 'GSVM, LSVM, SRVM, and MRVM domains' from SATS. MRVM 'simulates the 2014 Canadian spectrum auction' but uses synthetic rather than real bidder preferences. No experiments with actual auction data or real bidders.",
+          "affected_claim": "MLHCA's generalizability and practical readiness for deployment in real-world auctions",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Incomplete incentive analysis: while Appendices B.3-B.5 provide extensive discussion, truthful bidding is only proven to be an ex-post Nash equilibrium under strong assumptions (Assumptions 1-2) that may not hold in practice; the VQ phase lacks full strategyproofness despite practical arguments.",
+          "severity": "major",
+          "evidence": "Section 1.4 and Appendix B.5 acknowledge that VQ-based phase of MLHCA is 'not strategyproof'. Result 2 in Appendix B.5 states ex-post Nash only holds 'if both Assumption 1 and Assumption 2 hold'. Remark B.7 notes 'Theoretically achieving 100% efficiency in all 50 random instances does not suffice as mathematical proof'.",
+          "affected_claim": "MLHCA provides robust incentive guarantees comparable to mechanism design standards",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Hyperparameter optimization advantage not fully isolated: MLHCA's VQ rounds underwent domain-specific HPO (Appendix E.2) while baselines used fixed configurations from prior papers, creating potential bias that could inflate relative performance claims.",
+          "severity": "major",
+          "evidence": "Section 6.1 states 'For MLHCA's VQ rounds, we performed HPO separately for each bidder type in each domain, as detailed in Appendix E.2. For the DQ rounds, we adopted the HPO parameters reported by Soumalias et al. (2024c)... For BOCA and ML-CCA, we use the best mechanism configurations and hyperparameters reported in their respective papers.'",
+          "affected_claim": "MLHCA's superior performance compared to BOCA and ML-CCA is due to algorithm design rather than hyperparameter tuning",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Missing ablation studies on critical design choices: no systematic study of QCCA (initial CCA rounds) and QDQ (ML-powered DQ rounds) sensitivity; query budget allocation (40 DQs + 60 VQs) appears somewhat arbitrary despite strong results.",
+          "severity": "minor",
+          "evidence": "Algorithm 1 uses parameters QCCA, QDQ, QVQ but experiments only test one configuration (40 DQs + 60 VQs). No ablation showing sensitivity to these choices. Section 6.1 states 'These consist of... 40 DQs and 60 VQs for MLHCA' without justification for this split.",
+          "affected_claim": "MLHCA's design is robust and near-optimal",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Scalability and computational complexity not thoroughly addressed despite claims of low computational costs (relegated to Appendix G.4); missing analysis of how approach scales to real large-scale spectrum auctions with hundreds of items and bidders.",
+          "severity": "minor",
+          "evidence": "Main text claims 'MLHCA significantly reduces the cognitive load on bidders' and references 'low computational costs' but 'For further experimental details and analysis of MLHCA's low computational costs, please refer to Appendices G.3 and G.4 respectively.' Experiments use at most 4 domains from SATS but real spectrum auctions can be much larger.",
+          "affected_claim": "MLHCA is computationally practical for large-scale real-world auctions",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Bridge bid necessity understated: while Figure 2 shows 7.3 percentage point efficiency drop without it and requires 20 additional VQs to recover, the paper doesn't fully quantify how often and how severely this issue manifests across different domain types and value distributions.",
+          "severity": "minor",
+          "evidence": "Figure 2 shows bridge bid analysis only for MRVM domain. Appendix G.8 provides 'detailed analysis' but main text Section 6.3 only briefly mentions the result. No systematic analysis across all domains of the frequency/severity of efficiency drops at VQ transition.",
+          "affected_claim": "Bridge bid is a universally necessary and effective component of hybrid auctions",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The theoretical framework is sound with formal results (Proposition 3.1, Theorem 3.2, Lemma D.9) providing rigorous justification for combining DQs and VQs. The mixed training algorithm (Section 4) correctly addresses learning from both query types. Mathematical formulations (WDP in Eq. 3, inferred values in Eq. 2) are properly defined. Minor concern: incentive guarantees rely on strong assumptions, but this is acknowledged and discussed extensively in appendices."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper makes several novel contributions: (1) First theoretical framework formally establishing complementary strengths of DQs vs VQs in auctions (Proposition 3.1, Theorem 3.2); (2) Mixed training algorithm that provably leverages both query types; (3) Bridge bid mechanism solving the non-monotonicity problem when switching from DQs to VQs; (4) First practical ICA combining sophisticated DQ and VQ generation. While individual components build on prior work (MVNNs, ML-CCA, BOCA), the integration and theoretical insights are novel."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "Results demonstrate substantial practical impact: 10x efficiency loss reduction in LSVM compared to previous SOTA, first mechanism achieving 100% efficiency in SRVM, 26-42% fewer queries than alternatives. For spectrum auctions with billions in revenue, 2 percentage point efficiency improvements translate to ~USD 100 million welfare gains. The work addresses the critical trade-off between efficiency and convergence speed in real-world auctions. Establishes new benchmark for both practicality and efficiency."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Experiments are comprehensive across four domains with proper statistical testing (t-tests with 5% significance level, 95% CIs reported). Learning analysis (Table 1) uses proper train/test splits with appropriate metrics (R², KT, MAE, R²c). Comparisons fairly implement prior work's best configurations. Theoretical predictions align well with empirical results (non-monotonicity in Figure 1, efficiency drops without bridge bid in Figure 2). Main concern: limited to synthetic domains without real auction data, and MLHCA received HPO advantage, but experiments remain convincing within their scope."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "Paper is clearly written with well-structured flow from motivation through theory to mechanism design to experiments. Theoretical results are stated precisely with intuitive explanations (e.g., Section 3 discussion of why DQs dominate early and VQs later). Algorithms presented formally (Algorithm 1). Figures effectively illustrate results (Figure 1 shows efficiency paths, Figure 2 validates bridge bid). Extensive appendices provide supporting details without cluttering main text. Notation is generally consistent and defined carefully."
+        }
+      },
+      "summary_comment": "This is a well-executed paper that makes solid theoretical and practical contributions to machine learning-powered iterative combinatorial auctions. The key insight—that demand and value queries have complementary strengths and should be combined in a specific order with careful handling (bridge bid)—is both novel and well-validated. The theoretical framework (Proposition 3.1, Theorem 3.2) rigorously establishes this insight, and the mixed training algorithm properly exploits both query types. Experimentally, MLHCA demonstrates substantial improvements over prior work across all tested domains, with practical significance for billion-dollar spectrum auctions. The paper thoughtfully addresses implementation details including activity rules, payment mechanisms, and incentive considerations. However, several weaknesses prevent this from being an exceptional contribution: (1) evaluation limited to synthetic domains without real auction data, (2) incomplete incentive guarantees relying on strong assumptions, (3) MLHCA's VQ rounds received domain-specific HPO while baselines used fixed parameters, potentially inflating performance differences, and (4) missing ablations on key design choices like the 40/60 DQ/VQ split. These issues are fixable (mostly through additional experiments or fair comparison protocols) but represent gaps in the current submission. The work makes meaningful advances in an important application domain and establishes a new benchmark, but lacks the polish and completeness expected of top-tier work. The extensive appendices demonstrate significant effort, but key practical considerations (scalability, real bidder data) warrant fuller treatment in future work."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Core machine learning contribution: The paper presents a novel mixed training algorithm (Section 4) that provably leverages both demand and value query data, with experimental validation showing improved learning performance. This is a genuine ML methodological advance applicable beyond auctions.\",\n      \"Optimization focus: The work involves solving constrained optimization problems (WDP in Eq. 3, convex price optimization in Appendix A.3) and uses neural networks (MVNNs) for function approximation, which aligns with ICML's strong interest in optimization and deep learning methods.\",\n      \"Learning theory contribution: Proposition 3.1 and Theorem 3.2 establish formal learning-theoretic results about query efficiency and information content, providing theoretical grounding that goes beyond pure application.\",\n      \"Reproducibility and methodology: The paper provides extensive algorithmic details, hyperparameter specifications, code availability promise, and careful experimental design with proper statistical testing—all valued by ICML.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Primary framing is application-domain specific: The paper is fundamentally about auction mechanism design for spectrum allocation, not general machine learning advancement. The motivation, problem setup, and evaluation are entirely auction-centric rather than ML-centric.\",\n      \"Limited algorithmic novelty in ML components: The paper uses existing MVNN architecture (Weissteiner et al., 2022a) and adapts existing training approaches. The mixed training algorithm (Section 4.1) combines existing DQ loss from ML-CCA with standard regression loss—a straightforward application rather than fundamental ML innovation.\",\n      \"Experimental evaluation is domain-specific: All experiments use SATS (Spectrum Auction Test Suite) synthetic domains. ICML values ML contributions validated across diverse, general-purpose benchmarks. The paper lacks experiments on other combinatorial problems or broader machine learning settings.\",\n      \"Mechanism design is the primary contribution: The key insights (Propositions 3.1-3.3, Theorem 3.2, bridge bid mechanism) are fundamentally about auction theory and mechanism design, not machine learning. The ML serves as a tool within the mechanism rather than being the subject of study.\",\n      \"Theory is auction-theoretic, not ML-theoretic: While the paper contains formal results, they concern query complexity in auctions and when to switch between query types—these are mechanism design questions, not machine learning theory questions about generalization, optimization, or sample complexity.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Interdisciplinary focus explicitly welcomed: NeurIPS explicitly invites 'interdisciplinary submissions that do not fit neatly into existing categories.' This paper bridges ML and economics/mechanism design, fitting this stated priority perfectly.\",\n      \"Application-driven ML: The paper exemplifies NeurIPS's interest in 'application-driven machine learning' with 'innovative techniques, problems, and datasets that are of interest to the machine learning community.' Spectrum auctions represent a high-stakes real-world application with billions in social welfare implications.\",\n      \"Significant practical impact: The empirical results (10x efficiency loss reduction, first 100% efficiency achievement in SRVM, 26-42% fewer queries) and the potential for USD 100+ million welfare gains in realistic domains demonstrate the kind of practical significance NeurIPS values.\",\n      \"Novel learning insights: The theoretical framework establishing complementary strengths of different query types (Proposition 3.1, Theorem 3.2) and the mixed training algorithm (Section 4) provide insights about how to effectively combine different information sources for learning—relevant to the broader ML community.\",\n      \"Comprehensive treatment: The paper carefully considers incentives (Appendix B.5), activity rules (Appendix B.3), and detection of inconsistencies (Appendix B.4)—demonstrating the kind of thoughtful, systems-level thinking that NeurIPS increasingly values in ML applications.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Mechanism design dominance: The paper's core contributions are fundamentally about auction mechanism design, not machine learning. The theoretical results (Theorem 3.2, Proposition 3.3) are mechanism-design results about query efficiency, not ML results. This positions the work more appropriately for economics/game theory venues.\",\n      \"Limited ML novelty: The neural network architecture (MVNN) is from prior work, the DQ training uses existing loss from ML-CCA, and VQ training uses standard regression. The mixed training algorithm is a relatively straightforward combination. NeurIPS generally prioritizes algorithmic or methodological ML advances.\",\n      \"Synthetic-only evaluation: All experiments use SATS simulator without real auction data, real bidders, or field validation. While MRVM simulates a real auction environment, it uses synthetic preferences. NeurIPS increasingly expects ML papers to demonstrate real-world applicability.\",\n      \"Missing benchmark comparison scope: While the paper compares against BOCA and ML-CCA (the prior two best mechanisms), it doesn't compare against general-purpose Bayesian optimization or active learning baselines from the broader ML literature. This limits relevance to the ML community.\",\n      \"Incomplete incentive analysis limits contribution: The VQ phase is not strategyproof, and ex-post Nash equilibrium only holds under strong, potentially unrealistic assumptions (Appendix B.5). For an ML paper submitted to NeurIPS rather than an economics venue, this gap is more problematic—the mechanism's practical deployability is questionable.\",\n      \"Topic classification as 'Others': The submitted topic is explicitly marked 'Others,' suggesting misalignment with NeurIPS's core topic areas (computer vision, language models, robotics, decision-making, RL, optimization, theory, deep learning, general ML—none of which are the paper's primary focus).\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Representation learning and learning theory: The mixed training algorithm (Section 4) and the theoretical analysis of how MVNNs learn from different query types directly addresses how neural networks learn value function representations. Table 1 demonstrates marked differences in representation quality depending on training data composition, relevant to ICLR's core interest in representation learning.\",\n      \"Deep learning with structured constraints: MVNNs exemplify ICLR's interest in 'unsupervised, self-supervised, semi-supervised, and supervised representation learning' with explicit structural constraints (monotonicity). The paper contributes insights about how inductive biases affect learning (Section C.1, Proposition C.5).\",\n      \"Learning theory and optimization: Theorem 3.2 and related results analyze sample complexity and information efficiency of different query strategies. The optimization of price vectors via gradient descent (Appendix A.3) involves non-convex optimization over neural network predictions—both core ICLR topics.\",\n      \"Applications with societal impact: ICLR values 'applications to physical sciences, sustainability, economics' and 'societal considerations including fairness.' Spectrum allocation with billions in welfare gains fits this priority, and the paper considers practical deployment concerns (activity rules, incentives).\",\n      \"Novel training approach for constrained domains: The mixed training algorithm (Algorithm 4) demonstrates how to effectively train constrained neural networks (MVNNs) on heterogeneous data types (DQs establishing lower bounds vs. VQs providing exact values). This is relevant to ICLR's interest in 'neurosymbolic & hybrid AI systems.'\",\n      \"Bridging theory and practice: The paper balances theoretical guarantees (Lemmas D.7, D.9 about bridge bid necessity/sufficiency) with practical algorithmic design, exemplifying ICLR's appreciation for work that connects deep learning theory to real applications.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Primary focus is mechanism design, not deep learning: While the paper uses MVNNs and contributes learning insights, the core contributions are about auction mechanism design (query ordering, bridge bid mechanism, integrating DQs and VQs). The mechanism design aspects dominate the learning contributions.\",\n      \"Limited scope of learning innovation: The MVNN architecture itself is from prior work (Weissteiner et al., 2022a). The mixed training algorithm combines existing DQ loss with standard regression loss—a useful but incremental ML contribution. For ICLR standards, the learning methodology advances are modest.\",\n      \"Evaluation limited to narrow domain: All experiments are on spectrum auction simulation (SATS). While MRVM is realistic, there's no evaluation on other combinatorial domains or general machine learning benchmarks. ICLR expects broader validation of learning contributions.\",\n      \"Incomplete strategyproofness analysis problematic: For an ICLR paper, the incomplete incentive guarantees (VQ phase not strategyproof, Nash equilibrium only under strong assumptions) represent a significant limitation. The mechanism's practical viability hinges on incentives, which remain partially unresolved.\",\n      \"Hyperparameter optimization bias in comparison: Section 6.1 reveals that MLHCA's VQ rounds underwent domain-specific HPO while baselines used fixed configurations from prior papers. For ICLR—which emphasizes methodological rigor—this represents a fairness concern in empirical comparison that inflates MLHCA's apparent advantages.\",\n      \"No comparison to general-purpose learning methods: The paper doesn't benchmark against general Bayesian optimization or active learning algorithms from the broader literature (e.g., generic uncertainty sampling, entropy reduction methods). Demonstrating that the auction-specific approach outperforms domain-agnostic learning would strengthen ICLR fit.\",\n      \"Scalability analysis missing: Despite being a deep learning paper, there's minimal analysis of how MVNN training scales to large-scale auctions. Computational complexity analysis is relegated to appendix (G.4), and scalability to hundreds of items/bidders is not demonstrated.\"\n    ]\n  }\n}\n```\n\n---\n\n## Key Observations\n\n**Core Issue:** This paper is fundamentally a **mechanism design contribution** that *uses* machine learning as a tool, rather than a **machine learning contribution** to auction design. This positioning matters significantly for venue fit.\n\n### Why The Scores Differ\n\n- **ICML (5/10 - Weak Fit):** ICML's core is advancing machine learning methods and theory. This paper's ML components (MVNN, mixed training) are incremental applications of existing techniques. The fundamental innovations (query ordering, bridge bid, hybrid query combination) are auction-theoretic, not ML-theoretic. The learning advances are real but secondary to the mechanism design story.\n\n- **NeurIPS (6/10 - Borderline/Risky):** NeurIPS explicitly welcomes interdisciplinary work, making it more accommodating. The paper has genuine ML+application merit and significant practical impact. However, the mechanism design dominance, synthetic-only evaluation, incomplete incentive guarantees, and hyperparameter bias create substantial risk. The \"Others\" topic classification signals misalignment with NeurIPS's core technical focus areas.\n\n- **ICLR (7/10 - Good Fit):** ICLR's broader scope (representation learning, applications, constrained learning problems, societal impact) makes it the best match. The learning insights are more relevant here (how MVNNs learn from different query types, representation quality analysis), and ICLR accepts more application-forward work. However, ICLR still primarily values deep learning advances, and this paper's core contributions remain mechanism-design-oriented. The hyperparameter bias in experiments and incomplete strategyproofness analysis are concerns, but less disqualifying than for ICML.\n\n### Critical Weaknesses Across Venues\n\n1. **Hyperparameter optimization bias** (mentioned by Reviewer 1): This is especially damaging for ICML and ICLR, which value methodological rigor. MLHCA received domain-specific HPO while baselines used fixed parameters—this should have been controlled for.\n\n2. **Synthetic-only evaluation:** No real spectrum auction data or field validation limits credibility for all venues, though it's most problematic for ICML.\n\n3. **Incomplete incentive analysis:** The VQ phase is not strategyproof and Nash only under strong assumptions. For ICLR, this is a notable gap; for ICML/NeurIPS, it may be acceptable if positioned as future work.\n\n### Recommendation\n\nThe paper is **strongest fit for ICLR**, where it can be positioned as \"deep learning for economic mechanism design\" with genuine contributions to representation learning in constrained domains. For **NeurIPS**, it would need stronger positioning as an ML contribution and more rigorous experimental design (fixing the HPO bias). For **ICML**, the lack of core ML novelty makes it a reach.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel theoretical framework establishing when and why demand queries (DQs) vs value queries (VQs) are beneficial, with formal results (Proposition 3.1, Theorem 3.2) proving complementary strengths of each query type and the importance of ordering.",
+              "Well-designed mixed training algorithm (Section 4) that provably leverages information from both query types, with empirical validation (Table 1) showing marked improvements in learning performance, particularly for utility-maximizing bundles.",
+              "Significant empirical improvements demonstrating practical impact: MLHCA reduces efficiency loss by up to 10x compared to SOTA (BOCA in LSVM), achieves perfect 100% efficiency in SRVM with fewer queries than competitors, and outperforms all baselines across all four tested domains while using fewer total queries.",
+              "Introduction of the 'bridge bid' mechanism (Definition D.8, Lemma D.9) as an elegant solution to the non-monotonicity problem when transitioning from DQs to VQs, with clear theoretical guarantees and strong empirical validation in Section 6.3.",
+              "Comprehensive treatment of practical considerations including activity rules, payment mechanisms, incentive analysis, and detection of inconsistent reports (Appendices B.3-B.5), demonstrating readiness for real-world deployment.",
+              "Strong alignment between theoretical predictions and experimental results: efficiency losses in CCA/ML-CCA show predicted non-monotonicity (Proposition 3.3), random VQs show early inefficiency (Proposition 3.1), and inverse query ordering performs worse (Appendix G.9), validating core theoretical claims."
+            ],
+            "weaknesses": [
+              "Limited experimental scope: evaluation restricted to synthetic SATS domains without real bidder data; generalization to actual spectrum auctions or other domains remains untested, raising questions about robustness to real-world preference distributions.",
+              "Incomplete incentive analysis: while Appendices B.3-B.5 provide extensive discussion, truthful bidding is only proven to be an ex-post Nash equilibrium under strong assumptions (Assumptions 1-2) that may not hold in practice; the VQ phase lacks full strategyproofness despite practical arguments.",
+              "Hyperparameter optimization advantage not fully isolated: MLHCA's VQ rounds underwent domain-specific HPO (Appendix E.2) while baselines used fixed configurations from prior papers, creating potential bias that could inflate relative performance claims.",
+              "Missing ablation studies on critical design choices: no systematic study of QCCA (initial CCA rounds) and QDQ (ML-powered DQ rounds) sensitivity; query budget allocation (40 DQs + 60 VQs) appears somewhat arbitrary despite strong results.",
+              "Scalability and computational complexity not thoroughly addressed despite claims of low computational costs (relegated to Appendix G.4); missing analysis of how approach scales to real large-scale spectrum auctions with hundreds of items and bidders.",
+              "Bridge bid necessity understated: while Figure 2 shows 7.3 percentage point efficiency drop without it and requires 20 additional VQs to recover, the paper doesn't fully quantify how often and how severely this issue manifests across different domain types and value distributions."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited experimental scope: evaluation restricted to synthetic SATS domains without real bidder data; generalization to actual spectrum auctions or other domains remains untested, raising questions about robustness to real-world preference distributions.",
+                "severity": "major",
+                "evidence": "Section 6.1 states experiments are on 'GSVM, LSVM, SRVM, and MRVM domains' from SATS. MRVM 'simulates the 2014 Canadian spectrum auction' but uses synthetic rather than real bidder preferences. No experiments with actual auction data or real bidders.",
+                "affected_claim": "MLHCA's generalizability and practical readiness for deployment in real-world auctions",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Incomplete incentive analysis: while Appendices B.3-B.5 provide extensive discussion, truthful bidding is only proven to be an ex-post Nash equilibrium under strong assumptions (Assumptions 1-2) that may not hold in practice; the VQ phase lacks full strategyproofness despite practical arguments.",
+                "severity": "major",
+                "evidence": "Section 1.4 and Appendix B.5 acknowledge that VQ-based phase of MLHCA is 'not strategyproof'. Result 2 in Appendix B.5 states ex-post Nash only holds 'if both Assumption 1 and Assumption 2 hold'. Remark B.7 notes 'Theoretically achieving 100% efficiency in all 50 random instances does not suffice as mathematical proof'.",
+                "affected_claim": "MLHCA provides robust incentive guarantees comparable to mechanism design standards",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Hyperparameter optimization advantage not fully isolated: MLHCA's VQ rounds underwent domain-specific HPO (Appendix E.2) while baselines used fixed configurations from prior papers, creating potential bias that could inflate relative performance claims.",
+                "severity": "major",
+                "evidence": "Section 6.1 states 'For MLHCA's VQ rounds, we performed HPO separately for each bidder type in each domain, as detailed in Appendix E.2. For the DQ rounds, we adopted the HPO parameters reported by Soumalias et al. (2024c)... For BOCA and ML-CCA, we use the best mechanism configurations and hyperparameters reported in their respective papers.'",
+                "affected_claim": "MLHCA's superior performance compared to BOCA and ML-CCA is due to algorithm design rather than hyperparameter tuning",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Missing ablation studies on critical design choices: no systematic study of QCCA (initial CCA rounds) and QDQ (ML-powered DQ rounds) sensitivity; query budget allocation (40 DQs + 60 VQs) appears somewhat arbitrary despite strong results.",
+                "severity": "minor",
+                "evidence": "Algorithm 1 uses parameters QCCA, QDQ, QVQ but experiments only test one configuration (40 DQs + 60 VQs). No ablation showing sensitivity to these choices. Section 6.1 states 'These consist of... 40 DQs and 60 VQs for MLHCA' without justification for this split.",
+                "affected_claim": "MLHCA's design is robust and near-optimal",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Scalability and computational complexity not thoroughly addressed despite claims of low computational costs (relegated to Appendix G.4); missing analysis of how approach scales to real large-scale spectrum auctions with hundreds of items and bidders.",
+                "severity": "minor",
+                "evidence": "Main text claims 'MLHCA significantly reduces the cognitive load on bidders' and references 'low computational costs' but 'For further experimental details and analysis of MLHCA's low computational costs, please refer to Appendices G.3 and G.4 respectively.' Experiments use at most 4 domains from SATS but real spectrum auctions can be much larger.",
+                "affected_claim": "MLHCA is computationally practical for large-scale real-world auctions",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Bridge bid necessity understated: while Figure 2 shows 7.3 percentage point efficiency drop without it and requires 20 additional VQs to recover, the paper doesn't fully quantify how often and how severely this issue manifests across different domain types and value distributions.",
+                "severity": "minor",
+                "evidence": "Figure 2 shows bridge bid analysis only for MRVM domain. Appendix G.8 provides 'detailed analysis' but main text Section 6.3 only briefly mentions the result. No systematic analysis across all domains of the frequency/severity of efficiency drops at VQ transition.",
+                "affected_claim": "Bridge bid is a universally necessary and effective component of hybrid auctions",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The theoretical framework is sound with formal results (Proposition 3.1, Theorem 3.2, Lemma D.9) providing rigorous justification for combining DQs and VQs. The mixed training algorithm (Section 4) correctly addresses learning from both query types. Mathematical formulations (WDP in Eq. 3, inferred values in Eq. 2) are properly defined. Minor concern: incentive guarantees rely on strong assumptions, but this is acknowledged and discussed extensively in appendices."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper makes several novel contributions: (1) First theoretical framework formally establishing complementary strengths of DQs vs VQs in auctions (Proposition 3.1, Theorem 3.2); (2) Mixed training algorithm that provably leverages both query types; (3) Bridge bid mechanism solving the non-monotonicity problem when switching from DQs to VQs; (4) First practical ICA combining sophisticated DQ and VQ generation. While individual components build on prior work (MVNNs, ML-CCA, BOCA), the integration and theoretical insights are novel."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "Results demonstrate substantial practical impact: 10x efficiency loss reduction in LSVM compared to previous SOTA, first mechanism achieving 100% efficiency in SRVM, 26-42% fewer queries than alternatives. For spectrum auctions with billions in revenue, 2 percentage point efficiency improvements translate to ~USD 100 million welfare gains. The work addresses the critical trade-off between efficiency and convergence speed in real-world auctions. Establishes new benchmark for both practicality and efficiency."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive across four domains with proper statistical testing (t-tests with 5% significance level, 95% CIs reported). Learning analysis (Table 1) uses proper train/test splits with appropriate metrics (R², KT, MAE, R²c). Comparisons fairly implement prior work's best configurations. Theoretical predictions align well with empirical results (non-monotonicity in Figure 1, efficiency drops without bridge bid in Figure 2). Main concern: limited to synthetic domains without real auction data, and MLHCA received HPO advantage, but experiments remain convincing within their scope."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "Paper is clearly written with well-structured flow from motivation through theory to mechanism design to experiments. Theoretical results are stated precisely with intuitive explanations (e.g., Section 3 discussion of why DQs dominate early and VQs later). Algorithms presented formally (Algorithm 1). Figures effectively illustrate results (Figure 1 shows efficiency paths, Figure 2 validates bridge bid). Extensive appendices provide supporting details without cluttering main text. Notation is generally consistent and defined carefully."
+              }
+            },
+            "summary_comment": "This is a well-executed paper that makes solid theoretical and practical contributions to machine learning-powered iterative combinatorial auctions. The key insight—that demand and value queries have complementary strengths and should be combined in a specific order with careful handling (bridge bid)—is both novel and well-validated. The theoretical framework (Proposition 3.1, Theorem 3.2) rigorously establishes this insight, and the mixed training algorithm properly exploits both query types. Experimentally, MLHCA demonstrates substantial improvements over prior work across all tested domains, with practical significance for billion-dollar spectrum auctions. The paper thoughtfully addresses implementation details including activity rules, payment mechanisms, and incentive considerations. However, several weaknesses prevent this from being an exceptional contribution: (1) evaluation limited to synthetic domains without real auction data, (2) incomplete incentive guarantees relying on strong assumptions, (3) MLHCA's VQ rounds received domain-specific HPO while baselines used fixed parameters, potentially inflating performance differences, and (4) missing ablations on key design choices like the 40/60 DQ/VQ split. These issues are fixable (mostly through additional experiments or fair comparison protocols) but represent gaps in the current submission. The work makes meaningful advances in an important application domain and establishes a new benchmark, but lacks the polish and completeness expected of top-tier work. The extensive appendices demonstrate significant effort, but key practical considerations (scalability, real bidder data) warrant fuller treatment in future work."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

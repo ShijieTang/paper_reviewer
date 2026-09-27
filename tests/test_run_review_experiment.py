@@ -168,41 +168,51 @@ class TestRunExperimentTopicNormalization(unittest.TestCase):
         for c in mock_mas.call_args_list:
             self.assertEqual(c[1]["topic"], "Computer Vision")
 
-    def test_both_conditions_run_per_paper(self):
-        """Each paper should trigger both condition A and B."""
+    def test_every_condition_runs_per_paper(self):
+        """Each paper should trigger one run per configured condition."""
         mock_mas = self._run(self._make_papers("NLP"))
-        self.assertEqual(mock_mas.call_count, 2)
+        self.assertEqual(mock_mas.call_count, len(experiment_module.CONDITIONS))
 
     def test_experiment_disables_citation_check(self):
         mock_mas = self._run(self._make_papers("NLP"))
         for c in mock_mas.call_args_list:
             self.assertFalse(c[1]["run_citation_check"])
 
+    def _result_filename(self, cond: dict) -> str:
+        return (
+            f"2501010000_nagent={len(cond['agents'])}_niter={cond['n_iter']}"
+            f"_paper=test_001_cond={cond['id']}_{cond['label']}.txt"
+        )
+
     def test_existing_condition_is_skipped(self):
         fake_result = {"reviewers": [], "conference": {}, "citations": {}}
         papers = self._make_papers("NLP")
+        conditions = experiment_module.CONDITIONS
         with tempfile.TemporaryDirectory() as tmpdir:
-            existing_path = Path(tmpdir) / "2501010000_nagent=1_niter=1_styledetector=1_paper=test_001_cond=A_single.txt"
-            existing_path.write_text(json.dumps(fake_result), encoding="utf-8")
+            first = conditions[0]
+            Path(tmpdir, self._result_filename(first)).write_text(
+                json.dumps(fake_result), encoding="utf-8"
+            )
 
             with patch("eval.experiment.pdf_to_markdown", return_value="paper text"), \
                  patch("eval.experiment.mas_main", return_value=fake_result) as mock_mas:
                 summary = run_experiment(papers, api_key="key", output_dir=tmpdir)
 
-            self.assertEqual(mock_mas.call_count, 1)
-            self.assertTrue(summary["papers"][0]["conditions"]["A"]["reused_existing"])
-            self.assertFalse(summary["papers"][0]["conditions"]["B"]["reused_existing"])
+            self.assertEqual(mock_mas.call_count, len(conditions) - 1)
+            saved = summary["papers"][0]["conditions"]
+            self.assertTrue(saved[first["id"]]["reused_existing"])
+            for cond in conditions[1:]:
+                self.assertFalse(saved[cond["id"]]["reused_existing"])
 
     def test_all_existing_conditions_skip_markdown_and_model(self):
         fake_result = {"reviewers": [], "conference": {}, "citations": {}}
         papers = self._make_papers("NLP")
+        conditions = experiment_module.CONDITIONS
         with tempfile.TemporaryDirectory() as tmpdir:
-            Path(tmpdir, "2501010000_nagent=1_niter=1_styledetector=1_paper=test_001_cond=A_single.txt").write_text(
-                json.dumps(fake_result), encoding="utf-8"
-            )
-            Path(tmpdir, "2501010001_nagent=3_niter=3_styledetector=1_paper=test_001_cond=B_multi.txt").write_text(
-                json.dumps(fake_result), encoding="utf-8"
-            )
+            for cond in conditions:
+                Path(tmpdir, self._result_filename(cond)).write_text(
+                    json.dumps(fake_result), encoding="utf-8"
+                )
 
             with patch("eval.experiment.pdf_to_markdown", return_value="paper text") as mock_md, \
                  patch("eval.experiment.mas_main", return_value=fake_result) as mock_mas:
@@ -210,15 +220,18 @@ class TestRunExperimentTopicNormalization(unittest.TestCase):
 
             mock_md.assert_not_called()
             mock_mas.assert_not_called()
-            self.assertTrue(summary["papers"][0]["conditions"]["A"]["reused_existing"])
-            self.assertTrue(summary["papers"][0]["conditions"]["B"]["reused_existing"])
+            for cond in conditions:
+                self.assertTrue(summary["papers"][0]["conditions"][cond["id"]]["reused_existing"])
 
     def test_mismatched_existing_condition_not_reused(self):
+        """A file from an earlier experiment shape must not satisfy a condition."""
         fake_result = {"reviewers": [], "conference": {}, "citations": {}}
         papers = self._make_papers("NLP")
+        conditions = experiment_module.CONDITIONS
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Old output from a previous experiment shape; should not match current condition B.
-            Path(tmpdir, "2501010000_nagent=2_niter=2_styledetector=1_paper=test_001_cond=B_multi.txt").write_text(
+            stale = dict(conditions[0])
+            stale["n_iter"] = conditions[0]["n_iter"] + 7
+            Path(tmpdir, self._result_filename(stale)).write_text(
                 json.dumps(fake_result), encoding="utf-8"
             )
 
@@ -226,8 +239,10 @@ class TestRunExperimentTopicNormalization(unittest.TestCase):
                  patch("eval.experiment.mas_main", return_value=fake_result) as mock_mas:
                 summary = run_experiment(papers, api_key="key", output_dir=tmpdir)
 
-            self.assertEqual(mock_mas.call_count, 2)
-            self.assertFalse(summary["papers"][0]["conditions"]["B"]["reused_existing"])
+            self.assertEqual(mock_mas.call_count, len(conditions))
+            self.assertFalse(
+                summary["papers"][0]["conditions"][conditions[0]["id"]]["reused_existing"]
+            )
 
 
 class TestMarkdownReuse(unittest.TestCase):

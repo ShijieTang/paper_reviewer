@@ -1,0 +1,148 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Strong theoretical contributions with rigorous proofs: The paper extends prior work (Sarrof et al. 2024) on diagonal LRNNs to non-diagonal architectures and proves that LRNNs with negative eigenvalues can recognize any regular language. Theorems 1-4 provide clear characterizations of what tasks LRNNs can and cannot solve, with formal proofs leveraging finite state automata theory and Jordan canonical forms.",
+        "Simple, practical modification with clear motivation: The proposed extension of eigenvalue range from [0,1] to [-1,1] (Equation 2) is elegantly simple and comes at no computational cost. The modification directly addresses theoretical limitations while remaining compatible with efficient implementations on modern hardware.",
+        "Comprehensive experimental validation across multiple domains: The paper includes well-designed experiments spanning formal language tasks (parity, modular arithmetic), group word problems (S5 permutations), and large-scale language modeling (up to 1.3B parameters). The experiments convincingly demonstrate that theory translates to practice, particularly for state-tracking tasks."
+      ],
+      "weaknesses": [
+        "Limited practical improvements on language modeling and numerical compatibility issues: While DeltaNet shows improvements on code/math tasks, the gains are modest and inconsistent (Figure 5). More significantly, the modification breaks log-space cumulative product computation used by Mamba2, GLA, and mLSTM (acknowledged in limitations), making it incompatible with popular efficient variants. The paper provides no solution to this compatibility issue.",
+        "Theoretical results have substantial gaps between theory and practice: Theorem 4 requires up to 2|Q| layers and n≤|Q| for arbitrary FSAs, which is exponential in FSA states. The practical implications for real-world tasks remain unclear. Additionally, the expressivity of multi-layer DeltaNet (non-diagonal case) remains uncharacterized for general groups - only addition modulo m is shown to work (Appendix D)."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited practical improvements on language modeling and numerical compatibility issues: While DeltaNet shows improvements on code/math tasks, the gains are modest and inconsistent (Figure 5). More significantly, the modification breaks log-space cumulative product computation used by Mamba2, GLA, and mLSTM (acknowledged in limitations), making it incompatible with popular efficient variants. The paper provides no solution to this compatibility issue.",
+          "severity": "major",
+          "evidence": "Section 6 (Limitations) explicitly states the modification is incompatible with log-space computation used by Mamba2, GLA, and mLSTM. Figure 5 shows validation perplexity slightly worse during training and modest improvements on code/math only for DeltaNet. For Mamba, perplexity consistently degrades (Figure 10). No workaround is proposed.",
+          "affected_claim": "The modification enables state-tracking while maintaining efficiency and training stability, and can be applied to major LRNN architectures.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Theoretical results have substantial gaps between theory and practice: Theorem 4 requires up to 2|Q| layers and n≤|Q| for arbitrary FSAs, which is exponential in FSA states. The practical implications for real-world tasks remain unclear. Additionally, the expressivity of multi-layer DeltaNet (non-diagonal case) remains uncharacterized for general groups - only addition modulo m is shown to work (Appendix D).",
+          "severity": "major",
+          "evidence": "Theorem 4 statement: 's ≤ 2|Q| layers' with 'n ≤ |Q|' requiring exponential resources in worst case. Discussion acknowledges this: 'requires both the number of layers and the width of the LRNN to be (in the worst case) exponential in the number of states.' For DeltaNet multi-layer: only Appendix D shows Z_m can be solved, but S_n for n≥3 expressivity is unknown despite being 'of theoretical interest'.",
+          "affected_claim": "LRNNs with state-transition matrices in M^n_k([−1,1]) can recognize any regular language and can substantially improve on complex state-tracking tasks.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The mathematical arguments are rigorous. Theorems 1-2 use Jordan canonical form and Lemma 1 (which shows sign alternation with negative eigenvalues vs. convergence with positive ones) to establish impossibility results. Theorems 3-4 use permutation representations and Krohn-Rhodes decomposition appropriately. Finite precision assumption is clearly stated. Proofs in appendix appear correct, and the core logic connecting eigenvalue properties to automata capabilities is sound."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The work meaningfully extends Sarrof et al. (2024) beyond diagonal matrices to non-diagonal cases (Theorem 1 generalization, Theorem 2 on modular counting). The connection to generalized Householder matrices and the expressivity results (Theorems 3-4) showing how products of GH matrices can recognize regular languages are novel. The practical modification and its validation are also new. While building on prior work, the contributions are sufficiently distinct and advance the theoretical understanding of LRNNs."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper addresses a fundamental limitation of current LRNNs (inability to solve even parity) that is relevant to important applications (code evaluation, entity tracking, nested structure handling). The theoretical insights about eigenvalue restrictions and formal language expressivity advance our understanding of LRNN capabilities. The practical demonstration that extending eigenvalue ranges enables state-tracking is valuable for the community, particularly for DeltaNet on specialized tasks. However, impact is somewhat tempered by modest improvements on general language modeling and compatibility issues with popular variants."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Experiments are well-designed across multiple domains: (1) Formal languages with principled task selection from Chomsky hierarchy; (2) Group word problems with controlled complexity (S5 variants); (3) Large-scale LM pretraining on standard benchmarks. Results convincingly demonstrate the theoretical predictions (parity perfect solved, S5 on swaps works with 1 layer). Comparisons include relevant baselines (Transformer, mLSTM, sLSTM). However, LM results are somewhat limited (100B tokens, modest improvements on code/math). Reporting best of 3 runs in Table 3 could mask variance, though Figure 7 shows multiple seeds."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-organized with clear motivation, theoretical sections, and experimental validation. Mathematical notation is consistent (Appendix A.1). Theorems are stated precisely with clear conditions. Figures (e.g., Figure 1 showing parity improvement, Figure 4 on S5) effectively illustrate key results. The connection between theory (Section 4) and experiments (Section 5) is explicit. Some density in theoretical sections, but this is appropriate for the content. Writing is generally clear, though the finite precision framework could be explained more intuitively in the main text."
+        }
+      },
+      "summary_comment": "This is a solid paper that makes meaningful theoretical and practical contributions to understanding Linear RNNs. The theoretical analysis rigorously extends prior work to non-diagonal matrices and establishes new expressivity results for LRNNs with extended eigenvalue ranges. The proposed modification is simple, well-motivated, and validated across synthetic and realistic tasks. However, the work has notable limitations: (1) the modification breaks compatibility with log-space computation in popular variants (Mamba2, GLA), severely limiting practical adoption; (2) large-scale LM improvements are modest and inconsistent, suggesting the expressivity gains may not translate to general downstream tasks; (3) theoretical results require exponential resources in worst case. Despite these limitations, the theoretical insights are valuable and experiments convincingly validate the main claims on state-tracking tasks. The work advances our understanding of LRNN expressivity even if practical impact on production models is limited."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Strong theoretical contributions with rigorous mathematical analysis: The paper provides formal theorems (1-4) with complete proofs characterizing fundamental limitations and capabilities of LRNNs. This theoretical rigor aligns well with ICML's emphasis on machine learning theory.\",\n      \"Optimization and systems improvements: The proposed modification (Equation 2) represents a practical optimization that improves model expressivity without computational overhead, fitting ICML's focus on 'optimization' and 'machine learning systems'.\",\n      \"Comprehensive experimental methodology: Experiments span formal language tasks, group word problems, and large-scale language modeling (1.3B parameters), demonstrating careful evaluation across synthetic and realistic domains. This methodological rigor matches ICML's valuation of empirical validation.\",\n      \"Application-driven research with clear problem motivation: The work addresses concrete limitations of practical architectures (Mamba, DeltaNet) used in real applications, fitting ICML's focus on 'application-driven machine learning'.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited practical impact on production systems: The modification breaks compatibility with log-space computation used by Mamba2, GLA, and mLSTM (acknowledged in Section 6 limitations), severely restricting applicability to widely-deployed variants. ICML values work with clear practical utility.\",\n      \"Modest improvements on realistic tasks: While DeltaNet shows improvements on code/math tasks, gains are inconsistent and modest (Figure 5). For Mamba, performance consistently degrades (Figure 10). Large-scale LM validation shows the expressivity gains do not consistently transfer to general downstream performance.\",\n      \"Theory-practice gap undermines practical significance: Theorem 4 requires exponential resources (2|Q| layers, n≤|Q| states) with acknowledged limitations on practical implications. The gap between theoretical guarantees and practical scalability weakens the work's fit for a venue valuing implementable solutions.\",\n      \"Topic classification as 'Others': The paper is explicitly categorized as belonging to 'Others' rather than core ICML topics like optimization, deep learning theory, or machine learning systems, suggesting boundary-case relevance to the conference's core mission.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Theoretical foundations and formal language analysis: NeurIPS welcomes 'theory' contributions, and this paper provides rigorous formal language theoretic analysis of LRNN expressivity. The connection to finite state automata and algebraic structures is novel in the NeurIPS context.\",\n      \"Expressivity and generalization analysis: The paper provides 'in-depth analysis of existing methods' regarding their limitations and behavior, directly addressing generalization and expressivity—key NeurIPS topics.\",\n      \"Representation learning and architecture design: The work explores how architectural choices (eigenvalue ranges, matrix structures) affect model expressivity, fitting NeurIPS's focus on 'representation learning' and 'deep learning'.\",\n      \"Scalable model pretraining: Large-scale experiments (1.3B parameters on FineWeb-100B) demonstrate that the modification trains stably at scale, relevant to NeurIPS's emphasis on practical deep learning systems and infrastructure.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Topic misclassification and limited breadth: Paper is classified as 'Others' rather than fitting squarely into NeurIPS's stated topics. While theoretical, it focuses narrowly on LRNN architectures rather than broader NeurIPS interests like computer vision, language models (beyond architecture), robotics, or multi-disciplinary applications.\",\n      \"Marginal improvements on benchmark tasks: Results on standard language modeling benchmarks (Table 4, Figure 5) show mixed and modest improvements, with validation perplexity worse during training. This does not demonstrate compelling advantages that would resonate with NeurIPS's empirical community.\",\n      \"Incompatibility with mainstream efficient variants: The modification breaks log-space computation in Mamba2, GLA, and mLSTM—the architectures driving recent LRNN adoption. This limits relevance to practitioners and researchers focused on practical deployments, a significant NeurIPS constituency.\",\n      \"Limited connection to NeurIPS's interdisciplinary focus: Unlike typical NeurIPS papers that apply methods to domains like robotics, vision, neuroscience, or physical sciences, this work remains purely architectural without demonstrating benefits on domain-specific applications where state-tracking matters.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Direct alignment with core ICLR topics on representation learning and deep learning: The paper fundamentally addresses how architectural choices (matrix structures, eigenvalue ranges) affect what representations an LRNN can learn. This is central to ICLR's mission of understanding representation learning.\",\n      \"Theory-driven architecture improvements: ICLR values 'learning theory' and 'optimization' contributions that directly inform architecture design. The paper provides theorems (1-4) that rigorously characterize limitations and capabilities, then uses these insights to improve Mamba and DeltaNet—exemplifying the theory→practice pipeline ICLR rewards.\",\n      \"Analysis of existing methods with new insights: ICLR explicitly welcomes 'in-depth analysis of existing methods that provide new insights in terms of their limitations or behavior.' This paper does exactly that—rigorously analyzing why current LRNNs fail at parity and proposing a minimal fix grounded in eigenvalue analysis.\",\n      \"Efficient, scalable learning on long sequences: ICLR has shown strong interest in efficient sequence modeling (S4, Mamba, GLA). This work improves LRNN expressivity while maintaining linear scaling and training efficiency—core to ICLR's recent focus on practical deep learning.\",\n      \"Formal language and finite automata connections: ICLR accepts work on 'neurosymbolic & hybrid AI systems' and formal reasoning. The connection between LRNN eigenvalues and finite state automata expressivity fits this emerging ICLR direction.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Incompatibility with efficient numerical techniques limits practical adoption: The modification breaks log-space cumulative products used by Mamba2, GLA, and mLSTM—architectures central to recent ICLR publications. This compatibility issue significantly limits the work's uptake in the ICLR community.\",\n      \"Modest improvements on realistic tasks: Figure 5 shows inconsistent and marginal gains on language modeling, with validation perplexity slightly worse during training. For general language understanding tasks (Table 4), results are mixed even at 340M parameters. ICLR values work with clear, consistent empirical improvements.\",\n      \"Theory-practice gap on general tasks: While theory predicts improved state-tracking (proven on parity, S5 swaps), these gains do not consistently translate to standard LM benchmarks. The paper does not convincingly demonstrate why practitioners should adopt the modification for typical ICLR applications.\",\n      \"Limited novelty in problem formulation: While the theoretical extension is solid, the core insight—that negative eigenvalues enable state-tracking—directly follows from prior work (Sarrof et al. 2024). The jump from diagonal to non-diagonal matrices, while valuable, is somewhat incremental.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\n**Recommended Submission Target: ICLR (fit_score: 8)**\n\n### Justification\n\nThis paper makes solid theoretical and empirical contributions that align best with **ICLR's focus on representation learning, learning theory, and architecture design informed by theoretical insights**. The rigorous analysis of LRNN expressivity through the lens of formal languages and finite automata represents exactly the kind of theory-grounded architecture work ICLR values.\n\n**Key Strengths:**\n- **Rigorous theoretical contributions** extending prior work to non-diagonal LRNNs with complete proofs\n- **Simple, well-motivated modification** with clear connection between theory and practice\n- **Compelling validation** on state-tracking tasks demonstrating theory predicts practice\n- **Efficient scalability** (1.3B parameters) showing the change maintains training stability\n\n**Why Not ICML or NeurIPS:**\n- **ICML** values practical applicability; the incompatibility with log-space computation in popular variants (Mamba2, GLA) severely limits impact\n- **NeurIPS** emphasizes breadth and interdisciplinary applications; this work is narrowly architectural without demonstration on domain-specific tasks (vision, robotics, science)\n\n**Critical Limitations to Address:**\n1. The modification breaks numerical stability tricks in Mamba2/GLA—propose a solution or workaround\n2. Modest improvements on general LM tasks suggest state-tracking benefits may not transfer to typical use cases\n3. Consider ablations showing when state-tracking actually helps vs. hurts downstream performance\n4. Clarify practical scenarios where these models would be deployed with the modification",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Strong theoretical contributions with rigorous proofs: The paper extends prior work (Sarrof et al. 2024) on diagonal LRNNs to non-diagonal architectures and proves that LRNNs with negative eigenvalues can recognize any regular language. Theorems 1-4 provide clear characterizations of what tasks LRNNs can and cannot solve, with formal proofs leveraging finite state automata theory and Jordan canonical forms.",
+              "Simple, practical modification with clear motivation: The proposed extension of eigenvalue range from [0,1] to [-1,1] (Equation 2) is elegantly simple and comes at no computational cost. The modification directly addresses theoretical limitations while remaining compatible with efficient implementations on modern hardware.",
+              "Comprehensive experimental validation across multiple domains: The paper includes well-designed experiments spanning formal language tasks (parity, modular arithmetic), group word problems (S5 permutations), and large-scale language modeling (up to 1.3B parameters). The experiments convincingly demonstrate that theory translates to practice, particularly for state-tracking tasks."
+            ],
+            "weaknesses": [
+              "Limited practical improvements on language modeling and numerical compatibility issues: While DeltaNet shows improvements on code/math tasks, the gains are modest and inconsistent (Figure 5). More significantly, the modification breaks log-space cumulative product computation used by Mamba2, GLA, and mLSTM (acknowledged in limitations), making it incompatible with popular efficient variants. The paper provides no solution to this compatibility issue.",
+              "Theoretical results have substantial gaps between theory and practice: Theorem 4 requires up to 2|Q| layers and n≤|Q| for arbitrary FSAs, which is exponential in FSA states. The practical implications for real-world tasks remain unclear. Additionally, the expressivity of multi-layer DeltaNet (non-diagonal case) remains uncharacterized for general groups - only addition modulo m is shown to work (Appendix D)."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited practical improvements on language modeling and numerical compatibility issues: While DeltaNet shows improvements on code/math tasks, the gains are modest and inconsistent (Figure 5). More significantly, the modification breaks log-space cumulative product computation used by Mamba2, GLA, and mLSTM (acknowledged in limitations), making it incompatible with popular efficient variants. The paper provides no solution to this compatibility issue.",
+                "severity": "major",
+                "evidence": "Section 6 (Limitations) explicitly states the modification is incompatible with log-space computation used by Mamba2, GLA, and mLSTM. Figure 5 shows validation perplexity slightly worse during training and modest improvements on code/math only for DeltaNet. For Mamba, perplexity consistently degrades (Figure 10). No workaround is proposed.",
+                "affected_claim": "The modification enables state-tracking while maintaining efficiency and training stability, and can be applied to major LRNN architectures.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Theoretical results have substantial gaps between theory and practice: Theorem 4 requires up to 2|Q| layers and n≤|Q| for arbitrary FSAs, which is exponential in FSA states. The practical implications for real-world tasks remain unclear. Additionally, the expressivity of multi-layer DeltaNet (non-diagonal case) remains uncharacterized for general groups - only addition modulo m is shown to work (Appendix D).",
+                "severity": "major",
+                "evidence": "Theorem 4 statement: 's ≤ 2|Q| layers' with 'n ≤ |Q|' requiring exponential resources in worst case. Discussion acknowledges this: 'requires both the number of layers and the width of the LRNN to be (in the worst case) exponential in the number of states.' For DeltaNet multi-layer: only Appendix D shows Z_m can be solved, but S_n for n≥3 expressivity is unknown despite being 'of theoretical interest'.",
+                "affected_claim": "LRNNs with state-transition matrices in M^n_k([−1,1]) can recognize any regular language and can substantially improve on complex state-tracking tasks.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical arguments are rigorous. Theorems 1-2 use Jordan canonical form and Lemma 1 (which shows sign alternation with negative eigenvalues vs. convergence with positive ones) to establish impossibility results. Theorems 3-4 use permutation representations and Krohn-Rhodes decomposition appropriately. Finite precision assumption is clearly stated. Proofs in appendix appear correct, and the core logic connecting eigenvalue properties to automata capabilities is sound."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The work meaningfully extends Sarrof et al. (2024) beyond diagonal matrices to non-diagonal cases (Theorem 1 generalization, Theorem 2 on modular counting). The connection to generalized Householder matrices and the expressivity results (Theorems 3-4) showing how products of GH matrices can recognize regular languages are novel. The practical modification and its validation are also new. While building on prior work, the contributions are sufficiently distinct and advance the theoretical understanding of LRNNs."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a fundamental limitation of current LRNNs (inability to solve even parity) that is relevant to important applications (code evaluation, entity tracking, nested structure handling). The theoretical insights about eigenvalue restrictions and formal language expressivity advance our understanding of LRNN capabilities. The practical demonstration that extending eigenvalue ranges enables state-tracking is valuable for the community, particularly for DeltaNet on specialized tasks. However, impact is somewhat tempered by modest improvements on general language modeling and compatibility issues with popular variants."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are well-designed across multiple domains: (1) Formal languages with principled task selection from Chomsky hierarchy; (2) Group word problems with controlled complexity (S5 variants); (3) Large-scale LM pretraining on standard benchmarks. Results convincingly demonstrate the theoretical predictions (parity perfect solved, S5 on swaps works with 1 layer). Comparisons include relevant baselines (Transformer, mLSTM, sLSTM). However, LM results are somewhat limited (100B tokens, modest improvements on code/math). Reporting best of 3 runs in Table 3 could mask variance, though Figure 7 shows multiple seeds."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-organized with clear motivation, theoretical sections, and experimental validation. Mathematical notation is consistent (Appendix A.1). Theorems are stated precisely with clear conditions. Figures (e.g., Figure 1 showing parity improvement, Figure 4 on S5) effectively illustrate key results. The connection between theory (Section 4) and experiments (Section 5) is explicit. Some density in theoretical sections, but this is appropriate for the content. Writing is generally clear, though the finite precision framework could be explained more intuitively in the main text."
+              }
+            },
+            "summary_comment": "This is a solid paper that makes meaningful theoretical and practical contributions to understanding Linear RNNs. The theoretical analysis rigorously extends prior work to non-diagonal matrices and establishes new expressivity results for LRNNs with extended eigenvalue ranges. The proposed modification is simple, well-motivated, and validated across synthetic and realistic tasks. However, the work has notable limitations: (1) the modification breaks compatibility with log-space computation in popular variants (Mamba2, GLA), severely limiting practical adoption; (2) large-scale LM improvements are modest and inconsistent, suggesting the expressivity gains may not translate to general downstream tasks; (3) theoretical results require exponential resources in worst case. Despite these limitations, the theoretical insights are valuable and experiments convincingly validate the main claims on state-tracking tasks. The work advances our understanding of LRNN expressivity even if practical impact on production models is limited."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

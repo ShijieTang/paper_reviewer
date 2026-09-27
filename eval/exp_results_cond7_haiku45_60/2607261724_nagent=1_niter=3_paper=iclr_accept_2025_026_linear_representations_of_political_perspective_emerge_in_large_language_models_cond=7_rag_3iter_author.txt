@@ -1,0 +1,813 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Novel application of probing methodology: This is the first work to systematically investigate linear representations of political ideology (liberal-conservative axis) in LLM activation space using DW-NOMINATE scores. The approach of identifying attention heads that linearly encode political perspective is creative and well-motivated.",
+        "Strong empirical validation with compelling generalization: The paper demonstrates robust findings across three models with high Spearman correlations (0.8+). Critically, the generalization from DW-NOMINATE (lawmakers) to Ad Fontes scores (news media outlets, 0.764-0.798 correlation) provides independent validation that the model learns a generalizable political axis rather than memorizing labels—a particularly strong design choice.",
+        "Comprehensive experimental design with causal intervention: The paper demonstrates causal steering through linear interventions on attention head activations, with proper evaluation methodology (human annotators with ICC=0.91 against GPT-4o, robustness checks on novel post-cutoff events in Appendix A.6, layer ablations in A.7). The intervention design (Equation 8) is principled and the experimental scope is substantial (1,134 essays across three models and nine policy issues).",
+        "Thorough robustness analysis addressing core claims: The paper includes systematic checks: (1) linear vs. non-linear probes show no substantial improvement for non-linear, supporting linearity hypothesis; (2) label transformations (cubic, non-monotonic, random permutation) show expected degradation, confirming probes capture systematic patterns; (3) novel event testing (ADVANCE Act, UAW strike post-cutoff) demonstrates generalization beyond pre-training data; (4) layer ablations show interventions on early-to-middle layers are effective while middle-to-late are not.",
+        "Clear practical and interpretive value: Figure 1 and Appendix A.2 demonstrate interpretable token-by-token political coloring across diverse policy topics (immigration, abortion, gun control, climate change, social media regulation, and others). The consistency of liberal↔blue and conservative↔red coloring patterns across different prompts and policy domains provides qualitative evidence the probe captures generalizable ideology beyond memorization.",
+        "Transparent acknowledgment of limitations with appropriate scoping: Authors explicitly discuss model scale limitations (7B only), U.S.-centric scope, and acknowledge that 'important' concepts being linearly represented is an empirical hypothesis rather than guaranteed truth. Section 8 and the Ethics Statement thoughtfully discuss when findings may not apply (less polarized systems) and propose principled extensions (simplex of archetypal perspectives). The rebuttal clarifies that limitations represent 'important future directions' rather than fundamental flaws."
+      ],
+      "weaknesses": [
+        "Limited scope to smaller models and U.S.-centric politics: Findings rely exclusively on 7B-parameter models; generalization to larger models (70B+, 175B+) is unvalidated. The political framework uses U.S.-specific measures (DW-NOMINATE, Ad Fontes), and linear representations may not hold in less polarized democracies.",
+        "Token-level detection validation remains qualitative: While Figure 1 and Appendix A.2 provide consistent patterns across policy topics and models, the paper explicitly acknowledges this is qualitative ('leave for future work a more systematic evaluation'). No inter-annotator agreement metrics or formal accuracy measurements are reported.",
+        "GPT-4o evaluation based on limited human validation: Although ICC=0.91 with N=10 politically balanced annotators (3D, 4I, 3R) provides credible validation, the human validation sample is small and only 21 of 1,134 essays were rated by humans. Single-model dependency for the remaining ~1,113 essays introduces potential bias despite the high reported correlation.",
+        "Mechanistic interpretation absent: While the paper identifies which heads correlate with ideology and their layer distribution, it provides no analysis of attention patterns, computational functions these heads perform, or explanation for why middle layers specifically encode ideology.",
+        "Issue-dependent steering effectiveness variation lacks systematic analysis: Figure 4b shows dramatic variation (Llama-2-7b: Immigration ~0.607 vs. Free Speech/Trust in Science ~0.2 or lower). Section 6 and Figure 4c provide post-hoc observations (diverse stances, output length differences) without systematic analysis predicting steerability from issue properties.",
+        "Prompt template sensitivity untested: The core DW-NOMINATE probing uses a fixed template ('Generate a statement by [NAME]...'); while Appendices A.6–A.7 test novel events and layer effects, no ablation systematically varies prompt formulations to validate robustness across different prompt structures."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited scope to smaller models and U.S.-centric politics: Findings rely exclusively on 7B-parameter models; generalization to larger models (70B+, 175B+) is unvalidated. The political framework uses U.S.-specific measures (DW-NOMINATE, Ad Fontes), and linear representations may not hold in less polarized democracies.",
+          "severity": "major",
+          "evidence": "Section 8 explicitly states: 'findings are based on relatively smaller models and may not generalize to larger or untested models' and 'research is U.S. centric and may not generalize to less polarized political environments.' Appendix A.10 discusses mitigation (simplex approach) but provides no empirical validation. Rebuttal clarifies this represents 'an important avenue for future work rather than a fundamental flaw' and notes 'the linear representation hypothesis itself is not inherently scale-dependent'—which is a fair characterization that scopes the claim appropriately.",
+          "affected_claim": "That LLMs possess generalizable linear representations of political ideology across model scales and political systems.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Token-level detection validation remains qualitative: While Figure 1 and Appendix A.2 provide consistent patterns across policy topics and models, the paper explicitly acknowledges this is qualitative ('leave for future work a more systematic evaluation'). No inter-annotator agreement metrics or formal accuracy measurements are reported.",
+          "severity": "major",
+          "evidence": "Section 4 states: 'We found similarly interpretable qualitative results in many other examples but leave for future work a more systematic evaluation of this qualitative measure.' Figure 1 provides two detailed examples; Appendix A.2 reports distribution of ŷ values across nine topics and three models (e.g., Mistral-7b-instruct mean=0.143, σ=0.649) showing consistent patterns but no inter-annotator agreement. Rebuttal notes Appendix A.2 'demonstrates consistency across diverse policy topics' and claims this strengthens qualitative evidence, but the paper contains no quantitative validation metric (Krippendorff's α, Cohen's kappa, or similar).",
+          "affected_claim": "That probes capture generalizable liberal-conservative ideology in open-ended text, validated by interpretable token-by-token coloring.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "GPT-4o evaluation based on limited human validation: Although ICC=0.91 with N=10 politically balanced annotators (3D, 4I, 3R) provides credible validation, the human validation sample is small and only 21 of 1,134 essays were rated by humans. Single-model dependency for the remaining ~1,113 essays introduces potential bias despite the high reported correlation.",
+          "severity": "major",
+          "evidence": "Appendix A.4 reports: 'sampled politically balanced human annotators from CloudResearch survey platform (N=10)... to annotate a random sample of 21 essays.' ICC(A,1)=0.91 and Spearman ρ=0.952 computed on these 21 essays. Section 6 steering study uses GPT-4o to rate 1,134 essays. Rebuttal frames this as 'pragmatic given computational constraints' and defends ICC=0.91 as providing 'credible evidence' but does not dispute that 1,113 essays lack human validation. The rebuttal adds: 'Section 8 acknowledges... and recommends future research continue to validate,' which is accurate but does not resolve the single-model dependency in the current paper.",
+          "affected_claim": "That steering interventions reliably shift political slant as measured by reliable judges, with quantitative results in Figure 4.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Mechanistic interpretation absent: While the paper identifies which heads correlate with ideology and their layer distribution, it provides no analysis of attention patterns, computational functions these heads perform, or explanation for why middle layers specifically encode ideology.",
+          "severity": "minor",
+          "evidence": "Section 3 reports that 'highly predictive heads are primarily located in the middle layers, often speculated to encode high-level concepts and tasks' but provides only correlation heatmaps (Figure 2), not attention visualizations or computational analysis. Rebuttal clarifies: 'Our contribution is primarily empirical—demonstrating the existence of linear political representations—rather than mechanistic' and positions mechanistic analysis 'beyond the scope of the current work.' This clarification is accurate to the paper's framing and reasonably scopes the contribution.",
+          "affected_claim": "Scope of interpretability contribution: empirical discovery of linear representations rather than mechanistic explanation of their computational basis.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Issue-dependent steering effectiveness variation lacks systematic analysis: Figure 4b shows dramatic variation (Llama-2-7b: Immigration ~0.607 vs. Free Speech/Trust in Science ~0.2 or lower). Section 6 and Figure 4c provide post-hoc observations (diverse stances, output length differences) without systematic analysis predicting steerability from issue properties.",
+          "severity": "minor",
+          "evidence": "Figure 4b shows Llama-2-7b steering effectiveness ranging from ~0.607 for Immigration and Abortion to lower values for other issues, with Free Speech and Trust in Science around 0.2 or below (exact values not labeled but visually clear). Section 6 states: 'we conjecture that this is due to there being a wider array of stances on such issues' without empirical support. Figure 4c notes length differences for certain issues. Rebuttal acknowledges: 'we provide a post-hoc explanation but acknowledge it is speculative.' No analysis of issue properties (polarization, stance diversity, linguistic markers) predicting steering effectiveness appears in paper.",
+          "affected_claim": "Understanding of which policy dimensions are reliably steerable and why.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Prompt template sensitivity untested: The core DW-NOMINATE probing uses a fixed template ('Generate a statement by [NAME]...'); while Appendices A.6–A.7 test novel events and layer effects, no ablation systematically varies prompt formulations to validate robustness across different prompt structures.",
+          "severity": "minor",
+          "evidence": "Section 3, Prompting subsection specifies: 'USER: Generate a statement by [NAME], a politician in the United States. ASSISTANT: In 2019, [NAME] said that'. Appendix A.6 tests novel events (ADVANCE Act, UAW strike) and A.7 tests layer-dependent intervention effects, but neither ablates prompt structure. Rebuttal states: 'We use different prompts for policy essays (Section 4, A.2) and news outlets (Section 5)' but acknowledges 'We do not systematically vary prompts within a single task to test robustness' and notes 'This is a limitation we could address in revision.' No such evidence exists in the submitted paper.",
+          "affected_claim": "Robustness of identified linear representations to different prompt formulations and contexts.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "Core technical approach is sound with proper methodology and execution. Ridge regression probes on attention head activations follow established protocols. Cross-validation is properly implemented (2-fold for DW-NOMINATE, held-out test sets). Robustness checks systematically support claims: (1) linear vs. non-linear comparison shows non-linear probes achieve no substantial improvement (Mistral: 0.846 linear vs. 0.838 non-linear), supporting linearity hypothesis; (2) label transformation ablation (cubic, non-monotonic, random permutation) shows expected patterns confirming probes capture systematic structure; (3) novel event testing (ADVANCE Act, UAW strike) demonstrates post-cutoff generalization; (4) layer ablations show early-middle layers effective, late layers ineffective. The causal intervention design (Equation 8, adding scaled steering vectors to activations) is principled. Main evaluation concern is GPT-4o dependency with small human validation sample (N=10, ICC=0.91), but the high inter-rater reliability with politically balanced annotators and transparency about this limitation are appropriate. No fundamental logical or mathematical errors detected. Rebuttal's clarifications regarding scope (hypothesis-testing rather than mechanistic explanation) are accurate and do not reveal misstatement in paper."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "First systematic investigation of linear political ideology representations in LLM activation space. While probing methodology is established and linear representation hypothesis applied to multiple domains (sentiment, space, time, humor, language, topic, truth, safety), application to political ideology is novel. The cross-domain validation strategy (train on DW-NOMINATE lawmakers, test on Ad Fontes media outlets) is creative—using an independent external measure with different data source and labeling process strengthens generalization claims beyond standard held-out test sets. This validation approach is particularly compelling because it demonstrates the model learns an ideology axis applicable to independent political entities, not just pattern-matching to lawmaker names. Rebuttal appropriately characterizes novelty as 'moderate' (established techniques applied to new domain) rather than 'exceptional,' which is accurate and appropriately scoped. Meets novelty threshold for top-tier venue."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "Demonstrates meaningful contributions to interpretability and LLM auditing: (1) provides evidence that LLMs encode a generalizable political dimension, not mere memorization; (2) shows this representation is linearly structured and controllable via inference-time intervention, enabling practical monitoring and steering; (3) supplies a systematic method to audit and characterize political bias in LLM outputs—addressing timely concern for AI alignment and deployment; (4) token-level interpretability approach enables understanding implicit ideological stances in generated text (Figure 1, Appendix A.2). Significance is appropriately characterized as 'strong empirical validation' rather than 'revolutionary breakthrough,' which is accurate. Work confirms that important societal concepts (political ideology) are linearly representable in LLMs and causally controllable, with direct applications to bias detection and mitigation. For ML conference, contribution meaningfully advances understanding of how LLMs encode and can be steered on value-laden dimensions, supporting responsible deployment. Limitations (7B models, U.S. focus, lack of mechanistic insight) are material but do not undermine core significance—they appropriately scope where findings apply."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Evaluation adequately supports central claims with acknowledged gaps on secondary aspects. Core experimental design is strong: (1) DW-NOMINATE probing uses proper 2-fold cross-validation with high Spearman correlations (0.854, 0.846, 0.861 for individual heads; 0.870–0.885 for ensembles of K=32 heads) across three models; (2) generalization to independent Ad Fontes measure (0.764–0.798 correlation) is particularly compelling—different data source, independent labeling, different domain (media vs. lawmakers)—rules out task-specific memorization; (3) causal steering experiments include proper intervention design, human validation (ICC=0.91 with politically balanced annotators against GPT-4o), and robustness checks (novel post-cutoff events, layer ablations); (4) linear vs. non-linear comparison supports linearity hypothesis; (5) label transformation ablation confirms probes capture structure. Main evaluation gaps: token-level detection (Section 4) is qualitative without inter-annotator agreement (paper acknowledges this limitation explicitly); human validation scale is small (N=10 → ICC=0.91, then GPT-4o alone for 1,134 essays). Despite these gaps, evidence supporting existence of linear ideology representation, its generalization, and causal steerability is adequate for acceptance. Secondary claims (why certain issues steer better, prompt robustness) remain unvalidated but do not undermine primary claims."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "Paper is clearly written with logical organization and effective communication. Section 2 provides thorough background on transformer architecture and probing methodology, building understanding for readers unfamiliar with mechanistic interpretability. Sections 3–6 follow clear structure: data description → prompting strategy → probe training procedure → evaluation metrics → results → robustness checks. Figures effectively communicate findings: Figure 2 heatmaps show layer/head distributions across models; Figure 3 scatter plots contextualize predictions with labeled politician examples; Figure 4 clearly demonstrates steering effects across models and issues with confidence intervals implied. Table A2 provides top-10 individual head results; Table A3 ensemble results; Figures A1–A2 complete comparisons across models. Limitations transparently acknowledged in Section 8 and Ethics Statement. Appendix thoroughly documents procedures: detailed prompts (A.3, A.9), human validation methodology (A.4), examples of intervention outputs (A.5), novel event robustness (A.6), layer ablations (A.7). Writing is precise and avoids overclaiming. Notation (θ_ℓ,h, x_ℓ,h) is standard in mechanistic interpretability literature. Some appendix figures appear redundant (A1–A2) but provide completeness for all three models. Overall presentation meets top-tier conference standards."
+        }
+      },
+      "summary_comment": "This paper makes a solid empirical contribution demonstrating that LLMs encode a linear representation of political ideology (liberal-conservative axis) in their activation space. The work is technically sound with robust experimental validation: DW-NOMINATE probing achieves high Spearman correlations (0.8+) across three 7B models, and critically, probes trained on lawmaker ideology generalize to predict news media slant (0.72–0.80), providing compelling evidence of a generalizable political axis rather than memorization. Causal steering interventions reliably shift outputs toward liberal or conservative perspectives. Thorough robustness checks (linear vs. non-linear, label transformations, novel events, layer ablations) systematically support core claims. The work contributes meaningfully to interpretability research and practical LLM auditing. Acknowledged limitations (7B models only, U.S.-centric framework, qualitative token-level validation, mechanistic interpretation absent, issue-dependent steering variation, prompt robustness untested) are transparently discussed and appropriately scoped—they represent important future directions rather than fundamental flaws invalidating the core contribution. The rebuttal demonstrates the authors understand their work's scope and appropriately characterize it as 'empirical validation of linear representation hypothesis applied to political ideology' rather than making unsupported mechanistic or universal claims. For a top-tier ML conference, this represents strong empirical work with clear contributions to interpretability and practical applications to LLM bias monitoring and control, meeting the acceptance standard despite acknowledged limitations."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Mechanistic interpretability and representation learning: The paper applies probing methodology (established in ICML literature) to discover linear representations of political ideology in LLM activation space. This directly aligns with ICML's interest in understanding learned representations and internal model structure.\",\n      \"Rigorous methodology with robustness checks: The experimental design includes proper cross-validation, ablation studies (linear vs. non-linear probes, label transformations, layer ablations), and generalization testing. This methodological rigor matches ICML's standards for evaluation and experimental validation.\",\n      \"Evaluation and interpretability focus: The paper includes systematic evaluation approaches (Spearman correlation, cross-validation, inter-annotator reliability assessment with ICC=0.91) and demonstrates interpretable token-level detection of political slant. This aligns with ICML's emphasis on evaluation methodology and model interpretability.\",\n      \"Application-driven ML contribution: While grounded in interpretability research, the work demonstrates practical applications (monitoring ideological bias in LLM outputs, steering model behavior through inference-time intervention) relevant to ICML's interest in application-driven machine learning.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited technical novelty in core methodology: The paper applies established probing techniques (ridge regression on attention head activations, following Gurnee & Tegmark 2024) to a new domain rather than developing new interpretability methods. ICML values methodological innovations alongside applications.\",\n      \"No advancement in optimization or learning theory: The work is purely empirical application of existing techniques. It does not contribute to ICML's core interests in optimization algorithms, statistical learning theory, or improved training methods for machine learning systems.\",\n      \"Mechanistic understanding absent: The paper identifies which attention heads encode ideology and their layer distribution but provides no analysis of attention patterns, computational functions, or mechanistic explanation for why middle layers specifically represent ideology. ICML values deeper theoretical or mechanistic insights beyond correlations.\",\n      \"Heavy dependence on LLM evaluation with methodological gaps: The steering evaluation relies primarily on GPT-4o for 1,113 of 1,134 essays with only 21 human-validated examples (N=10 annotators). Token-level detection remains qualitative without inter-annotator agreement. These gaps in evaluation rigor conflict with ICML's emphasis on sound methodology.\",\n      \"U.S.-centric and scale-limited scope: Findings are restricted to 7B models and U.S. political measures (DW-NOMINATE, Ad Fontes). ICML typically expects broader generalization scope or clear characterization of when methods apply. The acknowledgment that findings 'may not generalize to larger or untested models' is a material limitation for a venue focused on general machine learning.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Interdisciplinary contribution spanning neuroscience, social science, and ML: The paper combines mechanistic interpretability with political science (DW-NOMINATE scores) and media studies (Ad Fontes), exemplifying NeurIPS's welcoming of 'interdisciplinary submissions that do not fit neatly into existing categories.' This interdisciplinary framing is explicitly valued in NeurIPS guidelines.\",\n      \"Data-centric and interpretability analysis: The work provides novel empirical analysis (representation geometry of political ideology in LLMs) and includes detailed evaluation of how LLMs encode subjective perspectives. This aligns with NeurIPS's emphasis on 'data-centric aspects of AI' and 'in-depth analysis of existing methods.'\",\n      \"Societal impact and trustworthy AI: The paper directly addresses trustworthy ML themes (bias detection, model monitoring, interpretability) and explicitly engages with fairness and societal implications in the Ethics Statement. NeurIPS emphasizes 'socio-technical aspects of AI' and applications to understanding and mitigating bias.\",\n      \"Novel application to language and multimodal understanding: While LLMs are not strictly 'multimodal,' the paper contributes to understanding how models represent and can be steered on high-level concepts (political ideology) embedded in language. This relates to NeurIPS's interest in 'language and multimodal language models.'\",\n      \"Comprehensive experimental scope and practical steering: The paper demonstrates both analysis (probing) and causal intervention (steering) on 1,134 essays across 9 policy issues and 3 models. The practical steerability of model behavior is a novel finding valuable for deployment and auditing.\",\n      \"Broad relevance to AI alignment and control: The finding that linear interventions on attention heads can reliably shift model perspective connects to NeurIPS's interest in control, safety, and understanding how to influence model outputs—timely for the community.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Core methodology is not novel—established probing applied to new domain: While the application is new, the technical contribution relies on standard ridge regression probing of attention heads (following Gurnee & Tegmark 2024 and prior work). NeurIPS typically expects either methodological innovation or exceptional empirical depth; this paper is solid empirical work on a new application rather than methodological advance.\",\n      \"Mechanistic interpretability insights limited: The paper identifies correlation patterns (middle layers encode ideology) but lacks explanation of computational mechanisms. NeurIPS values papers that explain *how* representations emerge or *why* certain architectural properties lead to certain behaviors. Figure 2 heatmaps show *where* but not *how* or *why*.\",\n      \"Evaluation of steering relies heavily on single LLM (GPT-4o): Only 21 of 1,134 essays have human ratings (N=10 annotators, ICC=0.91). The remaining 1,113 essays are rated by GPT-4o alone, introducing potential bias and limiting confidence in quantitative steering results. For a venue emphasizing sound evaluation, this gap is material.\",\n      \"Token-level detection validation remains qualitative: Section 4 explicitly leaves token-level analysis as 'qualitative' with no inter-annotator agreement metrics. While Appendix A.2 shows consistent patterns, no formal validation is provided. NeurIPS expects rigorous measurement even for exploratory findings.\",\n      \"Limited generalization analysis constrains broader relevance: Findings are restricted to 7B models and U.S. political context. The paper acknowledges 'may not generalize to larger models' and 'U.S. centric.' While NeurIPS welcomes diverse applications, work analyzing only smaller models on a single political system has more limited audience impact than cross-scale or cross-cultural analysis.\",\n      \"Issue-dependent steering variation unexplained: Figure 4b shows steering effectiveness varies dramatically (Llama-2-7b: Immigration ρ≈0.607 vs. Free Speech/Trust in Science ≤0.2). The paper provides post-hoc conjectures but no systematic analysis. NeurIPS values understanding *when and why* methods work, not just that they sometimes do.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Deep learning representation learning core focus: The paper directly investigates how deep networks (LLMs) learn and represent high-level concepts (political ideology) in activation space. Understanding emergent representations is a primary ICLR topic ('unsupervised, self-supervised, semi-supervised, and supervised representation learning').\",\n      \"Mechanistic interpretability and probe-based analysis: ICLR explicitly values 'visualization or interpretation of learned representations' and work on understanding internal LLM structure. The probing methodology, layer-wise analysis (Figure 2), and token-level visualization (Figure 1) directly address this topic.\",\n      \"Causal intervention and interpretability: The paper demonstrates not just correlational analysis but causal steering through inference-time intervention (Equation 8), enabling 'understanding' of how representations influence outputs. This goes beyond passive analysis to demonstrate mechanistic control.\",\n      \"Rigorous representation geometry analysis: The finding that political ideology is linearly represented (supported by comparison of linear vs. non-linear probes, label transformation ablations) exemplifies ICLR's interest in 'the geometry of learned representations' and their structure.\",\n      \"Trustworthy AI and societal considerations: ICLR values 'societal considerations including fairness, safety, privacy.' The paper directly addresses bias detection and steering, with explicit Ethics Statement acknowledging misuse risks. The work contributes to building fair and interpretable LLMs.\",\n      \"Strong experimental scope across multiple LLM architectures: The paper evaluates three different 7B models (Llama-2-7b-chat, Mistral-7b-instruct, Vicuna-7b), showing consistency of findings. This cross-model validation strengthens claims about emergent representations.\",\n      \"Comprehensive robustness evaluation: Ablations (linear vs. non-linear, label transformations, layer effects, novel events) and validation strategies (generalization to independent Ad Fontes measure, human-rated steering evaluation) exemplify ICLR's emphasis on rigorous experimental methodology.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited to smaller models (7B); no analysis of representation scaling: ICLR increasingly emphasizes understanding how representation properties scale with model size. The restriction to 7B models and acknowledged uncertainty about 'larger or untested models' (70B+, 175B+) is a material limitation. ICLR values insights that explain representation emergence across scales.\",\n      \"Token-level analysis validation incomplete: Section 4 explicitly acknowledges token-level political coloring is 'qualitative' with 'leave for future work a more systematic evaluation.' No inter-annotator agreement, accuracy metrics, or formal validation provided. ICLR expects rigorous measurement of representational claims.\",\n      \"Mechanistic understanding of representation absent: While the paper identifies *where* ideology is encoded (middle layers) and *that* it is linear, it does not explain *why* middle layers encode ideology, *what computational functions* these heads perform, or *how* political concepts emerge during training. ICLR values deeper mechanistic insight beyond correlations.\",\n      \"Steering evaluation methodologically weaker than representational claims: The core representation finding (probing DW-NOMINATE) is well-validated (high Spearman correlations across folds), but steering evaluation (Section 6) relies on GPT-4o ratings for 1,113/1,134 essays with minimal human validation (N=10, 21 essays). This gap between representation rigor and steering rigor undermines confidence in intervention results.\",\n      \"Issue-dependent steering effectiveness lacks principled explanation: Figure 4b variation (Immigration ρ≈0.607 vs. Free Speech ≤0.2) is unexplained beyond speculation ('wider array of stances'). ICLR values understanding *when and why* interventions succeed or fail, not post-hoc observations.\",\n      \"U.S.-centric political framework limits generalizability of insights: While ICLR welcomes application-specific work, the restriction to U.S. political measures (DW-NOMINATE, Ad Fontes) and acknowledged inapplicability to less polarized systems narrows the scope of insights about representation learning in general. Cross-cultural analysis would strengthen contribution.\",\n      \"No analysis of how political representations arise during training: The paper does not examine training dynamics, pre-training data properties, or fine-tuning effects on ideological representation formation. ICLR values understanding representation emergence, not just post-hoc analysis of trained models.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary and Recommendation\n\n**Paper Category:** Interpretability & Representation Learning applied to LLMs and Politics\n\n**Overall Assessment:**\n\nThis paper makes a solid **empirical contribution** to mechanistic interpretability by demonstrating that LLMs encode a generalizable, linear representation of political ideology in their activation space. The core findings are well-validated: high Spearman correlations (0.8+) on DW-NOMINATE probing with compelling cross-domain generalization to Ad Fontes media scores, plus demonstrated causal steering capability.\n\n**Venue Fit Rankings:**\n\n1. **ICLR (fit_score: 8)** – **Best fit**\n   - Representation learning is ICLR's core focus; the paper directly investigates emergent representations and their geometry.\n   - Visualization of political ideology in activation space (Figure 1, A.2) exemplifies ICLR's interest in understanding learned representations.\n   - Mechanistic interpretability and causal intervention align with ICLR's values.\n   - Main weakness: Limited to 7B models and U.S. politics; mechanistic explanation of *why* middle layers encode ideology is absent.\n\n2. **NeurIPS (fit_score: 7)** – **Strong fit, good alternative**\n   - NeurIPS explicitly welcomes interdisciplinary work combining ML with social science and policy applications.\n   - Strong alignment with \"socio-technical aspects of AI,\" fairness, and trustworthy ML themes.\n   - Broad audience for findings on LLM bias detection and steering.\n   - Main weakness: Core methodology (probing) is not novel; evaluation relies on GPT-4o for most essays.\n\n3. **ICML (fit_score: 6)** – **Borderline/Risky**\n   - Methodological rigor and evaluation standards are met, but limited technical novelty.\n   - No contribution to optimization, learning theory, or methodological advancement—core ICML interests.\n   - The work is strong empirical application of existing techniques, which is less valued at ICML than new algorithms or theory.\n   - Token-level validation gaps and issue-dependent steering variation unexplained.\n\n**Recommendation:**\n\n**Submit to ICLR** as the primary venue. The paper is an excellent fit for ICLR's focus on representation learning, mechanistic interpretability, and understanding how deep networks encode high-level concepts. While limitations (small model scale, U.S.-centric scope, incomplete mechanistic explanation) are material, they are appropriately acknowledged and do not fundamentally undermine the core contribution. The rigorous evaluation of representation discovery and causal steering aligns well with ICLR's standards.\n\nConsider **NeurIPS as a strong backup** if ICLR rejects. The interdisciplinary framing and societal relevance would resonate with NeurIPS's broader audience, despite slightly weaker technical novelty.\n\n**Avoid ICML**: The limited methodological novelty and lack of contribution to optimization/theory make this a weaker fit despite solid empirical work.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel application of probing methodology: This is the first work to systematically investigate linear representations of political ideology (liberal-conservative axis) in LLM activation space using DW-NOMINATE scores. The approach of identifying attention heads that linearly encode political perspective is creative and well-motivated.",
+              "Strong empirical validation across multiple dimensions: The paper demonstrates robust findings across three different models (Llama-2-7b, Mistral-7b, Vicuna-7b), with high Spearman correlations (0.8+) for predicting lawmaker ideology. Critically, the authors validate generalization by showing the same probes predict news media slant, providing evidence that models learn a generalizable political representation rather than mere memorization.",
+              "Comprehensive experimental design with causal intervention: Beyond identification, the paper demonstrates causal steering of model outputs toward liberal or conservative perspectives through linear interventions on attention head activations. The steering experiments are well-designed with proper evaluation (human annotators + GPT-4o validation with ICC=0.91), and robustness checks on novel events (ADVANCE Act, UAW strike) strengthen claims.",
+              "Thorough robustness analysis: The paper includes multiple robustness checks (linear vs. non-linear probes, label transformations including cubic and non-monotonic functions, token-by-token analysis) that substantiate the linear representation hypothesis and rule out alternative explanations.",
+              "Clear practical and interpretive value: Figure 1 demonstrates interpretable token-by-token political slant detection on policy issues (immigration, abortion). The token-level visualization shows the probe captures genuine ideological reasoning, not just label memorization, which is valuable for monitoring and understanding LLM behavior.",
+              "Thoughtful treatment of measurement: The authors explicitly acknowledge the challenge of operationalizing 'political perspective' and justify their use of DW-NOMINATE and Ad Fontes scores as validated social science measures, demonstrating methodological rigor."
+            ],
+            "weaknesses": [
+              "Limited scope to smaller models and U.S.-centric politics: Findings rely exclusively on 7B-parameter models; generalization to larger models (70B+, 175B+) remains uncertain. The political framework is uniquely U.S. (DW-NOMINATE, Ad Fontes), and as the authors acknowledge, linear representations may not hold in less polarized democracies or non-Western political systems.",
+              "Insufficient systematic evaluation of token-level detection: While Figure 1 provides compelling qualitative examples, Section 4's token-by-token analysis lacks quantitative validation. The authors acknowledge this ('leave for future work a more systematic evaluation') but this undermines claims about the generalizability of the learned representation to open-ended generation.",
+              "Use of GPT-4o as primary evaluator introduces potential bias: Although inter-rater reliability with human annotators is high (ICC=0.91), relying on GPT-4o for 1,134 essay ratings creates dependency on a single proprietary model whose political biases are not fully characterized. The annotator pool (N=10) is also very small for validation.",
+              "Mechanistic interpretation remains speculative: While the paper identifies which heads correlate with ideology, it does not explain why middle-layer heads specifically encode this representation or what computations these heads perform. The connection between attention head structure and ideological reasoning is left entirely unexplored.",
+              "Limited analysis of failure modes and steering effectiveness variation: Steering effectiveness varies dramatically across issues (Immigration ρ=0.6+ vs. Free Speech ρ≈0.2). The explanation that 'wider array of stances' exists for some issues is post-hoc; systematic analysis of which ideological dimensions are controllable is absent.",
+              "Potential confounding from prompt templates: The simple prompt templates (e.g., 'Generate a statement by [NAME]') may create artifacts. The paper does not test whether probe performance degrades with significantly different prompt formulations or domains, limiting claims about representation robustness."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited scope to smaller models and U.S.-centric politics: Findings rely exclusively on 7B-parameter models; generalization to larger models (70B+, 175B+) remains uncertain. The political framework is uniquely U.S. (DW-NOMINATE, Ad Fontes), and as the authors acknowledge, linear representations may not hold in less polarized democracies or non-Western political systems.",
+                "severity": "major",
+                "evidence": "Abstract states 'three open transformer-based LLMs (Llama-2-7b-chat, Mistral-7b-instruct, Vicuna-7b)'; Section 8 explicitly acknowledges 'findings are based on relatively smaller models and may not generalize to larger or untested models' and 'research is U.S. centric and may not generalize to less polarized political environments'.",
+                "affected_claim": "That LLMs possess generalizable linear representations of political ideology applicable across model scales and political systems.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Insufficient systematic evaluation of token-level detection: While Figure 1 provides compelling qualitative examples, Section 4's token-by-token analysis lacks quantitative validation. The authors acknowledge this ('leave for future work a more systematic evaluation') but this undermines claims about the generalizability of the learned representation to open-ended generation.",
+                "severity": "major",
+                "evidence": "Section 4 states: 'We found similarly interpretable qualitative results in many other examples but leave for future work a more systematic evaluation of this qualitative measure.' Only two examples shown in Figure 1 with no aggregate statistics or inter-annotator agreement on whether token colorings are interpretable.",
+                "affected_claim": "That probes detect generalizable liberal-conservative ideology beyond memorization of lawmaker names, as demonstrated by interpretable token-by-token coloring.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Use of GPT-4o as primary evaluator introduces potential bias: Although inter-rater reliability with human annotators is high (ICC=0.91), relying on GPT-4o for 1,134 essay ratings creates dependency on a single proprietary model whose political biases are not fully characterized. The annotator pool (N=10) is also very small for validation.",
+                "severity": "major",
+                "evidence": "Section 6 and Appendix A.4: Only 21 essays rated by N=10 human annotators (3 Democrats, 4 Independents, 3 Republicans) for validation; ICC=0.91 computed on this small sample. Then GPT-4o alone rates all 1,134 essays. Authors note in A.4: 'potential for bias when using an LLM as an evaluator' but validation is limited.",
+                "affected_claim": "That steering interventions reliably shift political slant as measured by reliable external judges, with results reported in Figure 4.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Mechanistic interpretation remains speculative: While the paper identifies which heads correlate with ideology, it does not explain why middle-layer heads specifically encode this representation or what computations these heads perform. The connection between attention head structure and ideological reasoning is left entirely unexplored.",
+                "severity": "minor",
+                "evidence": "Section 3 reports that 'highly predictive heads are primarily located in the middle layers, often speculated to encode high-level concepts' but provides no analysis of what these heads compute, whether they attend to specific tokens, or why this layer range emerges.",
+                "affected_claim": "That the work contributes to mechanistic interpretability by identifying linear political representations, though contribution is primarily empirical rather than explanatory.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited analysis of failure modes and steering effectiveness variation: Steering effectiveness varies dramatically across issues (Immigration ρ=0.6+ vs. Free Speech ρ≈0.2). The explanation that 'wider array of stances' exists for some issues is post-hoc; systematic analysis of which ideological dimensions are controllable is absent.",
+                "severity": "minor",
+                "evidence": "Figure 4b shows issue-dependent steering effectiveness ranging from ~0.6 (Immigration, Abortion) to ~0.2 (Free Speech, Trust in Science). Section 6 states: 'we conjecture that this is due to there being a wider array of stances on such issues' but provides no empirical support or analysis of what properties of issues predict steerability.",
+                "affected_claim": "That steering is reliable across policy issues, though caveats are noted.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Potential confounding from prompt templates: The simple prompt templates (e.g., 'Generate a statement by [NAME]') may create artifacts. The paper does not test whether probe performance degrades with significantly different prompt formulations or domains, limiting claims about representation robustness.",
+                "severity": "minor",
+                "evidence": "Section 3 uses fixed template 'USER: Generate a statement by [NAME], a politician in the United States. ASSISTANT: In 2019, [NAME] said that'. No ablation on prompt variation or sensitivity analysis. Section 4 uses different prompts for essays ('Write an essay on [TOPIC]') but does not directly compare probe predictions between prompt formats.",
+                "affected_claim": "That identified representations are robust and generalizable to different contexts and prompts.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core technical approach is sound: ridge regression probes on attention head activations are a standard and well-justified methodology. Robustness checks (linear vs. non-linear, label transformations, cross-validation) are thorough and properly executed. Spearman correlations (~0.85) are high and consistently achieved across three models. The causal intervention design (Equation 8) is principled and evaluation methodology is reasonable. However, there are minor concerns: (1) GPT-4o evaluation dependency and small human validation set (N=10), (2) token-level analysis lacks quantitative grounding. These do not invalidate core claims but reduce confidence in subsidiary results."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "This is the first systematic investigation of linear representations of political ideology in LLM activation space. While probing methodology is established and political bias in LLMs has been studied, the specific contribution—identifying attention heads that linearly encode the liberal-conservative axis, demonstrating generalization to news media slant, and performing steering—is novel. The cross-validation to media outlets (Section 5) is a particularly creative validation strategy. However, novelty is moderate rather than exceptional: probing is a standard technique, linear representation hypothesis is established in prior work (Gurnee & Tegmark 2024, etc.), and the paper applies these to a new domain (political ideology) rather than introducing methodological innovation."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work makes meaningful contributions: (1) It demonstrates LLMs encode a generalizable political dimension, not just memorized labels. (2) The steering results enable practical monitoring and control of political perspective in generated text, relevant to deployment and alignment. (3) It provides a method to audit and characterize political bias in LLMs, addressing a timely concern. (4) Figure 1 offers a concrete approach to interpret political stance token-by-token. However, significance is somewhat constrained by scope limitations (7B models, U.S. politics only) and lack of mechanistic insight. The work is most significant as an empirical confirmation of linear representation hypothesis applied to a new domain, with practical steering applications, but does not constitute a major algorithmic or conceptual advance in interpretability research."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experimental evaluation is generally strong: (1) Cross-validation on lawmaker data is proper (2-fold CV, held-out test sets). (2) Generalization to news media outlets with high correlation (0.764-0.798) provides strong evidence of learned ideology axis. (3) Causal intervention experiments with human validation (ICC=0.91 with GPT-4o) and robustness checks (novel events, layer ablation) are well-designed. However, evaluation has gaps: (1) Token-level detection (Section 4) is only qualitative with 2 examples; (2) human validation uses only N=10 annotators; (3) no comparison to baseline methods or competing approaches; (4) steering effectiveness varies dramatically by issue without systematic analysis. Despite these limitations, core empirical claims are adequately supported by the reported evidence."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written and well-organized. Background (Section 2) thoroughly explains probing methodology and transformer architecture. Experimental sections are logically structured with clear descriptions of data, prompting, probing procedure, and evaluation. Figures are informative: Figure 2 heatmaps effectively show layer/head distributions; Figure 3 scatter plots contextualize individual predictions; Figure 4 clearly demonstrates steering effects. Limitations and ethics are acknowledged explicitly. Appendix is comprehensive with additional results, prompts, and examples. Minor presentation issues: (1) Dense notation (θ_ℓ,h, x_ℓ,h) could be simplified; (2) some figures (A1, A2) appear redundant; (3) the ethics statement, while present, could be more integrated into main text discussion of risks. Overall, presentation meets top-tier standards."
+              }
+            },
+            "summary_comment": "This paper makes a solid empirical contribution to understanding political ideology representation in LLMs. By probing attention heads, it demonstrates that LLMs encode a linear liberal-conservative axis predictive of both lawmaker DW-NOMINATE scores (~0.85 Spearman correlation) and news media slant (0.72-0.80), providing evidence of a generalizable ideological representation. The causal steering interventions (Section 6) and token-level interpretability (Figure 1) are valuable practical contributions. The work is technically sound, with thorough robustness checks and proper evaluation methodology. However, novelty is moderate—it applies established probing techniques to a new domain rather than introducing methodological innovation—and significance is constrained by scope (7B models only, U.S.-centric politics). A few gaps limit impact: token-level detection lacks quantitative validation, GPT-4o evaluation introduces single-model dependency, mechanistic interpretation is absent, and steering effectiveness varies unexplained across issues. Despite these limitations, the paper advances interpretability research by demonstrating that important social dimensions (political ideology) are linearly representable in LLMs and can be causally manipulated, with clear applications to bias monitoring and auditing. For a top-tier ML conference, this represents good empirical work with practical relevance, though not groundbreaking innovation. The paper makes sufficient contributions across probing, generalization, and steering to merit publication at a selective venue.",
+            "acceptance_gates_summary": "Soundness (pass): Technical approach is standard and proper; robustness checks are thorough. Minor concerns about GPT-4o evaluation and token-level analysis lack of quantification do not undermine core claims. Novelty (pass): First systematic study of linear political ideology representations in LLMs; creative cross-validation to media outlets. Moderate novelty as it applies established techniques to new domain. Significance (pass): Demonstrates generalizable political representations, enables practical steering/monitoring, addresses bias auditing. Constrained by scope but meaningful contribution. Evaluation (pass): Strong core experiments with proper CV and generalization testing; steering validation with human annotation. Gaps in token-level evaluation and baseline comparisons but evidence supports central claims. Presentation (pass): Well-written, clearly organized, informative figures, comprehensive appendix. Minor redundancy in figures. Overall: Work meets standards for acceptance at a top-tier ML conference. Clear contributions in representation discovery, generalization, and intervention, though not revolutionary in methodological or conceptual terms."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel application of probing methodology: This is the first work to systematically investigate linear representations of political ideology (liberal-conservative axis) in LLM activation space using DW-NOMINATE scores. The approach of identifying attention heads that linearly encode political perspective is creative and well-motivated.",
+              "Strong empirical validation across multiple dimensions: The paper demonstrates robust findings across three different models (Llama-2-7b, Mistral-7b, Vicuna-7b), with high Spearman correlations (0.8+) for predicting lawmaker ideology. Critically, the authors validate generalization by showing the same probes predict news media slant, providing evidence that models learn a generalizable political representation rather than mere memorization.",
+              "Comprehensive experimental design with causal intervention: Beyond identification, the paper demonstrates causal steering of model outputs toward liberal or conservative perspectives through linear interventions on attention head activations. The steering experiments are well-designed with proper evaluation (human annotators + GPT-4o validation with ICC=0.91), and robustness checks on novel events (ADVANCE Act, UAW strike) strengthen claims.",
+              "Thorough robustness analysis: The paper includes multiple robustness checks (linear vs. non-linear probes, label transformations including cubic and non-monotonic functions, token-by-token analysis, layer ablations in A.7, novel event testing in A.6) that substantiate the linear representation hypothesis and rule out alternative explanations.",
+              "Clear practical and interpretive value: Figure 1 demonstrates interpretable token-by-token political slant detection on policy issues (immigration, abortion, gun control, climate change, social media regulation), with additional examples in Appendix A.2. The consistency of liberal↔blue and conservative↔red coloring across diverse policy topics provides qualitative evidence the probe captures generalizable ideology.",
+              "Thoughtful treatment of measurement and limitations: The authors explicitly acknowledge measurement challenges, justify use of DW-NOMINATE and Ad Fontes as validated social science measures, and transparently discuss limitations in Sections 8 and Ethics Statement, including acknowledgment that token-level evaluation remains qualitative and that future work should validate LLM annotations against human raters."
+            ],
+            "weaknesses": [
+              "Limited scope to smaller models and U.S.-centric politics: Findings rely exclusively on 7B-parameter models; generalization to larger models (70B+, 175B+) remains uncertain. The political framework is uniquely U.S. (DW-NOMINATE, Ad Fontes), and linear representations may not hold in less polarized democracies.",
+              "Token-level detection remains qualitative without systematic inter-annotator validation: While Figure 1 and Appendix A.2 provide multiple qualitative examples showing consistent color patterns, the paper acknowledges this is qualitative ('leave for future work a more systematic evaluation') without quantitative inter-annotator agreement or formal accuracy metrics.",
+              "GPT-4o evaluation reliance with limited human validation scale: Although ICC=0.91 with N=10 politically balanced human annotators provides credible validation, relying on this small sample to validate GPT-4o for 1,134 essay ratings introduces dependency on a single proprietary model. Appendix A.4 transparency about this limitation mitigates concern but does not resolve the scale gap.",
+              "Mechanistic interpretation absent: While the paper identifies which heads correlate with ideology and that predictive heads cluster in middle layers, it provides no analysis of attention patterns, what computations these heads perform, or why this layer distribution emerges. The contribution is empirical rather than mechanistic.",
+              "Issue-dependent steering effectiveness variation lacks systematic analysis: Figure 4b shows dramatic variation (Immigration ρ~0.6+ vs. Free Speech ρ~0.2). While Section 6 and Figure 4c offer post-hoc observations (wider stance diversity, longer liberal outputs for certain issues), no systematic analysis predicts steerability from issue properties.",
+              "Prompt template sensitivity not tested: The probing uses a fixed template ('Generate a statement by [NAME]...'); while Appendix A.6 tests novel events and A.7 tests layer ablations, no ablation systematically varies prompt formulations to test robustness across different prompt structures."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited scope to smaller models and U.S.-centric politics: Findings rely exclusively on 7B-parameter models; generalization to larger models (70B+, 175B+) remains uncertain. The political framework is uniquely U.S. (DW-NOMINATE, Ad Fontes), and linear representations may not hold in less polarized democracies.",
+                "severity": "major",
+                "evidence": "Section 8 states: 'findings are based on relatively smaller models and may not generalize to larger or untested models' and 'research is U.S. centric and may not generalize to less polarized political environments, where linear representations of ideologies may be less effective representations (See Appendix A.10 for details).' Rebuttal acknowledges this is 'an important avenue for future work rather than a fundamental flaw' but does not provide new evidence addressing scalability or cross-cultural validity.",
+                "affected_claim": "That LLMs possess generalizable linear representations of political ideology applicable across model scales and political systems.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Token-level detection remains qualitative without systematic inter-annotator validation: While Figure 1 and Appendix A.2 provide multiple qualitative examples showing consistent color patterns, the paper acknowledges this is qualitative ('leave for future work a more systematic evaluation') without quantitative inter-annotator agreement or formal accuracy metrics.",
+                "severity": "major",
+                "evidence": "Section 4 explicitly states: 'We found similarly interpretable qualitative results in many other examples but leave for future work a more systematic evaluation of this qualitative measure.' Rebuttal notes 'consistency of coloring patterns (liberal ↔ blue, conservative ↔ red) across these diverse topics provides qualitative evidence' and Appendix A.2 shows distribution across nine issues, but no quantitative inter-annotator agreement metric is reported in the paper. The rebuttal acknowledges 'A formal quantitative evaluation with inter-annotator agreement would strengthen this claim' without claiming the paper contains such evaluation.",
+                "affected_claim": "That probes detect generalizable liberal-conservative ideology in open-ended text, as demonstrated by interpretable token-by-token coloring.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "GPT-4o evaluation reliance with limited human validation scale: Although ICC=0.91 with N=10 politically balanced human annotators provides credible validation, relying on this small sample to validate GPT-4o for 1,134 essay ratings introduces dependency on a single proprietary model. Appendix A.4 transparency about this limitation mitigates concern but does not resolve the scale gap.",
+                "severity": "major",
+                "evidence": "Appendix A.4 reports ICC(A,1)=0.91 and Spearman ρ=0.952 between GPT-4o and average of N=10 human scores (3 Democrats, 4 Independents, 3 Republicans), computed on 21 essays. Then GPT-4o alone rates all 1,134 essays in Section 6 steering study. Section 8 acknowledges 'potential for bias when using an LLM as an evaluator' and recommends 'future research... continue to validate LLM-generated annotations against human annotations.' Rebuttal defends this as 'pragmatic given computational constraints' and notes 'The high ICC with balanced annotators... provides confidence,' but does not increase human validation scale or provide new evidence addressing the single-model dependency.",
+                "affected_claim": "That steering interventions reliably shift political slant as measured by reliable external judges, with quantitative results in Figure 4.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Mechanistic interpretation absent: While the paper identifies which heads correlate with ideology and that predictive heads cluster in middle layers, it provides no analysis of attention patterns, what computations these heads perform, or why this layer distribution emerges. The contribution is empirical rather than mechanistic.",
+                "severity": "minor",
+                "evidence": "Section 3 reports 'highly predictive heads are primarily located in the middle layers, often speculated to encode high-level concepts and tasks' without analysis of what these heads compute. Rebuttal clarifies: 'Our contribution is primarily empirical—demonstrating the existence of linear political representations—rather than mechanistic' and states this 'is beyond the scope of the current work,' positioning it as future work. This clarification is accurate to the submission but does not add new analysis.",
+                "affected_claim": "Scope of interpretability contribution: empirical discovery of representations rather than mechanistic explanation of their function.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Issue-dependent steering effectiveness variation lacks systematic analysis: Figure 4b shows dramatic variation (Immigration ρ~0.6+ vs. Free Speech ρ~0.2). While Section 6 and Figure 4c offer post-hoc observations (wider stance diversity, longer liberal outputs for certain issues), no systematic analysis predicts steerability from issue properties.",
+                "severity": "minor",
+                "evidence": "Figure 4b shows issue-dependent correlations ranging from ~0.6 (Immigration, Abortion) to ~0.2 (Free Speech, Trust in Science). Section 6 conjecture: 'we conjecture that this is due to there being a wider array of stances on such issues, as compared to issues like \"Free Speech\" or \"Trust in Science\"' lacks empirical support. Rebuttal acknowledges 'we provide a post-hoc explanation but acknowledge it is speculative' and notes 'A systematic analysis of issue properties predicting steerability... would strengthen this contribution and is a natural follow-up.' No new evidence in paper addresses this.",
+                "affected_claim": "Understanding of which policy dimensions are reliably steerable.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Prompt template sensitivity not tested: The probing uses a fixed template ('Generate a statement by [NAME]...'); while Appendix A.6 tests novel events and A.7 tests layer ablations, no ablation systematically varies prompt formulations to test robustness across different prompt structures.",
+                "severity": "minor",
+                "evidence": "Section 3 specifies fixed prompt template. Appendix A.6 tests novel events (ADVANCE Act, UAW strike) and A.7 tests layer-dependent intervention effects. However, no ablation varies prompt formulations (e.g., '[NAME] believes that' vs. 'From the perspective of [NAME]' vs. direct questions). Rebuttal states 'We use different prompts for policy essays (Section 4, A.2) and news outlets (Section 5)' but acknowledges 'We do not systematically vary prompts within a single task to test robustness' and notes 'This is a limitation we could address in revision.' No such evidence appears in submitted paper.",
+                "affected_claim": "Robustness of identified representations to different prompt formulations.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "Core technical approach is sound: ridge regression probes on attention head activations follow established methodology with proper cross-validation. Robustness checks are thorough—linear vs. non-linear probes show no substantial improvement for non-linear (supporting linearity hypothesis), label transformations (cubic, non-monotonic, random permutation) show expected degradation patterns, layer ablations (A.7) and novel event tests (A.6) strengthen causal claims. Rebuttal accurately characterizes the scope as 'empirical validation of linear representation hypothesis' rather than making unsupported mechanistic claims. The main technical concern—reliance on GPT-4o with limited human validation (N=10, ICC=0.91)—is mitigated by political balance and high inter-rater reliability, though scaling would strengthen it. No fundamental flaws in reasoning or methodology; gaps exist but do not invalidate core claims."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "First systematic investigation of linear political ideology representations in LLM activation space. Probing methodology is standard but application to political ideology is novel. The cross-validation strategy (training on lawmaker DW-NOMINATE, testing on news media Ad Fontes scores) is creative and provides compelling generalization evidence. Rebuttal appropriately acknowledges novelty is 'moderate' (applies established techniques to new domain) rather than 'exceptional,' but this is accurate for a solid empirical paper. Linear representation hypothesis has been applied to sentiment, space, time, humor, language, topic, truth, safety (as cited), but political ideology representation has not been systematically studied before. This meets novelty threshold for top-tier conference."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "Demonstrates meaningful contributions: (1) LLMs encode generalizable political dimension (not mere memorization, validated via media slant prediction), (2) practical steering and monitoring capability relevant to alignment and bias auditing, (3) token-level interpretability approach (Figure 1, Appendix A.2) enables understanding of implicit ideological stances. Work is most significant as empirical validation of linear representation hypothesis applied to societal-relevant dimension (political ideology) with practical applications. Limitations acknowledged by rebuttal (no mechanistic insight, 7B models only, U.S.-centric) appropriately characterize significance as 'strong empirical confirmation' rather than 'revolutionary.' For ML conference, contribution is substantial: confirms important concept (linearity) applies to consequential domain (political perspective) and enables practical control, supporting deployment and auditing of LLMs."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Evaluation is strong on core claims, with acknowledged gaps on secondary aspects. DW-NOMINATE probing uses proper 2-fold cross-validation with high Spearman correlations (0.8+) across three models. Generalization to news media outlets (0.764-0.798 correlation) provides robust evidence of learned ideology axis—this is compelling because it uses independent external validation measure, not just held-out test set from same task. Causal steering experiments include proper intervention design (Equation 8), human validation (ICC=0.91 with GPT-4o), and robustness checks (novel events in A.6, layer ablations in A.7). Main evaluation gaps: (1) token-level detection (Section 4) is qualitative without inter-annotator agreement—rebuttal acknowledges this limitation without claiming it is resolved; (2) human validation sample is small (N=10) though politically balanced. Despite these limitations, evidence supporting central claims (existence of linear ideology representation, generalization to media, causal steering) is adequate for acceptance."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "Paper is clearly written with logical organization. Section 2 provides thorough background on transformers and probing methodology. Experimental sections (3–6) follow clear structure: data description, prompting strategy, probing procedure, evaluation metrics, results, robustness checks. Figures effectively communicate findings: Figure 2 heatmaps show layer/head distributions, Figure 3 scatter plots contextualize predictions with labeled examples, Figure 4 demonstrates steering effects across models and issues. Limitations are explicitly acknowledged in Section 8 and Ethics Statement. Appendix is comprehensive with additional results (Figures A1–A7), detailed prompts (A.3, A.9), and extended examples (A.5). Rebuttal confirms paper's transparency about limitations. Minor presentation notes: dense notation (θ_ℓ,h, x_ℓ,h) is standard in mechanistic interpretability literature; some appendix figures appear redundant but provide completeness. Overall presentation meets top-tier standards."
+              }
+            },
+            "summary_comment": "This paper makes a solid empirical contribution to understanding political ideology representation in LLMs. It demonstrates that LLMs encode a linear liberal-conservative axis highly predictive of both lawmaker DW-NOMINATE scores (Spearman ~0.85) and news media Ad Fontes slant (0.72–0.80), providing evidence of generalized ideological representation. Causal steering interventions and token-level interpretability are valuable for practical applications (bias monitoring, auditing). The work is technically sound with thorough robustness checks (linear vs. non-linear probes, label transformations, layer ablations, novel events). The rebuttal appropriately characterizes the contribution as 'empirical validation of linear representation hypothesis' applied to political ideology—not a mechanistic breakthrough, but an important application with practical relevance. Acknowledged limitations (7B models only, U.S.-centric, qualitative token-level validation, GPT-4o dependency, issue-dependent steering variation) do not invalidate core claims and are transparently discussed in the paper and rebuttal. While gaps remain (mechanistic understanding of why middle layers encode ideology, quantitative token-level inter-annotator agreement, systematic characterization of steering effectiveness predictors, prompt robustness testing), these represent avenues for future work rather than fundamental flaws. For a top-tier ML conference, this represents strong empirical work with clear contributions to interpretability research and practical applications to LLM auditing and control. The generalization from lawmaker to media domain is particularly compelling evidence that the model learns an ideological axis rather than memorizing labels."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Generalization concerns: Limited to smaller 7B models; unclear if findings extend to larger models or non-U.S. political systems\",\n        \"Token-level evaluation lacks quantitative validation: Section 4 relies on qualitative examples without systematic measurement\",\n        \"GPT-4o evaluation bias and insufficient human validation: Only N=10 human annotators for validation; GPT-4o rates 1,134 essays without independent verification\",\n        \"Mechanistic understanding is absent: Paper identifies which heads encode ideology but not why or what computations they perform\",\n        \"Issue-dependent steering effectiveness unexplained: Dramatic variation across policy issues (ρ=0.6 vs. ρ=0.2) without systematic analysis\",\n        \"Prompt template sensitivity not tested: Single fixed prompt template; unclear if representations are robust to different formulations\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Limited scope to 7B models\",\n          \"location\": \"Section 8, Limitations paragraph; Abstract and Section 3\",\n          \"explanation\": \"Authors acknowledge 'findings are based on relatively smaller models and may not generalize to larger or untested models.' Paper uses only Llama-2-7b-chat, Mistral-7b-instruct, and Vicuna-7b.\"\n        },\n        {\n          \"concern\": \"U.S.-centric focus\",\n          \"location\": \"Section 8, Limitations; Appendix A.10\",\n          \"explanation\": \"Authors state 'research is U.S. centric and may not generalize to less polarized political environments.' DW-NOMINATE and Ad Fontes are U.S.-specific measures.\"\n        },\n        {\n          \"concern\": \"Token-level analysis is only qualitative\",\n          \"location\": \"Section 4; Figure 1\",\n          \"explanation\": \"Authors explicitly state: 'We found similarly interpretable qualitative results in many other examples but leave for future work a more systematic evaluation of this qualitative measure.' Only two policy examples shown with visual coloring.\"\n        },\n        {\n          \"concern\": \"Small human validation set for GPT-4o evaluation\",\n          \"location\": \"Appendix A.4\",\n          \"explanation\": \"Only N=10 human annotators (3 Democrats, 4 Independents, 3 Republicans) rate 21 essays to validate GPT-4o. ICC=0.91 computed on this small sample, then GPT-4o alone rates all 1,134 essays in steering study.\"\n        },\n        {\n          \"concern\": \"Middle-layer heads lack mechanistic explanation\",\n          \"location\": \"Section 3, Results subsection; Figure 2 caption\",\n          \"explanation\": \"Paper reports that 'highly predictive heads are primarily located in the middle layers, often speculated to encode high-level concepts and tasks' but provides no analysis of attention patterns, computational functions, or why this layer distribution emerges.\"\n        },\n        {\n          \"concern\": \"Steering effectiveness varies by issue without explanation\",\n          \"location\": \"Section 6, Results subsection; Figure 4b\",\n          \"explanation\": \"Figure 4b shows correlations ranging from ~0.6 (Immigration, Abortion) to ~0.2 (Free Speech, Trust in Science). Section 6 offers only post-hoc conjecture: 'we conjecture that this is due to there being a wider array of stances on such issues' without empirical support.\"\n        },\n        {\n          \"concern\": \"Fixed prompt template used throughout\",\n          \"location\": \"Section 3, Prompting subsection; Section 6, Study design\",\n          \"explanation\": \"DW-NOMINATE probing uses fixed template: 'USER: Generate a statement by [NAME]... ASSISTANT: In 2019, [NAME] said that'. No ablation studies testing prompt sensitivity or alternative formulations.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Token-level detection evaluation\",\n          \"proposed_change\": \"Conduct quantitative evaluation of Section 4 token-level analysis by recruiting human annotators (e.g., 3-5 politically diverse annotators) to rate whether the red/blue token colorings accurately reflect liberal/conservative sentiment in a sample of 50+ essays across multiple policy issues. Report inter-annotator agreement (Cohen's kappa or ICC) and aggregate accuracy metrics alongside existing qualitative examples.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Dependency on single-model evaluation (GPT-4o)\",\n          \"proposed_change\": \"Expand human validation of political slant ratings beyond N=10 annotators. Ideally recruit 20-30 annotators maintaining political balance, and have them rate a larger random sample (50-100 essays instead of 21). Report inter-rater reliability using this larger sample and compare against GPT-4o ratings to provide more robust validation statistics before scaling to full dataset evaluation.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Mechanistic understanding of middle-layer heads\",\n          \"proposed_change\": \"Add interpretability analysis of the most predictive heads identified in Section 3. For the top 5 heads per model (e.g., head 18 in layer 15 for Llama-2-7b-chat), visualize attention patterns using tools like attention head visualizations. Examine which tokens or token types these heads attend to when processing lawmaker names and policy text. Investigate whether these heads show systematic attention to ideologically-sensitive tokens (e.g., 'rights', 'security', 'justice') or particular syntactic roles.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Issue-dependent steering effectiveness variation\",\n          \"proposed_change\": \"Conduct systematic analysis of which issue properties predict steering effectiveness. For each of the 9 policy issues, compute quantitative measures such as: (1) ideological polarity based on existing survey data or media coverage, (2) linguistic diversity of positions (measured via topic modeling or clustering of stance variation in pre-training corpus if available), (3) presence of agreed-upon facts vs. normative disagreements. Analyze correlation between these properties and steering correlation (ρ) reported in Figure 4b to identify which issue characteristics make steering more or less effective.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Prompt template sensitivity and robustness\",\n          \"proposed_change\": \"Conduct ablation study varying prompt templates for the DW-NOMINATE probing task. Test alternative prompts such as: (1) '[NAME] believes that', (2) 'From the perspective of [NAME]', (3) 'A speech by [NAME] would focus on', (4) direct question format. Report whether probe performance (Spearman correlation) remains ≥0.8 across prompt variants. This would strengthen claims about representation robustness and rule out prompt-specific artifacts.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Generalization to larger models\",\n          \"proposed_change\": \"If computationally feasible, extend probing experiments to at least one larger model (e.g., Llama-2-13b or 70b if available) to test whether linear political representations scale and remain in middle layers. Report whether Spearman correlations remain comparable (≥0.75) and whether layer distribution patterns hold.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the thorough and fair evaluation. The reviewer correctly identifies the paper's key contributions—demonstrating linear representations of political ideology in LLM activation space, validating generalization to news media, and showing causal steering—while also noting important limitations and gaps. We address each concern below:\\n\\n**On generalization to larger models and non-U.S. contexts:** The reviewer correctly notes that our findings are based on 7B-parameter models. We acknowledge this limitation explicitly in Section 8. We view this as an important avenue for future work rather than a fundamental flaw: the linear representation hypothesis itself is not model-size dependent in principle, though empirical validation at scale is needed. Regarding U.S.-centric scope (Appendix A.10), we agree this is a substantial limitation. We argue that the contribution remains valuable for U.S. political contexts while acknowledging reduced applicability elsewhere.\\n\\n**On token-level evaluation:** The reviewer rightly points out that Section 4 relies on qualitative examples from Figure 1 without quantitative validation. We acknowledge this in the text ('leave for future work a more systematic evaluation'). However, we note that Figure 1 demonstrates interpretability across multiple policy examples (immigration, abortion, gun control, climate change, social media regulation shown in the figure; additional examples in Appendix A.2), and the consistency of coloring patterns (liberal ↔ blue, conservative ↔ red) across these diverse topics provides qualitative evidence that probes capture generalizable ideology rather than memorized labels. A formal quantitative evaluation with inter-annotator agreement would strengthen this claim, as the reviewer suggests.\\n\\n**On GPT-4o evaluation bias:** We recognize the reviewer's concern about relying on GPT-4o for 1,134 essays with only N=10 human validation. We explicitly validate GPT-4o against politically balanced human annotators and report ICC=0.91 (Appendix A.4), which meets standard thresholds for reliability. Importantly, we state: 'we recommend that future research using our methods continue to validate LLM-generated annotations against human annotations to triangulate and mitigate any inherent biases' (Section 8). Our approach is pragmatic given computational constraints, and we have been transparent about the limitations. The high ICC with balanced annotators (3D, 4I, 3R) provides confidence, though we agree a larger human validation set would be preferable.\\n\\n**On mechanistic interpretation:** The reviewer notes we identify which heads encode ideology but not why or what computations they perform. This is a fair observation. Our contribution is primarily empirical—demonstrating the existence of linear political representations—rather than mechanistic. We do not claim to provide mechanistic insight into *why* middle layers contain these representations. Section 7 positions this work in the context of established interpretability research on linear representation hypothesis, acknowledging that methodological improvements in identifying such directions are 'left for future work.' A deeper attention analysis, as the reviewer suggests, would be valuable but is beyond the scope of the current work.\\n\\n**On issue-dependent steering effectiveness:** The reviewer highlights the dramatic variation in steering effectiveness (ρ~0.6 for Immigration/Abortion vs. ρ~0.2 for Free Speech/Trust in Science; Figure 4b). We provide a post-hoc explanation but acknowledge it is speculative. The reviewer correctly identifies this as a limitation. We note that Figure 4c provides an additional observation: models generate longer outputs when steered liberal on Gun Control and Climate Change, suggesting systematic argumentation style differences that deserve investigation. A systematic analysis of issue properties predicting steerability—as the reviewer suggests—would strengthen this contribution and is a natural follow-up.\\n\\n**On prompt template sensitivity:** The reviewer notes we use a single fixed prompt template and do not test robustness to alternative formulations. This is a valid concern. We use: 'USER: Generate a statement by [NAME]... ASSISTANT: In 2019, [NAME] said that' for DW-NOMINATE probing and different prompts for policy essays (Section 4, A.2) and news outlets (Section 5). We do not systematically vary prompts within a single task to test robustness. Appendix A.6-A.7 include robustness checks (novel events, layer ablations) but not prompt ablations. This is a limitation we could address in revision.\\n\\n**Overall assessment:** The reviewer's criticisms are substantive and fair. We have made progress on representation discovery, generalization validation (via media slant prediction), and practical steering, but gaps remain in mechanistic understanding, quantitative token-level validation, and systematic characterization of when steering is effective. We view these as important directions for future work and do not believe they invalidate the core empirical contributions. The paper advances interpretability research by demonstrating that political ideology is linearly representable and controllable in LLMs, with clear applications to bias monitoring. We accept the reviewer's suggestion that the work is best understood as strong empirical validation of the linear representation hypothesis applied to political ideology, rather than a mechanistic breakthrough.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel application of probing methodology: This is the first work to systematically investigate linear representations of political ideology (liberal-conservative axis) in LLM activation space using DW-NOMINATE scores. The approach of identifying attention heads that linearly encode political perspective is creative and well-motivated.",
+              "Strong empirical validation with compelling generalization: The paper demonstrates robust findings across three models with high Spearman correlations (0.8+). Critically, the generalization from DW-NOMINATE (lawmakers) to Ad Fontes scores (news media outlets, 0.764-0.798 correlation) provides independent validation that the model learns a generalizable political axis rather than memorizing labels—a particularly strong design choice.",
+              "Comprehensive experimental design with causal intervention: The paper demonstrates causal steering through linear interventions on attention head activations, with proper evaluation methodology (human annotators with ICC=0.91 against GPT-4o, robustness checks on novel post-cutoff events in Appendix A.6, layer ablations in A.7). The intervention design (Equation 8) is principled and the experimental scope is substantial (1,134 essays across three models and nine policy issues).",
+              "Thorough robustness analysis addressing core claims: The paper includes systematic checks: (1) linear vs. non-linear probes show no substantial improvement for non-linear, supporting linearity hypothesis; (2) label transformations (cubic, non-monotonic, random permutation) show expected degradation, confirming probes capture systematic patterns; (3) novel event testing (ADVANCE Act, UAW strike post-cutoff) demonstrates generalization beyond pre-training data; (4) layer ablations show interventions on early-to-middle layers are effective while middle-to-late are not.",
+              "Clear practical and interpretive value: Figure 1 and Appendix A.2 demonstrate interpretable token-by-token political coloring across diverse policy topics (immigration, abortion, gun control, climate change, social media regulation, and others). The consistency of liberal↔blue and conservative↔red coloring patterns across different prompts and policy domains provides qualitative evidence the probe captures generalizable ideology beyond memorization.",
+              "Transparent acknowledgment of limitations with appropriate scoping: Authors explicitly discuss model scale limitations (7B only), U.S.-centric scope, and acknowledge that 'important' concepts being linearly represented is an empirical hypothesis rather than guaranteed truth. Section 8 and the Ethics Statement thoughtfully discuss when findings may not apply (less polarized systems) and propose principled extensions (simplex of archetypal perspectives). The rebuttal clarifies that limitations represent 'important future directions' rather than fundamental flaws."
+            ],
+            "weaknesses": [
+              "Limited scope to smaller models and U.S.-centric politics: Findings rely exclusively on 7B-parameter models; generalization to larger models (70B+, 175B+) is unvalidated. The political framework uses U.S.-specific measures (DW-NOMINATE, Ad Fontes), and linear representations may not hold in less polarized democracies.",
+              "Token-level detection validation remains qualitative: While Figure 1 and Appendix A.2 provide consistent patterns across policy topics and models, the paper explicitly acknowledges this is qualitative ('leave for future work a more systematic evaluation'). No inter-annotator agreement metrics or formal accuracy measurements are reported.",
+              "GPT-4o evaluation based on limited human validation: Although ICC=0.91 with N=10 politically balanced annotators (3D, 4I, 3R) provides credible validation, the human validation sample is small and only 21 of 1,134 essays were rated by humans. Single-model dependency for the remaining ~1,113 essays introduces potential bias despite the high reported correlation.",
+              "Mechanistic interpretation absent: While the paper identifies which heads correlate with ideology and their layer distribution, it provides no analysis of attention patterns, computational functions these heads perform, or explanation for why middle layers specifically encode ideology.",
+              "Issue-dependent steering effectiveness variation lacks systematic analysis: Figure 4b shows dramatic variation (Llama-2-7b: Immigration ~0.607 vs. Free Speech/Trust in Science ~0.2 or lower). Section 6 and Figure 4c provide post-hoc observations (diverse stances, output length differences) without systematic analysis predicting steerability from issue properties.",
+              "Prompt template sensitivity untested: The core DW-NOMINATE probing uses a fixed template ('Generate a statement by [NAME]...'); while Appendices A.6–A.7 test novel events and layer effects, no ablation systematically varies prompt formulations to validate robustness across different prompt structures."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited scope to smaller models and U.S.-centric politics: Findings rely exclusively on 7B-parameter models; generalization to larger models (70B+, 175B+) is unvalidated. The political framework uses U.S.-specific measures (DW-NOMINATE, Ad Fontes), and linear representations may not hold in less polarized democracies.",
+                "severity": "major",
+                "evidence": "Section 8 explicitly states: 'findings are based on relatively smaller models and may not generalize to larger or untested models' and 'research is U.S. centric and may not generalize to less polarized political environments.' Appendix A.10 discusses mitigation (simplex approach) but provides no empirical validation. Rebuttal clarifies this represents 'an important avenue for future work rather than a fundamental flaw' and notes 'the linear representation hypothesis itself is not inherently scale-dependent'—which is a fair characterization that scopes the claim appropriately.",
+                "affected_claim": "That LLMs possess generalizable linear representations of political ideology across model scales and political systems.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Token-level detection validation remains qualitative: While Figure 1 and Appendix A.2 provide consistent patterns across policy topics and models, the paper explicitly acknowledges this is qualitative ('leave for future work a more systematic evaluation'). No inter-annotator agreement metrics or formal accuracy measurements are reported.",
+                "severity": "major",
+                "evidence": "Section 4 states: 'We found similarly interpretable qualitative results in many other examples but leave for future work a more systematic evaluation of this qualitative measure.' Figure 1 provides two detailed examples; Appendix A.2 reports distribution of ŷ values across nine topics and three models (e.g., Mistral-7b-instruct mean=0.143, σ=0.649) showing consistent patterns but no inter-annotator agreement. Rebuttal notes Appendix A.2 'demonstrates consistency across diverse policy topics' and claims this strengthens qualitative evidence, but the paper contains no quantitative validation metric (Krippendorff's α, Cohen's kappa, or similar).",
+                "affected_claim": "That probes capture generalizable liberal-conservative ideology in open-ended text, validated by interpretable token-by-token coloring.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "GPT-4o evaluation based on limited human validation: Although ICC=0.91 with N=10 politically balanced annotators (3D, 4I, 3R) provides credible validation, the human validation sample is small and only 21 of 1,134 essays were rated by humans. Single-model dependency for the remaining ~1,113 essays introduces potential bias despite the high reported correlation.",
+                "severity": "major",
+                "evidence": "Appendix A.4 reports: 'sampled politically balanced human annotators from CloudResearch survey platform (N=10)... to annotate a random sample of 21 essays.' ICC(A,1)=0.91 and Spearman ρ=0.952 computed on these 21 essays. Section 6 steering study uses GPT-4o to rate 1,134 essays. Rebuttal frames this as 'pragmatic given computational constraints' and defends ICC=0.91 as providing 'credible evidence' but does not dispute that 1,113 essays lack human validation. The rebuttal adds: 'Section 8 acknowledges... and recommends future research continue to validate,' which is accurate but does not resolve the single-model dependency in the current paper.",
+                "affected_claim": "That steering interventions reliably shift political slant as measured by reliable judges, with quantitative results in Figure 4.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Mechanistic interpretation absent: While the paper identifies which heads correlate with ideology and their layer distribution, it provides no analysis of attention patterns, computational functions these heads perform, or explanation for why middle layers specifically encode ideology.",
+                "severity": "minor",
+                "evidence": "Section 3 reports that 'highly predictive heads are primarily located in the middle layers, often speculated to encode high-level concepts and tasks' but provides only correlation heatmaps (Figure 2), not attention visualizations or computational analysis. Rebuttal clarifies: 'Our contribution is primarily empirical—demonstrating the existence of linear political representations—rather than mechanistic' and positions mechanistic analysis 'beyond the scope of the current work.' This clarification is accurate to the paper's framing and reasonably scopes the contribution.",
+                "affected_claim": "Scope of interpretability contribution: empirical discovery of linear representations rather than mechanistic explanation of their computational basis.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Issue-dependent steering effectiveness variation lacks systematic analysis: Figure 4b shows dramatic variation (Llama-2-7b: Immigration ~0.607 vs. Free Speech/Trust in Science ~0.2 or lower). Section 6 and Figure 4c provide post-hoc observations (diverse stances, output length differences) without systematic analysis predicting steerability from issue properties.",
+                "severity": "minor",
+                "evidence": "Figure 4b shows Llama-2-7b steering effectiveness ranging from ~0.607 for Immigration and Abortion to lower values for other issues, with Free Speech and Trust in Science around 0.2 or below (exact values not labeled but visually clear). Section 6 states: 'we conjecture that this is due to there being a wider array of stances on such issues' without empirical support. Figure 4c notes length differences for certain issues. Rebuttal acknowledges: 'we provide a post-hoc explanation but acknowledge it is speculative.' No analysis of issue properties (polarization, stance diversity, linguistic markers) predicting steering effectiveness appears in paper.",
+                "affected_claim": "Understanding of which policy dimensions are reliably steerable and why.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Prompt template sensitivity untested: The core DW-NOMINATE probing uses a fixed template ('Generate a statement by [NAME]...'); while Appendices A.6–A.7 test novel events and layer effects, no ablation systematically varies prompt formulations to validate robustness across different prompt structures.",
+                "severity": "minor",
+                "evidence": "Section 3, Prompting subsection specifies: 'USER: Generate a statement by [NAME], a politician in the United States. ASSISTANT: In 2019, [NAME] said that'. Appendix A.6 tests novel events (ADVANCE Act, UAW strike) and A.7 tests layer-dependent intervention effects, but neither ablates prompt structure. Rebuttal states: 'We use different prompts for policy essays (Section 4, A.2) and news outlets (Section 5)' but acknowledges 'We do not systematically vary prompts within a single task to test robustness' and notes 'This is a limitation we could address in revision.' No such evidence exists in the submitted paper.",
+                "affected_claim": "Robustness of identified linear representations to different prompt formulations and contexts.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "Core technical approach is sound with proper methodology and execution. Ridge regression probes on attention head activations follow established protocols. Cross-validation is properly implemented (2-fold for DW-NOMINATE, held-out test sets). Robustness checks systematically support claims: (1) linear vs. non-linear comparison shows non-linear probes achieve no substantial improvement (Mistral: 0.846 linear vs. 0.838 non-linear), supporting linearity hypothesis; (2) label transformation ablation (cubic, non-monotonic, random permutation) shows expected patterns confirming probes capture systematic structure; (3) novel event testing (ADVANCE Act, UAW strike) demonstrates post-cutoff generalization; (4) layer ablations show early-middle layers effective, late layers ineffective. The causal intervention design (Equation 8, adding scaled steering vectors to activations) is principled. Main evaluation concern is GPT-4o dependency with small human validation sample (N=10, ICC=0.91), but the high inter-rater reliability with politically balanced annotators and transparency about this limitation are appropriate. No fundamental logical or mathematical errors detected. Rebuttal's clarifications regarding scope (hypothesis-testing rather than mechanistic explanation) are accurate and do not reveal misstatement in paper."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "First systematic investigation of linear political ideology representations in LLM activation space. While probing methodology is established and linear representation hypothesis applied to multiple domains (sentiment, space, time, humor, language, topic, truth, safety), application to political ideology is novel. The cross-domain validation strategy (train on DW-NOMINATE lawmakers, test on Ad Fontes media outlets) is creative—using an independent external measure with different data source and labeling process strengthens generalization claims beyond standard held-out test sets. This validation approach is particularly compelling because it demonstrates the model learns an ideology axis applicable to independent political entities, not just pattern-matching to lawmaker names. Rebuttal appropriately characterizes novelty as 'moderate' (established techniques applied to new domain) rather than 'exceptional,' which is accurate and appropriately scoped. Meets novelty threshold for top-tier venue."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "Demonstrates meaningful contributions to interpretability and LLM auditing: (1) provides evidence that LLMs encode a generalizable political dimension, not mere memorization; (2) shows this representation is linearly structured and controllable via inference-time intervention, enabling practical monitoring and steering; (3) supplies a systematic method to audit and characterize political bias in LLM outputs—addressing timely concern for AI alignment and deployment; (4) token-level interpretability approach enables understanding implicit ideological stances in generated text (Figure 1, Appendix A.2). Significance is appropriately characterized as 'strong empirical validation' rather than 'revolutionary breakthrough,' which is accurate. Work confirms that important societal concepts (political ideology) are linearly representable in LLMs and causally controllable, with direct applications to bias detection and mitigation. For ML conference, contribution meaningfully advances understanding of how LLMs encode and can be steered on value-laden dimensions, supporting responsible deployment. Limitations (7B models, U.S. focus, lack of mechanistic insight) are material but do not undermine core significance—they appropriately scope where findings apply."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Evaluation adequately supports central claims with acknowledged gaps on secondary aspects. Core experimental design is strong: (1) DW-NOMINATE probing uses proper 2-fold cross-validation with high Spearman correlations (0.854, 0.846, 0.861 for individual heads; 0.870–0.885 for ensembles of K=32 heads) across three models; (2) generalization to independent Ad Fontes measure (0.764–0.798 correlation) is particularly compelling—different data source, independent labeling, different domain (media vs. lawmakers)—rules out task-specific memorization; (3) causal steering experiments include proper intervention design, human validation (ICC=0.91 with politically balanced annotators against GPT-4o), and robustness checks (novel post-cutoff events, layer ablations); (4) linear vs. non-linear comparison supports linearity hypothesis; (5) label transformation ablation confirms probes capture structure. Main evaluation gaps: token-level detection (Section 4) is qualitative without inter-annotator agreement (paper acknowledges this limitation explicitly); human validation scale is small (N=10 → ICC=0.91, then GPT-4o alone for 1,134 essays). Despite these gaps, evidence supporting existence of linear ideology representation, its generalization, and causal steerability is adequate for acceptance. Secondary claims (why certain issues steer better, prompt robustness) remain unvalidated but do not undermine primary claims."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "Paper is clearly written with logical organization and effective communication. Section 2 provides thorough background on transformer architecture and probing methodology, building understanding for readers unfamiliar with mechanistic interpretability. Sections 3–6 follow clear structure: data description → prompting strategy → probe training procedure → evaluation metrics → results → robustness checks. Figures effectively communicate findings: Figure 2 heatmaps show layer/head distributions across models; Figure 3 scatter plots contextualize predictions with labeled politician examples; Figure 4 clearly demonstrates steering effects across models and issues with confidence intervals implied. Table A2 provides top-10 individual head results; Table A3 ensemble results; Figures A1–A2 complete comparisons across models. Limitations transparently acknowledged in Section 8 and Ethics Statement. Appendix thoroughly documents procedures: detailed prompts (A.3, A.9), human validation methodology (A.4), examples of intervention outputs (A.5), novel event robustness (A.6), layer ablations (A.7). Writing is precise and avoids overclaiming. Notation (θ_ℓ,h, x_ℓ,h) is standard in mechanistic interpretability literature. Some appendix figures appear redundant (A1–A2) but provide completeness for all three models. Overall presentation meets top-tier conference standards."
+              }
+            },
+            "summary_comment": "This paper makes a solid empirical contribution demonstrating that LLMs encode a linear representation of political ideology (liberal-conservative axis) in their activation space. The work is technically sound with robust experimental validation: DW-NOMINATE probing achieves high Spearman correlations (0.8+) across three 7B models, and critically, probes trained on lawmaker ideology generalize to predict news media slant (0.72–0.80), providing compelling evidence of a generalizable political axis rather than memorization. Causal steering interventions reliably shift outputs toward liberal or conservative perspectives. Thorough robustness checks (linear vs. non-linear, label transformations, novel events, layer ablations) systematically support core claims. The work contributes meaningfully to interpretability research and practical LLM auditing. Acknowledged limitations (7B models only, U.S.-centric framework, qualitative token-level validation, mechanistic interpretation absent, issue-dependent steering variation, prompt robustness untested) are transparently discussed and appropriately scoped—they represent important future directions rather than fundamental flaws invalidating the core contribution. The rebuttal demonstrates the authors understand their work's scope and appropriately characterize it as 'empirical validation of linear representation hypothesis applied to political ideology' rather than making unsupported mechanistic or universal claims. For a top-tier ML conference, this represents strong empirical work with clear contributions to interpretability and practical applications to LLM bias monitoring and control, meeting the acceptance standard despite acknowledged limitations."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Generalization limited to smaller 7B models; unclear if findings extend to larger models (70B+, 175B+)\",\n        \"U.S.-centric framework (DW-NOMINATE, Ad Fontes) may not generalize to less polarized political systems\",\n        \"Token-level detection acknowledged as qualitative without systematic inter-annotator agreement or formal accuracy metrics\",\n        \"GPT-4o evaluation based on small human validation sample (N=10); single-model dependency for 1,134 essay ratings\",\n        \"Mechanistic interpretation absent: paper identifies which heads encode ideology but not why or what computations they perform\",\n        \"Issue-dependent steering effectiveness variation (ρ=0.6 for Immigration vs. ρ=0.2 for Free Speech) lacks systematic analysis\",\n        \"Prompt template sensitivity untested; fixed template used without ablation across alternative formulations\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Limited scope to 7B-parameter models\",\n          \"location\": \"Section 8, Limitations paragraph; Abstract and Section 3\",\n          \"explanation\": \"Authors state: 'findings are based on relatively smaller models and may not generalize to larger or untested models.' Only three 7B models tested (Llama-2-7b-chat, Mistral-7b-instruct, Vicuna-7b).\"\n        },\n        {\n          \"concern\": \"U.S.-centric political framework\",\n          \"location\": \"Section 8, Limitations; Appendix A.10\",\n          \"explanation\": \"Authors explicitly acknowledge: 'research is U.S. centric and may not generalize to less polarized political environments, where linear representations of ideologies may be less effective representations.' DW-NOMINATE and Ad Fontes scores are U.S.-specific measures.\"\n        },\n        {\n          \"concern\": \"Token-level evaluation is qualitative without quantitative validation\",\n          \"location\": \"Section 4; Figure 1; Appendix A.2\",\n          \"explanation\": \"Section 4 states: 'We found similarly interpretable qualitative results in many other examples but leave for future work a more systematic evaluation of this qualitative measure.' Figure 1 shows only 2 detailed examples (immigration, abortion). Appendix A.2 provides distribution of ŷ values across 9 topics and 3 models but reports no inter-annotator agreement metrics.\"\n        },\n        {\n          \"concern\": \"Small human validation set for GPT-4o evaluation\",\n          \"location\": \"Appendix A.4; Section 6, Steering study\",\n          \"explanation\": \"Appendix A.4 reports: 'N=10 human annotators from CloudResearch Survey (3 Democrats, 4 Independents, 3 Republicans)' rate 21 essays. ICC(A,1)=0.91 and Spearman ρ=0.952 computed on this sample. GPT-4o then rates all 1,134 essays in steering experiments (Section 6). Authors acknowledge: 'potential for bias when using an LLM as an evaluator' and recommend 'future research... continue to validate LLM-generated annotations against human annotations.'\"\n        },\n        {\n          \"concern\": \"No mechanistic interpretation of middle-layer representations\",\n          \"location\": \"Section 3, Results subsection; Figure 2 and caption\",\n          \"explanation\": \"Paper identifies that 'highly predictive heads are primarily located in the middle layers, often speculated to encode high-level concepts and tasks' but provides no attention pattern analysis, computational function analysis, or explanation for why this layer range emerges. Section 3 results only report which heads achieve highest correlations, not how or why.\"\n        },\n        {\n          \"concern\": \"Issue-dependent steering effectiveness variation lacks explanation\",\n          \"location\": \"Section 6, Results subsection; Figure 4b; Figure 4c\",\n          \"explanation\": \"Figure 4b shows correlations for Llama-2-7b-chat ranging from ~0.607 (Immigration, Abortion) to ~0.381-0.396 for other models and ~0.2+ for Free Speech/Trust in Science. Section 6 states: 'we conjecture that this is due to there being a wider array of stances on such issues' without empirical support. Figure 4c shows length differences but these are observations rather than systematic predictive analysis.\"\n        },\n        {\n          \"concern\": \"Fixed prompt template without sensitivity testing\",\n          \"location\": \"Section 3, Prompting subsection (fixed template described); Appendix A.6, A.7\",\n          \"explanation\": \"DW-NOMINATE probing uses: 'USER: Generate a statement by [NAME], a politician in the United States. ASSISTANT: In 2019, [NAME] said that'. Appendix A.6 tests novel events (ADVANCE Act, UAW strike post-cutoff) and A.7 tests layer-dependent effects, but no systematic ablation varies prompt formulations (e.g., '[NAME] believes...', 'From perspective of [NAME]', etc.) to test robustness across prompt structures.\"\n        }\n      ],\n      \"proposed_future_revisions\": [],\n      \"response\": \"We thank the reviewer for this thorough and fair assessment. The reviewer accurately characterizes both the paper's strengths and limitations, and we appreciate the balanced framing that distinguishes between limitations that are fundamental versus those representing important future directions. We address each concern:\\n\\n**On generalization to larger models:** The reviewer correctly identifies that we test only 7B-parameter models. This is acknowledged as a limitation (Section 8), and we agree this is an important empirical question for future work. However, we note that the linear representation hypothesis itself is not inherently scale-dependent—the question is whether political ideology specifically remains linearly encodable in larger models. We frame this in the rebuttal as 'an important avenue for future work rather than a fundamental flaw,' which the reviewer finds reasonable. We do not claim in the paper that our findings necessarily scale to 70B+ models, so this is appropriately scoped.\\n\\n**On U.S.-centric scope:** The reviewer notes that DW-NOMINATE and Ad Fontes are U.S.-specific measures and that linear representations may be less effective in less polarized democracies. We explicitly discuss this limitation in Section 8 and Appendix A.10, and we have provided mitigation: '[In] such settings, however, we may characterize ideologies as the simplex of more than two \\\"archetypal\\\" or extreme political perspectives.' This acknowledges the limitation while suggesting a principled extension rather than claiming universal applicability. The reviewer's framing is appropriate.\\n\\n**On qualitative token-level validation:** The reviewer notes that Section 4 relies on qualitative examples without quantitative inter-annotator agreement, which we explicitly acknowledge in the paper ('leave for future work a more systematic evaluation'). Appendix A.2 provides systematic distribution analysis across all nine policy issues and three models, showing consistent patterns (e.g., Mistral-7b-instruct shows average ŷ of 0.143 across all topics, suggesting conservative skew). While this is not inter-annotator agreement, it does demonstrate consistency across diverse policy topics beyond the two examples in Figure 1. The reviewer appropriately notes this as a limitation without dismissing the qualitative evidence as invalid.\\n\\n**On GPT-4o evaluation dependency:** The reviewer acknowledges that ICC=0.91 with politically balanced annotators (3D, 4I, 3R) provides credible validation, but notes the scale gap (N=10 validation → 1,134 rated essays). We note in the paper and rebuttal that this is pragmatic given computational constraints, and we transparently recommend future work continue validating LLM annotations with human raters. The reviewer appropriately distinguishes between a valid concern (limited validation scale) and an invalidating flaw (the ICC=0.91 provides credible evidence GPT-4o captures political slant accurately). Our approach meets reasonable standards for this type of work.\\n\\n**On mechanistic interpretation:** The reviewer correctly notes we do not explain why middle-layer heads encode ideology. We appropriately clarify in the rebuttal that 'Our contribution is primarily empirical—demonstrating the existence of linear political representations—rather than mechanistic.' The reviewer accepts this characterization, noting the contribution is 'empirical validation of linear representation hypothesis' not 'mechanistic breakthrough.' This is a fair characterization and not a fundamental flaw.\\n\\n**On issue-dependent steering effectiveness variation:** The reviewer notes Figure 4b shows dramatic variation (ρ~0.6 vs. ρ~0.2) and that our explanation is post-hoc. We acknowledge this in the rebuttal: 'we provide a post-hoc explanation but acknowledge it is speculative.' Figure 4c provides an additional observation (longer liberal outputs for certain issues), suggesting systematic differences worth investigating. The reviewer appropriately frames this as motivating 'a natural follow-up' rather than as evidence of flawed reasoning. We do not overclaim understanding of issue-dependent effects in the paper.\\n\\n**On prompt template sensitivity:** The reviewer notes we use a fixed template without ablation on alternative prompt formulations. This is a valid limitation. We acknowledge in the rebuttal: 'We do not systematically vary prompts within a single task to test robustness' and note 'This is a limitation we could address in revision.' Appendix A.6 and A.7 include robustness tests (novel events, layer ablations) but not prompt ablations. The reviewer appropriately identifies this as a gap that could be addressed with additional experiments.\\n\\n**Summary:** The reviewer provides a fair, nuanced assessment. They recognize that the paper makes solid contributions (first systematic study of political ideology representations, strong generalization via media slant, practical steering capability) while acknowledging limitations that are either: (a) acknowledged in the paper and rebuttal as appropriate future work (model scale, cross-cultural applicability, mechanistic insight), or (b) represent gaps (quantitative token validation, prompt ablation, issue-dependence analysis) that strengthen rather than invalidate the core findings. The reviewer's acceptance decision reflects appropriate judgment that these limitations do not undermine the paper's core empirical contributions and do not constitute unsoundness or unfounded claims. We appreciate the fair and constructive critique.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_f35f65c8a4a6",
+    "conference": "ICLR",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/iclr_accept_2025_026_linear_representations_of_political_perspective_emerge_in_large_language_models.md",
+    "target_paper_summary": {
+      "paper_id": "paper_f35f65c8a4a6",
+      "title": "Linear Representations Of Political Perspec- Tive Emerge In Large Language Models",
+      "abstract": "| James Evans University of Chicago Google jevans@uchicago.edu jamesaevans@google.com |\n|---------------------------------------------------------------------------------------|\n\n| Aaron Schein University of Chicago schein@uchicago.edu |\n|----------------------------------------------------------|\n\nLarge language models (LLMs) have demonstrated the ability to generate text that realistically reflects a range of different subjective human perspectives. This paper studies how LLMs are seemingly able to reflect more liberal versus more conservative viewpoints among other political perspectives in American politics.\n\nWe show that LLMs possess linear representations of political perspectives within activation space, wherein more similar perspectives are represented closer together.\n\nTo do so, we probe the attention heads across the layers of three open transformerbased LLMs (Llama-2-7b-chat, Mistral-7b-instruct, Vicuna-7b). We first prompt models to generate text from the perspectives of different U.S. lawmakers.\n\nWe then identify sets of attention heads whose activations linearly predict those lawmakers' DW-NOMINATE scores, a widely-used and validated measure of political ideology. We find that highly predictive heads are primarily located in the middle layers, often speculated to encode high-level concepts and tasks. Using probes only trained to predict lawmakers' ideology, we then show that the same probes can predict measures of news outlets' slant from the activations of models prompted to simulate text from those news outlets. These linear probes allow us to visualize, interpret, and monitor ideological stances implicitly adopted by an LLM as it generates open-ended responses. Finally, we demonstrate that by applying linear interventions to these attention heads, we can steer the model outputs toward a more liberal or conservative stance. Overall, our research suggests that LLMs possess a high-level linear representation of American political ideology and that by leveraging recent advances in mechanistic interpretability, we can identify, monitor, and steer the subjective perspective underlying generated text.",
+      "topic": "",
+      "claims": [
+        "We show that LLMs possess linear representations of political perspectives within activation space, wherein more similar perspectives are represented closer together.",
+        "we demonstrate that by applying linear interventions to these attention heads, we can steer the model outputs toward a more liberal or conservative stance."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_1deca7c9f",
+        "title": "Large language models empowered agent-based modeling and simulation: a survey and perspectives",
+        "authors": [
+          "Chen Gao",
+          "Xiaochong Lan",
+          "Nian Li",
+          "Yuan Yuan",
+          "Jingtao Ding",
+          "Zhilun Zhou",
+          "Fengli Xu",
+          "Yong Li"
+        ],
+        "year": 2024,
+        "publication_date": "2024-09-27",
+        "venue": "Humanities and Social Sciences Communications",
+        "abstract": "Abstract Agent-based modeling and simulation have evolved as a powerful tool for modeling complex systems, offering insights into emergent behaviors and interactions among diverse agents. Recently, integrating large language models into agent-based modeling and simulation presents a promising avenue for enhancing simulation capabilities. This paper surveys the landscape of utilizing large language models in agent-based modeling and simulation, discussing their challenges and promising future directions. In this survey, since this is an interdisciplinary field, we first introduce the background of agent-based modeling and simulation and large language model-empowered agents. We then discuss the motivation for applying large language models to agent-based simulation and systematically analyze the challenges in environment perception, human alignment, action generation, and evaluation. Most importantly, we provide a comprehensive overview of the recent works of large language model-empowered agent-based modeling and simulation in multiple scenarios, which can be divided into four domains: cyber, physical, social, and hybrid, covering simulation of both real-world and virtual environments, and how these works address the above challenges. Finally, since this area is new and quickly evolving, we discuss the open problems and promising future directions. We summarize the representative papers along with their code repositories in https://github.com/tsinghua-fib-lab/LLM-Agent-Based-Modeling-and-Simulation .",
+        "url": "https://doi.org/10.1057/s41599-024-03611-3",
+        "doi": "https://doi.org/10.1057/s41599-024-03611-3",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4402901320"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 210
+      },
+      {
+        "paper_id": "rw_003_a0b3e88bf",
+        "title": "A tutorial on open-source large language models for behavioral science",
+        "authors": [
+          "Zak Hussain",
+          "Marcel Binz",
+          "Rui Mata",
+          "Dirk U. Wulff"
+        ],
+        "year": 2024,
+        "publication_date": "2024-08-15",
+        "venue": "Behavior Research Methods",
+        "abstract": "Large language models (LLMs) have the potential to revolutionize behavioral science by accelerating and improving the research cycle, from conceptualization to data analysis. Unlike closed-source solutions, open-source frameworks for LLMs can enable transparency, reproducibility, and adherence to data protection standards, which gives them a crucial advantage for use in behavioral science. To help researchers harness the promise of LLMs, this tutorial offers a primer on the open-source Hugging Face ecosystem and demonstrates several applications that advance conceptual and empirical work in behavioral science, including feature extraction, fine-tuning of models for prediction, and generation of behavioral responses. Executable code is made available at github.com/Zak-Hussain/LLM4BeSci.git . Finally, the tutorial discusses challenges faced by research with (open-source) LLMs related to interpretability and safety and offers a perspective on future research at the intersection of language modeling and behavioral science.",
+        "url": "https://doi.org/10.3758/s13428-024-02455-8",
+        "doi": "https://doi.org/10.3758/s13428-024-02455-8",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4401609675"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 62
+      },
+      {
+        "paper_id": "rw_004_8fbf0b53e",
+        "title": "Framing the Game: Assessing the Impact of Cultural Representations on Consumer Perceptions of Legitimacy",
+        "authors": [
+          "Ashlee Humphreys",
+          "Kathryn A. LaTour"
+        ],
+        "year": 2013,
+        "publication_date": "2013-08-23",
+        "venue": "Journal of Consumer Research",
+        "abstract": "The purpose of this article is to understand how media frames affect consumer judgments of legitimacy. Because frames exist on the sociocultural and individual level, our research takes a multimethod approach to this question. On the sociocultural level, we conduct a content analysis of operant media frames for discussing online gambling and perform an event analysis, finding that a shift in consumer judgments follows an abrupt shift in frame. Then, on the individual level, the causal mechanism for these shifts is investigated in an experimental setting using the Implicit Association Test (IAT). These experiments show that framing affects normative legitimacy judgments by changing implicit associations. Further, users and nonusers respond differently to frame elements, with users favoring an established frame and nonusers favoring a novel, legitimating frame. This suggests that media frames play a critical role in establishing legitimacy at the sociocultural level and that framing potentially bridges cognitive and normative legitimacy.",
+        "url": "https://doi.org/10.1086/672358",
+        "doi": "https://doi.org/10.1086/672358",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2084500249"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 176
+      },
+      {
+        "paper_id": "rw_005_c95abfe76",
+        "title": "Do Girls Have All the Fun? Anxiety and Enjoyment in the Foreign Language Classroom",
+        "authors": [
+          "Jean‐Marc Dewaele",
+          "Peter D. MacIntyre",
+          "Carmen Boudreau",
+          "Livia Dewaele"
+        ],
+        "year": 2016,
+        "publication_date": "2016-06-25",
+        "venue": "Theory and Practice of Second Language Acquisition",
+        "abstract": "The present study focuses on gender differences in Foreign Language Enjoyment (FLE) and Foreign Language Classroom Anxiety (FLCA) among 1746 FL learners (1287 females, 449 males) from around the world. We used 21 items Likert scale ratings reflecting various aspects of FLE (AUTHORS), and 8 items extracted from the FLCAS (Horwitz et al., 1986). An open question on FLE also provided us with narrative data. Previous research on the database, relying on an average measure of FLE and FLCA (AUTHORS) revealed significant gender differences. The present study looks at gender differences in FLE and FLCA at item level.Independent t-tests revealed that female participants reported having significantly more fun in the FL class where they felt that they were learning interesting things, and they were prouder than male peers of their FL performance. However, female participants also experienced significantly more (mild) FLCA: they worried significantly more than male peers about their mistakes and were less confident in using the FL. Our female participants thus reported experiencing both more positive and more mild negative emotions in the FL classroom. We argue that this heightened emotionality benefits the acquisition and use of the FL.",
+        "url": "https://doi.org/10.31261/tapsla.3941",
+        "doi": "https://doi.org/10.31261/tapsla.3941",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2482507321"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 232
+      },
+      {
+        "paper_id": "rw_006_6b32adab8",
+        "title": "Macroeconomic Policy in DSGE and Agent-Based Models Redux: New Developments and Challenges Ahead",
+        "authors": [
+          "Giorgio Fagiolo",
+          "Andrea Roventini"
+        ],
+        "year": 2017,
+        "publication_date": "2017-01-01",
+        "venue": "Journal of Artificial Societies and Social Simulation",
+        "abstract": "The Great Recession seems to be a natural experiment for economic analysis, in that it has shown the inadequacy of the predominant theoretical framework -the New Neoclassical Synthesis (NNS) -grounded on the DSGE model. In this paper, we present a critical discussion of the theoretical, empirical and politicaleconomy pitfalls of the DSGE-based approach to policy analysis. We suggest that a more fruitful research avenue should escape the strong theoretical requirements of NNS models (e.g., equilibrium, rationality, representative agent, etc.) and consider the economy as a complex evolving system, i.e. as an ecology populated by heterogeneous agents, whose far-from-equilibrium interactions continuously change the structure of the system. This is indeed the methodological core of agent-based computational economics (ACE), which is presented in this paper. We also discuss how ACE has been applied to policy analysis issues, and we provide a survey of macroeconomic policy applications (fiscal and monetary policy, bank regulation, labor market structural reforms and climate change interventions). Finally, we conclude by discussing the methodological status of ACE, as well as the problems it raises.",
+        "url": "https://doi.org/10.18564/jasss.3280",
+        "doi": "https://doi.org/10.18564/jasss.3280",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2584836299"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 223
+      },
+      {
+        "paper_id": "rw_007_203a6cc88",
+        "title": "Studying fake news spreading, polarisation dynamics, and manipulation by bots: A tale of networks and language",
+        "authors": [
+          "Giancarlo Ruffo",
+          "Alfonso Semeraro",
+          "Anastasia Giachanou",
+          "Paolo Rosso"
+        ],
+        "year": 2022,
+        "publication_date": "2022-12-28",
+        "venue": "Computer Science Review",
+        "abstract": "",
+        "url": "https://doi.org/10.1016/j.cosrev.2022.100531",
+        "doi": "https://doi.org/10.1016/j.cosrev.2022.100531",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4313420306"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 90
+      },
+      {
+        "paper_id": "rw_008_57ddb80a0",
+        "title": "Travelling Models: Introducing an Analytical Concept to Globalisation Studies",
+        "authors": [
+          "Andrea Behrends",
+          "Sung‐Joon Park",
+          "Richard Rottenburg"
+        ],
+        "year": 2014,
+        "publication_date": "2014-01-01",
+        "venue": "",
+        "abstract": "The introductory chapter presents an overview of concepts covered in this book Travelling Models in African Conflict Management . The book examines how travelling models shape global processes of change in the field of conflict management. Two of the principal questions addressed in the book are the following: How is change in one place related to developments in other places? And, why are certain issues that are important in one place taken up in other places, while others are not? The book examines how travelling models enact changes in conflict situations in unexpected ways. They look at what happens when a model has been put into practice at a conflict site, and they pay attention to the forms of (re-)ordering resulting from this process. The book explains the travel of models in conflict management with the aim of exploring the production of order and disorder they trigger in various contexts. Keywords: African conflict management; travelling models",
+        "url": "https://doi.org/10.1163/9789004274099_002",
+        "doi": "https://doi.org/10.1163/9789004274099_002",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W136300231"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 116
+      },
+      {
+        "paper_id": "rw_009_6468025c2",
+        "title": "Generative Pre-trained Transformer: A Comprehensive Review on Enabling Technologies, Potential Applications, Emerging Challenges, and Future Directions",
+        "authors": [
+          "Gokul Yenduri",
+          "M. Ramalingam",
+          "Чурашов А.Г.",
+          "Y. Supriya",
+          "Gautam Srivastava",
+          "Praveen Kumar Reddy Maddikunta",
+          "G. Deepti Raj",
+          "Rutvij H. Jhaveri",
+          "B. Prabadevi",
+          "Weizheng Wang",
+          "Athanasios V. Vasilakos",
+          "Thippa Reddy Gadekallu"
+        ],
+        "year": 2023,
+        "publication_date": "2023-05-11",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "The Generative Pre-trained Transformer (GPT) represents a notable breakthrough in the domain of natural language processing, which is propelling us toward the development of machines that can understand and communicate using language in a manner that closely resembles that of humans. GPT is based on the transformer architecture, a deep neural network designed for natural language processing tasks. Due to their impressive performance on natural language processing tasks and ability to effectively converse, GPT have gained significant popularity among researchers and industrial communities, making them one of the most widely used and effective models in natural language processing and related fields, which motivated to conduct this review. This review provides a detailed overview of the GPT, including its architecture, working process, training procedures, enabling technologies, and its impact on various applications. In this review, we also explored the potential challenges and limitations of a GPT. Furthermore, we discuss potential solutions and future directions. Overall, this paper aims to provide a comprehensive understanding of GPT, enabling technologies, their impact on various applications, emerging challenges, and potential solutions.",
+        "url": "http://arxiv.org/abs/2305.10435",
+        "doi": "https://doi.org/10.48550/arxiv.2305.10435",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4377121531"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 62
+      },
+      {
+        "paper_id": "rw_010_6d2f95ac2",
+        "title": "Large Language Models in Politics and Democracy: A Comprehensive Survey",
+        "authors": [
+          "Goshi Aoki"
+        ],
+        "year": 2024,
+        "publication_date": "2024-12-01",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "The advancement of generative AI, particularly large language models (LLMs), has a significant impact on politics and democracy, offering potential across various domains, including policymaking, political communication, analysis, and governance. This paper surveys the recent and potential applications of LLMs in politics, examining both their promises and the associated challenges. This paper examines the ways in which LLMs are being employed in legislative processes, political communication, and political analysis. Moreover, we investigate the potential of LLMs in diplomatic and national security contexts, economic and social modeling, and legal applications. While LLMs offer opportunities to enhance efficiency, inclusivity, and decision-making in political processes, they also present challenges related to bias, transparency, and accountability. The paper underscores the necessity for responsible development, ethical considerations, and governance frameworks to ensure that the integration of LLMs into politics aligns with democratic values and promotes a more just and equitable society.",
+        "url": "http://arxiv.org/abs/2412.04498",
+        "doi": "https://doi.org/10.48550/arxiv.2412.04498",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4405173114"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 3
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_010_6d2f95ac2",
+        "relevance_score": 0.91,
+        "relevance_types": [
+          "same_problem",
+          "novelty_competitor"
+        ],
+        "rationale": "Surveys LLM applications in politics and democracy, directly addressing political perspective representation and ideological analysis, with coverage of methods and challenges like bias.",
+        "evidence_summary": "In 2024, Aoki published 'Large Language Models in Politics and Democracy: A Comprehensive Survey,' which examines LLM applications in legislative processes, political communication, analysis, and governance, including opportunities and challenges related to bias and accountability."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_003_a0b3e88bf",
+        "relevance_score": 0.78,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Tutorial on open-source LLMs for behavioral science, covering fine-tuning and generation tasks with Hugging Face, including interpretability and safety challenges.",
+        "evidence_summary": "In 2024, Hussain et al. published 'A tutorial on open-source large language models for behavioral science,' which demonstrates applications like feature extraction, fine-tuning, and response generation using the Hugging Face ecosystem, alongside challenges in interpretability and safety."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_001_1deca7c9f",
+        "relevance_score": 0.65,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Survey on LLM integration in agent-based modeling, discussing challenges in human alignment and action generation, relevant for simulating perspectives.",
+        "evidence_summary": "In 2024, Gao et al. published 'Large language models empowered agent-based modeling and simulation: a survey and perspectives,' which reviews LLM applications in cyber, physical, social, and hybrid domains, addressing challenges in environment perception and human alignment."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_009_6468025c2",
+        "relevance_score": 0.62,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Comprehensive review of GPT architecture and enabling technologies, covering applications and challenges like limitations in natural language processing.",
+        "evidence_summary": "In 2023, Yenduri et al. published 'Generative Pre-trained Transformer: A Comprehensive Review on Enabling Technologies, Potential Applications, Emerging Challenges, and Future Directions,' which details GPT architecture, natural language processing tasks, and discusses challenges and potential solutions."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_007_203a6cc88",
+        "relevance_score": 0.52,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Studies fake news spreading and polarization dynamics using networks and language, indirectly related to political perspectives and manipulation.",
+        "evidence_summary": "In 2022, Ruffo et al. published 'Studying fake news spreading, polarisation dynamics, and manipulation by bots: A tale of networks and language,' which examines dynamics of misinformation and polarization, though specific methods and results are not detailed in the provided abstract."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_006_6b32adab8",
+        "relevance_score": 0.43,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Discusses agent-based modeling for macroeconomic policy, relevant as a methodological approach in complex systems but not directly tied to LLMs or politics.",
+        "evidence_summary": "In 2017, Fagiolo and Roventini published 'Macroeconomic Policy in DSGE and Agent-Based Models Redux: New Developments and Challenges Ahead,' which critiques DSGE models and presents agent-based computational economics for policy analysis, including applications in fiscal and monetary policy."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_004_8fbf0b53e",
+        "relevance_score": 0.41,
+        "relevance_types": [
+          "same_problem"
+        ],
+        "rationale": "Assesses impact of cultural representations on consumer legitimacy judgments using media frames and experiments, tangentially related to perspective representation.",
+        "evidence_summary": "In 2013, Humphreys and LaTour published 'Framing the Game: Assessing the Impact of Cultural Representations on Consumer Perceptions of Legitimacy,' which uses content analysis and the Implicit Association Test to show how media frames affect normative legitimacy judgments by changing implicit associations."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_008_57ddb80a0",
+        "relevance_score": 0.35,
+        "relevance_types": [
+          "same_constraints"
+        ],
+        "rationale": "Introduces travelling models concept in global conflict management, discussing reordering effects but not directly relevant to LLMs or politics.",
+        "evidence_summary": "In 2014, Behrends et al. published 'Travelling Models: Introducing an Analytical Concept to Globalisation Studies,' which examines how models enact changes in conflict situations and explores the production of order and disorder in various contexts."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_005_c95abfe76",
+        "relevance_score": 0.3,
+        "relevance_types": [],
+        "rationale": "Focuses on gender differences in foreign language classroom emotions, unrelated to LLMs, political perspectives, or computational methods.",
+        "evidence_summary": "In 2016, Dewaele et al. published 'Do Girls Have All the Fun? Anxiety and Enjoyment in the Foreign Language Classroom,' which uses Likert scales and narrative data to analyze gender differences in foreign language enjoyment and anxiety among learners."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Aoki published 'Large Language Models in Politics and Democracy: A Comprehensive Survey,' which examines LLM applications in legislative processes, political communication, analysis, and governance, including opportunities and challenges related to bias and accountability. In 2024, Hussain et al. published 'A tutorial on open-source large language models for behavioral science,' which demonstrates applications like feature extraction, fine-tuning, and response generation using the Hugging Face ecosystem, alongside challenges in interpretability and safety. In 2024, Gao et al. published 'Large language models empowered agent-based modeling and simulation: a survey and perspectives,' which reviews LLM applications in cyber, physical, social, and hybrid domains, addressing challenges in environment perception and human alignment. In 2023, Yenduri et al. published 'Generative Pre-trained Transformer: A Comprehensive Review on Enabling Technologies, Potential Applications, Emerging Challenges, and Future Directions,' which details GPT architecture, natural language processing tasks, and discusses challenges and potential solutions. In 2022, Ruffo et al. published 'Studying fake news spreading, polarisation dynamics, and manipulation by bots: A tale of networks and language,' which examines dynamics of misinformation and polarization. In 2017, Fagiolo and Roventini published 'Macroeconomic Policy in DSGE and Agent-Based Models Redux: New Developments and Challenges Ahead,' which critiques DSGE models and presents agent-based computational economics for policy analysis, including applications in fiscal and monetary policy.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

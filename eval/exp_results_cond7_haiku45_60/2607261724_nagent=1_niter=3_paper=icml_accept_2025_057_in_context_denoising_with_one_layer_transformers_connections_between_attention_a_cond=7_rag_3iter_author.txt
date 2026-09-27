@@ -1,0 +1,797 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The paper introduces 'in-context denoising' as a principled framework that meaningfully advances the theoretical connection between attention mechanisms and dense associative memory networks beyond the retrieval paradigm established by Ramsauer et al. (2021). This is a novel conceptual contribution that moves the field forward.",
+        "Rigorous theoretical analysis with closed-form Bayes optimal denoisers for three well-chosen task distributions (linear manifolds, nonlinear manifolds, Gaussian mixtures). The derivations are mathematically sound, complete, and provide concrete targets against which learned models can be compared, which is methodologically strong.",
+        "The paper successfully demonstrates that single-layer transformers with appropriate attention mechanisms (both linear and softmax) can learn to approximate these Bayes optimal denoisers through standard training. The interpretation of trained attention as a single gradient descent step on a context-dependent energy landscape (Section 4) provides mechanistic insight that is both novel and interpretable.",
+        "The empirical validation is convincing: learned weights consistently approach theoretical predictions (scaled identity matrices with appropriate scale factors), convergence rates are studied as context length increases, and robustness to distribution shift (varying subspace dimension at test time) is demonstrated. The 2D loss landscape analysis effectively explains seemingly suboptimal learned weights.",
+        "Excellent presentation: the paper is well-written with clear motivation, logical flow, and informative figures (particularly Figure 5 illustrating the energy landscape). Mathematical exposition balances rigor with accessibility."
+      ],
+      "weaknesses": [
+        "The theoretical results rely on asymptotic analysis (L → ∞) using the strong law of large numbers. Finite-sample convergence rates with explicit O(1/√L) bounds depending on manifold dimension d are proven in Appendix E (Propositions 5-6), but the main text does not reference these results, obscuring the concrete finite-sample guarantees available for practitioners.",
+        "The in-context denoising task uses mathematically convenient distributions (uniform on manifolds, d-spheres, Gaussian mixtures with fixed norms) chosen specifically for theoretical tractability. While the paper acknowledges these are 'structured so that a one-layer transformer has the expressivity to capture a solution' (Section 2.1), the practical relevance to real data distributions and realistic in-context learning phenomena remains underdeveloped.",
+        "The paper studies single-layer, single-head transformers—a highly simplified setting compared to practical transformers with multiple layers, multiple heads, layer normalization, and residual connections. While the Discussion acknowledges this limitation and mentions observations of scaled identity weights in real transformers (Trockman & Kolter 2023), the connection to actual multi-layer transformer behavior remains largely speculative.",
+        "The analysis of why single gradient descent steps are optimal but multiple iterations degrade performance (Section 4, Figure 5 right, Appendix I) lacks theoretical characterization. The paper demonstrates empirical degradation but does not provide a formal proposition characterizing conditions under which iteration fails or explaining the role of spurious minima in the energy landscape.",
+        "All experiments use small dimensions (n=16, d=8) with no scaling studies. While Appendix E theoretically establishes that convergence rates depend on manifold dimension d rather than ambient dimension n, empirical validation at larger scales (e.g., n=32 d=16 or n=64 d=32) would strengthen confidence in generality and robustness."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The theoretical results rely on asymptotic analysis (L → ∞) using the strong law of large numbers. Finite-sample convergence rates with explicit O(1/√L) bounds depending on manifold dimension d are proven in Appendix E (Propositions 5-6), but the main text does not reference these results, obscuring the concrete finite-sample guarantees available for practitioners.",
+          "severity": "minor",
+          "evidence": "Theorem 3.1 in main text states convergence 'as L → ∞.' Appendix E Proposition 5 proves Pr[||Π̂x̃ - x̃||∞ < C||x̃||₂ max{√((d+ln(2/δ))/L), (d+ln(2/δ))/L}] > 1-δ with explicit constants, and Proposition 6 provides analogous results for nonlinear cases. These establish concrete O(√(d ln(1/δ)/L)) rates but are not mentioned in the main text following Theorem 3.1. The rebuttal confirms these results exist and agrees they should be more prominent, but acknowledges this is already present in the submitted paper (not a promise of future work).",
+          "affected_claim": "That trained transformers achieve near-optimal denoising with finite context",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The in-context denoising task uses mathematically convenient distributions (uniform on manifolds, d-spheres, Gaussian mixtures with fixed norms) chosen specifically for theoretical tractability. While the paper acknowledges these are 'structured so that a one-layer transformer has the expressivity to capture a solution' (Section 2.1), the practical relevance to real data distributions and realistic in-context learning phenomena remains underdeveloped.",
+          "severity": "minor",
+          "evidence": "Section 2.2 and subsections 2.2.1-2.2.3 describe tasks with uniform distributions on geometric objects or fixed-norm centers. Section 2.1 states explicitly that tasks are 'of course structured so that a one-layer transformer has the expressivity to capture a solution.' The Discussion acknowledges structure but does not adequately discuss when real data exhibits similar properties. The rebuttal agrees this deserves explicit framing as a proof-of-concept and acknowledges this is a presentation issue, not a technical flaw.",
+          "affected_claim": "That insights advance understanding of practical in-context learning",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The paper studies single-layer, single-head transformers—a highly simplified setting compared to practical transformers with multiple layers, multiple heads, layer normalization, and residual connections. While the Discussion acknowledges this limitation and mentions observations of scaled identity weights in real transformers (Trockman & Kolter 2023), the connection to actual multi-layer transformer behavior remains largely speculative.",
+          "severity": "major",
+          "evidence": "Sections 3 and Appendices D.1-D.2 detail single-layer, one-head architecture. Discussion (page 9) states 'self-attention heads of trained transformers sometimes exhibit weights WKQ, WPV that resemble scaled identity matrices' citing Trockman & Kolter (2023), but does not validate whether single-step optimality and energy landscape mechanisms extend to multi-layer settings with normalization and residuals. The rebuttal agrees the connection is speculative and proposes a more careful reframing but acknowledges this cannot be resolved without new theoretical or empirical work on multi-layer models.",
+          "affected_claim": "That mechanisms explain behavior of practical transformers",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The analysis of why single gradient descent steps are optimal but multiple iterations degrade performance (Section 4, Figure 5 right, Appendix I) lacks theoretical characterization. The paper demonstrates empirical degradation but does not provide a formal proposition characterizing conditions under which iteration fails or explaining the role of spurious minima in the energy landscape.",
+          "severity": "minor",
+          "evidence": "Figure 5 (right panel) shows trajectories for sphere case (d=1, σ²_Z=10, L=20) where iteration causes performance degradation. Appendix I provides brief discussion mentioning 'spurious states' and 'query-independent' convergence but lacks formal theorem. The rebuttal acknowledges this as a 'meaningful weakness' and proposes adding theoretical characterization or deeper empirical analysis, but confirms this is not present in the submitted paper.",
+          "affected_claim": "That one-step gradient descent is mechanistically optimal for denoising",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "All experiments use small dimensions (n=16, d=8) with no scaling studies. While Appendix E theoretically establishes that convergence rates depend on manifold dimension d rather than ambient dimension n, empirical validation at larger scales (e.g., n=32 d=16 or n=64 d=32) would strengthen confidence in generality and robustness.",
+          "severity": "minor",
+          "evidence": "All results in Figures 3-4 and appendices use n=16, d=8. Figure 4(b) varies subspace dimension at test time but keeps n fixed. Appendix E Propositions 5-6 establish theoretical d-dependence, but no experiments at larger scales validate this empirically. The rebuttal proposes adding such experiments but confirms they are not present in the submitted paper.",
+          "affected_claim": "That findings generalize beyond toy settings",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The mathematical analysis is rigorous and correct. Propositions 1-4 deriving Bayes optimal denoisers are properly proven. Theorem 3.1 correctly applies the strong law of large numbers for convergence as L → ∞. Appendix E (Propositions 5-6) provides valid convergence rate analysis using the Hoeffding inequality, establishing explicit finite-sample bounds: Pr[||Π̂x̃ - x̃||∞ < C||x̃||₂ max{√((d+ln(2/δ))/L), (d+ln(2/δ))/L}] > 1-δ. The rebuttal confirms these results are already in the submitted paper. Empirical methodology is sound with proper comparison to theoretical baselines. No mathematical errors or unsupported claims detected."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper makes substantive novel contributions: (1) introduces 'in-context denoising' as a new framework extending attention-associative memory connection beyond retrieval; (2) proves single-layer softmax/linear attention solves Bayes-optimal denoising (Theorem 3.1) on restricted manifolds; (3) interprets trained attention as one-step gradient descent on context-dependent energy landscapes (Section 4, Eqs. 16-17); (4) shows one-step updates outperform both naive retrieval and multi-step iteration. While Ramsauer et al. (2021) established the basic connection for retrieval, the current work substantially extends this to an unsupervised in-context learning setting with new theoretical and mechanistic insights. The combination of theoretical results, empirical validation, and energy landscape interpretation is novel."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The work makes meaningful contributions to mechanistic understanding of attention mechanisms. The insight that attention implements context-dependent energy minimization for Bayes-optimal inference is conceptually significant and non-obvious. However, significance is appropriately bounded by scope: results apply to single-layer models on structured tasks, and practical relevance to multi-layer transformers on realistic data is unclear. The rebuttal acknowledges this framing, positioning the work as establishing a foundation and proof-of-concept rather than claiming direct applicability. For a top-tier ML conference focused on mechanistic interpretability and theory, this represents solid progress advancing understanding of how attention works, with appropriate caveats about generalization."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Empirical validation effectively supports the main claims within the stated scope: (1) learned weight scales consistently match theoretical predictions (Figure 3, all three cases); (2) training curves converge to Bayes optimal loss as L increases (Figure 4a); (3) robustness to distribution shift demonstrated (Figure 4b); (4) loss landscape analysis explains learned structures (Figure 6); (5) Bayes optimal baselines properly computed for all three task types (Propositions 2-4). The experimental design appropriately uses theory-motivated baselines. Main limitation is small scale (n=16, d=8), but this reflects the engineering constraint of maintaining tractability for theoretical analysis and detailed visualization. Within the stated scope, the theory-experiment correspondence is convincingly demonstrated."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-organized and clearly written. Problem formulation (Section 2) is well-motivated. Theoretical results are properly stated with proofs deferred to appendices. Figures effectively communicate key concepts (Figure 5 on energy landscapes is particularly clear). Notation is systematically introduced (Appendix A). The rebuttal confirms that finite-sample results (Appendix E Propositions 5-6) exist but should be more prominent in main text—this is a presentation choice, not a clarity failure. Mathematical exposition balances rigor with accessibility. Overall presentation meets top-tier standards."
+        }
+      },
+      "summary_comment": "This paper makes solid theoretical and mechanistic contributions to understanding attention mechanisms through the lens of associative memory. The introduction of 'in-context denoising' as an unsupervised framework extends prior work (Ramsauer et al. 2021) in novel directions, proving that single-layer transformers with softmax or linear attention can solve Bayes-optimal denoising problems and that trained attention implements one-step gradient descent on context-dependent energy landscapes. The theoretical analysis is rigorous, with closed-form Bayes optimal predictors for three task distributions (Propositions 2-4), convergence proofs as L → ∞ (Theorem 3.1), and finite-sample convergence rates with explicit bounds (Appendix E Propositions 5-6). Empirical validation is convincing: learned weights consistently approach theoretical predictions, final losses match Bayes optimal values, and loss landscapes exhibit the predicted structure.\n\nThe main limitations reflect deliberate scoping choices to maintain theoretical tractability: (1) tasks use mathematically convenient distributions enabling closed-form Bayes optimal solutions; (2) architecture is minimalist (single-layer, single-head) for theoretical analyzability; (3) experiments use small dimensions (n=16, d=8) for visualization and clarity. These are reasonable design decisions for theoretical work, creating a necessary gap between the controlled setting and practical relevance. The rebuttal appropriately acknowledges these limitations and frames the work as establishing a proof-of-concept foundation rather than claiming direct applicability to multi-layer transformers.\n\nThe work appropriately positions itself within the mechanistic interpretability literature: it provides rigorous understanding in a controlled setting, proves that attention can implement principled Bayesian inference, and offers a foundation for future work bridging to realistic settings. For a top-tier ML conference, this represents a meaningful contribution with sound science and appropriate scope acknowledgment."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Strong theoretical contribution on machine learning fundamentals: The paper derives closed-form Bayes optimal denoisers and proves that one-layer transformers with scaled-identity weights can achieve optimality—core theory contributions aligned with ICML's mission.\",\n      \"Addresses core ML mechanisms: Understanding how attention mechanisms work is a fundamental ICML topic. The connection between attention and associative memory retrieval extends prior work (Ramsauer et al. 2021) in novel directions.\",\n      \"Rigorous mathematical analysis: Propositions 1-4 provide complete derivations of Bayes optimal predictors; Theorem 3.1 establishes convergence with finite-sample bounds in Appendix E—methodological rigor matches ICML standards.\",\n      \"Empirical validation of theory: The paper demonstrates that standard training recovers theoretical predictions (learned weights match scaled-identity form with predicted scales), exemplifying ICML's emphasis on tight theory-practice correspondence.\",\n      \"Principled problem formulation: The in-context denoising framework is well-motivated as a bridge between unsupervised learning and associative memory, addressing how transformers perform implicit inference beyond memorization.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited to toy settings with questionable practical relevance: All experiments use n=16, d=8 dimensions. Tasks (uniform on manifolds, d-spheres, Gaussian mixtures with fixed norms) are specifically designed for theoretical tractability rather than representing realistic data distributions or in-context learning scenarios.\",\n      \"Single-layer, single-head transformer architecture: The paper studies a heavily simplified setting compared to practical transformers. While Discussion mentions connections to multi-layer models via Trockman & Kolter (2023), the mechanism (one-step gradient descent on context-aware energy landscape) is speculative for realistic architectures with multiple layers, heads, layer normalization, and residual connections.\",\n      \"Unclear path to broader applicability: The theoretical results depend on spherical support or fixed norms in data (Section 2.2, Theorem 3.1)—conditions that do not broadly characterize real-world data. ICML values contributions that clarify mechanisms applicable to diverse settings, and this work remains narrowly scoped.\",\n      \"Missing analysis of why single steps are optimal: Section 4 demonstrates empirically that multi-step gradient descent degrades performance, but provides no theoretical characterization of when/why iteration fails. This mechanistic gap limits depth of insight.\",\n      \"Presentation could highlight finite-sample guarantees more prominently: Reviewer notes that convergence rates (Appendix E Propositions 5-6) with explicit O(√(d ln(1/δ)/L)) bounds exist but aren't referenced in main text after Theorem 3.1, obscuring practical guarantees.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Interdisciplinary bridging of neuroscience and deep learning: The paper rigorously connects dense associative memory networks (a classical neuroscience model) to modern transformer attention mechanisms—directly aligned with NeurIPS's multi-track interdisciplinary mission.\",\n      \"Mechanistic understanding of attention and in-context learning: Demonstrates that trained attention layers implement context-aware gradient descent on Hopfield energy landscapes. This provides mechanistic insight into how transformers learn in-context, a topic of significant NeurIPS interest.\",\n      \"Rigorous theory with empirical validation: Complete mathematical analysis (Propositions 1-4, Theorem 3.1) combined with convincing experiments showing learned weights match theoretical predictions. Meets NeurIPS's standard for theory-grounded empirical work.\",\n      \"Connects to active NeurIPS research areas: In-context learning, interpretability of attention, and energy-based models are all active NeurIPS topics. The paper advances understanding at their intersection.\",\n      \"Novel unsupervised learning framework: The in-context denoising task bridges supervised in-context learning (Garg et al. 2022) and associative memory, offering new perspective on how models learn from context.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Severe gap between controlled theory and practical transformers: Experiments on toy settings (n=16, d=8) with single-layer, single-head architecture do not validate mechanisms in realistic multi-layer transformers. While Discussion cites observations (Trockman & Kolter 2023) of scaled-identity weights in real models, the paper provides no empirical evidence that its energy landscape or one-step gradient descent interpretations apply to practical architectures.\",\n      \"Tasks artificially constructed for theoretical convenience: Data distributions (uniform on manifolds, points on spheres) are chosen specifically to enable closed-form Bayes optimal solutions and one-layer transformer expressivity. Limited connection to real in-context learning scenarios with natural language, realistic distributions, or practical prompt-response patterns.\",\n      \"Missing characterization of fundamental question raised: Why does one-step gradient descent succeed while iteration fails (Section 4, Figure 5, Appendix I)? Reviewer identifies this as a meaningful gap—empirically shown but theoretically uncharacterized. This mechanistic insight is incomplete.\",\n      \"Narrow architectural scope: Results apply to minimalist single-layer, single-head models. No exploration of whether insights extend to multiple heads, layers, or architectural components (layer norm, residuals) that are critical to practical transformers. Discussion acknowledges this is 'speculative.'\",\n      \"Limited experimental breadth: No scaling studies (all n=16, d=8). No experiments on more realistic data distributions. Appendix E proves convergence depends on manifold dimension d not ambient dimension n, but this is only validated theoretically, not empirically at multiple scales.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Core ICLR topics: Representation learning through attention mechanisms, in-context learning, and mechanistic understanding of deep learning are central to ICLR's mission. The paper rigorously addresses how attention implements inference via associative memory.\",\n      \"Novel theoretical framework for in-context learning: Introducing in-context denoising as an unsupervised task extends ICLR's growing understanding of how transformers learn in-context. The Bayes optimal analysis (Propositions 2-4) provides principled baselines for evaluating learned representations.\",\n      \"Energy-based perspective on attention: ICLR has published extensively on energy-based models and their connections to neural networks (e.g., Ramsauer et al. 2021 at ICLR). This paper extends that line of work with novel mechanistic insights: trained attention = one-step gradient descent on context-dependent energy landscape.\",\n      \"Representation learning lens: Analyzing how attention layers learn to represent context tokens and queries as associative memory features aligns with ICLR's emphasis on understanding learned representations and their geometric structure (manifolds, spheres).\",\n      \"Rigorous theory with complete mathematical analysis: Closed-form Bayes optimal denoisers, convergence proofs (Theorem 3.1), finite-sample bounds (Appendix E Propositions 5-6), loss landscape analysis (Figure 6)—methodological rigor matches ICLR's high standards.\",\n      \"Interpretation and visualization: The paper excels at mechanistic interpretation (Figure 5 energy landscape) and loss landscape visualization (Figure 6), areas where ICLR values deep insight.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited practical relevance and architectural scope: Single-layer, single-head transformers on toy tasks (n=16, d=8) do not directly address ICLR's focus on practical deep learning. The gap between theoretical setting and realistic multi-layer transformers with layer norm and residuals is substantial and speculative.\",\n      \"Narrow task design reduces generalizability claims: Tasks (uniform on manifolds, d-spheres, Gaussian mixtures) are specifically engineered for theoretical tractability, not because they represent important learning scenarios. ICLR values contributions that clarify mechanisms for diverse, realistic problems.\",\n      \"Incomplete mechanistic analysis: Why does one-step gradient descent optimally solve denoising but multi-step iteration fails? Section 4 demonstrates this empirically but lacks theoretical characterization. For a venue emphasizing interpretability, this gap is notable.\",\n      \"Missing extensions to realistic settings: No exploration of whether insights apply when moving beyond ideal assumptions (spherical support, fixed norms, known noise model, i.i.d. context tokens). Real in-context learning violates these assumptions.\",\n      \"Experimental validation limited to toy scales: All experiments at n=16, d=8. While Appendix E theoretically establishes d-dependence of convergence rates, empirical validation at larger scales would strengthen claims. ICLR values scaled experimental validation for theoretical work.\"\n    ]\n  }\n}\n```\n\n---\n\n## **Summary & Recommendation**\n\n**Paper Strength**: This is a well-executed theoretical paper that rigorously advances the connection between attention mechanisms and associative memory networks. The mathematical analysis is sound, the in-context denoising framework is novel, and the empirical validation convincingly demonstrates that trained one-layer transformers recover theoretical predictions.\n\n**Key Limitations** (consistently noted across venues):\n1. **Toy experimental setting** (n=16, d=8) with artificially constructed tasks chosen for theoretical convenience\n2. **Severe gap to practical transformers**: Single-layer, single-head models vs. multi-layer realistic architectures\n3. **Incomplete mechanistic analysis**: Why single steps work but iteration fails is demonstrated but not theoretically characterized\n4. **Speculative connection to real transformers**: Discussion cites observations of scaled-identity weights in real models but provides no validation that the one-step gradient descent mechanism applies\n\n**Venue Fit Assessment**:\n\n- **ICLR: 8/10 (Best fit)** – ICLR's emphasis on representation learning, mechanistic interpretability, and energy-based models makes this the strongest match. The paper's rigorous theory, novel energy landscape interpretation, and focus on understanding learned representations align well. However, limited practical scope prevents a higher score.\n\n- **NeurIPS: 7/10** – Strong fit for NeurIPS's interdisciplinary mission (neuroscience ↔ deep learning) and active topics (in-context learning, interpretability). Reviewer concerns about toy settings and gap to realistic transformers lower the score relative to ICLR.\n\n- **ICML: 7/10** – Solid fit for ICML's theory-practice balance and focus on fundamental ML mechanisms. However, the narrow scope (single-layer, n=16) and limited practical relevance lower the score compared to the mechanistic insights valued more highly by ICLR.\n\n**Recommendation**: Submit to **ICLR** first. The paper's strength in mechanistic interpretability, energy-based modeling, and rigorous theory-experiment correspondence aligns best with ICLR's values. The controlled theoretical setting is more accepted at ICLR as a foundation for future work than at ICML, which emphasizes broader applicability.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper introduces 'in-context denoising' as a principled framework that meaningfully advances the theoretical connection between attention mechanisms and dense associative memory networks beyond the retrieval paradigm established by Ramsauer et al. (2021). This is a novel conceptual contribution that moves the field forward.",
+              "Rigorous theoretical analysis with closed-form Bayes optimal denoisers for three well-chosen task distributions (linear manifolds, nonlinear manifolds, Gaussian mixtures). The derivations are mathematically sound, complete, and provide concrete targets against which learned models can be compared, which is methodologically strong.",
+              "The paper successfully demonstrates that single-layer transformers with appropriate attention mechanisms (both linear and softmax) can learn to approximate these Bayes optimal denoisers through standard training. The interpretation of trained attention as a single gradient descent step on a context-dependent energy landscape (Section 4) provides mechanistic insight that is both novel and interpretable.",
+              "The empirical validation is convincing: learned weights consistently approach theoretical predictions (scaled identity matrices with appropriate scale factors), convergence rates are studied as context length increases, and robustness to distribution shift (varying subspace dimension at test time) is demonstrated. The 2D loss landscape analysis effectively explains seemingly suboptimal learned weights.",
+              "Excellent presentation: the paper is well-written with clear motivation, logical flow, and informative figures (particularly Figure 5 illustrating the energy landscape). Mathematical exposition balances rigor with accessibility."
+            ],
+            "weaknesses": [
+              "The theoretical results are asymptotic (L → ∞) and rely on the strong law of large numbers, which may not capture finite-sample behavior relevant to practical transformers. While Appendix E provides convergence rate analysis, the main theoretical claims could be more explicit about these limitations. The gap between asymptotic guarantees and finite-sample performance deserves more prominence.",
+              "The in-context denoising task, while elegant theoretically, is somewhat artificial and disconnected from practical applications. The paper studies simple data distributions (uniform on manifolds, Gaussian mixtures) rather than realistic data. The relevance of these controlled settings to understanding in-context learning in large language models remains unclear.",
+              "The architecture studied—single-layer transformers with one attention head and specific structure—is highly restricted compared to modern transformers. While the authors acknowledge this and discuss potential extensions (multi-layer architectures performing iterative gradient descent), the practical implications for understanding real transformers are limited. The connection to actual transformer behaviors remains speculative.",
+              "The energy landscape analysis in Section 4 is insightful but incomplete. The paper shows that a single gradient descent step is optimal for the denoising task but does not thoroughly investigate what happens with multiple iterations (Figure 5 right shows degradation but lacks detailed analysis). The explanation for why practical transformers use single-step updates rather than iterative refinement could be deeper.",
+              "Limited experimental scope: all experiments use small dimensionality (n=16, d=8) and relatively controlled settings. No experiments on larger scales or comparison with other potential mechanistic interpretations of attention. The generalization to realistic transformer scales is unexplored.",
+              "The connection between one-step updates and the broader literature on in-context learning (especially gradient descent interpretations like Von Oswald et al., 2023) could be developed more thoroughly. How does in-context denoising relate to other ICL phenomena, and when should we expect similar single-step optimal behavior?"
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The theoretical results are asymptotic (L → ∞) and rely on the strong law of large numbers, which may not capture finite-sample behavior relevant to practical transformers. While Appendix E provides convergence rate analysis, the main theoretical claims could be more explicit about these limitations. The gap between asymptotic guarantees and finite-sample performance deserves more prominence.",
+                "severity": "minor",
+                "evidence": "Theorem 3.1 and main text Section 3 state convergence 'as L → ∞' without initial emphasis on finite-sample gap. Appendix E provides O(1/√L) rates, but these are relegated to appendix. Figure 4(a) empirically shows the convergence trend but doesn't quantify deviation from theoretical prediction.",
+                "affected_claim": "That trained one-layer transformers optimally solve in-context denoising tasks",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The in-context denoising task, while elegant theoretically, is somewhat artificial and disconnected from practical applications. The paper studies simple data distributions (uniform on manifolds, Gaussian mixtures) rather than realistic data. The relevance of these controlled settings to understanding in-context learning in large language models remains unclear.",
+                "severity": "minor",
+                "evidence": "Tasks in Section 2.2 involve sampling from mathematically convenient distributions (d-dimensional subspaces, d-spheres, Gaussian mixtures with fixed norm centers). These do not reflect real data distributions. Discussion section acknowledges this but provides limited justification for why results should transfer to practice.",
+                "affected_claim": "That the work advances understanding of in-context learning in transformers",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The architecture studied—single-layer transformers with one attention head and specific structure—is highly restricted compared to modern transformers. While the authors acknowledge this and discuss potential extensions (multi-layer architectures performing iterative gradient descent), the practical implications for understanding real transformers are limited. The connection to actual transformer behaviors remains speculative.",
+                "severity": "major",
+                "evidence": "Section 3 and appendices study single-layer, single-head models with specific masking and weight structure. Discussion section (p. 9) notes this gap and mentions mimetic initialization observed empirically in real transformers (Trockman & Kolter 2023), but this is insufficient validation that findings apply to multi-layer, multi-head architectures with normalization and residual connections.",
+                "affected_claim": "That insights about one-layer transformers illuminate mechanisms in practical transformers",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The energy landscape analysis in Section 4 is insightful but incomplete. The paper shows that a single gradient descent step is optimal for the denoising task but does not thoroughly investigate what happens with multiple iterations (Figure 5 right shows degradation but lacks detailed analysis). The explanation for why practical transformers use single-step updates rather than iterative refinement could be deeper.",
+                "severity": "minor",
+                "evidence": "Figure 5 right panel shows that naive iteration of Eq. (17) can degrade performance. Appendix I provides brief discussion but lacks theoretical characterization of when/why iterative steps fail or when they succeed. The paper doesn't explain the mechanistic reason single-step is optimal beyond showing empirical degradation.",
+                "affected_claim": "That the correspondence between attention and gradient descent explains transformer behavior",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited experimental scope: all experiments use small dimensionality (n=16, d=8) and relatively controlled settings. No experiments on larger scales or comparison with other potential mechanistic interpretations of attention. The generalization to realistic transformer scales is unexplored.",
+                "severity": "minor",
+                "evidence": "All experimental results in Section 3 and appendices use n=16, d=8. No ablation studies comparing attention mechanisms against other baselines. No scaling experiments to larger dimensions. Figure 4(b) tests generalization across subspace dimensions but within the same scale.",
+                "affected_claim": "That the proposed framework generalizes beyond toy settings",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The connection between one-step updates and the broader literature on in-context learning (especially gradient descent interpretations like Von Oswald et al., 2023) could be developed more thoroughly. How does in-context denoising relate to other ICL phenomena, and when should we expect similar single-step optimal behavior?",
+                "severity": "minor",
+                "evidence": "Discussion section mentions Von Oswald et al. (2023) and related work on gradient descent in transformers but does not position the current work clearly relative to these findings. The paper does not discuss when/whether other ICL tasks should exhibit similar single-step optimality or how the current results constrain theories of transformer in-context learning.",
+                "affected_claim": "That in-context denoising illuminates in-context learning more broadly",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The theoretical analysis is rigorous. Propositions 1-4 deriving Bayes optimal denoisers are correctly proven. Theorem 3.1 on convergence as L→∞ is valid and uses strong law of large numbers appropriately. Convergence rate analysis in Appendix E (Propositions 5-6) uses standard concentration inequalities correctly. Empirical methodology is sound: networks are trained on finite datasets and compared against theoretical baselines. The mathematical claims are well-supported, though some asymptotic assumptions could be stated more prominently in main text."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper makes multiple novel contributions: (1) introducing 'in-context denoising' as a new framework connecting attention and associative memory; (2) extending beyond the retrieval paradigm of Ramsauer et al. (2021) to show attention performs optimal inference on a context-dependent energy landscape; (3) showing single-step gradient descent optimality for this task class; (4) providing mechanistic interpretation of why one-layer transformers can solve these tasks. While the basic connection between attention and Hopfield networks was identified in Ramsauer et al., the current work substantially refines and extends this connection in novel directions. The work is sufficiently distinct from prior art."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work makes meaningful theoretical contributions to understanding transformer mechanisms and attention operations. It advances the theory-practice gap by showing that simple architectures can be understood through associative memory principles. The insights about context-dependent energy landscapes and single-step gradient descent are novel and relevant to the mechanistic interpretability community. However, significance is tempered by the restricted setting (single-layer, single-head) and artificial task distribution. For a top-tier ML conference, this represents solid theoretical progress that advances the field, though practical impact on real transformer understanding remains limited."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Empirical validation is convincing: (1) learned weights consistently match theoretical predictions across three task types; (2) convergence to Bayes optimal loss is demonstrated; (3) robustness to distribution shift is tested; (4) loss landscape analysis explains learned weight structures; (5) appendices provide detailed convergence rate analysis. The main limitation is small scale (n=16, d=8) and lack of scaling experiments, but the controlled experimental design effectively validates core claims. The correspondence between theory and practice is well-demonstrated within the scope studied."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "Paper is well-written with clear motivation and logical organization. Mathematical exposition is rigorous but accessible. Figures effectively illustrate key concepts (especially Figure 5 on energy landscape). Notation is introduced clearly in Appendix A. The paper progresses naturally from problem formulation through theory to experiments to mechanistic interpretation. Some aspects could be clearer (e.g., main text could be more explicit about asymptotic assumptions), but overall the presentation meets top-tier standards."
+              }
+            },
+            "summary_comment": "This paper makes solid theoretical and mechanistic contributions to understanding the connection between attention and associative memory networks. The introduction of in-context denoising as a framework for understanding attention beyond retrieval is novel and the theoretical analysis is rigorous, with convincing empirical validation within the studied setting. The interpretation of trained attention as single-step gradient descent on a context-dependent energy landscape provides genuine mechanistic insight. However, the work's scope is limited to single-layer, single-head models on artificial data distributions with small dimensionality, and the practical relevance to understanding real transformers remains speculative. The theoretical results are asymptotic and the empirical scope is restricted. Despite these limitations, the paper advances the theory of attention mechanisms and associative memory in meaningful ways that will be of interest to the mechanistic interpretability and theoretical ML communities. The work is technically sound, presents novel ideas, and makes contributions appropriate for a top-tier venue, though with notable scope limitations that should be acknowledged."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper introduces 'in-context denoising' as a principled framework that meaningfully advances the theoretical connection between attention mechanisms and dense associative memory networks beyond the retrieval paradigm established by Ramsauer et al. (2021). This is a novel conceptual contribution that moves the field forward.",
+              "Rigorous theoretical analysis with closed-form Bayes optimal denoisers for three well-chosen task distributions (linear manifolds, nonlinear manifolds, Gaussian mixtures). The derivations are mathematically sound, complete, and provide concrete targets against which learned models can be compared, which is methodologically strong.",
+              "The paper successfully demonstrates that single-layer transformers with appropriate attention mechanisms (both linear and softmax) can learn to approximate these Bayes optimal denoisers through standard training. The interpretation of trained attention as a single gradient descent step on a context-dependent energy landscape (Section 4) provides mechanistic insight that is both novel and interpretable.",
+              "The empirical validation is convincing: learned weights consistently approach theoretical predictions (scaled identity matrices with appropriate scale factors), convergence rates are studied as context length increases, and robustness to distribution shift (varying subspace dimension at test time) is demonstrated. The 2D loss landscape analysis effectively explains seemingly suboptimal learned weights.",
+              "Excellent presentation: the paper is well-written with clear motivation, logical flow, and informative figures (particularly Figure 5 illustrating the energy landscape). Mathematical exposition balances rigor with accessibility."
+            ],
+            "weaknesses": [
+              "The theoretical results rely on asymptotic analysis (L → ∞) using the strong law of large numbers. While Appendix E provides convergence rate analysis (Propositions 5-6) with explicit O(1/√L) bounds and probability guarantees, the main text does not prominently feature these finite-sample results, potentially obscuring the concrete guarantees available for practitioners.",
+              "The in-context denoising task is restricted to mathematically convenient distributions (uniform on manifolds, d-spheres, Gaussian mixtures with fixed norms) chosen specifically for theoretical tractability. The practical relevance to real data distributions and realistic in-context learning phenomena remains unclear and underdeveloped.",
+              "The paper studies single-layer, single-head transformers—a highly simplified setting compared to practical transformers with multiple layers, multiple heads, layer normalization, and residual connections. While the Discussion acknowledges this limitation and mentions observations of scaled identity weights in real transformers (Trockman & Kolter 2023), the connection to actual multi-layer transformer behavior remains largely speculative.",
+              "The analysis of why single gradient descent steps are optimal but multiple iterations degrade performance (Section 4, Figure 5 right) lacks theoretical depth. The paper demonstrates empirical degradation but does not characterize the conditions under which iteration fails or explain the mechanistic role of spurious minima in the energy landscape.",
+              "All experiments use small dimensions (n=16, d=8) with no scaling studies. While Appendix E shows that convergence rates depend on manifold dimension d rather than ambient dimension n, empirical validation at larger scales would strengthen claims about generality and robustness."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The theoretical results rely on asymptotic analysis (L → ∞) using the strong law of large numbers. While Appendix E provides convergence rate analysis (Propositions 5-6) with explicit O(1/√L) bounds and probability guarantees, the main text does not prominently feature these finite-sample results, potentially obscuring the concrete guarantees available for practitioners.",
+                "severity": "minor",
+                "evidence": "Theorem 3.1 states convergence 'as L → ∞' without immediate reference to finite-sample bounds. Propositions 5-6 in Appendix E provide explicit rates: Proposition 5 shows Pr[||Π̂x̃ - x̃||∞ < C||x̃||₂ max{√((d+ln(2/δ))/L), (d+ln(2/δ))/L}] > 1-δ. These are key results but their absence from main text means readers must consult appendices for concrete sample complexity.",
+                "affected_claim": "That trained transformers achieve near-optimal denoising with finite context",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The in-context denoising task is restricted to mathematically convenient distributions (uniform on manifolds, d-spheres, Gaussian mixtures with fixed norms) chosen specifically for theoretical tractability. The practical relevance to real data distributions and realistic in-context learning phenomena remains unclear and underdeveloped.",
+                "severity": "minor",
+                "evidence": "Section 2.2 and subsections 2.2.1-2.2.3 describe tasks where distributions are uniform on geometric objects (subspaces, spheres) or have special structure (fixed norm centers). The authors acknowledge in Discussion section that tasks are 'structured so that a one-layer transformer has the expressivity to capture a solution,' but do not adequately discuss when real data should exhibit similar properties or whether insights transfer to realistic distributions.",
+                "affected_claim": "That insights advance understanding of practical in-context learning",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The paper studies single-layer, single-head transformers—a highly simplified setting compared to practical transformers with multiple layers, multiple heads, layer normalization, and residual connections. While the Discussion acknowledges this limitation and mentions observations of scaled identity weights in real transformers (Trockman & Kolter 2023), the connection to actual multi-layer transformer behavior remains largely speculative.",
+                "severity": "major",
+                "evidence": "Architecture studied in Section 3 and Appendices D.1-D.2 consists of single attention layer with one head. Discussion (page 9) mentions mimetic structure observation but frames it cautiously: 'one could also identify' such structures. The paper does not validate whether mechanisms identified here—particularly single-step optimality and context-dependent energy landscapes—generalize to stacked layers with learned layer norms and residuals.",
+                "affected_claim": "That mechanisms explain behavior of practical transformers",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The analysis of why single gradient descent steps are optimal but multiple iterations degrade performance (Section 4, Figure 5 right) lacks theoretical depth. The paper demonstrates empirical degradation but does not characterize the conditions under which iteration fails or explain the mechanistic role of spurious minima in the energy landscape.",
+                "severity": "minor",
+                "evidence": "Figure 5 (right panel, d=1 sphere case with σ²_Z=10, L=20) shows trajectories converging away from target. Appendix I provides brief discussion mentioning 'spurious states' and query-independence but lacks formal characterization. No theorem or proposition characterizes when iteration helps vs. hurts, making this a phenomenological observation rather than mechanistic explanation.",
+                "affected_claim": "That one-step gradient descent is mechanistically optimal for denoising",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "All experiments use small dimensions (n=16, d=8) with no scaling studies. While Appendix E shows that convergence rates depend on manifold dimension d rather than ambient dimension n, empirical validation at larger scales would strengthen claims about generality and robustness.",
+                "severity": "minor",
+                "evidence": "All results in Figures 3-4 and appendices use n=16, d=8. Figure 4(b) varies d at inference time but keeps n,L fixed. No experiments with n=32, n=64 or larger manifold dimensions. Appendix E Propositions 5-6 establish d-dependence theoretically, but empirical validation of scaling is absent.",
+                "affected_claim": "That findings generalize beyond toy settings",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical analysis is rigorous and correct. Propositions 1-4 deriving Bayes optimal denoisers are properly proven. Theorem 3.1 correctly applies the strong law of large numbers for convergence as L → ∞. Appendix E (Propositions 5-6) provides valid convergence rate analysis using Hoeffding inequality. The rebuttal clarifies that finite-sample guarantees with explicit rates are present in Appendix E (O(1/√L) with probability bounds depending on d), confirming that theoretical results have concrete implications even for finite L. Empirical methodology is sound with proper comparison to theoretical baselines."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper makes novel contributions: (1) introducing 'in-context denoising' as a framework connecting attention and associative memory beyond retrieval; (2) proving that single-layer softmax/linear attention can solve Bayes-optimal denoising on restricted manifolds (Theorem 3.1); (3) interpreting trained attention as one-step gradient descent on context-dependent energy landscapes (Section 4, Eq. 16-17). While Ramsauer et al. (2021) established the basic attention-Hopfield connection for retrieval, the current work substantially extends this to an unsupervised setting with new mechanistic insights. The connection to in-context learning (unsupervised denoising with context-specific solutions) is novel."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work makes solid theoretical contributions to mechanistic understanding of attention. The key insight—that attention implements context-dependent energy minimization for denoising—is conceptually significant and non-obvious. However, significance is appropriately limited by scope: results hold for single-layer models on structured tasks, and practical relevance to multi-layer transformers on realistic data is unclear. The rebuttal acknowledges this framing, positioning the work as a 'proof-of-concept' rather than claiming direct applicability to large models. For a top-tier ML venue, this represents meaningful theoretical progress in the mechanistic interpretability space, with appropriate caveats about generalization."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Empirical validation effectively supports the main claims within the stated scope: (1) learned weights consistently match theoretical predictions (Figure 3); (2) convergence to Bayes optimal loss is demonstrated as L increases (Figure 4a); (3) robustness to distribution shift is tested (Figure 4b); (4) loss landscape analysis explains learned structures (Figure 6); (5) closed-form Bayes optimal baselines provide proper comparison targets (Propositions 2-4). The limitation is small experimental scale (n=16, d=8), but this reflects the need to maintain tractability for theoretical analysis. The correspondence between theory and practice is convincingly demonstrated within the restricted setting."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-organized and clearly written. Mathematical exposition is rigorous yet accessible. Problem formulation in Section 2 is well-motivated. Theoretical results are properly stated with proofs in appendices. Figures effectively illustrate concepts (Figure 5 on energy landscapes is particularly informative). Notation is introduced systematically in Appendix A. The rebuttal confirms that finite-sample convergence rates (Appendix E) exist and should have been more prominently referenced, but these do not change the soundness assessment—they simply strengthen the finite-sample applicability of the asymptotic results. Overall clarity meets top-tier standards."
+              }
+            },
+            "summary_comment": "This paper makes solid theoretical and mechanistic contributions to understanding attention mechanisms through the lens of associative memory networks. The introduction of 'in-context denoising' as an unsupervised framework extends prior work (Ramsauer et al. 2021) in novel directions, proving that single-layer transformers with appropriate attention can solve Bayes-optimal denoising problems and that the trained attention layers implement one-step gradient descent on context-dependent energy landscapes. The theoretical analysis is rigorous, with closed-form Bayes optimal predictors for three task distributions and convergence proofs as context length L → ∞. Finite-sample convergence rates with explicit probability bounds are provided in Appendix E, though these merit more prominence in the main text. Empirical validation is convincing within the studied scope: learned weights consistently approach theoretical predictions and loss curves converge to Bayes optimal values.\n\nThe main limitations reflect deliberate design choices to maintain theoretical tractability: (1) tasks use mathematically convenient distributions (manifolds, spheres) to enable Bayes optimal solutions; (2) architecture is minimalist (single-layer, single-head) to remain theoretically analyzable; (3) experiments use small dimensions (n=16, d=8) for clarity. These are appropriate scoping decisions for theoretical work but create a gap between the elegant controlled setting and practical relevance to real transformers. The rebuttal acknowledges this gap and frames the work as a proof-of-concept foundation rather than claiming direct applicability to multi-layer transformers on realistic data.\n\nThe paper appropriately positions itself: it provides mechanistic understanding in a controlled setting, establishes that attention can implement principled Bayesian inference, and offers a foundation for future work bridging to more realistic settings. For a top-tier ML conference focused on advancing theoretical understanding of deep learning, this represents a meaningful contribution to the interpretability literature, with sound science and appropriate scope acknowledgment."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Asymptotic theoretical results (L → ∞) may not capture finite-sample behavior relevant to practical transformers\",\n        \"Artificial nature of in-context denoising task with simple data distributions; limited connection to real applications and language models\",\n        \"Highly restricted architecture (single-layer, single-head) compared to modern transformers; speculative connection to actual transformer behaviors\",\n        \"Incomplete energy landscape analysis regarding multi-step iteration and lack of theoretical characterization of when iterative steps fail\",\n        \"Limited experimental scope with small dimensions (n=16, d=8) and no scaling experiments\",\n        \"Underdeveloped connection to broader in-context learning literature and missing discussion of when single-step optimality should be expected\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Asymptotic assumptions and finite-sample gap\",\n          \"location\": \"Section 3, Theorem 3.1, Appendix E\",\n          \"explanation\": \"The paper establishes convergence 'as L → ∞' using the strong law of large numbers. Appendix E (Propositions 5 and 6) does provide convergence rate analysis showing O(1/√L) rates and explicit probability bounds, but these details are relegated to the appendix. Figure 4(a) empirically demonstrates convergence trends.\"\n        },\n        {\n          \"concern\": \"Artificial task distributions and theoretical elegance\",\n          \"location\": \"Section 2.2, Subsections 2.2.1-2.2.3\",\n          \"explanation\": \"The three tasks (linear manifolds, d-spheres, Gaussian mixtures) are mathematically convenient and chosen specifically to admit Bayes optimal solutions and single-layer transformer expressivity. The paper acknowledges in the Discussion section that the framework is restricted but provides limited justification for transferability.\"\n        },\n        {\n          \"concern\": \"Single-layer, single-head architecture limitations\",\n          \"location\": \"Section 3, Appendices D.1-D.2, Discussion section (page 9)\",\n          \"explanation\": \"The paper studies minimal single-layer transformers with one attention head. Section 5 (Discussion) acknowledges this and mentions observations of mimetic structure in real transformers (Trockman & Kolter 2023), but does not validate that findings apply to multi-layer, multi-head architectures with normalization and residual connections.\"\n        },\n        {\n          \"concern\": \"Multi-step iteration analysis\",\n          \"location\": \"Section 4, Figure 5 (right panel), Appendix I\",\n          \"explanation\": \"Figure 5 (right) demonstrates that naive iteration of Eq. (17) can degrade performance. Appendix I provides brief discussion, but lacks theoretical characterization of when/why iterative steps fail. The paper shows empirical degradation but does not provide mechanistic explanation.\"\n        },\n        {\n          \"concern\": \"Small experimental scale\",\n          \"location\": \"Section 3.2-3.4, all figures showing results\",\n          \"explanation\": \"All experiments use n=16, d=8. Figure 4(b) tests generalization across subspace dimensions but within the same scale. No ablation studies comparing different attention mechanisms or scaling to larger dimensions.\"\n        },\n        {\n          \"concern\": \"Connection to broader ICL literature\",\n          \"location\": \"Section 5 (Discussion)\",\n          \"explanation\": \"The Discussion mentions Von Oswald et al. (2023) and related work on gradient descent in transformers, but does not clarify how in-context denoising relates to other ICL phenomena or when similar single-step optimality should be expected.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Asymptotic assumptions not sufficiently prominent in main text\",\n          \"proposed_change\": \"In Section 3 main text (e.g., before Theorem 3.1), add explicit statement that theoretical guarantees are asymptotic (L → ∞) and that finite-sample behavior is quantified in Appendix E. Reference convergence rates from Propositions 5-6 to give readers concrete finite-sample guarantees upfront.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Limited justification for why artificial tasks are relevant\",\n          \"proposed_change\": \"Expand Discussion section to explicitly discuss why understanding denoising on these structured distributions (manifolds, spheres, Gaussian mixtures) provides insights for realistic data and in-context learning. Alternatively, acknowledge more clearly that the work is a proof-of-concept that does not yet address practical relevance.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Gap between single-layer models and practical transformers\",\n          \"proposed_change\": \"In Discussion, strengthen acknowledgment of this gap. Rather than citing Trockman & Kolter (2023) as evidence of applicability, frame it as: 'While we do not study multi-layer transformers here, empirical observations of mimetic structures in real transformers (Trockman & Kolter 2023) suggest potential connections—however, understanding whether our mechanisms extend to multilayer settings remains an open question.' This sets appropriate expectations.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Multi-step iteration insufficiently analyzed\",\n          \"proposed_change\": \"In Section 4 or Appendix I, provide theoretical or empirical analysis addressing: (1) under what conditions does iteration improve vs. degrade performance? (2) what is the structure of the spurious minima that cause degradation? (3) what prevents real transformers from using iterative refinement? A more thorough characterization would strengthen the mechanistic insight.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Experimental scope limited to toy dimensions\",\n          \"proposed_change\": \"Add experiments at larger scales (e.g., n=64, d=32 or n=128, d=64) to demonstrate that patterns observed at n=16, d=8 scale and that conclusions are robust. This would strengthen generalization claims.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Underdeveloped connection to broader ICL literature\",\n          \"proposed_change\": \"In Discussion, add section explicitly addressing: (1) how does in-context denoising relate to supervised ICL tasks studied by Garg et al. (2022), Zhang et al. (2024)? (2) when should we expect single-step gradient descent to be optimal for ICL tasks more broadly? (3) how do the weight scales and energy landscapes differ between denoising and other ICL settings? This would contextualize the work within the broader ICL literature.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We thank the reviewer for this thorough and constructive evaluation. The paper makes solid theoretical contributions, and we appreciate the identification of important limitations that we should address more explicitly. We respond to the main concerns:\\n\\n**Regarding asymptotic assumptions and finite-sample behavior:** The reviewer correctly notes that our main theoretical results rely on L → ∞ asymptotics. We did provide convergence rate analysis in Appendix E (Propositions 5-6), which establishes explicit O(1/√L) rates with probability bounds. However, the reviewer is right that these important finite-sample guarantees should be more prominent in the main text. In a revision, we would move key convergence rate results to the main text or at least reference them earlier (e.g., after Theorem 3.1) so readers understand the finite-sample guarantees upfront.\\n\\n**Regarding artificial task distributions:** The reviewer raises an important point about the gap between our elegant theoretical setting and practical relevance. Our choice of distributions (manifolds, spheres, Gaussian mixtures) was deliberate—these allow us to derive closed-form Bayes optimal denoisers and prove what single-layer transformers can express. However, the reviewer is correct that we should be clearer about the tradeoff: we gain theoretical tractability at the cost of realism. The paper's primary contribution is understanding mechanisms in these controlled settings, not immediately explaining behavior on real data. We would strengthen the Discussion to be more explicit about this scope limitation and potential avenues for future work that bridge to more realistic distributions.\\n\\n**Regarding single-layer, single-head architecture:** This is perhaps the most significant limitation. Our choice to study minimal architectures reflects the need to maintain tractability for theoretical analysis. The current work should be viewed as a proof-of-concept showing that certain in-context learning phenomena can be explained mechanistically in simplified settings. The Discussion already mentions observations of scaled identity weights in real transformers (Trockman & Kolter 2023), but the reviewer is right to push back on whether this validates our approach for multi-layer, multi-head models. In a revision, we would reframe this more carefully: rather than claiming our insights directly apply to practical transformers, we would position the work as establishing a foundation for understanding attention, with the empirical connection to real transformers remaining an open question requiring further investigation.\\n\\n**Regarding multi-step iteration and energy landscapes:** The reviewer correctly identifies that our treatment of why single-step updates are optimal but iteration degrades performance could be deeper. Figure 5 (right panel) shows empirical degradation, but we do not provide theoretical characterization. The phenomenon appears related to how context tokens sculpt the energy landscape—a single step balances the contribution of the query with the context distribution, while iteration can cause the state to converge to a spurious minimum that is query-independent. We would strengthen this analysis (potentially as a new result in a revision) to provide theoretical or more detailed empirical characterization of the conditions under which iteration fails.\\n\\n**Regarding experimental scale:** All our experiments use n=16, d=8. The reviewer is correct that scaling experiments would strengthen confidence in the generality of our findings. We chose small dimensions for clarity of presentation and to enable detailed loss landscape analysis (Figure 6), but acknowledged in Appendix E that convergence rates depend on d rather than n. In a revision, we could add experiments at intermediate scales (e.g., n=32 or n=64) to demonstrate robustness, though larger scales may require different visualization approaches.\\n\\n**Regarding connection to broader ICL literature:** The Discussion mentions related work (Von Oswald et al. 2023, Garg et al. 2022) but does not thoroughly position in-context denoising relative to supervised ICL. The reviewer is right that clarity on when single-step gradient descent should be optimal for other ICL tasks would contextualize the work. We would add explicit discussion of the differences between our unsupervised denoising setting and supervised ICL, and discuss conditions under which similar single-step optimality might or might not hold.\\n\\n**Summary:** We appreciate that the reviewer recognizes the theoretical rigor and mechanistic insights while appropriately flagging important scope limitations. The paper makes meaningful contributions to understanding attention and associative memory in a controlled setting. Our revisions would focus on (1) bringing finite-sample guarantees into the main narrative, (2) being more explicit about the scope limitations and the gap between theory and practice, (3) providing deeper analysis of multi-step iteration, and (4) scaling experiments and clearer positioning relative to the broader ICL literature. These changes would not require fundamentally new results but would improve clarity and appropriate framing of the work's contributions and limitations.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper introduces 'in-context denoising' as a principled framework that meaningfully advances the theoretical connection between attention mechanisms and dense associative memory networks beyond the retrieval paradigm established by Ramsauer et al. (2021). This is a novel conceptual contribution that moves the field forward.",
+              "Rigorous theoretical analysis with closed-form Bayes optimal denoisers for three well-chosen task distributions (linear manifolds, nonlinear manifolds, Gaussian mixtures). The derivations are mathematically sound, complete, and provide concrete targets against which learned models can be compared, which is methodologically strong.",
+              "The paper successfully demonstrates that single-layer transformers with appropriate attention mechanisms (both linear and softmax) can learn to approximate these Bayes optimal denoisers through standard training. The interpretation of trained attention as a single gradient descent step on a context-dependent energy landscape (Section 4) provides mechanistic insight that is both novel and interpretable.",
+              "The empirical validation is convincing: learned weights consistently approach theoretical predictions (scaled identity matrices with appropriate scale factors), convergence rates are studied as context length increases, and robustness to distribution shift (varying subspace dimension at test time) is demonstrated. The 2D loss landscape analysis effectively explains seemingly suboptimal learned weights.",
+              "Excellent presentation: the paper is well-written with clear motivation, logical flow, and informative figures (particularly Figure 5 illustrating the energy landscape). Mathematical exposition balances rigor with accessibility."
+            ],
+            "weaknesses": [
+              "The theoretical results rely on asymptotic analysis (L → ∞) using the strong law of large numbers. Finite-sample convergence rates with explicit O(1/√L) bounds depending on manifold dimension d are proven in Appendix E (Propositions 5-6), but the main text does not reference these results, obscuring the concrete finite-sample guarantees available for practitioners.",
+              "The in-context denoising task uses mathematically convenient distributions (uniform on manifolds, d-spheres, Gaussian mixtures with fixed norms) chosen specifically for theoretical tractability. While the paper acknowledges these are 'structured so that a one-layer transformer has the expressivity to capture a solution' (Section 2.1), the practical relevance to real data distributions and realistic in-context learning phenomena remains underdeveloped.",
+              "The paper studies single-layer, single-head transformers—a highly simplified setting compared to practical transformers with multiple layers, multiple heads, layer normalization, and residual connections. While the Discussion acknowledges this limitation and mentions observations of scaled identity weights in real transformers (Trockman & Kolter 2023), the connection to actual multi-layer transformer behavior remains largely speculative.",
+              "The analysis of why single gradient descent steps are optimal but multiple iterations degrade performance (Section 4, Figure 5 right, Appendix I) lacks theoretical characterization. The paper demonstrates empirical degradation but does not provide a formal proposition characterizing conditions under which iteration fails or explaining the role of spurious minima in the energy landscape.",
+              "All experiments use small dimensions (n=16, d=8) with no scaling studies. While Appendix E theoretically establishes that convergence rates depend on manifold dimension d rather than ambient dimension n, empirical validation at larger scales (e.g., n=32 d=16 or n=64 d=32) would strengthen confidence in generality and robustness."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The theoretical results rely on asymptotic analysis (L → ∞) using the strong law of large numbers. Finite-sample convergence rates with explicit O(1/√L) bounds depending on manifold dimension d are proven in Appendix E (Propositions 5-6), but the main text does not reference these results, obscuring the concrete finite-sample guarantees available for practitioners.",
+                "severity": "minor",
+                "evidence": "Theorem 3.1 in main text states convergence 'as L → ∞.' Appendix E Proposition 5 proves Pr[||Π̂x̃ - x̃||∞ < C||x̃||₂ max{√((d+ln(2/δ))/L), (d+ln(2/δ))/L}] > 1-δ with explicit constants, and Proposition 6 provides analogous results for nonlinear cases. These establish concrete O(√(d ln(1/δ)/L)) rates but are not mentioned in the main text following Theorem 3.1. The rebuttal confirms these results exist and agrees they should be more prominent, but acknowledges this is already present in the submitted paper (not a promise of future work).",
+                "affected_claim": "That trained transformers achieve near-optimal denoising with finite context",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The in-context denoising task uses mathematically convenient distributions (uniform on manifolds, d-spheres, Gaussian mixtures with fixed norms) chosen specifically for theoretical tractability. While the paper acknowledges these are 'structured so that a one-layer transformer has the expressivity to capture a solution' (Section 2.1), the practical relevance to real data distributions and realistic in-context learning phenomena remains underdeveloped.",
+                "severity": "minor",
+                "evidence": "Section 2.2 and subsections 2.2.1-2.2.3 describe tasks with uniform distributions on geometric objects or fixed-norm centers. Section 2.1 states explicitly that tasks are 'of course structured so that a one-layer transformer has the expressivity to capture a solution.' The Discussion acknowledges structure but does not adequately discuss when real data exhibits similar properties. The rebuttal agrees this deserves explicit framing as a proof-of-concept and acknowledges this is a presentation issue, not a technical flaw.",
+                "affected_claim": "That insights advance understanding of practical in-context learning",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The paper studies single-layer, single-head transformers—a highly simplified setting compared to practical transformers with multiple layers, multiple heads, layer normalization, and residual connections. While the Discussion acknowledges this limitation and mentions observations of scaled identity weights in real transformers (Trockman & Kolter 2023), the connection to actual multi-layer transformer behavior remains largely speculative.",
+                "severity": "major",
+                "evidence": "Sections 3 and Appendices D.1-D.2 detail single-layer, one-head architecture. Discussion (page 9) states 'self-attention heads of trained transformers sometimes exhibit weights WKQ, WPV that resemble scaled identity matrices' citing Trockman & Kolter (2023), but does not validate whether single-step optimality and energy landscape mechanisms extend to multi-layer settings with normalization and residuals. The rebuttal agrees the connection is speculative and proposes a more careful reframing but acknowledges this cannot be resolved without new theoretical or empirical work on multi-layer models.",
+                "affected_claim": "That mechanisms explain behavior of practical transformers",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The analysis of why single gradient descent steps are optimal but multiple iterations degrade performance (Section 4, Figure 5 right, Appendix I) lacks theoretical characterization. The paper demonstrates empirical degradation but does not provide a formal proposition characterizing conditions under which iteration fails or explaining the role of spurious minima in the energy landscape.",
+                "severity": "minor",
+                "evidence": "Figure 5 (right panel) shows trajectories for sphere case (d=1, σ²_Z=10, L=20) where iteration causes performance degradation. Appendix I provides brief discussion mentioning 'spurious states' and 'query-independent' convergence but lacks formal theorem. The rebuttal acknowledges this as a 'meaningful weakness' and proposes adding theoretical characterization or deeper empirical analysis, but confirms this is not present in the submitted paper.",
+                "affected_claim": "That one-step gradient descent is mechanistically optimal for denoising",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "All experiments use small dimensions (n=16, d=8) with no scaling studies. While Appendix E theoretically establishes that convergence rates depend on manifold dimension d rather than ambient dimension n, empirical validation at larger scales (e.g., n=32 d=16 or n=64 d=32) would strengthen confidence in generality and robustness.",
+                "severity": "minor",
+                "evidence": "All results in Figures 3-4 and appendices use n=16, d=8. Figure 4(b) varies subspace dimension at test time but keeps n fixed. Appendix E Propositions 5-6 establish theoretical d-dependence, but no experiments at larger scales validate this empirically. The rebuttal proposes adding such experiments but confirms they are not present in the submitted paper.",
+                "affected_claim": "That findings generalize beyond toy settings",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical analysis is rigorous and correct. Propositions 1-4 deriving Bayes optimal denoisers are properly proven. Theorem 3.1 correctly applies the strong law of large numbers for convergence as L → ∞. Appendix E (Propositions 5-6) provides valid convergence rate analysis using the Hoeffding inequality, establishing explicit finite-sample bounds: Pr[||Π̂x̃ - x̃||∞ < C||x̃||₂ max{√((d+ln(2/δ))/L), (d+ln(2/δ))/L}] > 1-δ. The rebuttal confirms these results are already in the submitted paper. Empirical methodology is sound with proper comparison to theoretical baselines. No mathematical errors or unsupported claims detected."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper makes substantive novel contributions: (1) introduces 'in-context denoising' as a new framework extending attention-associative memory connection beyond retrieval; (2) proves single-layer softmax/linear attention solves Bayes-optimal denoising (Theorem 3.1) on restricted manifolds; (3) interprets trained attention as one-step gradient descent on context-dependent energy landscapes (Section 4, Eqs. 16-17); (4) shows one-step updates outperform both naive retrieval and multi-step iteration. While Ramsauer et al. (2021) established the basic connection for retrieval, the current work substantially extends this to an unsupervised in-context learning setting with new theoretical and mechanistic insights. The combination of theoretical results, empirical validation, and energy landscape interpretation is novel."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work makes meaningful contributions to mechanistic understanding of attention mechanisms. The insight that attention implements context-dependent energy minimization for Bayes-optimal inference is conceptually significant and non-obvious. However, significance is appropriately bounded by scope: results apply to single-layer models on structured tasks, and practical relevance to multi-layer transformers on realistic data is unclear. The rebuttal acknowledges this framing, positioning the work as establishing a foundation and proof-of-concept rather than claiming direct applicability. For a top-tier ML conference focused on mechanistic interpretability and theory, this represents solid progress advancing understanding of how attention works, with appropriate caveats about generalization."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Empirical validation effectively supports the main claims within the stated scope: (1) learned weight scales consistently match theoretical predictions (Figure 3, all three cases); (2) training curves converge to Bayes optimal loss as L increases (Figure 4a); (3) robustness to distribution shift demonstrated (Figure 4b); (4) loss landscape analysis explains learned structures (Figure 6); (5) Bayes optimal baselines properly computed for all three task types (Propositions 2-4). The experimental design appropriately uses theory-motivated baselines. Main limitation is small scale (n=16, d=8), but this reflects the engineering constraint of maintaining tractability for theoretical analysis and detailed visualization. Within the stated scope, the theory-experiment correspondence is convincingly demonstrated."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-organized and clearly written. Problem formulation (Section 2) is well-motivated. Theoretical results are properly stated with proofs deferred to appendices. Figures effectively communicate key concepts (Figure 5 on energy landscapes is particularly clear). Notation is systematically introduced (Appendix A). The rebuttal confirms that finite-sample results (Appendix E Propositions 5-6) exist but should be more prominent in main text—this is a presentation choice, not a clarity failure. Mathematical exposition balances rigor with accessibility. Overall presentation meets top-tier standards."
+              }
+            },
+            "summary_comment": "This paper makes solid theoretical and mechanistic contributions to understanding attention mechanisms through the lens of associative memory. The introduction of 'in-context denoising' as an unsupervised framework extends prior work (Ramsauer et al. 2021) in novel directions, proving that single-layer transformers with softmax or linear attention can solve Bayes-optimal denoising problems and that trained attention implements one-step gradient descent on context-dependent energy landscapes. The theoretical analysis is rigorous, with closed-form Bayes optimal predictors for three task distributions (Propositions 2-4), convergence proofs as L → ∞ (Theorem 3.1), and finite-sample convergence rates with explicit bounds (Appendix E Propositions 5-6). Empirical validation is convincing: learned weights consistently approach theoretical predictions, final losses match Bayes optimal values, and loss landscapes exhibit the predicted structure.\n\nThe main limitations reflect deliberate scoping choices to maintain theoretical tractability: (1) tasks use mathematically convenient distributions enabling closed-form Bayes optimal solutions; (2) architecture is minimalist (single-layer, single-head) for theoretical analyzability; (3) experiments use small dimensions (n=16, d=8) for visualization and clarity. These are reasonable design decisions for theoretical work, creating a necessary gap between the controlled setting and practical relevance. The rebuttal appropriately acknowledges these limitations and frames the work as establishing a proof-of-concept foundation rather than claiming direct applicability to multi-layer transformers.\n\nThe work appropriately positions itself within the mechanistic interpretability literature: it provides rigorous understanding in a controlled setting, proves that attention can implement principled Bayesian inference, and offers a foundation for future work bridging to realistic settings. For a top-tier ML conference, this represents a meaningful contribution with sound science and appropriate scope acknowledgment."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Finite-sample convergence rate results are present in Appendix E but insufficiently prominent in main text\",\n        \"Practical relevance of structured task distributions to realistic data and in-context learning is underdeveloped\",\n        \"Single-layer, single-head architecture is highly simplified; connection to multi-layer practical transformers remains speculative\",\n        \"Multi-step iteration analysis lacks theoretical characterization of failure conditions\",\n        \"Experiments use small dimensions (n=16, d=8) without scaling validation\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Finite-sample bounds are present but not prominent in main text\",\n          \"location\": \"Appendix E, Propositions 5-6; Main text Section 3, Theorem 3.1\",\n          \"explanation\": \"Theorem 3.1 states convergence 'as L → ∞' using strong law of large numbers. Appendix E provides explicit finite-sample results: Proposition 5 establishes Pr[||Π̂x̃ - x̃||∞ < C||x̃||₂ max{√((d+ln(2/δ))/L), (d+ln(2/δ))/L}] > 1-δ, and Proposition 6 provides analogous bounds for nonlinear cases. These give concrete O(1/√L) rates but are relegated to appendix.\"\n        },\n        {\n          \"concern\": \"Task distributions chosen for tractability rather than realism\",\n          \"location\": \"Section 2.2, Subsections 2.2.1-2.2.3; Section 2.1\",\n          \"explanation\": \"Paper explicitly states in Section 2.1 that tasks are 'of course structured so that a one-layer transformer has the expressivity to capture a solution.' The three cases (uniform on d-dimensional subspaces, d-spheres with fixed radius, Gaussian mixtures with fixed-norm centers) are mathematically convenient and enable closed-form Bayes optimal solutions. The Discussion acknowledges this but provides limited argument for relevance to realistic distributions.\"\n        },\n        {\n          \"concern\": \"Single-layer architecture limitations acknowledged but connection speculative\",\n          \"location\": \"Section 3, Appendices D.1-D.2, Discussion (page 9, final paragraph)\",\n          \"explanation\": \"The paper studies minimal transformers: Section 3.1-3.4 and Appendices D.1-D.2 detail the one-layer, one-head construction. Discussion notes that 'self-attention heads of trained transformers sometimes exhibit weights WKQ, WPV that resemble scaled identity matrices' citing Trockman & Kolter (2023), but does not validate whether mechanisms (single-step optimality, energy landscapes) extend to multi-layer settings with normalization and residuals.\"\n        },\n        {\n          \"concern\": \"Multi-step iteration analysis is phenomenological rather than mechanistic\",\n          \"location\": \"Section 4, Figure 5 (right panel), Appendix I\",\n          \"explanation\": \"Figure 5 (right) shows empirical degradation of iterative refinement for the sphere case (d=1, σ²_Z=10, L=20). Appendix I briefly mentions 'spurious states' and that iteration causes 'query-independent' convergence, but provides no formal theorem or proposition characterizing when/why iteration fails or how spurious minima structure the energy landscape.\"\n        },\n        {\n          \"concern\": \"Experiments limited to small dimensions without scaling studies\",\n          \"location\": \"Section 3.2-3.4, Figures 3-4, Appendix G\",\n          \"explanation\": \"All empirical results use n=16, d=8. Figure 4(b) varies subspace dimension d at test time but within the same experimental scale. Appendix E theoretically establishes that convergence depends on d (manifold dimension) rather than n (ambient dimension), but no experiments validate scaling at larger dimensions (e.g., n=32, d=16 or n=64, d=32).\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Finite-sample results insufficiently featured in main narrative\",\n          \"proposed_change\": \"In Section 3 main text, immediately after Theorem 3.1, add a remark or separate statement: 'Appendix E provides finite-sample convergence rates showing that, with probability 1-δ, the error ||ĝ(x̃) - f_opt(x̃)|| scales as O(√(d ln(1/δ)/L)) for case 1 (Proposition 5) and with similar d-dependent rates for cases 2-3 (Proposition 6). Thus our convergence results have concrete implications for finite context lengths L.' Optionally move the core statements of Propositions 5-6 to a subsection of Section 3 or an extended discussion after Theorem 3.1.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Underdeveloped practical relevance of task distributions\",\n          \"proposed_change\": \"In Discussion section, expand with 1-2 paragraphs addressing: (1) the paper studies denoising on mathematically tractable distributions to enable closed-form Bayes optimal solutions and theoretical analysis; (2) this represents a proof-of-concept that structured tasks can be solved optimally by single-layer transformers through attention-based gradient descent; (3) extending to realistic data distributions (e.g., natural images, text embeddings) is an important open problem that would require new techniques for characterizing Bayes optimal solutions and transformer expressivity. This framing sets appropriate expectations about scope.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Connection to multi-layer transformers remains speculative\",\n          \"proposed_change\": \"In Discussion, revise the treatment of Trockman & Kolter (2023) observations. Instead of presenting scaled identity weights as suggestive evidence, state more clearly: 'While we observe scaled identity weights in trained single-layer models, extending our results to multi-layer transformers with learned normalizations and residual streams is an open question. Empirical observations that some heads in trained multi-layer models exhibit related structure (Trockman & Kolter 2023) are intriguing but do not validate that our single-layer mechanisms carry over. Understanding whether the context-dependent energy landscape interpretation applies to stacked attention layers is a natural direction for future work.' This avoids overclaiming applicability.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Multi-step iteration analysis should characterize failure conditions\",\n          \"proposed_change\": \"In Appendix I or as an extended discussion in Section 4, provide: (1) formal characterization (theorem or proposition) of conditions under which iteration of Eq. (17) improves vs. degrades the estimate; (2) analysis of the energy landscape structure showing how spurious minima arise and why single-step updates avoid them; (3) explicit comparison between single-step loss and k-step losses as functions of query position and context distribution. Even qualitative characterization (e.g., showing that spurious minima are far from the data manifold, making them visible after one step but attractive to iteration) would strengthen the mechanistic explanation.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Experiments lack scaling validation\",\n          \"proposed_change\": \"Add experiments at intermediate scales (e.g., n=32, d=16 and n=64, d=32) for at least the linear case (Case 1), as this is simplest to scale. For each scale, plot: (1) learned weight scales α, β and comparison to theoretical predictions; (2) final loss vs. Bayes optimal; (3) convergence rate (MSE vs. context length L) and comparison to theoretical rates from Proposition 5. This demonstrates that patterns observed at n=16, d=8 generalize and that the d-dependent rates predicted by theory hold empirically.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate this detailed review and welcome the opportunity to address the identified issues. The reviewer has provided constructive feedback that, while somewhat repetitive with respect to a baseline evaluation, offers concrete suggestions for strengthening the presentation and scope. We respond to each concern:\\n\\n**Regarding prominence of finite-sample convergence rates:**\\nThe reviewer correctly identifies that Appendix E contains key finite-sample results (Propositions 5-6 with explicit O(√(d ln(1/δ)/L)) rates) but these are not prominent in the main text. We acknowledge this is a presentation choice that obscures important practical information. In a revision, we would prominently reference these results immediately after Theorem 3.1, stating explicitly that Appendix E provides concrete finite-sample convergence rates showing error scaling as O(√(d ln(1/δ)/L)). This can be done without new theoretical work—simply elevating existing results to the main narrative.\\n\\n**Regarding practical relevance of structured distributions:**\\nThe reviewer appropriately notes that our task distributions are chosen for theoretical tractability rather than realism. We agree this deserves explicit discussion. The paper states in Section 2.1 that tasks are 'structured so that a one-layer transformer has the expressivity to capture a solution,' but we did not adequately justify why this limitation is acceptable. In a revision, we would expand the Discussion to frame the work as a proof-of-concept: (1) we establish that with carefully chosen tasks, single-layer attention can implement optimal Bayesian inference; (2) this provides a foundation for understanding attention mechanisms; (3) extending to realistic distributions is an important open problem. This framing acknowledges scope limitations while explaining the scientific value of the restricted setting.\\n\\n**Regarding speculative connection to practical transformers:**\\nThe reviewer's suggestion to revise the treatment of Trockman & Kolter (2023) is valuable. Currently, the Discussion mentions observations of scaled identity weights in real transformers as evidence of applicability. However, the reviewer is right that this oversells the connection. In a revision, we would state more carefully: 'While we do not study multi-layer transformers, empirical observations that some attention heads in trained models exhibit scaled identity structure (Trockman & Kolter 2023) suggest potential connections. However, whether the context-dependent energy landscape interpretation extends to stacked layers with normalization and residuals remains an open question.' This appropriately hedges the claim and sets expectations.\\n\\n**Regarding multi-step iteration analysis:**\\nThe reviewer identifies an important gap: we show empirically in Figure 5 that naive iteration degrades performance but do not theoretically characterize why. This is a meaningful weakness. In a revision, we would add either: (1) a theoretical proposition characterizing conditions under which iteration improves vs. fails (e.g., relating spurious minima to the data manifold geometry), or (2) a more thorough empirical analysis in Appendix I examining the energy landscape structure and showing how iteration drives trajectories toward spurious minima. At minimum, we could provide explicit plots showing energy vs. iteration step number and analyze the role of manifold geometry. This would deepen the mechanistic explanation beyond the current phenomenological observation.\\n\\n**Regarding experimental scaling:**\\nThe reviewer correctly notes that all experiments use n=16, d=8. While Appendix E theoretically establishes that convergence rates depend on d rather than n, empirical validation at larger scales would strengthen confidence in generality. We could add experiments at n=32, d=16 and n=64, d=32 (at least for the linear case, Case 1, which is most straightforward to scale). These would show: (1) learned weight scales remain accurate, (2) Bayes optimal performance is achieved, (3) empirical convergence rates match theoretical predictions. This is a useful extension that does not require new theory but provides empirical evidence of robustness.\\n\\n**Summary of planned revisions:**\\nWe appreciate that the reviewer's concerns, while overlapping somewhat with a baseline critique, point to concrete improvements: (1) promote finite-sample convergence rates to main text (no new work required), (2) reframe scope discussion to set appropriate expectations (revision only), (3) revise claims about applicability to practical transformers (revision only), (4) deepen analysis of multi-step iteration (requires targeted analysis), (5) add scaling experiments (requires computation but straightforward). These revisions would strengthen the paper's contribution by being more explicit about both its insights and its limitations.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_c96f48169898",
+    "conference": "ICML",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/icml_accept_2025_057_in_context_denoising_with_one_layer_transformers_connections_between_attention_a.md",
+    "target_paper_summary": {
+      "paper_id": "paper_c96f48169898",
+      "title": "In-Context Denoising With One-Layer Transformers: Connections Between Attention And Associative Memory Retrieval",
+      "abstract": "We introduce in-context denoising, a task that refines the connection between attention-based architectures and dense associative memory (DAM) networks, also known as modern Hopfield networks. Using a Bayesian framework, we show theoretically and empirically that certain restricted denoising problems can be solved optimally even by a single-layer transformer. We demonstrate that a trained attention layer processes each denoising prompt by performing a single gradient descent update on a context-aware DAM energy landscape, where context tokens serve as associative memories and the query token acts as an initial state. This one-step update yields better solutions than exact retrieval of either a context token or a spurious local minimum, providing a concrete example of DAM networks extending beyond the standard retrieval paradigm. Overall, this work solidifies the link between associative memory and attention mechanisms first identified by Ramsauer et al., and demonstrates the relevance of associative memory models in the study of in-context learning.",
+      "topic": "",
+      "claims": [
+        "We introduce in-context denoising, a task that refines the connection between attention-based architectures and dense associative memory (DAM) networks, also known as modern Hopfield networks.",
+        "we show theoretically and empirically that certain restricted denoising problems can be solved optimally even by a single-layer transformer.",
+        "We demonstrate that a trained attention layer processes each denoising prompt by performing a single gradient descent update on a context-aware DAM energy landscape, where context tokens serve as associative memories and the query token acts as an initial state."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_ea524cfe1",
+        "title": "Multimodal Learning With Transformers: A Survey",
+        "authors": [
+          "Peng Xu",
+          "Xiatian Zhu",
+          "David A. Clifton"
+        ],
+        "year": 2023,
+        "publication_date": "2023-05-11",
+        "venue": "IEEE Transactions on Pattern Analysis and Machine Intelligence",
+        "abstract": "Transformer is a promising neural network learner, and has achieved great success in various machine learning tasks. Thanks to the recent prevalence of multimodal applications and Big Data, Transformer-based multimodal learning has become a hot topic in AI research. This paper presents a comprehensive survey of Transformer techniques oriented at multimodal data. The main contents of this survey include: (1) a background of multimodal learning, Transformer ecosystem, and the multimodal Big Data era, (2) a systematic review of Vanilla Transformer, Vision Transformer, and multimodal Transformers, from a geometrically topological perspective, (3) a review of multimodal Transformer applications, via two important paradigms, i.e., for multimodal pretraining and for specific multimodal tasks, (4) a summary of the common challenges and designs shared by the multimodal Transformer models and applications, and (5) a discussion of open problems and potential research directions for the community.",
+        "url": "https://doi.org/10.1109/tpami.2023.3275156",
+        "doi": "https://doi.org/10.1109/tpami.2023.3275156",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4376226279"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 897
+      },
+      {
+        "paper_id": "rw_002_4f56be447",
+        "title": "Dynamic Graph CNN for Learning on Point Clouds",
+        "authors": [
+          "Yue Wang",
+          "Yongbin Sun",
+          "Ziwei Liu",
+          "Sanjay E. Sarma",
+          "Michael M. Bronstein",
+          "Justin Solomon"
+        ],
+        "year": 2019,
+        "publication_date": "2019-10-10",
+        "venue": "ACM Transactions on Graphics",
+        "abstract": "Point clouds provide a flexible geometric representation suitable for countless applications in computer graphics; they also comprise the raw output of most 3D data acquisition devices. While hand-designed features on point clouds have long been proposed in graphics and vision, however, the recent overwhelming success of convolutional neural networks (CNNs) for image analysis suggests the value of adapting insight from CNN to the point cloud world. Point clouds inherently lack topological information, so designing a model to recover topology can enrich the representation power of point clouds. To this end, we propose a new neural network module dubbed EdgeConv suitable for CNN-based high-level tasks on point clouds, including classification and segmentation. EdgeConv acts on graphs dynamically computed in each layer of the network. It is differentiable and can be plugged into existing architectures. Compared to existing modules operating in extrinsic space or treating each point independently, EdgeConv has several appealing properties: It incorporates local neighborhood information; it can be stacked applied to learn global shape properties; and in multi-layer systems affinity in feature space captures semantic characteristics over potentially long distances in the original embedding. We show the performance of our model on standard benchmarks, including ModelNet40, ShapeNetPart, and S3DIS.",
+        "url": "https://doi.org/10.1145/3326362",
+        "doi": "https://doi.org/10.1145/3326362",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2979750740"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 6816
+      },
+      {
+        "paper_id": "rw_003_f64604081",
+        "title": "Explainable Artificial Intelligence (XAI): Concepts, taxonomies, opportunities and challenges toward responsible AI",
+        "authors": [
+          "Alejandro Barredo Arrieta",
+          "Natalia Díaz-Rodríguez",
+          "Javier Del Ser",
+          "Adrien Bennetot",
+          "Siham Tabik",
+          "Alberto Barbado",
+          "Salvador García",
+          "Sergio Gil-López",
+          "Daniel Molina",
+          "Richard Benjamins",
+          "Raja Chatila",
+          "Francisco Herrera"
+        ],
+        "year": 2019,
+        "publication_date": "2019-12-26",
+        "venue": "Information Fusion",
+        "abstract": "",
+        "url": "https://doi.org/10.1016/j.inffus.2019.12.012",
+        "doi": "https://doi.org/10.1016/j.inffus.2019.12.012",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2981731882"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 9278
+      },
+      {
+        "paper_id": "rw_004_004332773",
+        "title": "A Tale of Two Graphs: Freezing and Denoising Graph Structures for Multimodal Recommendation",
+        "authors": [
+          "Xin Zhou",
+          "Zhiqi Shen"
+        ],
+        "year": 2023,
+        "publication_date": "2023-10-26",
+        "venue": "",
+        "abstract": "Multimodal recommender systems utilizing multimodal features (e.g., images and textual descriptions) typically show better recommendation accuracy than general recommendation models based solely on user-item interactions. Generally, prior work fuses multimodal features into item ID embeddings to enrich item representations, thus failing to capture the latent semantic item-item structures. In this context, LATTICE proposes to learn the latent structure between items explicitly and achieves state-of-the-art performance for multimodal recommendations. However, we argue the latent graph structure learning of LATTICE is both inefficient and unnecessary. Experimentally, we demonstrate that freezing its item-item structure before training can also achieve competitive performance. Based on this finding, we propose a simple yet effective model, dubbed as FREEDOM, that FREEzes the item-item graph and DenOises the user-item interaction graph simultaneously for Multimodal recommendation. Theoretically, we examine the design of FREEDOM through a graph spectral perspective and demonstrate that it possesses a tighter upper bound on the graph spectrum. In denoising the user-item interaction graph, we devise a degree-sensitive edge pruning method, which rejects possibly noisy edges with a high probability when sampling the graph. We evaluate the proposed model on three real-world datasets and show that FREEDOM can significantly outperform the strongest baselines. Compared with LATTICE, FREEDOM achieves an average improvement of 19.07% in recommendation accuracy while reducing its memory cost up to 6x on large graphs. The source code is available at: https://github.com/enoche/FREEDOM.",
+        "url": "https://doi.org/10.1145/3581783.3611943",
+        "doi": "https://doi.org/10.1145/3581783.3611943",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4309185982"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 208
+      },
+      {
+        "paper_id": "rw_005_6bebec907",
+        "title": "Nyströmformer: A Nyström-based Algorithm for Approximating Self-Attention",
+        "authors": [
+          "Yunyang Xiong",
+          "Zhanpeng Zeng",
+          "Rudrasis Chakraborty",
+          "Mingxing Tan",
+          "Glenn Fung",
+          "Yin Li",
+          "Vikas Singh"
+        ],
+        "year": 2021,
+        "publication_date": "2021-05-18",
+        "venue": "Proceedings of the AAAI Conference on Artificial Intelligence",
+        "abstract": "Transformers have emerged as a powerful tool for a broad range of natural language processing tasks. A key component that drives the impressive performance of Transformers is the self-attention mechanism that encodes the influence or dependence of other tokens on each specific token. While beneficial, the quadratic complexity of self-attention on the input sequence length has limited its application to longer sequences - a topic being actively studied in the community. To address this limitation, we propose Nyströmformer - a model that exhibits favorable scalability as a function of sequence length. Our idea is based on adapting the Nyström method to approximate standard self-attention with O(n) complexity. The scalability of Nyströmformer enables application to longer sequences with thousands of tokens. We perform evaluations on multiple downstream tasks on the GLUE benchmark and IMDB reviews with standard sequence length, and find that our Nyströmformer performs comparably, or in a few cases, even slightly better, than standard self-attention. On longer sequence tasks in the Long Range Arena (LRA) benchmark, Nyströmformer performs favorably relative to other efficient self-attention methods. Our code is available at https://github.com/mlpen/Nystromformer.",
+        "url": "https://doi.org/10.1609/aaai.v35i16.17664",
+        "doi": "https://doi.org/10.1609/aaai.v35i16.17664",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3173365702"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 321
+      },
+      {
+        "paper_id": "rw_006_a7641d069",
+        "title": "Listen, Denoise, Action! Audio-Driven Motion Synthesis with Diffusion Models",
+        "authors": [
+          "Simon Alexanderson",
+          "Rajmund Nagy",
+          "Jonas Beskow",
+          "Gustav Eje Henter"
+        ],
+        "year": 2023,
+        "publication_date": "2023-07-26",
+        "venue": "ACM Transactions on Graphics",
+        "abstract": "Diffusion models have experienced a surge of interest as highly expressive yet efficiently trainable probabilistic models. We show that these models are an excellent fit for synthesising human motion that co-occurs with audio, e.g., dancing and co-speech gesticulation, since motion is complex and highly ambiguous given audio, calling for a probabilistic description. Specifically, we adapt the DiffWave architecture to model 3D pose sequences, putting Conformers in place of dilated convolutions for improved modelling power. We also demonstrate control over motion style, using classifier-free guidance to adjust the strength of the stylistic expression. Experiments on gesture and dance generation confirm that the proposed method achieves top-of-the-line motion quality, with distinctive styles whose expression can be made more or less pronounced. We also synthesise path-driven locomotion using the same model architecture. Finally, we generalise the guidance procedure to obtain product-of-expert ensembles of diffusion models and demonstrate how these may be used for, e.g., style interpolation, a contribution we believe is of independent interest.",
+        "url": "https://doi.org/10.1145/3592458",
+        "doi": "https://doi.org/10.1145/3592458",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4377010269"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 173
+      },
+      {
+        "paper_id": "rw_007_be3d34397",
+        "title": "Self-Supervised Pretraining of Transformers for Satellite Image Time Series Classification",
+        "authors": [
+          "Yuan Yuan",
+          "Lei Lin"
+        ],
+        "year": 2020,
+        "publication_date": "2020-11-09",
+        "venue": "IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing",
+        "abstract": "Satellite image time series (SITS) classification is a major research topic in remote sensing and is relevant for a wide range of applications. Deep learning approaches have been commonly employed for the SITS classification and have provided state-of-the-art performance. However, deep learning methods suffer from overfitting when labeled data are scarce. To address this problem, we propose a novel self-supervised pretraining scheme to initialize a transformer-based network by utilizing large-scale unlabeled data. In detail, the model is asked to predict randomly contaminated observations given an entire time series of a pixel. The main idea of our proposal is to leverage the inherent temporal structure of satellite time series to learn general-purpose spectral-temporal representations related to land cover semantics. Once pretraining is completed, the pretrained network can be further adapted to various SITS classification tasks by fine-tuning all the model parameters on small-scale task-related labeled data. In this way, the general knowledge and representations about SITS can be transferred to a label-scarce task, thereby improving the generalization performance of the model as well as reducing the risk of overfitting. Comprehensive experiments have been carried out on three benchmark datasets over large study areas. Experimental results demonstrate the effectiveness of the proposed pretraining scheme, leading to substantial improvements in classification accuracy using transformer, 1-D convolutional neural network, and bidirectional long short-term memory network. The code and the pretrained model will be available at https://github.com/linlei1214/SITS-BERT upon publication.",
+        "url": "https://doi.org/10.1109/jstars.2020.3036602",
+        "doi": "https://doi.org/10.1109/jstars.2020.3036602",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3095867871"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 188
+      },
+      {
+        "paper_id": "rw_009_1175d11c3",
+        "title": "Transformers in computational visual media: A survey",
+        "authors": [
+          "Yifan Xu",
+          "Huapeng Wei",
+          "Minxuan Lin",
+          "Yingying Deng",
+          "Kekai Sheng",
+          "Mengdan Zhang",
+          "Fan Tang",
+          "Weiming Dong",
+          "Feiyue Huang",
+          "Changsheng Xu"
+        ],
+        "year": 2021,
+        "publication_date": "2021-10-27",
+        "venue": "Computational Visual Media",
+        "abstract": "Transformers, the dominant architecture for natural language processing, have also recently attracted much attention from computational visual media researchers due to their capacity for long-range representation and high performance. Transformers are sequence-to-sequence models, which use a self-attention mechanism rather than the RNN sequential structure. Thus, such models can be trained in parallel and can represent global information. This study comprehensively surveys recent visual transformer works. We categorize them according to task scenario: backbone design, high-level vision, low-level vision and generation, and multimodal learning. Their key ideas are also analyzed. Differing from previous surveys, we mainly focus on visual transformer methods in low-level vision and generation. The latest works on backbone design are also reviewed in detail. For ease of understanding, we precisely describe the main contributions of the latest works in the form of tables. As well as giving quantitative comparisons, we also present image results for low-level vision and generation tasks. Computational costs and source code links for various important works are also given in this survey to assist further development.",
+        "url": "https://doi.org/10.1007/s41095-021-0247-3",
+        "doi": "https://doi.org/10.1007/s41095-021-0247-3",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3209859545"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 134
+      },
+      {
+        "paper_id": "rw_010_971ff71f1",
+        "title": "Survey of transformers and towards ensemble learning using transformers for natural language processing",
+        "authors": [
+          "Hongzhi Zhang",
+          "M. Omair Shafiq"
+        ],
+        "year": 2024,
+        "publication_date": "2024-02-04",
+        "venue": "Journal Of Big Data",
+        "abstract": "The transformer model is a famous natural language processing model proposed by Google in 2017. Now, with the extensive development of deep learning, many natural language processing tasks can be solved by deep learning methods. After the BERT model was proposed, many pre-trained models such as the XLNet model, the RoBERTa model, and the ALBERT model were also proposed in the research community. These models perform very well in various natural language processing tasks. In this paper, we describe and compare these well-known models. In addition, we also apply several types of existing and well-known models which are the BERT model, the XLNet model, the RoBERTa model, the GPT2 model, and the ALBERT model to different existing and well-known natural language processing tasks, and analyze each model based on their performance. There are a few papers that comprehensively compare various transformer models. In our paper, we use six types of well-known tasks, such as sentiment analysis, question answering, text generation, text summarization, name entity recognition, and topic modeling tasks to compare the performance of various transformer models. In addition, using the existing models, we also propose ensemble learning models for the different natural language processing tasks. The results show that our ensemble learning models perform better than a single classifier on specific tasks.",
+        "url": "https://doi.org/10.1186/s40537-023-00842-0",
+        "doi": "https://doi.org/10.1186/s40537-023-00842-0",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4391520039"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 117
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_004_004332773",
+        "relevance_score": 0.8,
+        "relevance_types": [
+          "same_method",
+          "same_constraints"
+        ],
+        "rationale": "The metadata includes the keyword 'denoising' and addresses efficient graph structure learning and denoising, which connects to the target's focus on denoising as a mechanism in transformer-attention associative memory.",
+        "evidence_summary": "In 2023, Zhou and Shen published 'A Tale of Two Graphs: Freezing and Denoising Graph Structures for Multimodal Recommendation,' which introduced FREEDOM, a model that freezes item-item graphs and denoises user-item interaction graphs for improved recommendation accuracy. The work proposed a degree-sensitive edge pruning method to reject noisy edges during graph sampling and demonstrated performance on three real-world datasets, achieving a 19.07% average improvement over baseline LATTICE."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_006_a7641d069",
+        "relevance_score": 0.75,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The metadata centers on denoising via diffusion models, which contrasts with the target's single-layer transformer approach, providing an alternative denoising method and constraints.",
+        "evidence_summary": "In 2023, Alexanderson et al. published 'Listen, Denoise, Action! Audio-Driven Motion Synthesis with Diffusion Models,' which adapted the DiffWave architecture to 3D pose sequences using Conformers for improved modeling. The model incorporated classifier-free guidance for style control and was evaluated on gesture and dance generation, achieving top-of-the-line motion quality and enabling style interpolation."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_005_6bebec907",
+        "relevance_score": 0.72,
+        "relevance_types": [
+          "same_method",
+          "same_constraints"
+        ],
+        "rationale": "The metadata describes an efficient approximation of self-attention in transformers, which aligns with the target's investigation into attention mechanisms and their computational constraints.",
+        "evidence_summary": "In 2021, Xiong et al. published 'Nyströmformer: A Nyström-based Algorithm for Approximating Self-Attention,' which proposed an O(n) complexity method using the Nyström technique to scale self-attention to longer sequences. Evaluations on the GLUE benchmark and Long Range Arena showed comparable or slightly better performance than standard self-attention, with favorable results on tasks involving thousands of tokens."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_007_be3d34397",
+        "relevance_score": 0.6,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The metadata details self-supervised pretraining of transformers for time-series data, which relates to the target's use of transformers and addresses overfitting limitations.",
+        "evidence_summary": "In 2020, Yuan and Lin published 'Self-Supervised Pretraining of Transformers for Satellite Image Time Series Classification,' which introduced a pretraining scheme predicting contaminated observations to learn spectral-temporal representations. The method was evaluated on three benchmark datasets and improved classification accuracy for transformer, 1-D CNN, and bidirectional LSTM networks, reducing overfitting on label-scarce tasks."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_001_ea524cfe1",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "novelty_competitor",
+          "benchmark_baseline"
+        ],
+        "rationale": "The metadata surveys transformer applications in multimodal learning, providing background on attention mechanisms and their use in various tasks, which contextualizes the target's focus.",
+        "evidence_summary": "In 2023, Xu et al. published 'Multimodal Learning With Transformers: A Survey' in IEEE Transactions on Pattern Analysis and Machine Intelligence, which reviewed Vanilla Transformer, Vision Transformer, and multimodal Transformers from a geometric-topological perspective. The survey covered multimodal pretraining, task-specific applications, common challenges, and open problems in the transformer ecosystem."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_009_1175d11c3",
+        "relevance_score": 0.53,
+        "relevance_types": [
+          "novelty_competitor",
+          "benchmark_baseline"
+        ],
+        "rationale": "The metadata surveys transformers in visual media, including low-level vision tasks, offering broader context on transformer architectures relevant to the target's method.",
+        "evidence_summary": "In 2021, Xu et al. published 'Transformers in computational visual media: A survey' in Computational Visual Media, categorizing works by backbone design, high-level vision, low-level vision, generation, and multimodal learning. The survey analyzed key ideas, provided quantitative comparisons and image results for low-level tasks, and included computational costs and source code links."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_010_971ff71f1",
+        "relevance_score": 0.5,
+        "relevance_types": [
+          "novelty_competitor",
+          "benchmark_baseline"
+        ],
+        "rationale": "The metadata surveys transformer models and ensemble learning in NLP, which provides general transformer background but lacks direct denoising or associative memory focus.",
+        "evidence_summary": "In 2024, Zhang and Shafiq published 'Survey of transformers and towards ensemble learning using transformers for natural language processing' in Journal Of Big Data, comparing BERT, XLNet, RoBERTa, GPT2, and ALBERT on sentiment analysis, question answering, text generation, summarization, name entity recognition, and topic modeling. The authors proposed ensemble models that outperformed single classifiers on specific tasks."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_002_4f56be447",
+        "relevance_score": 0.3,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "The metadata describes graph CNN methods for point clouds, which is tangentially related to neural architectures but not directly to transformers or denoising.",
+        "evidence_summary": "In 2019, Wang et al. published 'Dynamic Graph CNN for Learning on Point Clouds' in ACM Transactions on Graphics, proposing the EdgeConv module that acts on dynamically computed graphs for classification and segmentation. The model was evaluated on ModelNet40, ShapeNetPart, and S3DIS benchmarks, incorporating local neighborhood information and feature-space affinity."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_003_f64604081",
+        "relevance_score": 0.2,
+        "relevance_types": [
+          "limitations_counterevidence"
+        ],
+        "rationale": "The metadata addresses explainable AI concepts, which is only weakly related to the target's technical focus on denoising and associative memory.",
+        "evidence_summary": "In 2019, Arrieta et al. published 'Explainable Artificial Intelligence (XAI): Concepts, taxonomies, opportunities and challenges toward responsible AI' in Information Fusion, discussing XAI frameworks and their role in responsible AI development."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2023, Zhou and Shen published 'A Tale of Two Graphs: Freezing and Denoising Graph Structures for Multimodal Recommendation,' introducing a model that denoises user-item graphs with degree-sensitive edge pruning, tested on three real-world datasets. In 2023, Alexanderson et al. published 'Listen, Denoise, Action! Audio-Driven Motion Synthesis with Diffusion Models,' adapting DiffWave with Conformers for 3D pose denoising and style control in gesture and dance generation. In 2021, Xiong et al. published 'Nyströmformer: A Nyström-based Algorithm for Approximating Self-Attention,' achieving O(n) complexity and comparable performance on GLUE and Long Range Arena benchmarks. In 2020, Yuan and Lin published 'Self-Supervised Pretraining of Transformers for Satellite Image Time Series Classification,' using contamination prediction to reduce overfitting on three benchmark datasets. In 2023, Xu et al. published 'Multimodal Learning With Transformers: A Survey,' reviewing transformer architectures and applications in multimodal pretraining and tasks. In 2021, Xu et al. published 'Transformers in computational visual media: A survey,' categorizing transformer works in vision tasks and providing quantitative comparisons and computational costs.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

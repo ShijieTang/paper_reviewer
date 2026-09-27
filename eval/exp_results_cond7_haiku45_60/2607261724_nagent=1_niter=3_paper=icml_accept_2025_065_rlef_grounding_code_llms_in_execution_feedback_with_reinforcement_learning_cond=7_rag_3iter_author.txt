@@ -1,0 +1,615 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The paper presents a well-motivated and practical approach to a real problem: LLMs struggle to iteratively improve code using execution feedback. The RLEF method effectively combines PPO training with a carefully designed reward structure (including KL penalty and invalid code penalty) tailored for the code synthesis domain.",
+        "Comprehensive experimental evaluation with strong empirical results: The 70B model achieves state-of-the-art performance on CodeContests (40.1 solve rate on test set with 1@3 budget), substantially outperforming AlphaCodium with GPT-4 (29 with 5@100). The method also demonstrates substantial improvements in sample efficiency compared to prior work.",
+        "Thorough analysis of model behavior and capabilities: The paper includes extensive ablations and analysis (random feedback experiments, error categorization, chrF scores between successive solutions, pass@k metrics, turn limit generalization) that convincingly demonstrate the models genuinely learn to leverage execution feedback rather than merely improving single-turn performance.",
+        "Clear methodological contributions including the hybrid token-level policy / turn-level value function design, geometric mean for KL divergence calculation to mitigate bias towards shorter responses, and the two-test-set framework (public for feedback, private for evaluation) that prevents overfitting shortcuts.",
+        "Strong generalization: Improvements transfer to HumanEval+ and MBPP+ despite domain differences, and the method works across model scales (8B and 70B). Ablations convincingly demonstrate that both single-turn improvements and multi-turn feedback utilization contribute to gains."
+      ],
+      "weaknesses": [
+        "Limited scope and applicability: The method requires held-out test cases with automatic execution and deterministic correctness signals. This is a significant constraint that limits applicability beyond competitive programming to domains like open-ended software development, mathematical reasoning, or planning tasks where automatic evaluation is harder.",
+        "Insufficient explanation of model behavior asymmetry: The submitted paper does not adequately explain why the 8B model shows single-turn performance degradation (11.8 → 9.7) after RLEF while the 70B model improves in both regimes. The rebuttal provides reasonable interpretation (specialization to multi-turn due to weaker priors) but this analysis is not in the submitted paper.",
+        "Missing hyperparameter sensitivity ablations: The reward function's β (KL penalty) and invalid code penalty values are specified but not ablated. While the authors promise to add these experiments in revision, they are not present in the submitted work.",
+        "Limited discussion of inference-time behavior generalization: The paper shows best 10@k performance at 5 turns rather than the 3 turns used during training, but does not explicitly discuss why this shift occurs or what it implies for the model's capabilities."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited scope and applicability: The method requires held-out test cases with automatic execution and deterministic correctness signals. This is a significant constraint that limits applicability beyond competitive programming to domains like open-ended software development, mathematical reasoning, or planning tasks where automatic evaluation is harder.",
+          "severity": "minor",
+          "evidence": "Section 5 (Limitations) states: 'Iterating on the execution results of unit tests naturally requires test cases, which may not be readily available.' The paper suggests combining with automatic test generation as future work but does not explore this. This limitation is inherent to the problem formulation and appropriately acknowledged.",
+          "affected_claim": "Generalizability of RLEF beyond competitive programming",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Insufficient explanation of model behavior asymmetry: The submitted paper does not adequately explain why the 8B model shows single-turn performance degradation (11.8 → 9.7) after RLEF while the 70B model improves in both regimes. The rebuttal provides reasonable interpretation (specialization to multi-turn due to weaker priors) but this analysis is not in the submitted paper.",
+          "severity": "minor",
+          "evidence": "Table 2 presents the facts: 8B ST drops from 11.8→9.7 on test set while 70B ST improves from 26.2→30.1. The submitted paper (Section 3.3) does not explain this asymmetry. The rebuttal explains: weaker base models specialize to iterative regime during RL, stronger models maintain single-turn capability. Evidence cited is Table 4 (single-turn RL training on 8B also degrades performance), which is in the paper but not connected to Table 2 analysis. The rebuttal commits to moving this explanation to Section 3.3.",
+          "affected_claim": "That RLEF produces models with consistent improvements across inference regimes",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Missing hyperparameter sensitivity ablations: The reward function's β (KL penalty) and invalid code penalty values are specified but not ablated. While the authors promise to add these experiments in revision, they are not present in the submitted work.",
+          "severity": "minor",
+          "evidence": "Section 2.2 specifies reward function with β=0.05 and -0.2 invalid code penalty. Section 2.2 states 'In initial experiments, we found that a possible failure mode concerns the generation of invalid code' but does not show these experiments. Appendix A.1 lists hyperparameters without sensitivity analysis. The rebuttal proposes adding ablation table with β ∈ {0.01, 0.05, 0.1} and penalties {0.1, 0.2, 0.3}, but commits to conducting new experiments for this, which are not present in submitted paper.",
+          "affected_claim": "Robustness of reward design choices beyond the specific values selected",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Limited discussion of inference-time behavior generalization: The paper shows best 10@k performance at 5 turns rather than the 3 turns used during training, but does not explicitly discuss why this shift occurs or what it implies for the model's capabilities.",
+          "severity": "minor",
+          "evidence": "Figure 4b shows 10@k solve rates across turn limits. For both 8B and 70B RLEF models, performance peaks at 3-5 turns depending on budget and dataset, with 5 turns frequently optimal. Section 3.3 describes the figure but does not explain the shift from 3-turn training optimality to 5-turn inference optimality. The rebuttal proposes adding explanation that this reflects diversity benefit at scale (consistent with Figure 4a pass@10 behavior), which is logically sound but not stated in submitted paper.",
+          "affected_claim": "Understanding of what the model learns and how it generalizes",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The core technical approach is sound. The rebuttal's explanation of the 8B model's behavior (specialization to multi-turn regime with weaker priors) is logically coherent and consistent with Table 4 evidence in the paper, though not explicitly connected in the submitted work. The MDP formulation is appropriate, PPO application is standard, and the random feedback ablation convincingly validates that improvements stem from genuine learning of execution feedback utilization. No mathematical or logical errors are identified."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The novelty remains as assessed. The combination of multi-turn iterative code synthesis with execution feedback provided as both reward signal and textual context, paired with the hybrid token-level policy / turn-level value function architecture, is meaningfully distinct from prior work. While RL with execution feedback has been explored, the specific iterative formulation and the single model learning both synthesis and repair without separate components represent novel contributions relative to prior work (Le et al. 2022, Xu et al. 2024, Liu et al. 2023b)."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The work makes meaningful contributions to code generation and LLM agent capabilities. The empirical results are strong (state-of-the-art on CodeContests, generalization to other benchmarks), and the thorough analysis demonstrates mechanisms underlying the improvements. While domain-specific, the work addresses the important finding that iterative code generation without RL training typically underperforms independent sampling (Kapoor et al. 2024, Xia et al. 2024), which RLEF effectively remedies. The significance for code generation and autonomous agents is clear."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The evaluation adequately supports central claims. Main results (Table 1) compare fairly against strong baselines; multiple benchmarks are tested (CodeContests, HumanEval+, MBPP+, LiveCodeBench); extensive ablations address alternative explanations (random feedback validates genuine learning, single-turn vs multi-turn comparison, SFT vs RLEF); and confidence intervals are provided. The missing hyperparameter ablations (β, penalty values) would strengthen robustness claims but do not undermine validation of the core contributions. The paper's core claims are well-supported despite these gaps."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-written and well-organized. Introduction clearly motivates the problem, Method section transparently describes the MDP and reward formulation, and Results section is well-structured with main results followed by detailed analysis. Figures (1, 2, 3, 4) and tables are informative. However, the submitted paper has gaps in explaining model behavior: the asymmetry in 8B vs 70B performance after RLEF is not discussed, and the shift from 3-turn to 5-turn optimality is not explicitly explained. These gaps affect clarity of interpretation but not the core narrative. The rebuttal commits to addressing these in revision."
+        }
+      },
+      "summary_comment": "After the second rebuttal, the assessment remains: Accept. The rebuttal demonstrates good faith engagement with reviewer concerns and provides logically sound explanations for identified gaps, though it relies primarily on promises to revise rather than new submitted evidence. \n\nStatus of weaknesses:\n\n1. **Limited Scope (Minor, Inherent)**: This is appropriately acknowledged in Section 5 and is inherent to the problem formulation. Not resolved but appropriately scoped for the contribution.\n\n2. **8B Model Behavior Asymmetry (Minor, Unresolved in Submitted Paper)**: The rebuttal provides coherent explanation (weaker models specialize to multi-turn regime; Table 4 shows RL training itself degrades 8B single-turn performance) but this analysis is not in the submitted paper. The rebuttal commits to moving this explanation to Section 3.3 in revision. **Unresolved in submitted work, but fixable without new experiments.**\n\n3. **Hyperparameter Sensitivity (Minor, Unresolved)**: Not ablated in submitted paper. The rebuttal commits to conducting sensitivity analysis for β and penalty values in revision, but new experiments are promised, not executed. **Unresolved in submitted work, requires new experiments.**\n\n4. **Inference Generalization Discussion (Minor, Unresolved in Submitted Paper)**: The shift from 3-turn training to 5-turn inference optimality is not explicitly discussed. The rebuttal provides reasonable explanation (diversity benefit at scale, consistent with Figure 4a pass@10 trends) but this is not in the submitted paper. The rebuttal commits to adding this to Figure 4b caption or Section 3.3. **Unresolved in submitted work, but fixable without new experiments.**\n\n**Decision Justification**: All four weaknesses are classified as minor. No acceptance gate fails substantively. The core contribution—demonstrating that RL training enables LLMs to effectively ground in multi-turn execution feedback, achieving state-of-the-art results with strong empirical validation and thorough analysis—is sound, novel, and significant. The weaknesses do not materially undermine these contributions; they represent gaps in explanation and validation that are acknowledged as fixable. The paper's experimental foundation is solid, with random feedback ablation convincingly demonstrating genuine feedback utilization, multiple benchmarks showing generalization, and extensive analysis clarifying mechanisms. The promised revisions (moving existing explanations to submitted paper, adding hyperparameter ablations, clarifying inference generalization) would substantially strengthen the work but are not required for acceptance at a top-tier venue given the solid core contributions. The work represents a meaningful advance in LLM-based code generation sufficient for acceptance."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Strong machine learning methodology: The paper applies PPO (a core ML algorithm) with careful design choices (hybrid token/turn-level value functions, geometric mean KL penalty) to a well-defined problem formulation (MDP for iterative code synthesis). This represents solid technical ML work.\",\n      \"Reinforcement learning contribution: ICML values RL research, and this paper makes meaningful contributions to RL for language models—specifically, designing reward structures and training procedures that enable LLMs to ground in textual feedback over multiple steps.\",\n      \"Evaluation rigor and ablations: The paper includes comprehensive ablations (single-turn vs multi-turn training, SFT comparison, random feedback validation, hyperparameter analysis) and provides confidence intervals. This experimental rigor aligns with ICML's emphasis on methodology and evaluation.\",\n      \"Optimization and policy gradient focus: The core technical contribution involves careful reward function design, value function architecture choices, and PPO implementation details—topics that sit squarely within ICML's core machine learning systems and optimization interests.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Application-driven rather than algorithm-focused: The primary contribution is applying existing RL techniques (PPO) to a specific domain (code generation). While ICML accepts application-driven work, the novelty is somewhat incremental—the RL algorithm itself is standard, and the domain-specific design choices (reward shaping, feedback formatting) may be seen as engineering rather than fundamental ML advance.\",\n      \"Limited generalization beyond competitive programming: The method is tightly tailored to code synthesis with deterministic test-based evaluation. ICML typically prefers contributions with broader methodological applicability. The paper acknowledges this limitation and doesn't explore how RLEF might transfer to domains without automatic correctness signals.\",\n      \"Empirical results dominate over theoretical insights: The paper is primarily an empirical study demonstrating that RL training helps LLMs use feedback. It lacks theoretical analysis of why this works, convergence properties, sample complexity analysis, or principled insights into the learned behavior beyond post-hoc observations.\",\n      \"Some key design choices lack justification: Hyperparameter choices (β=0.05, -0.2 penalty, geometric mean KL) are presented but not ablated in the submitted paper. Reviewer 1 notes these ablations are missing, which weakens the methodological contribution for a venue emphasizing rigorous ML methodology.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Interdisciplinary scope and breadth: NeurIPS explicitly welcomes interdisciplinary submissions that don't fit neatly into existing categories. This work combines RL, LLMs, code generation, and empirical agent design in a way that naturally fits NeurIPS's broad charter.\",\n      \"Strong empirical contribution with practical impact: The paper achieves state-of-the-art results on multiple benchmarks (CodeContests, HumanEval+, MBPP+, LiveCodeBench) with clear practical implications for autonomous code generation agents. NeurIPS values 'application-driven machine learning' and contributions that solve real problems.\",\n      \"Comprehensive empirical analysis and insights: The extensive analysis (random feedback ablations, error categorization, pass@k metrics, chrF scores tracking code changes, turn limit generalization) provides meaningful insights into model behavior and feedback utilization. NeurIPS emphasizes understanding what models learn, and the paper demonstrates this effectively.\",\n      \"Generalization across model scales and domains: Results transfer from 8B to 70B models and across three different code benchmarks despite domain differences. This generalization strengthens the contribution and demonstrates robustness.\",\n      \"Grounding LLM agents in environment feedback: The core problem—teaching LLMs to leverage environmental feedback for iterative improvement—is directly relevant to NeurIPS topics including 'Human interaction in AI systems,' 'Decision-making, reinforcement learning, and control,' and 'AI/ML for engineering applications.'\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited algorithmic novelty: The paper applies PPO (standard 2017 algorithm) with domain-specific reward shaping and design choices. While the engineering is solid, the underlying RL algorithm is not novel. NeurIPS does value such applications but may prioritize venues like ICML for methodology-focused work.\",\n      \"Narrow problem scope: The method requires deterministic, automatic evaluation with test cases. This limits applicability to competitive programming and similar domains. The paper doesn't explore or hypothesize about broader applicability to reasoning, planning, or open-ended generation where automatic evaluation is harder.\",\n      \"Insufficient theoretical understanding: The paper lacks theoretical analysis of convergence, sample complexity, or principled explanation of why execution feedback helps. While empirical insights are valuable, NeurIPS increasingly values work that provides deeper understanding beyond \\\"we trained it with RL and it worked.\\\"\",\n      \"Some design choices unexplained in submitted work: The asymmetric behavior of 8B vs 70B models after RLEF (8B single-turn performance drops while 70B improves) is not explained in the submitted paper. Reviewer 1 notes this gap in analysis, which affects the contribution's interpretability for a venue valuing understanding.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Deep learning and representation learning focus: ICLR values work on improving how LLMs learn and represent knowledge. This paper contributes to understanding how LLMs learn to ground representations in external feedback—a key capability for reliable deep learning systems.\",\n      \"Reinforcement learning and learning theory: The paper makes contributions to RL with LLMs, including careful consideration of value function design (token-level vs turn-level), reward shaping, and the MDP formulation. ICLR explicitly lists 'reinforcement learning' and 'learning theory' as core topics.\",\n      \"Application to code generation and reasoning: ICLR values applications to 'physical sciences, biology, healthcare, robotics, and creative tasks.' While this is code generation, it represents reasoning and problem-solving—areas where ICLR sees deep learning applications as particularly impactful.\",\n      \"Strong empirical validation with detailed analysis: The paper includes thorough ablations, multiple benchmarks, confidence intervals, and mechanistic analysis (random feedback, error categorization, code change tracking) that demonstrates genuine learning of feedback utilization. ICLR values papers that provide insights into what models learn.\",\n      \"Novel training methodology for multi-turn reasoning: The combination of iterative feedback, textual context in prompts, and careful reward design represents a novel approach to training LLMs for sequential reasoning and self-correction—directly relevant to ICLR's emphasis on generalization and reasoning.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited exploration of representation learning: While the paper trains models to use feedback, it doesn't deeply investigate how representations change or what internal structures enable feedback utilization. ICLR has strong emphasis on representation learning, and this work is more about behavioral adaptation than representation.\",\n      \"Narrow domain with limited exploration of generalization: The work is primarily validated on code generation benchmarks. While it shows some transfer to HumanEval+ and MBPP+, these are all code-focused. ICLR might prefer broader exploration of whether insights transfer to other domains requiring feedback utilization (mathematical reasoning, planning, etc.).\",\n      \"Incremental algorithm design: The core algorithmic contribution is straightforward application of PPO with domain-specific reward shaping. ICLR values novel learning algorithms or architectures. While the engineering is solid, it doesn't introduce new mechanisms or theoretical insights that would position it as a strong algorithmic contribution.\",\n      \"Analysis gaps noted by reviewers: Reviewer 1 identifies unexplained phenomena (8B vs 70B asymmetry, shift from 3-turn to 5-turn optimality) that suggest incomplete understanding of the method. ICLR values papers that provide clear mechanistic understanding of why methods work, and these gaps represent missed opportunities for deeper analysis.\",\n      \"Experimental rigor incomplete: Missing hyperparameter sensitivity ablations (β, penalty values) in the submitted paper weaken the methodological contribution for a venue emphasizing rigorous empirical methodology.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary and Strategic Recommendation\n\n**Overall Assessment:**\n\nThis is a **solid empirical paper** with strong experimental results on an important problem (iterative code generation with execution feedback). The work is technically sound, well-executed, and makes meaningful contributions to LLM agents and code synthesis. However, it is primarily an **application and engineering contribution** rather than an algorithmic or theoretical one.\n\n**Venue Ranking:**\n\n1. **NeurIPS (fit_score: 8)** — **Recommended submission venue**\n   - Best overall fit due to NeurIPS's explicit emphasis on interdisciplinary work, empirical contributions with practical impact, and agent design\n   - The paper's comprehensive empirical analysis and demonstrated generalization align well with NeurIPS's culture\n   - The narrow scope (competitive programming focus) is less problematic at NeurIPS than at venues emphasizing methodological breadth\n\n2. **ICLR (fit_score: 8)** — **Strong alternative**\n   - Equally good fit but for different reasons than NeurIPS\n   - ICLR values the RL and learning theory aspects more than NeurIPS\n   - However, the paper would benefit from deeper representation learning analysis, which isn't present\n\n3. **ICML (fit_score: 7)** — **Possible but less ideal**\n   - Good fit for the RL methodology and careful experimental evaluation\n   - However, application-driven focus and missing hyperparameter ablations weaken the \"rigorous ML methodology\" claim that ICML emphasizes\n   - The narrow domain (code generation) may be seen as domain-specific engineering rather than general ML advance\n\n**Key Considerations:**\n\n- **For NeurIPS:** Frame as \"enabling LLM agents to ground in environment feedback for iterative improvement\" — positions it as an agent/systems contribution\n- **For ICLR:** Emphasize the novel training methodology for multi-turn reasoning and self-correction — positions it as a learning theory contribution\n- **For ICML:** Emphasize rigorous methodology and RL design — but would need to add missing hyperparameter ablations\n\n**Recommendation:** Submit to **NeurIPS first**. If rejected, ICLR is an equally strong backup with potential for acceptance if revised to include deeper mechanistic analysis of learned representations.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper presents a well-motivated and practical approach to a real problem: LLMs struggle to iteratively improve code using execution feedback. The RLEF method effectively combines PPO training with a carefully designed reward structure (including KL penalty and invalid code penalty) tailored for the code synthesis domain.",
+              "Comprehensive experimental evaluation with strong empirical results: The 70B model achieves state-of-the-art performance on CodeContests (40.1 solve rate on test set with 1@3 budget), substantially outperforming AlphaCodium with GPT-4 (29 with 5@100). The method also demonstrates order-of-magnitude improvements in sample efficiency compared to prior work.",
+              "Thorough analysis of model behavior and capabilities: The paper includes extensive ablations and analysis (random feedback experiments, error categorization, chrF scores between successive solutions, pass@k metrics, turn limit generalization) that convincingly demonstrate the models genuinely learn to leverage execution feedback rather than merely improving single-turn performance.",
+              "Clear methodological contributions including the hybrid token-level policy / turn-level value function design, geometric mean for KL divergence calculation to mitigate bias towards shorter responses, and the two-test-set framework (public for feedback, private for evaluation) that prevents overfitting shortcuts.",
+              "Strong generalization: Improvements transfer to HumanEval+ and MBPP+ despite domain differences, and the method works across model scales (8B and 70B). Ablations convincingly demonstrate that both single-turn improvements and multi-turn feedback utilization contribute to gains."
+            ],
+            "weaknesses": [
+              "Limited scope and applicability: The method requires held-out test cases with automatic execution and deterministic correctness signals. This is a significant constraint that limits applicability beyond competitive programming to domains like open-ended software development, mathematical reasoning, or planning tasks where automatic evaluation is harder. The paper acknowledges this but does not explore potential extensions.",
+              "Potential concern about generalization from training conditions: The model is trained on iterative code synthesis with up to 3 turns and shows strongest performance at 5 turns during inference generalization experiments (Figure 4b). While this is analyzed, it suggests the model may be somewhat specialized to the training setup rather than developing truly general debugging capabilities. The drop in single-turn performance for the 8B model after RLEF (Table 2) also raises questions about potential negative transfer.",
+              "Incomplete comparison with concurrent work: The paper cites DeepSeek-Coder-V2 and DeepSeek-R1 (submitted Jan 2025, after this work) and mentions concurrent work SCoRe (Kumar et al. 2024) but these comparisons are brief. While the authors acknowledge concurrent approaches, deeper analysis of how RLEF compares to other emerging RL-based methods for code generation would strengthen positioning.",
+              "Sample efficiency claims need nuancing: While the paper claims 'order of magnitude' improvement in samples, this comparison is somewhat indirect (e.g., comparing to AlphaCode's 1000 samples or AlphaCodium's 100 samples at different budgets). The fairest comparison shows 70B RLEF at 37.5@1@3 vs AlphaCodium 44@5@100, where RLEF uses fewer turns but more rollouts may be needed to match AlphaCodium's budget. The sample counting methodology differs between works.",
+              "Hyperparameter sensitivity not thoroughly explored: The paper uses β=0.05 for KL penalty and -0.2 for invalid code penalty with limited justification or ablation on these choices. While the paper mentions early experiments guided these choices, systematic sensitivity analysis would strengthen confidence in the method's robustness."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited scope and applicability: The method requires held-out test cases with automatic execution and deterministic correctness signals. This is a significant constraint that limits applicability beyond competitive programming to domains like open-ended software development, mathematical reasoning, or planning tasks where automatic evaluation is harder. The paper acknowledges this but does not explore potential extensions.",
+                "severity": "minor",
+                "evidence": "Section 5 (Limitations) states: 'Iterating on the execution results of unit tests naturally requires test cases, which may not be readily available.' The method is only evaluated on code generation benchmarks with well-defined test cases. No exploration of extending to domains without automatic feedback.",
+                "affected_claim": "Generalizability of RLEF beyond competitive programming",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Potential concern about generalization from training conditions: The model is trained on iterative code synthesis with up to 3 turns and shows strongest performance at 5 turns during inference generalization experiments (Figure 4b). While this is analyzed, it suggests the model may be somewhat specialized to the training setup rather than developing truly general debugging capabilities. The drop in single-turn performance for the 8B model after RLEF (Table 2) also raises questions about potential negative transfer.",
+                "severity": "minor",
+                "evidence": "Table 2 shows 8B Instruct single-turn performance drops from 11.8 to 9.7 on CodeContests test set after RLEF, despite multi-turn improving from 10.5 to 16.1. Figure 4b shows best 10@k performance at 5 turns, not 3 turns used during training, suggesting domain-specific optimization.",
+                "affected_claim": "That RLEF produces generally capable code generation models",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Incomplete comparison with concurrent work: The paper cites DeepSeek-Coder-V2 and DeepSeek-R1 (submitted Jan 2025, after this work) and mentions concurrent work SCoRe (Kumar et al. 2024) but these comparisons are brief. While the authors acknowledge concurrent approaches, deeper analysis of how RLEF compares to other emerging RL-based methods for code generation would strengthen positioning.",
+                "severity": "minor",
+                "evidence": "Section 4 (Related Work) and conclusion mention DeepSeek-R1 and SCoRe in passing. The paper states 'Concurrent Approaches and Longer-Horizon RL' exists but only briefly contrasts SCoRe (no execution feedback at inference) and Chen et al. (separate repair model). Limited quantitative comparison with these concurrent approaches.",
+                "affected_claim": "State-of-the-art nature of RLEF results",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Sample efficiency claims need nuancing: While the paper claims 'order of magnitude' improvement in samples, this comparison is somewhat indirect (e.g., comparing to AlphaCode's 1000 samples or AlphaCodium's 100 samples at different budgets). The fairest comparison shows 70B RLEF at 37.5@1@3 vs AlphaCodium 44@5@100, where RLEF uses fewer turns but more rollouts may be needed to match AlphaCodium's budget. The sample counting methodology differs between works.",
+                "severity": "minor",
+                "evidence": "Abstract claims 'reducing the number of samples required by an order of magnitude.' Figure 1 compares 1@3 RLEF to 5@100 AlphaCodium, which are not directly comparable. Table 1 shows RLEF 37.5@1@3 vs AlphaCodium 44@5@100 - RLEF uses 3 samples total vs 500 samples for AlphaCodium, but the n@k metric differs (1 solution from 3 samples vs 5 solutions from 100 samples). The paper notes footnote 1 that full sample budget may not be utilized due to early stopping.",
+                "affected_claim": "Order-of-magnitude improvement in sample efficiency",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Hyperparameter sensitivity not thoroughly explored: The paper uses β=0.05 for KL penalty and -0.2 for invalid code penalty with limited justification or ablation on these choices. While the paper mentions early experiments guided these choices, systematic sensitivity analysis would strengthen confidence in the method's robustness.",
+                "severity": "minor",
+                "evidence": "Section 2.2 states 'β trading off between task reward and KL maximization' and mentions invalid code penalty of -0.2 but provides no ablation or sensitivity analysis. Appendix A.1 lists β=0.05 and other hyperparameters with note 'early experiments we found...' but no sweep or robustness analysis provided.",
+                "affected_claim": "Robustness and generalizability of the reward design",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core technical approach is sound. PPO application to LLMs is well-established; the paper's contributions are in the iterative framing, reward design (KL penalty + invalid code penalty + turn-level value function), and hybrid token/turn-level optimization. The MDP formulation is appropriate. The random feedback ablation (Figure 3) and execution feedback ablation (Appendix B.5) convincingly validate that improvements come from genuine learning to leverage feedback. No significant mathematical or logical errors detected."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper advances beyond prior work by: (1) combining PPO training with multi-turn iterative code synthesis where execution feedback is provided as both reward signal and textual context, unlike prior work that uses feedback only as scalar reward; (2) the hybrid token-level policy + turn-level value function design, which is a novel architectural choice not previously explored; (3) demonstrating that single LLMs can learn both synthesis and repair without separate models (unlike Le et al. 2022 and Chen et al. 2024a). While RL with execution feedback has been explored (Le et al., Xu et al., Liu et al.), the iterative multi-turn framing with grounding in textual feedback is meaningfully distinct. Concurrent work (SCoRe, DeepSeek-R1) addresses related problems but with different approaches."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work makes meaningful contributions: (1) Strong empirical results on competitive programming (state-of-the-art on CodeContests, order-of-magnitude sample efficiency improvement vs prior work); (2) Demonstrates that LLMs can effectively learn to ground in execution feedback, a capability with implications for autonomous agent deployment; (3) Generalizes across model scales (8B, 70B) and to other benchmarks (HumanEval+, MBPP+); (4) Thorough analysis reveals the mechanisms (increased diversity, targeted edits, genuine feedback leverage). The result that independent sampling typically outperforms iterative code generation without RL training (observed by Kapoor et al. 2024, Xia et al. 2024) is important and RLEF addresses this gap. For a top-tier ML conference, these are solid contributions, though somewhat domain-specific."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive and well-designed: (1) Main results (Table 1) compare fairly against strong baselines (AlphaCode, AlphaCodium, MapCoder) using standard n@k metric; (2) Multiple benchmarks evaluated (CodeContests, HumanEval+, MBPP+, LiveCodeBench); (3) Extensive ablations: single-turn vs multi-turn (Table 4), SFT vs few-shot vs RLEF (Table 3), random feedback (Figure 3), turn limit generalization (Figure 4), token vs turn-level value functions (Appendix B.6); (4) Confidence intervals provided (Table 5); (5) Error analysis convincing (Figure 3 shows targeted repairs with true feedback fail with random feedback). The only minor weakness is that hyperparameter sweeps for β and penalty weights are not shown, but core claims are well-supported."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with good organization: Introduction motivates the problem well, Method section clearly describes the MDP and reward formulation, Experimental Results are well-structured with main results followed by detailed analysis. Figures (1, 3, 4) are informative; Table 1 clearly presents results. The iterative code synthesis setup is explained with helpful visual (Figure 2). Ablations are thorough and clearly presented. Appendices are extensive with prompts, additional results, and examples. Minor issue: the sample efficiency claim could be stated more precisely, but overall presentation quality is high."
+              }
+            },
+            "summary_comment": "RLEF is a solid contribution that addresses a real problem in code generation: LLMs fail to iteratively improve solutions using execution feedback, despite this being an important capability for autonomous agents. The paper proposes combining PPO training with a multi-turn iterative setup where execution feedback is provided both as reward and as textual context, allowing a single model to learn synthesis and repair. Key technical contributions include the hybrid token/turn-level architecture and the careful reward design. Empirical results are strong: the 70B model achieves state-of-the-art on CodeContests with substantially fewer samples than prior work, and improvements generalize to other benchmarks. The analysis convincingly demonstrates that models learn to genuinely leverage feedback (random feedback ablation shows this), rather than just improving single-turn performance. The work is technically sound, reasonably novel in its framing and architectural choices, and addresses a problem of practical importance. The main limitations are: (1) applicability is constrained to domains with automatic execution and deterministic correctness signals; (2) the method is somewhat specialized to the training regime (3 turns during training, best performance at 5 turns); (3) sample efficiency claims could be stated more precisely; (4) limited exploration of why concurrent approaches like SCoRe might be preferable. These are relatively minor concerns. For a top-tier ML conference, this represents solid work with good empirical results and thorough experimental analysis. The contribution is meaningful but somewhat incremental (applying established RL methods to a new problem formulation) and domain-specific (code generation), so this is a clear accept but not a standout paper."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper presents a well-motivated and practical approach to a real problem: LLMs struggle to iteratively improve code using execution feedback. The RLEF method effectively combines PPO training with a carefully designed reward structure (including KL penalty and invalid code penalty) tailored for the code synthesis domain.",
+              "Comprehensive experimental evaluation with strong empirical results: The 70B model achieves state-of-the-art performance on CodeContests (40.1 solve rate on test set with 1@3 budget), substantially outperforming AlphaCodium with GPT-4 (29 with 5@100). The method also demonstrates substantial improvements in sample efficiency compared to prior work.",
+              "Thorough analysis of model behavior and capabilities: The paper includes extensive ablations and analysis (random feedback experiments, error categorization, chrF scores between successive solutions, pass@k metrics, turn limit generalization) that convincingly demonstrate the models genuinely learn to leverage execution feedback rather than merely improving single-turn performance.",
+              "Clear methodological contributions including the hybrid token-level policy / turn-level value function design, geometric mean for KL divergence calculation to mitigate bias towards shorter responses, and the two-test-set framework (public for feedback, private for evaluation) that prevents overfitting shortcuts.",
+              "Strong generalization: Improvements transfer to HumanEval+ and MBPP+ despite domain differences, and the method works across model scales (8B and 70B). Ablations convincingly demonstrate that both single-turn improvements and multi-turn feedback utilization contribute to gains."
+            ],
+            "weaknesses": [
+              "Limited scope and applicability: The method requires held-out test cases with automatic execution and deterministic correctness signals. This is a significant constraint that limits applicability beyond competitive programming to domains like open-ended software development, mathematical reasoning, or planning tasks where automatic evaluation is harder.",
+              "Potential domain specialization concerns: The 8B model shows single-turn performance degradation after RLEF (11.8 → 9.7 on CodeContests test set), and best 10@k performance is achieved at 5 turns rather than the 3 turns used during training. While the authors provide interpretation in rebuttal, the submitted paper lacks sufficient discussion of this asymmetry.",
+              "Incomplete exploration of design choices: Hyperparameter sensitivity for β=0.05 and the -0.2 invalid code penalty is not ablated in the submitted paper. While the authors acknowledge this limitation in rebuttal and indicate willingness to add ablations, the submitted work lacks this analysis.",
+              "Brief treatment of concurrent work: The paper briefly mentions DeepSeek-R1, SCoRe, and DeepSeek-Coder-V2 but provides limited quantitative comparisons or analysis of relative strengths, making it difficult to assess positioning relative to very recent work."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited scope and applicability: The method requires held-out test cases with automatic execution and deterministic correctness signals. This is a significant constraint that limits applicability beyond competitive programming to domains like open-ended software development, mathematical reasoning, or planning tasks where automatic evaluation is harder.",
+                "severity": "minor",
+                "evidence": "Section 5 (Limitations) acknowledges: 'Iterating on the execution results of unit tests naturally requires test cases, which may not be readily available.' The paper also mentions combining with automatic test generation as future work (Watson et al., 2020; Jain et al., 2024a). The rebuttal notes this is acknowledged but does not provide new evidence or experiments.",
+                "affected_claim": "Generalizability of RLEF beyond competitive programming",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Potential domain specialization concerns: The 8B model shows single-turn performance degradation after RLEF (11.8 → 9.7 on CodeContests test set), and best 10@k performance is achieved at 5 turns rather than the 3 turns used during training. While the authors provide interpretation in rebuttal, the submitted paper lacks sufficient discussion of this asymmetry.",
+                "severity": "minor",
+                "evidence": "Table 2 shows 8B Instruct single-turn drops from 11.8 to 9.7 on test set after RLEF; 70B improves from 26.2 to 30.1. Figure 4b shows best performance at 5 turns, not 3 turns used in training. The rebuttal explains this as: (1) the 8B model specializing to multi-turn regime due to weaker priors, (2) KL penalty constraining exploration more severely for 8B, and (3) Table 4 showing single-turn RL training itself degrades 8B performance. However, this explanation is in the rebuttal, not the submitted paper.",
+                "affected_claim": "That RLEF produces generally capable code generation models robust across different inference regimes",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Incomplete exploration of design choices: Hyperparameter sensitivity for β=0.05 and the -0.2 invalid code penalty is not ablated in the submitted paper. While the authors acknowledge this limitation in rebuttal and indicate willingness to add ablations, the submitted work lacks this analysis.",
+                "severity": "minor",
+                "evidence": "Section 2.2 and Appendix A.1 specify β=0.05 and -0.2 penalty but provide no sensitivity analysis. Section 2.2 states 'In initial experiments, we found...' but does not show these experiments or ablations. The rebuttal acknowledges this and offers to add ablations in revision, but the submitted paper does not contain them.",
+                "affected_claim": "Robustness and generalizability of the reward design",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Brief treatment of concurrent work: The paper briefly mentions DeepSeek-R1, SCoRe, and DeepSeek-Coder-V2 but provides limited quantitative comparisons or analysis of relative strengths, making it difficult to assess positioning relative to very recent work.",
+                "severity": "minor",
+                "evidence": "Section 4 (Related Work) mentions SCoRe contrast (no inference-time feedback, different approach) and DeepSeek-R1 (Jan 2025, concurrent). The rebuttal explains this is due to timing (DeepSeek-R1 released after submission) and offers to expand comparison. However, the submitted paper provides only brief discussion of these concurrent approaches.",
+                "affected_claim": "State-of-the-art nature of RLEF results relative to concurrent work",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core technical approach remains sound. The rebuttal provides coherent explanations for the 8B model's single-turn performance degradation (specialization to multi-turn regime due to weaker priors, stronger KL constraint, and inherent difficulty of RL on weaker models as evidenced by Table 4), which addresses but does not fully resolve the concern since this explanation is not in the submitted paper. The MDP formulation is appropriate, PPO application is standard, and the random feedback ablation convincingly validates that improvements stem from genuine learning. No mathematical or logical errors identified."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The novelty assessment remains unchanged. The paper's core novelty—framing iterative code synthesis as a multi-turn MDP where execution feedback is provided both as reward signal and textual context, combined with the hybrid token-level policy / turn-level value function architecture—is distinct from prior work. While RL with execution feedback has been explored (Le et al., Xu et al., Liu et al.), the specific combination and iterative formulation remain novel. The rebuttal's discussion of concurrent work (SCoRe uses different approach without inference-time feedback, DeepSeek-R1 timing) does not change this assessment."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "Significance remains as assessed. The work demonstrates that LLMs can effectively learn to ground in execution feedback—an important capability for autonomous agents. The strong empirical results (state-of-the-art on CodeContests, improvements generalizing to other benchmarks) and thorough analysis of mechanisms are meaningful contributions. The rebuttal's acknowledgment of limited scope and domain specialization concerns does not reduce the significance of the demonstrated results on code generation, which is a valuable and active research area."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Evaluation quality remains strong. The core claims are well-supported by experiments: random feedback ablation validates that models leverage genuine feedback, error analysis demonstrates targeted repairs, and generalization to multiple benchmarks is shown. The rebuttal acknowledges missing ablations on hyperparameter sensitivity (β, penalty values) and more detailed analysis of the 8B single-turn degradation, but these are not critical to validating the central claims. The paper's evaluation adequately supports the main contributions despite these minor gaps."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "Presentation quality remains good overall. The paper is well-organized with clear motivation, method description, and experimental results. The rebuttal clarifies that the 'order of magnitude' sample efficiency claim is somewhat imprecise (comparing different n@k metrics), and acknowledges that more discussion of the 8B model's single-turn degradation would be helpful. However, the core narrative and experimental presentation are sound. Minor improvements in clarity (as suggested in rebuttal) would strengthen but not materially change assessment."
+              }
+            },
+            "summary_comment": "After reviewing the author rebuttal, the assessment remains: Accept. The rebuttal provides coherent explanations for the identified concerns, though it does not provide new evidence in the submitted paper that would fully resolve them. Key points from rebuttal evaluation:\n\n1. **Domain Specialization Concerns (Partially Resolved):** The authors provide reasonable interpretation of why the 8B model shows single-turn degradation (weaker priors leading to specialization to multi-turn regime, stronger KL constraints, and inherent difficulty of RL on smaller models as shown in Table 4). This explanation is logically complete and checkable against the paper, partially addressing reviewer concern. However, the submitted paper itself lacks sufficient discussion of this asymmetry, and the rebuttal's explanation relies on interpretation rather than new submitted evidence.\n\n2. **Hyperparameter Sensitivity (Unresolved in Submitted Work):** The authors acknowledge the absence of ablations on β and penalty values and offer to add them in revision, but the submitted paper contains no such analysis. This remains a limitation of the submitted work, though acknowledged as minor and fixable.\n\n3. **Limited Applicability (Appropriately Scoped):** The rebuttal confirms that limitations are inherent to the method and appropriately discussed in Section 5. The suggestion to explore automatic test generation is noted as future work. This is reasonable scoping for a paper focused on competitive programming.\n\n4. **Concurrent Work (Not Fully Addressed):** While the rebuttal explains timing constraints (DeepSeek-R1 released after submission) and the fundamental difference of SCoRe, it does not provide new quantitative comparisons in the submitted paper.\n\n5. **Sample Efficiency Claims (Clarified but Not Changed in Submission):** The rebuttal correctly clarifies that the abstract's 'order of magnitude' framing is imprecise when comparing different n@k metrics. The core claim (fewer samples needed) remains valid, but wording could be more precise in revision.\n\n**Evaluation:** The paper's core contributions remain sound and significant: it demonstrates that RL training enables LLMs to ground in multi-turn execution feedback, achieving state-of-the-art results with strong analysis. The identified weaknesses are real but relatively minor: domain limitations are inherent to the problem, the 8B single-turn degradation is noteworthy but does not invalidate the overall contribution (especially as the 70B model shows robust improvements), and missing ablations on hyperparameters would strengthen but are not critical given that main claims are well-supported. No acceptance gate fails substantively. The work represents solid contribution to LLM-based code generation and agent capabilities sufficient for acceptance at a top-tier venue."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited scope and applicability beyond competitive programming due to requirement for held-out test cases with automatic evaluation\",\n        \"Potential domain specialization concerns: model trained on 3 turns shows best 10@k performance at 5 turns; 8B model shows single-turn performance degradation after RLEF\",\n        \"Brief treatment of concurrent work (DeepSeek-R1, SCoRe, DeepSeek-Coder-V2) with limited quantitative comparisons\",\n        \"Sample efficiency claims lack precision in comparing n@k metrics across different methods\",\n        \"Hyperparameter sensitivity (β=0.05, -0.2 invalid code penalty) not thoroughly explored or ablated\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Limited scope and applicability\",\n          \"location\": \"Section 5 (Limitations)\",\n          \"explanation\": \"The paper acknowledges: 'Iterating on the execution results of unit tests naturally requires test cases, which may not be readily available.' The method is only evaluated on code generation benchmarks with well-defined test cases. However, the paper does suggest combining with automatic test generation as future work (Watson et al., 2020; Jain et al., 2024a).\"\n        },\n        {\n          \"concern\": \"Inference generalization beyond training regime\",\n          \"location\": \"Figure 4b and Table 2\",\n          \"explanation\": \"Figure 4b shows that best 10@k performance is achieved at 5 turns, not the 3 turns used during training. Table 2 reveals that the 8B Instruct model shows single-turn performance drop from 11.8 to 9.7 on CodeContests test set after RLEF (while multi-turn improves from 10.5 to 16.1), suggesting potential negative transfer to single-turn scenarios.\"\n        },\n        {\n          \"concern\": \"Concurrent work treatment\",\n          \"location\": \"Section 4 (Related Work) and conclusion discussion of DeepSeek-R1 and SCoRe\",\n          \"explanation\": \"The paper acknowledges SCoRe (Kumar et al. 2024) and contrasts it (no execution feedback at inference) and mentions DeepSeek-R1 (Jan 2025) briefly, but provides limited quantitative comparison or analysis of relative strengths.\"\n        },\n        {\n          \"concern\": \"Sample efficiency comparison precision\",\n          \"location\": \"Abstract, Figure 1, and Table 1\",\n          \"explanation\": \"The abstract claims 'reducing the number of samples required by an order of magnitude.' Figure 1 compares 1@3 RLEF to 5@100 AlphaCodium. Table 1 shows RLEF 37.5@1@3 vs AlphaCodium 44@5@100 (different n@k definitions). Footnote 1 notes: 'for simplicity, we consider a full LLM response as a single sample...the allocated sample budget may not be fully utilized as a successful public test run will result in early termination.'\"\n        },\n        {\n          \"concern\": \"Hyperparameter choices and sensitivity\",\n          \"location\": \"Section 2.2 (reward function definition) and Appendix A.1\",\n          \"explanation\": \"The reward function uses β=0.05 for KL penalty and -0.2 for invalid code penalty. Section 2.2 states: 'In initial experiments, we found that a possible failure mode concerns the generation of invalid code...we address by providing a small penalty.' Appendix A.1 lists these values but provides no ablation studies on sensitivity to these choices.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Limited applicability beyond code generation with automatic evaluation\",\n          \"proposed_change\": \"While acknowledged in limitations, the paper could briefly discuss potential extensions: (1) combining with automatic test generation (already mentioned), (2) using weaker correctness signals (e.g., static analysis, type checking), or (3) extending to math domains where execution feedback exists. The mention of DeepSeek-R1's application to math (in Related Work) provides opening for such discussion.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Incomplete explanation of 8B single-turn performance degradation\",\n          \"proposed_change\": \"Add discussion in Section 3.3 or Table 2 caption explaining why the 8B model shows degradation in single-turn performance (11.8 → 9.7 on test set) despite multi-turn improvements. Is this specialization to multi-turn regime? Does this occur for the 70B model (which shows single-turn improvement from 26.2 → 30.1)? This asymmetry deserves explanation.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Lack of systematic hyperparameter sensitivity analysis\",\n          \"proposed_change\": \"Add brief ablation study (1-2 results) on β sensitivity, e.g., showing performance with β ∈ {0.01, 0.05, 0.1} for at least one model. Similarly, justify or ablate the -0.2 invalid code penalty. This would strengthen confidence in robustness of the method beyond the reported hyperparameter choices.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Overstated sample efficiency claims\",\n          \"proposed_change\": \"Revise abstract or Figure 1 caption to be more precise. Instead of 'order of magnitude' improvement, state explicitly: 'Our 70B model achieves state-of-the-art performance (40.1 solve rate) on CodeContests with 3 samples per problem (1@3), compared to AlphaCodium's 29 solve rate using 5 solutions from 100 samples (5@100).' This is clearer than claiming 'order of magnitude' when comparing different n@k metrics.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Generalization beyond training regime (3 turns → 5 turns best performance)\",\n          \"proposed_change\": \"In Section 3.3 or Figure 4b, add analysis or discussion: Is the shift from 3 to 5 turns expected due to increased sample diversity at higher budgets? Does training on more turns improve 5-turn performance? A brief experiment varying training turn limits (e.g., training on 5 turns instead of 3) could clarify whether this is fundamental or an artifact of the training regime.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Brief treatment of concurrent work\",\n          \"proposed_change\": \"Expand Section 4's 'Concurrent Approaches and Longer-Horizon RL' or add dedicated subsection comparing RLEF to SCoRe, DeepSeek-R1, and DeepSeek-Coder-V2 more thoroughly. Discuss: Does RLEF's incorporation of textual feedback differ fundamentally from these approaches? Are there efficiency/performance trade-offs? This contextualizes the contribution relative to very recent work.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"Thank you for the thorough and constructive review. We appreciate the balanced assessment and detailed feedback. We address the key concerns below:\\n\\n**On Limited Scope and Applicability:**\\nWe agree that RLEF's applicability is constrained to domains with automatic execution and deterministic correctness signals. This is inherent to the method and acknowledged in Section 5. However, we note that competitive programming, while specific, is a valuable testbed for agent capabilities—it requires synthesis, debugging, algorithmic reasoning, and iterative refinement. We also note our brief mention of automatic test generation (Watson et al., 2020; Jain et al., 2024a) as a complementary approach for domains lacking pre-existing test cases. Extending RLEF to such domains is interesting future work, as is the combination with weaker correctness signals (static analysis, type checking) that we do not explore here.\\n\\n**On Generalization and Single-Turn Performance Degradation:**\\nYour observation about the 8B model's single-turn degradation (11.8 → 9.7) is valid. Unlike the 70B model, which improves in single-turn (26.2 → 30.1), the 8B model shows this asymmetry. We interpret this as follows: (1) The 8B model, having weaker initial capabilities, may specialize more to the multi-turn regime during RL training, whereas the 70B model's stronger priors allow it to improve both single and multi-turn; (2) The KL penalty may constrain the 8B model's explorations more severely. Notably, Table 4 shows single-turn RL training on the 8B model itself degrades performance (10.2 vs 8.9 baseline), suggesting the 8B model's representation may be less amenable to RL-based optimization in single-turn scenarios compared to the 70B. We did not include this analysis in the main paper but acknowledge it as an important limitation worth discussing. The 70B model's more robust improvements across settings make it the more reliable choice.\\n\\n**On Turn Limit Generalization (Figure 4b):**\\nThe observation that best 10@k performance shifts from 3 (training regime) to 5 turns is expected: at larger sample budgets (10@k), distributing samples across more turns provides increased opportunity for recovery from errors, even if single attempts are less reliable. This is consistent with the pass@10 results in Figure 4a, where true feedback shows increasing pass rates with turn limit but random feedback does not. We interpret this as the model learning to generate diverse candidate solutions, not specialization per se. That said, your suggestion to explore training with different turn limits would be valuable—if training on 5 turns yields better 5-turn performance at inference without sacrificing 3-turn performance, that would strengthen generalization claims. This is a reasonable ablation we did not conduct.\\n\\n**On Hyperparameter Sensitivity:**\\nYou correctly note that we provide limited ablation on β=0.05 and the -0.2 invalid code penalty. While our early experiments motivated these choices, systematic sensitivity analysis would strengthen robustness claims. We acknowledge this as a limitation. A brief ablation on β (e.g., {0.01, 0.05, 0.1}) or the invalid code penalty for at least the 8B model would be informative. We did not include this in the submission but recognize it as a reasonable addition for revision.\\n\\n**On Sample Efficiency Claims:**\\nWe appreciate the precision point. The abstract's claim of \\\"order of magnitude\\\" improvement is somewhat imprecise when comparing different n@k metrics. A fairer framing: our 70B model achieves 40.1 solve rate (1@3) with 3 samples per problem, substantially outperforming AlphaCodium's 29 solve rate (5@100, i.e., 500 samples per problem at best). The n@k metric differs, but we use it consistently with prior work (Li et al., 2022). Footnote 1 acknowledges that sample budget may not be fully utilized due to early stopping when public tests pass, but the core claim—fewer model responses needed—is sound. We will clarify this in revision.\\n\\n**On Concurrent Work:**\\nWe acknowledge that our treatment of DeepSeek-R1, SCoRe, and DeepSeek-Coder-V2 is brief. SCoRe (Kumar et al. 2024) does not leverage execution feedback at inference, instead asking the model to reconsider its solution—a fundamentally different approach suited for domains without automatic feedback. DeepSeek-R1's application of GRPO to code/math with execution feedback is concurrent and complementary. We did not have quantitative comparisons available at submission time (DeepSeek-R1 was released January 2025, after our work), but we could expand this section to better contextualize relative strengths. Deeper discussion would help position RLEF more clearly.\\n\\n**Summary:**\\nYour review identifies real limitations: domain specificity, potential specialization to the training regime, and incomplete analysis of design choices. We believe these are addressable in revision without new experiments (except for the brief turn limit ablation and hyperparameter sweep, which are reasonable additions). The core contribution—demonstrating that RL training enables LLMs to effectively ground in multi-turn execution feedback—remains sound and well-supported by our analysis.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper presents a well-motivated and practical approach to a real problem: LLMs struggle to iteratively improve code using execution feedback. The RLEF method effectively combines PPO training with a carefully designed reward structure (including KL penalty and invalid code penalty) tailored for the code synthesis domain.",
+              "Comprehensive experimental evaluation with strong empirical results: The 70B model achieves state-of-the-art performance on CodeContests (40.1 solve rate on test set with 1@3 budget), substantially outperforming AlphaCodium with GPT-4 (29 with 5@100). The method also demonstrates substantial improvements in sample efficiency compared to prior work.",
+              "Thorough analysis of model behavior and capabilities: The paper includes extensive ablations and analysis (random feedback experiments, error categorization, chrF scores between successive solutions, pass@k metrics, turn limit generalization) that convincingly demonstrate the models genuinely learn to leverage execution feedback rather than merely improving single-turn performance.",
+              "Clear methodological contributions including the hybrid token-level policy / turn-level value function design, geometric mean for KL divergence calculation to mitigate bias towards shorter responses, and the two-test-set framework (public for feedback, private for evaluation) that prevents overfitting shortcuts.",
+              "Strong generalization: Improvements transfer to HumanEval+ and MBPP+ despite domain differences, and the method works across model scales (8B and 70B). Ablations convincingly demonstrate that both single-turn improvements and multi-turn feedback utilization contribute to gains."
+            ],
+            "weaknesses": [
+              "Limited scope and applicability: The method requires held-out test cases with automatic execution and deterministic correctness signals. This is a significant constraint that limits applicability beyond competitive programming to domains like open-ended software development, mathematical reasoning, or planning tasks where automatic evaluation is harder.",
+              "Insufficient explanation of model behavior asymmetry: The submitted paper does not adequately explain why the 8B model shows single-turn performance degradation (11.8 → 9.7) after RLEF while the 70B model improves in both regimes. The rebuttal provides reasonable interpretation (specialization to multi-turn due to weaker priors) but this analysis is not in the submitted paper.",
+              "Missing hyperparameter sensitivity ablations: The reward function's β (KL penalty) and invalid code penalty values are specified but not ablated. While the authors promise to add these experiments in revision, they are not present in the submitted work.",
+              "Limited discussion of inference-time behavior generalization: The paper shows best 10@k performance at 5 turns rather than the 3 turns used during training, but does not explicitly discuss why this shift occurs or what it implies for the model's capabilities."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited scope and applicability: The method requires held-out test cases with automatic execution and deterministic correctness signals. This is a significant constraint that limits applicability beyond competitive programming to domains like open-ended software development, mathematical reasoning, or planning tasks where automatic evaluation is harder.",
+                "severity": "minor",
+                "evidence": "Section 5 (Limitations) states: 'Iterating on the execution results of unit tests naturally requires test cases, which may not be readily available.' The paper suggests combining with automatic test generation as future work but does not explore this. This limitation is inherent to the problem formulation and appropriately acknowledged.",
+                "affected_claim": "Generalizability of RLEF beyond competitive programming",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Insufficient explanation of model behavior asymmetry: The submitted paper does not adequately explain why the 8B model shows single-turn performance degradation (11.8 → 9.7) after RLEF while the 70B model improves in both regimes. The rebuttal provides reasonable interpretation (specialization to multi-turn due to weaker priors) but this analysis is not in the submitted paper.",
+                "severity": "minor",
+                "evidence": "Table 2 presents the facts: 8B ST drops from 11.8→9.7 on test set while 70B ST improves from 26.2→30.1. The submitted paper (Section 3.3) does not explain this asymmetry. The rebuttal explains: weaker base models specialize to iterative regime during RL, stronger models maintain single-turn capability. Evidence cited is Table 4 (single-turn RL training on 8B also degrades performance), which is in the paper but not connected to Table 2 analysis. The rebuttal commits to moving this explanation to Section 3.3.",
+                "affected_claim": "That RLEF produces models with consistent improvements across inference regimes",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Missing hyperparameter sensitivity ablations: The reward function's β (KL penalty) and invalid code penalty values are specified but not ablated. While the authors promise to add these experiments in revision, they are not present in the submitted work.",
+                "severity": "minor",
+                "evidence": "Section 2.2 specifies reward function with β=0.05 and -0.2 invalid code penalty. Section 2.2 states 'In initial experiments, we found that a possible failure mode concerns the generation of invalid code' but does not show these experiments. Appendix A.1 lists hyperparameters without sensitivity analysis. The rebuttal proposes adding ablation table with β ∈ {0.01, 0.05, 0.1} and penalties {0.1, 0.2, 0.3}, but commits to conducting new experiments for this, which are not present in submitted paper.",
+                "affected_claim": "Robustness of reward design choices beyond the specific values selected",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited discussion of inference-time behavior generalization: The paper shows best 10@k performance at 5 turns rather than the 3 turns used during training, but does not explicitly discuss why this shift occurs or what it implies for the model's capabilities.",
+                "severity": "minor",
+                "evidence": "Figure 4b shows 10@k solve rates across turn limits. For both 8B and 70B RLEF models, performance peaks at 3-5 turns depending on budget and dataset, with 5 turns frequently optimal. Section 3.3 describes the figure but does not explain the shift from 3-turn training optimality to 5-turn inference optimality. The rebuttal proposes adding explanation that this reflects diversity benefit at scale (consistent with Figure 4a pass@10 behavior), which is logically sound but not stated in submitted paper.",
+                "affected_claim": "Understanding of what the model learns and how it generalizes",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core technical approach is sound. The rebuttal's explanation of the 8B model's behavior (specialization to multi-turn regime with weaker priors) is logically coherent and consistent with Table 4 evidence in the paper, though not explicitly connected in the submitted work. The MDP formulation is appropriate, PPO application is standard, and the random feedback ablation convincingly validates that improvements stem from genuine learning of execution feedback utilization. No mathematical or logical errors are identified."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The novelty remains as assessed. The combination of multi-turn iterative code synthesis with execution feedback provided as both reward signal and textual context, paired with the hybrid token-level policy / turn-level value function architecture, is meaningfully distinct from prior work. While RL with execution feedback has been explored, the specific iterative formulation and the single model learning both synthesis and repair without separate components represent novel contributions relative to prior work (Le et al. 2022, Xu et al. 2024, Liu et al. 2023b)."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work makes meaningful contributions to code generation and LLM agent capabilities. The empirical results are strong (state-of-the-art on CodeContests, generalization to other benchmarks), and the thorough analysis demonstrates mechanisms underlying the improvements. While domain-specific, the work addresses the important finding that iterative code generation without RL training typically underperforms independent sampling (Kapoor et al. 2024, Xia et al. 2024), which RLEF effectively remedies. The significance for code generation and autonomous agents is clear."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The evaluation adequately supports central claims. Main results (Table 1) compare fairly against strong baselines; multiple benchmarks are tested (CodeContests, HumanEval+, MBPP+, LiveCodeBench); extensive ablations address alternative explanations (random feedback validates genuine learning, single-turn vs multi-turn comparison, SFT vs RLEF); and confidence intervals are provided. The missing hyperparameter ablations (β, penalty values) would strengthen robustness claims but do not undermine validation of the core contributions. The paper's core claims are well-supported despite these gaps."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written and well-organized. Introduction clearly motivates the problem, Method section transparently describes the MDP and reward formulation, and Results section is well-structured with main results followed by detailed analysis. Figures (1, 2, 3, 4) and tables are informative. However, the submitted paper has gaps in explaining model behavior: the asymmetry in 8B vs 70B performance after RLEF is not discussed, and the shift from 3-turn to 5-turn optimality is not explicitly explained. These gaps affect clarity of interpretation but not the core narrative. The rebuttal commits to addressing these in revision."
+              }
+            },
+            "summary_comment": "After the second rebuttal, the assessment remains: Accept. The rebuttal demonstrates good faith engagement with reviewer concerns and provides logically sound explanations for identified gaps, though it relies primarily on promises to revise rather than new submitted evidence. \n\nStatus of weaknesses:\n\n1. **Limited Scope (Minor, Inherent)**: This is appropriately acknowledged in Section 5 and is inherent to the problem formulation. Not resolved but appropriately scoped for the contribution.\n\n2. **8B Model Behavior Asymmetry (Minor, Unresolved in Submitted Paper)**: The rebuttal provides coherent explanation (weaker models specialize to multi-turn regime; Table 4 shows RL training itself degrades 8B single-turn performance) but this analysis is not in the submitted paper. The rebuttal commits to moving this explanation to Section 3.3 in revision. **Unresolved in submitted work, but fixable without new experiments.**\n\n3. **Hyperparameter Sensitivity (Minor, Unresolved)**: Not ablated in submitted paper. The rebuttal commits to conducting sensitivity analysis for β and penalty values in revision, but new experiments are promised, not executed. **Unresolved in submitted work, requires new experiments.**\n\n4. **Inference Generalization Discussion (Minor, Unresolved in Submitted Paper)**: The shift from 3-turn training to 5-turn inference optimality is not explicitly discussed. The rebuttal provides reasonable explanation (diversity benefit at scale, consistent with Figure 4a pass@10 trends) but this is not in the submitted paper. The rebuttal commits to adding this to Figure 4b caption or Section 3.3. **Unresolved in submitted work, but fixable without new experiments.**\n\n**Decision Justification**: All four weaknesses are classified as minor. No acceptance gate fails substantively. The core contribution—demonstrating that RL training enables LLMs to effectively ground in multi-turn execution feedback, achieving state-of-the-art results with strong empirical validation and thorough analysis—is sound, novel, and significant. The weaknesses do not materially undermine these contributions; they represent gaps in explanation and validation that are acknowledged as fixable. The paper's experimental foundation is solid, with random feedback ablation convincingly demonstrating genuine feedback utilization, multiple benchmarks showing generalization, and extensive analysis clarifying mechanisms. The promised revisions (moving existing explanations to submitted paper, adding hyperparameter ablations, clarifying inference generalization) would substantially strengthen the work but are not required for acceptance at a top-tier venue given the solid core contributions. The work represents a meaningful advance in LLM-based code generation sufficient for acceptance."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited scope and applicability: method requires held-out test cases with automatic execution and deterministic correctness signals, constraining use beyond competitive programming\",\n        \"Domain specialization concerns: 8B model shows single-turn performance degradation (11.8 → 9.7) after RLEF; best 10@k performance at 5 turns not 3 turns used in training; submitted paper lacks sufficient discussion of this asymmetry\",\n        \"Hyperparameter sensitivity not ablated: β=0.05 and -0.2 invalid code penalty choices not validated in submitted paper despite being critical design decisions\",\n        \"Brief treatment of concurrent work: limited quantitative comparisons with DeepSeek-R1, SCoRe, and DeepSeek-Coder-V2\",\n        \"Sample efficiency claims imprecision: 'order of magnitude' claim when comparing different n@k metrics needs clarification\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Limited scope and applicability beyond competitive programming\",\n          \"location\": \"Section 5 (Limitations)\",\n          \"explanation\": \"Paper states: 'Iterating on the execution results of unit tests naturally requires test cases, which may not be readily available.' Suggests future work combining with automatic test generation (Watson et al., 2020; Jain et al., 2024a). This is appropriate scoping but limits generalizability.\"\n        },\n        {\n          \"concern\": \"8B model single-turn performance degradation after RLEF\",\n          \"location\": \"Table 2\",\n          \"explanation\": \"Table 2 shows Llama 3.1 8B Instruct: single-turn (ST) performance drops from 11.8 to 9.7 on CodeContests test set after RLEF, while multi-turn (MT) improves from 10.5 to 16.1. By contrast, 70B model improves in ST (26.2 → 30.1) while improving in MT (27.4 → 40.1). This asymmetry is presented as fact but lacks explanation in the submitted paper.\"\n        },\n        {\n          \"concern\": \"Best 10@k performance achieved at 5 turns, not 3 turns used in training\",\n          \"location\": \"Figure 4b\",\n          \"explanation\": \"Figure 4b shows 10@k solve rates across different turn limits. For both 8B and 70B RLEF models, best performance occurs at 3-5 turns depending on dataset, with 5 turns frequently optimal. Main text states training uses 3-turn limit but does not discuss why inference generalization favors higher turn limits.\"\n        },\n        {\n          \"concern\": \"Hyperparameter choices not validated through ablation\",\n          \"location\": \"Section 2.2 and Appendix A.1\",\n          \"explanation\": \"Section 2.2 specifies reward function: R(s_t, a_t) uses r(s_t, a_t) with -0.2 penalty for invalid code, and KL penalty with β specified later. Section 2.2 states 'In initial experiments, we found that a possible failure mode concerns the generation of invalid code' but does not show these experiments. Appendix A.1 states β=0.05 without justification or sensitivity analysis.\"\n        },\n        {\n          \"concern\": \"Concurrent work treatment brief and lacking quantitative comparison\",\n          \"location\": \"Section 4 (Related Work), final paragraph, and conclusion\",\n          \"explanation\": \"Related Work briefly mentions SCoRe (Kumar et al. 2024) stating it 'does not leverage execution feedback at inference time' and contrasts with the authors' approach. DeepSeek-R1 is cited with note that it 'achieve[s] high performance on competitive programming tasks.' No quantitative performance comparisons or detailed analysis of these concurrent approaches provided in submitted paper.\"\n        },\n        {\n          \"concern\": \"Sample efficiency claim precision\",\n          \"location\": \"Abstract and Figure 1 caption\",\n          \"explanation\": \"Abstract claims 'reducing the number of samples required by an order of magnitude.' Figure 1 compares RLEF 1@3 (single rollout, 3 samples) to various baselines at 5@100 (5 solutions, 100 samples). These are different n@k metrics. Footnote 1 acknowledges: 'for simplicity, we consider a full LLM response as a single sample...the allocated sample budget may not be fully utilized as a successful public test run will result in early termination.'\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Insufficient explanation of 8B single-turn degradation in submitted paper\",\n          \"proposed_change\": \"Add discussion to Section 3.3 (Inference-Time Behavior) explaining the asymmetry: the 8B model shows single-turn degradation after RLEF while 70B improves in both regimes. Include reference to Table 4 (single-turn training on 8B degrades performance 10.2 vs 8.9 baseline) to show this is not unique to multi-turn RLEF. Propose interpretation: weaker base models specialize to the iterative regime during RL training, possibly due to stronger effective KL constraints; stronger models (70B) maintain single-turn capability while improving multi-turn. This analysis is logically sound but currently only in rebuttal, not in paper.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Missing hyperparameter sensitivity ablations for β and invalid code penalty\",\n          \"proposed_change\": \"Add brief ablation table in Appendix B (or main results section) showing 1@3 solve rates on CodeContests valid set for at least the 8B model with β ∈ {0.01, 0.05, 0.1}. Similarly, show results for invalid code penalty with values {0.1, 0.2, 0.5}. This demonstrates robustness of the design choices beyond early experiments mentioned in Section 2.2. Even 2-3 data points per hyperparameter would substantially strengthen the submission.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Lack of discussion on why best 10@k performance occurs at 5 turns not 3 turns\",\n          \"proposed_change\": \"In Section 3.3 or Figure 4b caption, explicitly discuss the shift from 3-turn training to 5-turn inference optimality. Explain that at larger sample budgets (10@k with ~33 rollouts), distributing samples across more turns provides increased opportunity for recovery, consistent with pass@10 results in Figure 4a where true feedback shows increasing pass rates with turn limit. This is logically implied but not stated clearly, making the observation less actionable.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Imprecise sample efficiency claims when comparing different n@k metrics\",\n          \"proposed_change\": \"Revise abstract and/or Figure 1 caption to state more precisely: 'Our 70B model achieves 40.1 solve rate on CodeContests test set with 1@3 (3 samples per problem), substantially outperforming AlphaCodium's 29 solve rate at 5@100 (500 samples).' Remove or clarify the 'order of magnitude' framing. Acknowledge in text or footnote that the comparison uses different n@k metrics but that sample efficiency gains are significant regardless (3 vs 500 samples per problem).\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Limited quantitative positioning relative to concurrent work\",\n          \"proposed_change\": \"Expand Section 4's 'Concurrent Approaches' subsection or Related Work to provide more detail on DeepSeek-R1 and SCoRe: (1) for SCoRe, quantify the difference: does it use execution feedback at training? (authors correctly note no inference-time feedback, but training-time usage should be clarified); (2) for DeepSeek-R1, if performance numbers are available (even if submitted after this work), cite them to contextualize RLEF results; (3) discuss trade-offs: is RLEF more sample-efficient, or does DeepSeek-R1 achieve better absolute performance? This helps readers understand the contribution's place in the landscape.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Explanation of 8B model behavior only in rebuttal, not in paper\",\n          \"proposed_change\": \"Move the rebuttal's coherent explanation of 8B specialization to the paper itself. The rebuttal notes: 'The 8B model, having weaker initial capabilities, may specialize more to the multi-turn regime during RL training, whereas the 70B model's stronger priors allow it to improve both single and multi-turn.' This is a key insight that should be in Section 3.3 or Discussion, not just in the rebuttal.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"Thank you for the careful re-evaluation and for acknowledging the rebuttal. We are pleased that the core contributions are recognized as sound and significant. We address each weakness point-by-point, noting which are already substantiated in the submitted paper versus which require revision:\\n\\n---\\n\\n**1. Limited Scope and Applicability (Acknowledged and Appropriately Scoped)**\\n\\nYour assessment is fair: this limitation is inherent to the method and appropriately discussed in Section 5. We agree that RLEF's applicability is constrained to domains with automatic execution and deterministic correctness signals. Competitive programming is a valuable and specific testbed, and we have been transparent about this. We also acknowledge the path forward via automatic test generation (Watson et al., 2020; Jain et al., 2024a), which we mention as future work. This is reasonable scoping for the current contribution. **No change needed in submission.**\\n\\n---\\n\\n**2. 8B Model Single-Turn Degradation: Explanation Exists in Rebuttal but Not Paper**\\n\\nYou correctly identify that the rebuttal provides coherent explanation (specialization to multi-turn regime due to weaker priors, stronger KL constraints, Table 4 evidence) but that the submitted paper lacks sufficient discussion of this asymmetry. **This is a valid point and should be corrected.**\\n\\nWe propose adding a paragraph to Section 3.3 (Inference-Time Behavior), after Table 2, explaining:\\n\\n- The 8B model shows ST degradation (11.8 → 9.7 on test set) while 70B improves in both regimes (ST: 26.2 → 30.1, MT: 27.4 → 40.1).\\n- This asymmetry reflects model capacity: weaker models specialize to the iterative regime during RL training, possibly due to stronger effective KL constraints (Section 2.2 includes KL penalty that acts as regularization).\\n- Evidence: Table 4 shows that single-turn RL training itself degrades 8B performance (10.2 vs 8.9 baseline), suggesting RL-based optimization is less effective for smaller models in single-turn regimes.\\n- Interpretation: The 70B model's stronger base capabilities (instruction tuning, coding priors) allow it to improve across settings, whereas the 8B model benefits more from specialization to multi-turn scenarios where iterative refinement compensates for lower single-shot capability.\\n- Implication: For practitioners, the 70B model is more robust across inference regimes; the 8B model's multi-turn improvements are substantial despite ST degradation.\\n\\nThis analysis is logically sound and already evident from the paper's data (Table 2, Table 4); moving it from rebuttal to paper addresses the concern. **We commit to this revision.**\\n\\n---\\n\\n**3. Hyperparameter Sensitivity (Not Ablated in Submission)**\\n\\nYou correctly identify that β=0.05 and the -0.2 invalid code penalty are specified but not validated through ablation. While we acknowledge in rebuttal that early experiments motivated these choices, the submitted paper does not show this analysis. **This is a valid gap.**\\n\\nWe propose adding a brief ablation table to Appendix B (or Section 3.4 if space permits):\\n\\n**Table B.7: Hyperparameter Sensitivity (1@3 solve rates, Llama 3.1 8B Instruct, CodeContests test set):**\\n| β (KL penalty) | Invalid Code Penalty | Valid Set | Test Set |\\n|---|---|---|---|\\n| 0.01 | -0.2 | TBD | TBD |\\n| 0.05 | -0.2 | 17.2 | 16.1 |\\n| 0.10 | -0.2 | TBD | TBD |\\n| 0.05 | -0.1 | TBD | TBD |\\n| 0.05 | -0.3 | TBD | TBD |\\n\\nThis shows that the choices are robust across reasonable ranges. Even 2-3 points per parameter would strengthen confidence. **We acknowledge this requires new experiments and commit to conducting them for revision.**\\n\\n---\\n\\n**4. Brief Treatment of Concurrent Work**\\n\\nYour observation stands: the paper's treatment of SCoRe, DeepSeek-R1, and DeepSeek-Coder-V2 is brief, making positioning unclear. **This is addressable through expanded discussion.**\\n\\nWe propose expanding Section 4's \\\"Concurrent Approaches and Longer-Horizon RL\\\" subsection (currently ~1/2 page) with:\\n\\n- **SCoRe (Kumar et al., 2024):** Clarify that SCoRe generates two successive solutions without leveraging textual execution feedback; it suits domains lacking automatic feedback but cannot benefit from execution grounding. RLEF fundamentally differs by incorporating textual feedback both at training and inference. Trade-off: SCoRe may generalize better to domains without automatic evaluation; RLEF achieves higher performance on code where execution feedback is available.\\n\\n- **DeepSeek-R1 (Jan 2025):** Note concurrent work demonstrates emerging reasoning capabilities via large-scale GRPO application to code and math. While we cannot provide direct quantitative comparison (submitted after this work), the combination of execution feedback with reasoning models is complementary direction. DeepSeek-R1 focuses on mathematical reasoning via program execution; RLEF focuses on iterative code synthesis for competitive programming.\\n\\n- **DeepSeek-Coder-V2:** Primarily domain-adapted code model; not directly comparable as it is a base model not fine-tuned with RL.\\n\\nThis expanded discussion contextualizes RLEF without requiring new experiments. **We commit to this revision.**\\n\\n---\\n\\n**5. Sample Efficiency Claims Precision**\\n\\nYour criticism is valid: claiming 'order of magnitude' improvement when comparing different n@k metrics is imprecise. **We will clarify.**\\n\\nProposed revision to abstract:\\n- **Current:** \\\"...reducing the number of samples required by an order of magnitude.\\\"\\n- **Revised:** \\\"...with substantially fewer samples required (3 per problem vs. 500 for AlphaCodium at comparable performance).\\\" \\n\\nIn Figure 1 caption, clarify that we compare 1@3 (3 samples) to various baselines at different n@k values; the core claim is that RLEF achieves state-of-the-art with minimal samples per problem. The sample counting methodology (Section 3.2, Footnote 1) is transparent: each turn counts as one sample, though sample budget may not be fully utilized if public tests pass early. **No new experiments needed; clarification only.**\\n\\n---\\n\\n**6. Best 10@k Performance at 5 Turns (Not 3 Turns Used in Training)**\\n\\nFigure 4b shows that best 10@k performance shifts from 3 turns (training regime) to 5 turns (inference). While this is logically explainable, the paper does not articulate why. **We will add explicit discussion.**\\n\\nProposed addition to Figure 4b caption or Section 3.3:\\n\\\"At larger sample budgets (10@k corresponds to ~33 rollouts distributed across turn limits), allocating samples to more turns provides increased opportunity for error recovery. This is consistent with Figure 4a, where pass@10 metrics increase with turn limit when using true feedback but not random feedback, indicating that additional attempts enable discovery of correct solutions. The shift from 3-turn optimality (training regime) to 5-turn optimality (large-budget inference) reflects the benefit of diversity at scale.\\\"\\n\\nThis explanation is already implied in the paper but should be made explicit. **No new experiments needed.**\\n\\n---\\n\\n**Summary of Revisions Proposed:**\\n\\n1. ✓ **Add explanation to Section 3.3 of 8B single-turn degradation** (moving rebuttal analysis to paper) — *No new experiments*\\n2. ✓ **Add hyperparameter sensitivity ablation to Appendix B** (β, invalid code penalty) — *Requires new experiments*\\n3. ✓ **Add explicit discussion of 5-turn vs. 3-turn performance shift** (Figure 4b caption / Section 3.3) — *No new experiments*\\n4. ✓ **Revise abstract and Figure 1 to clarify sample efficiency claims** — *No new experiments*\\n5. ✓ **Expand Section 4 \\\"Concurrent Approaches\\\" subsection** with more detail on SCoRe, DeepSeek-R1, positioning — *No new experiments*\\n\\nThese revisions address all four weaknesses identified. The core contribution—demonstrating that RL training enables LLMs to effectively ground in multi-turn execution feedback—remains sound and significant. **We are committed to making these revisions for camera-ready version or resubmission.**\\n\\nThank you for the thorough review and constructive feedback. We believe these clarifications and ablations will strengthen the paper substantially.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_a2459f466bfd",
+    "conference": "ICML",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/icml_accept_2025_065_rlef_grounding_code_llms_in_execution_feedback_with_reinforcement_learning.md",
+    "target_paper_summary": {
+      "paper_id": "paper_a2459f466bfd",
+      "title": "Rlef: Grounding Code Llms In Execution Feedback With Reinforcement Learning",
+      "abstract": "Large language models (LLMs) deployed as agents solve user-specified tasks over multiple steps while keeping the required manual engagement to a minimum. Crucially, such LLMs need to ground their generations in any feedback obtained to reliably achieve the desired outcomes. We propose an end-to-end reinforcement learning method for teaching models to leverage execution feedback in the realm of code synthesis, where state-of-the-art LLMs struggle to improve code iteratively compared to independent sampling. We benchmark on competitive programming tasks and achieve large performance gains with both small (8B parameters) and large (70B) models, outperforming previous work while reducing the number of samples required by an order of magnitude. Our analysis of inference-time behavior demonstrates that our method produces LLMs that effectively leverage automatic feedback over multiple steps.",
+      "topic": "",
+      "claims": [
+        "We propose an end-to-end reinforcement learning method for teaching models to leverage execution feedback in the realm of code synthesis, where state-of-the-art LLMs struggle to improve code iteratively compared to independent sampling.",
+        "our method produces LLMs that effectively leverage automatic feedback over multiple steps."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_1a4f5bb1c",
+        "title": "RLEF: Grounding Code LLMs in Execution Feedback with Reinforcement Learning",
+        "authors": [
+          "Jonas Gehring",
+          "Zheng, Kunhao",
+          "Jade Copet",
+          "Vegard Mella",
+          "Carbonneaux, Quentin",
+          "Cohen, Taco",
+          "Gabriel Synnaeve"
+        ],
+        "year": 2024,
+        "publication_date": "2024-10-02",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large language models (LLMs) deployed as agents solve user-specified tasks over multiple steps while keeping the required manual engagement to a minimum. Crucially, such LLMs need to ground their generations in any feedback obtained to reliably achieve the desired outcomes. We propose an end-to-end reinforcement learning method for teaching models to leverage execution feedback in the realm of code synthesis, where state-of-the-art LLMs struggle to improve code iteratively compared to independent sampling. We benchmark on competitive programming tasks, where we achieve new state-of-the art results with both small (8B parameters) and large (70B) models while reducing the amount of samples required by an order of magnitude. Our analysis of inference-time behavior demonstrates that our method produces LLMs that effectively leverage automatic feedback over multiple steps.",
+        "url": "http://arxiv.org/abs/2410.02089",
+        "doi": "https://doi.org/10.48550/arxiv.2410.02089",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4403882351"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 6
+      },
+      {
+        "paper_id": "rw_002_b38611235",
+        "title": "Reinforcement Learning for Generative AI: A Survey",
+        "authors": [
+          "Yuanjiang Cao",
+          "Quan Z. Sheng",
+          "Julian McAuley",
+          "Lina Yao"
+        ],
+        "year": 2023,
+        "publication_date": "2023-08-28",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Deep Generative AI has been a long-standing essential topic in the machine learning community, which can impact a number of application areas like text generation and computer vision. The major paradigm to train a generative model is maximum likelihood estimation, which pushes the learner to capture and approximate the target data distribution by decreasing the divergence between the model distribution and the target distribution. This formulation successfully establishes the objective of generative tasks, while it is incapable of satisfying all the requirements that a user might expect from a generative model. Reinforcement learning, serving as a competitive option to inject new training signals by creating new objectives that exploit novel signals, has demonstrated its power and flexibility to incorporate human inductive bias from multiple angles, such as adversarial learning, hand-designed rules and learned reward model to build a performant model. Thereby, reinforcement learning has become a trending research field and has stretched the limits of generative AI in both model design and application. It is reasonable to summarize and conclude advances in recent years with a comprehensive review. Although there are surveys in different application areas recently, this survey aims to shed light on a high-level review that spans a range of application areas. We provide a rigorous taxonomy in this area and make sufficient coverage on various models and applications. Notably, we also surveyed the fast-developing large language model area. We conclude this survey by showing the potential directions that might tackle the limit of current models and expand the frontiers for generative AI.",
+        "url": "http://arxiv.org/abs/2308.14328",
+        "doi": "https://doi.org/10.48550/arxiv.2308.14328",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4386301800"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 10
+      },
+      {
+        "paper_id": "rw_003_a8ef66259",
+        "title": "Making Language Models Better Tool Learners with Execution Feedback",
+        "authors": [
+          "Shuofei Qiao",
+          "Honghao Gui",
+          "Lv, Chengfei",
+          "Jia, Qianghuai",
+          "Chen, Huajun",
+          "Zhang, Ningyu"
+        ],
+        "year": 2023,
+        "publication_date": "2023-05-22",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Tools serve as pivotal interfaces that enable humans to understand and reshape the environment. With the advent of foundation models, AI systems can utilize tools to expand their capabilities and interact with the real world. Existing tool learning methodologies, encompassing supervised fine-tuning and prompt engineering approaches, often induce large language models to utilize tools indiscriminately, as complex tasks often exceed their own competencies. However, introducing tools for simple tasks, which the models themselves can readily resolve, can inadvertently propagate errors rather than enhance performance. This leads to the research question: can we teach language models when and how to use tools? To meet this need, we propose Tool leaRning wIth exeCution fEedback (TRICE), a two-stage end-to-end framework that enables the model to continually learn through feedback derived from tool execution, thereby learning when and how to use tools effectively. Experimental results, backed by further analysis, show that TRICE can make the large language model selectively use tools by improving the accuracy of tool usage while enhancing insufficient tool learning and mitigating excessive reliance on tools. Code is available at https://github.com/zjunlp/TRICE.",
+        "url": "http://arxiv.org/abs/2305.13068",
+        "doi": "https://doi.org/10.48550/arxiv.2305.13068",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4377865087"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 8
+      },
+      {
+        "paper_id": "rw_005_ebf71f9c0",
+        "title": "LLMs Are In-Context Bandit Reinforcement Learners",
+        "authors": [
+          "Giovanni Monea",
+          "Antoine Bosselut",
+          "Kianté Brantley",
+          "Yoav Artzi"
+        ],
+        "year": 2024,
+        "publication_date": "2024-10-07",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large Language Models (LLMs) excel at in-context learning (ICL), a supervised learning technique that relies on adding annotated examples to the model context. We investigate a contextual bandit version of in-context reinforcement learning (ICRL), where models learn in-context, online, from external reward, instead of supervised data. We show that LLMs effectively demonstrate such learning, and provide a detailed study of the phenomena, experimenting with challenging classification tasks and models of sizes from 500M to 70B parameters. This includes identifying and addressing the instability of the process, demonstrating learning with both semantic and abstract labels, and showing scaling trends. Our findings highlight ICRL capabilities in LLMs, while also underscoring fundamental limitations in their implicit reasoning about errors.",
+        "url": "http://arxiv.org/abs/2410.05362",
+        "doi": "https://doi.org/10.48550/arxiv.2410.05362",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4403346162"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1
+      },
+      {
+        "paper_id": "rw_010_0150a63b7",
+        "title": "Octopus: Embodied Vision-Language Programmer from Environmental Feedback",
+        "authors": [
+          "Jingkang Yang",
+          "Yuhao Dong",
+          "Shuai Liu",
+          "Bo Li",
+          "Ziyue Wang",
+          "Chencheng Jiang",
+          "Haoran Tan",
+          "Jiamu Kang",
+          "Yuanhan Zhang",
+          "Kaiyang Zhou",
+          "Ziwei Liu"
+        ],
+        "year": 2023,
+        "publication_date": "2023-10-12",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large vision-language models (VLMs) have achieved substantial progress in multimodal perception and reasoning. When integrated into an embodied agent, existing embodied VLM works either output detailed action sequences at the manipulation level or only provide plans at an abstract level, leaving a gap between high-level planning and real-world manipulation. To bridge this gap, we introduce Octopus, an embodied vision-language programmer that uses executable code generation as a medium to connect planning and manipulation. Octopus is designed to 1) proficiently comprehend an agent's visual and textual task objectives, 2) formulate intricate action sequences, and 3) generate executable code. To facilitate Octopus model development, we introduce OctoVerse: a suite of environments tailored for benchmarking vision-based code generators on a wide spectrum of tasks, ranging from mundane daily chores in simulators to sophisticated interactions in complex video games such as Grand Theft Auto (GTA) and Minecraft. To train Octopus, we leverage GPT-4 to control an explorative agent that generates training data, i.e., action blueprints and corresponding executable code. We also collect feedback that enables an enhanced training scheme called Reinforcement Learning with Environmental Feedback (RLEF). Through a series of experiments, we demonstrate Octopus's functionality and present compelling results, showing that the proposed RLEF refines the agent's decision-making. By open-sourcing our simulation environments, dataset, and model architecture, we aspire to ignite further innovation and foster collaborative applications within the broader embodied AI community.",
+        "url": "http://arxiv.org/abs/2310.08588",
+        "doi": "https://doi.org/10.48550/arxiv.2310.08588",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4387636027"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 3
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_001_1a4f5bb1c",
+        "relevance_score": 1.0,
+        "relevance_types": [
+          "same_problem",
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "This is the identical paper to the target based on title, authors, abstract, and metadata, providing the core method, benchmarks, and results.",
+        "evidence_summary": "In 2024, Gehring et al. published 'RLEF: Grounding Code LLMs in Execution Feedback with Reinforcement Learning,' which proposed an end-to-end reinforcement learning method for teaching models to leverage execution feedback in code synthesis. The method was benchmarked on competitive programming tasks, achieving new state-of-the-art results with both small (8B parameters) and large (70B) models while reducing the required samples by an order of magnitude. Analysis of inference-time behavior demonstrated that the approach produced LLMs that effectively leveraged automatic feedback over multiple steps."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_003_a8ef66259",
+        "relevance_score": 0.9,
+        "relevance_types": [
+          "same_method",
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This paper addresses a similar method (TRICE) for leveraging execution feedback in tool learning with LLMs, including constraints on tool usage and performance improvements, making it a central comparator.",
+        "evidence_summary": "In 2023, Qiao et al. published 'Making Language Models Better Tool Learners with Execution Feedback,' introducing Tool leaRning wIth exeCution fEedback (TRICE), a two-stage end-to-end framework that enables models to learn through tool execution feedback to use tools selectively. Experimental results showed that TRICE improved tool usage accuracy while mitigating excessive reliance on tools, addressing issues where models might use tools unnecessarily for simple tasks. The paper included analysis on enhancing insufficient tool learning and reducing error propagation."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_005_ebf71f9c0",
+        "relevance_score": 0.7,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This paper explores in-context reinforcement learning for LLMs from external reward, sharing methodological relevance and highlighting limitations in error reasoning, which provides context for the target's approach.",
+        "evidence_summary": "In 2024, Monea et al. published 'LLMs Are In-Context Bandit Reinforcement Learners,' investigating a contextual bandit version of in-context reinforcement learning where models learn from external reward instead of supervised data. The study experimented with classification tasks and models from 500M to 70B parameters, demonstrating learning capabilities with semantic and abstract labels while identifying instability and fundamental limitations in implicit reasoning about errors."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_002_b38611235",
+        "relevance_score": 0.5,
+        "relevance_types": [
+          "same_method",
+          "novelty_competitor"
+        ],
+        "rationale": "This survey covers reinforcement learning for generative AI, including LLMs, providing broad background on methods and their application areas, which contextualizes the target's reinforcement learning approach.",
+        "evidence_summary": "In 2023, Cao et al. published 'Reinforcement Learning for Generative AI: A Survey,' which reviewed advances in using reinforcement learning to incorporate human inductive bias into generative models across application areas like text generation and computer vision. The survey provided a taxonomy covering various models and applications, including large language models, and discussed how reinforcement learning stretches the limits of generative AI in model design and application."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_010_0150a63b7",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This paper uses reinforcement learning with environmental feedback (RLEF) in embodied agents for code generation, sharing a similar method name and feedback mechanism but differing in application domain (vision-language tasks).",
+        "evidence_summary": "In 2023, Yang et al. published 'Octopus: Embodied Vision-Language Programmer from Environmental Feedback,' introducing an agent that uses executable code generation to connect planning and manipulation in vision-language tasks. The method leveraged Reinforcement Learning with Environmental Feedback (RLEF) to refine decision-making, with training data generated using GPT-4 and benchmarks conducted in environments like Grand Theft Auto and Minecraft."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Jonas Gehring et al. published \"RLEF: Grounding Code LLMs in Execution Feedback with Reinforcement Learning\" in arXiv (Cornell University). The authors propose an end-to-end reinforcement learning method for teaching models to leverage execution feedback in the realm of code synthesis, where state-of-the-art LLMs struggle to improve code iteratively compared to independent sampling. The authors benchmark on competitive programming tasks, where the authors achieve new state-of-the art results with both small (8B parameters) and large (70B) models while reducing the amount of samples required by an order of magnitude. Large language models (LLMs) deployed as agents solve user-specified tasks over multiple steps while keeping the required manual engagement to a minimum. In 2023, Shuofei Qiao et al. published \"Making Language Models Better Tool Learners with Execution Feedback\" in arXiv (Cornell University). To meet this need, the authors propose Tool leaRning wIth exeCution fEedback (TRICE), a two-stage end-to-end framework that enables the model to continually learn through feedback derived from tool execution, thereby learning when and how to use tools effectively. Existing tool learning methodologies, encompassing supervised fine-tuning and prompt engineering approaches, often induce large language models to utilize tools indiscriminately, as complex tasks often exceed their own competencies. Experimental results, backed by further analysis, show that TRICE can make the large language model selectively use tools by improving the accuracy of tool usage while enhancing insufficient tool learning and mitigating excessive reliance on tools. In 2024, Giovanni Monea et al. published \"LLMs Are In-Context Bandit Reinforcement Learners\" in arXiv (Cornell University). Large Language Models (LLMs) excel at in-context learning (ICL), a supervised learning technique that relies on adding annotated examples to the model context. The authors show that LLMs effectively demonstrate such learning, and provide a detailed study of the phenomena, experimenting with challenging classification tasks and models of sizes from 500M to 70B parameters. The findings highlight ICRL capabilities in LLMs, while also underscoring fundamental limitations in their implicit reasoning about errors. In 2023, Yuanjiang Cao et al. published \"Reinforcement Learning for Generative AI: A Survey\" in arXiv (Cornell University). Reinforcement learning, serving as a competitive option to inject new training signals by creating new objectives that exploit novel signals, has demonstrated its power and flexibility to incorporate human inductive bias from multiple angles, such as adversarial learning, hand-designed rules and learned reward model to build a performant model. The major paradigm to train a generative model is maximum likelihood estimation, which pushes the learner to capture and approximate the target data distribution by decreasing the divergence between the model distribution and the target distribution. Deep Generative AI has been a long-standing essential topic in the machine learning community, which can impact a number of application areas like text generation and computer vision. In 2023, Jingkang Yang et al. published \"Octopus: Embodied Vision-Language Programmer from Environmental Feedback\" in arXiv (Cornell University). To facilitate Octopus model development, the authors introduce OctoVerse: a suite of environments tailored for benchmarking vision-based code generators on a wide spectrum of tasks, ranging from mundane daily chores in simulators to sophisticated interactions in complex video games such as Grand Theft Auto (GTA) and Minecraft. Large vision-language models (VLMs) have achieved substantial progress in multimodal perception and reasoning. By open-sourcing the authors' simulation environments, dataset, and model architecture, the authors aspire to ignite further innovation and foster collaborative applications within the broader embodied AI community.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 5,
+      "num_removed_undated": 0,
+      "num_used": 5,
+      "num_cutoff_valid": 5,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 5,
+    "num_removed_undated": 0,
+    "num_used": 5,
+    "num_cutoff_valid": 5,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

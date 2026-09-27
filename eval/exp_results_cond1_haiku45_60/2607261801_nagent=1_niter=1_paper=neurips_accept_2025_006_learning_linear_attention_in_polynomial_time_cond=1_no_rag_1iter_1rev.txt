@@ -1,0 +1,200 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "First polynomial-time learnability result for multi-head linear attention networks with strong agnostic PAC learning guarantees. This is a significant theoretical contribution bridging expressivity and learnability of Transformers, addressing a gap explicitly stated in prior work.",
+        "Novel certifiable identifiability criterion that provides a data-dependent, efficiently checkable condition (full rank of second-moment matrix ΛD) guaranteeing all empirical risk minimizers compute identical functions. This enables formal verification of generalization and connects to out-of-distribution behavior.",
+        "Elegant algorithmic approach using kernel method reformulation: casting MHLA learning as regression over cubic polynomial features, then decomposing via SVD to recover parameters. The connection to RKHS and the relaxation to rank-H matrices is mathematically sound and enables polynomial-time solutions.",
+        "Comprehensive theoretical treatment including application to learning universal Turing machines with bounded computation history, demonstrating practical relevance of the theory to important computational models.",
+        "Empirical validation on multiple canonical tasks demonstrating that d² heads provide optimization benefits aligned with theory, and that the identifiability certificate predicts SGD convergence behavior in practice."
+      ],
+      "weaknesses": [
+        "The restriction to linear attention without softmax is a significant limitation for practical relevance. While linear attention variants have shown improvements, they remain predominantly used in specific contexts (efficient inference, specialized domains). The connection to real-world Transformer architectures employed in LLMs is tenuous.",
+        "Sample complexity scaling as O(d⁴/ϵ) is polynomially dependent but potentially prohibitive in high dimensions. For d=100 (modest embedding dimension), this is 10⁸ samples per unit inverse error, making practical applicability questionable even with polynomial guarantees.",
+        "The certifiable identifiability result requires realizability of training data (Lemma A.3), which is restrictive. While Lemma A.6 removes this for d²+ heads, the main learnability result (Theorem 2.2) does not require realizability, creating an asymmetry in the theory that weakens claims about learning under realistic conditions.",
+        "Limited experimental validation: experiments are restricted to synthetic data and canonical tasks (random linear attention, associative memory, finite automata). No experiments on real datasets or realistic problem instances where one would actually want to learn linear attention networks.",
+        "Runtime complexity O(Nd⁴nmax/ϵ) with ϵ⁻¹ dependence requires knowing target error in advance. The paper lacks discussion of how to select ϵ in practice or adaptive procedures to avoid prohibitive costs."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The restriction to linear attention without softmax is a significant limitation for practical relevance. While linear attention variants have shown improvements, they remain predominantly used in specific contexts (efficient inference, specialized domains). The connection to real-world Transformer architectures employed in LLMs is tenuous.",
+          "severity": "major",
+          "evidence": "The paper studies MHLA_Θ(Z) = Σ_h V_h Z(Z^T Q_h Z) without softmax. Introduction states 'we focus our analysis on multi-head linear attention networks...for regression tasks' and acknowledges 'the model class we consider is far simpler than modern LLM's' in conclusion.",
+          "affected_claim": "Significance for practical learning of Transformers",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Sample complexity scaling as O(d⁴/ϵ) is polynomially dependent but potentially prohibitive in high dimensions. For d=100 (modest embedding dimension), this is 10⁸ samples per unit inverse error, making practical applicability questionable even with polynomial guarantees.",
+          "severity": "major",
+          "evidence": "Theorem 2.2 states sample complexity N = O(d⁴/ϵ + log(δ⁻¹)). For d=100, d⁴=10⁸. No discussion of constants or empirical sample complexity.",
+          "affected_claim": "Practical learnability of the proposed algorithm",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The certifiable identifiability result requires realizability of training data (Lemma A.3), which is restrictive. While Lemma A.6 removes this for d²+ heads, the main learnability result (Theorem 2.2) does not require realizability, creating an asymmetry in the theory that weakens claims about learning under realistic conditions.",
+          "severity": "minor",
+          "evidence": "Lemma A.3 (Certificate of Identifiability) states 'Let dataset D = {(Zi, yi)}i∈[N] be a realizable dataset.' Lemma A.6 removes this but requires H≥d² heads. Theorem 2.2 uses different framework not requiring realizability.",
+          "affected_claim": "Identifiability guarantees apply broadly to agnostic PAC learning setting",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Limited experimental validation: experiments are restricted to synthetic data and canonical tasks (random linear attention, associative memory, finite automata). No experiments on real datasets or realistic problem instances where one would actually want to learn linear attention networks.",
+          "severity": "minor",
+          "evidence": "Section 4 contains: (4.1) synthetic data from ground-truth MHLA with Gaussian initialization; (4.2) associative memory task with controlled mixture of identifiable/unidentifiable data. No real datasets, no language modeling, no vision tasks.",
+          "affected_claim": "Practical validation of theoretical predictions",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Runtime complexity O(Nd⁴nmax/ϵ) with ϵ⁻¹ dependence requires knowing target error in advance. The paper lacks discussion of how to select ϵ in practice or adaptive procedures to avoid prohibitive costs.",
+          "severity": "minor",
+          "evidence": "Theorem 2.2 states runtime is O(Nd⁴nmax/ϵ⁻¹). No guidance on ϵ selection, no empirical investigation of ϵ values needed for reasonable accuracy, no adaptive methods discussed.",
+          "affected_claim": "Practical algorithmic efficiency",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The mathematical framework is rigorous. The main approach is sound: reformulating MHLA computation as inner product ⟨W, X(Z)⟩ in feature space, then solving via OLS regression and decomposing via SVD. The proof idea (Section 2.1) is clearly explained. The relaxation from rank-H to general matrices is valid and provides a lower bound on optimal loss. Classical VC theory is properly applied for generalization. Identifiability results follow from linear regression uniqueness when covariance is full rank. The UTM expressibility construction appears sound though complex. Minor issues: some notation inconsistencies (H vs Hn indexing), but core technical content is correct."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "This appears to be the first polynomial-time algorithm for learning MHLA networks with provable guarantees. Prior work (cited extensively in Section 5) focused on expressivity or learning specific problem instances (in-context regression, spatial structure) under strong assumptions (Gaussianity, initialization conditions, separability). The certifiable identifiability notion is novel—providing data-dependent verification that all ERM solutions are functionally equivalent. The kernel/feature space reformulation for MHLA is creative. However, the restriction to linear attention somewhat limits novelty compared to what would be transformative (e.g., results for softmax attention)."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper addresses a fundamental open question stated in the introduction: 'Is there an efficient algorithm in time and samples that learns the optimal parameters of a class of Transformer models for any dataset?' This bridges theory and practice for an important model class. The certifiable identifiability result is conceptually significant for understanding when generalization is guaranteed. For the top-tier ML community, positive answers to these questions are meaningful contributions to theoretical understanding of deep learning. However, impact is limited by restriction to linear attention and lack of real-world applicability. The UTM learning application is theoretically interesting but primarily of academic value."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Experimental evaluation supports main theoretical claims: (1) Algorithm 1 achieves comparable performance to convex relaxation optimum; (2) d² heads provide optimization benefits matching theory; (3) identifiability certificate predicts convergence to ground truth for SGD. Figure 2 effectively demonstrates correlation between λmin(ΛD) and convergence. However, experiments are limited to synthetic data and toy problems. No real datasets, no comparison to other learning algorithms, no ablation studies. The experiments validate proofs of concept rather than demonstrating practical utility. For a theory paper, this is adequate, but the evaluation could be stronger."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "Overall well-written with clear motivation and organization. Main results (Theorems 2.2, Lemmas 2.3, 3.1) are prominent. Algorithm 1 is clearly presented. Proof sketches in main text are accessible. However, several issues: (1) Notation is heavy (T_Θ, p, H, X vs X—multiple feature mappings create confusion); (2) Key concepts like 'certifiable identifiability' take substantial appendix to fully understand; (3) The polynomial p and its equivalence class interpretation needs clearer explanation in main text; (4) Some experimental details relegated to appendix without sufficient discussion; (5) Connection between different identifiability lemmas (A.3, A.6, E.1) could be clarified earlier. For a theory paper at a top venue, presentation is acceptable but could be significantly improved."
+        }
+      },
+      "summary_comment": "This paper makes solid theoretical contributions to the learnability of Transformer architectures by providing the first polynomial-time PAC learning algorithm for multi-head linear attention networks. The core insight—reformulating MHLA learning as kernel regression over cubic polynomial features and solving via OLS—is elegant and leads to concrete algorithmic and sample complexity guarantees. The certifiable identifiability result is conceptually interesting, providing data-dependent verification of functional equivalence for all ERM solutions. However, several factors limit the work's impact: (1) The restriction to linear attention rather than softmax attention significantly limits practical relevance; (2) Sample complexity O(d⁴/ϵ) is prohibitive in realistic dimensions despite being polynomial; (3) Experiments are confined to synthetic data on toy problems without validation on realistic scenarios; (4) The presentation, while generally clear, could be more accessible with reduced notation overhead. The work represents a meaningful step toward understanding Transformer learnability from a theoretical standpoint and would be of interest to the theory-focused portion of the ML community. However, it falls short of being transformative due to the gap between theoretical guarantees and practical applicability."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Core contribution is a polynomial-time learning algorithm with PAC guarantees, directly addressing ICML's focus on 'general machine learning' and 'theory of machine learning (statistical learning theory...)'\",\n      \"The paper bridges learning theory and neural architecture design through kernel methods and feature space reformulation, aligning with ICML's interest in 'optimization (convex and non-convex optimization, matrix/tensor methods...)'\",\n      \"Provides theoretical foundations for understanding Transformer learnability, contributing to 'deep learning (architectures, generative models, theory, etc.)' track\",\n      \"Experimental validation on canonical ML tasks (associative memory, finite automata) demonstrates systematic evaluation of theoretical predictions\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Reviewer notes the restriction to linear attention (no softmax) significantly limits practical relevance—ICML values both theoretical contributions and real-world applicability; this creates a gap\",\n      \"Sample complexity O(d⁴/ϵ) and runtime O(Nd⁴n_max/ϵ⁻¹) raise serious concerns about practical scalability, a dimension ICML audience would scrutinize heavily\",\n      \"Experiments are entirely synthetic with no real datasets or realistic benchmarks; ICML expects empirical validation beyond toy problems to demonstrate genuine impact\",\n      \"The paper is fundamentally a theory paper with limited algorithmic systems contributions (Algorithm 1 is essentially OLS + SVD), which may be seen as incremental for ICML's 'machine learning systems' dimension\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"NeurIPS explicitly welcomes 'in-depth analysis of existing methods that provide new insights in terms of their limitations or behavior beyond the scope of the original work'—this paper does exactly that for linear attention\",\n      \"Strong fit with NeurIPS's 'Theory' topic and appreciation for fundamental theoretical advances; the polynomial-time learnability result is a significant theoretical contribution\",\n      \"The certifiable identifiability criterion is conceptually novel and contributes to understanding 'Decision-making, reinforcement learning, and control' and 'Generalization and multi-task learning' through a new lens\",\n      \"Application to learning universal Turing machines demonstrates 'neurosymbolic & hybrid AI systems' components, an explicit NeurIPS interest area\",\n      \"NeurIPS's broader remit includes 'interdisciplinary submissions that do not fit neatly into existing categories'—this paper's theoretical abstraction fits that description\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Reviewer's concerns about limited practical applicability: linear attention without softmax is not mainstream in real systems. NeurIPS, despite valuing theory, expects theoretical work to illuminate or advance practice\",\n      \"Synthetic-only experiments are particularly problematic for NeurIPS, which has grown increasingly empirical and practical over time. No language modeling, vision, or real-world validation\",\n      \"The d⁴ sample complexity makes even theoretical claims somewhat hollow—NeurIPS community would question whether this is truly 'learning' in a meaningful sense given the dimensional scaling\",\n      \"Gap between linear attention and actual Transformer practice is wider for NeurIPS audience, which includes many practitioners; the paper risks being perceived as toy-problem theory\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"ICLR's focus on 'representation learning' and 'learning theory' directly aligns with the paper's core contribution on learning MHLA parameters and their representational properties\",\n      \"The kernel method reformulation and feature space analysis (casting MHLA as inner product in RKHS) fits ICLR's interest in 'probabilistic methods (Bayesian methods, variational inference...)' and optimization theory\",\n      \"Explicit application to learning algorithms and understanding what representations can be efficiently learned from data is central to ICLR's mission\",\n      \"The paper's focus on deep learning architectures (Transformers, linear attention variants) and their learnability is precisely in ICLR's wheelhouse: 'unsupervised, self-supervised, semi-supervised, and supervised representation learning'\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICLR places strong emphasis on practical deep learning: 'applications to robotics, autonomy, planning' and 'applications to physical sciences (physics, chemistry, biology, etc.)' suggest expectation of grounding in real problems. Experiments on synthetic data only are insufficient\",\n      \"The linear attention restriction is more problematic for ICLR than for pure theory venues, as ICLR explicitly values work that advances practical deep learning; softmax attention dominates real systems\",\n      \"Reviewer notes sample complexity O(d⁴/ϵ) would be viewed as prohibitive—ICLR practitioners would not be able to use these results given dimensional scalability concerns\",\n      \"ICLR explicitly welcomes 'datasets and benchmarks'—paper provides none. The synthetic experiments do not advance understanding of real representation learning problems\",\n      \"The gap between 'what can be proven' and 'what practitioners care about' is wider at ICLR than at pure theory venues. The restrictive model class and unfavorable complexity may be seen as insufficient contribution to practical deep learning\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary and Recommendation\n\n**Overall Assessment:** This is a solid theoretical paper that makes genuine contributions to understanding Transformer learnability. The authors provide the first polynomial-time algorithm for learning multi-head linear attention with PAC guarantees, and introduce the novel notion of \"certifiable identifiability\" for verifying generalization. The mathematical framework is sound and the core insight (kernel method reformulation + SVD decomposition) is elegant.\n\n**Key Strengths:**\n- Novel theoretical result addressing an open question in Transformer learning\n- Rigorous treatment with formal PAC-learning guarantees\n- Creative algorithmic approach with clean mathematical structure\n- Conceptually interesting identifiability criterion\n\n**Key Weaknesses (per reviewer):**\n1. **Practical Gap:** Restriction to linear attention (no softmax) severely limits relevance to real Transformers\n2. **Scalability:** Sample complexity O(d⁴/ϵ) is prohibitive in realistic dimensions\n3. **Experimental Validation:** Only synthetic data; no real datasets or practical benchmarks\n4. **Presentation:** Heavy notation; key concepts difficult to extract; limited discussion of practical implications\n\n**Venue Fit Analysis:**\n\n- **ICML (7/10):** Best fit among the three. Aligns with theory of ML and statistical learning theory interests. However, limited practical scope and synthetic-only experiments weaken fit.\n\n- **NeurIPS (7/10):** Good fit given appreciation for theoretical contributions and interdisciplinary work. But similar concerns about practical applicability and lack of empirical grounding on realistic problems.\n\n- **ICLR (6/10):** Weakest fit. ICLR increasingly emphasizes practical deep learning advances. Linear attention restriction, synthetic-only evaluation, and prohibitive sample complexity make this less aligned with ICLR's direction. The paper reads more as pure theory than representation learning advance.\n\n**Recommendation:** This paper is suitable for either **ICML or NeurIPS**. Both venues value theoretical contributions more than ICLR. The choice between them depends on author emphasis:\n- If emphasizing learning theory and optimization → **ICML** (slightly better fit)\n- If emphasizing breadth and conceptual novelty → **NeurIPS** (broader acceptance of theoretical work)\n\n**Avoid ICLR** unless substantially strengthened with real data experiments or extended to softmax attention. The gap between theory and practice is too wide for ICLR's current standards.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 3
+            },
+            "strengths": [
+              "First polynomial-time learnability result for multi-head linear attention networks with strong agnostic PAC learning guarantees. This is a significant theoretical contribution bridging expressivity and learnability of Transformers, addressing a gap explicitly stated in prior work.",
+              "Novel certifiable identifiability criterion that provides a data-dependent, efficiently checkable condition (full rank of second-moment matrix ΛD) guaranteeing all empirical risk minimizers compute identical functions. This enables formal verification of generalization and connects to out-of-distribution behavior.",
+              "Elegant algorithmic approach using kernel method reformulation: casting MHLA learning as regression over cubic polynomial features, then decomposing via SVD to recover parameters. The connection to RKHS and the relaxation to rank-H matrices is mathematically sound and enables polynomial-time solutions.",
+              "Comprehensive theoretical treatment including application to learning universal Turing machines with bounded computation history, demonstrating practical relevance of the theory to important computational models.",
+              "Empirical validation on multiple canonical tasks demonstrating that d² heads provide optimization benefits aligned with theory, and that the identifiability certificate predicts SGD convergence behavior in practice."
+            ],
+            "weaknesses": [
+              "The restriction to linear attention without softmax is a significant limitation for practical relevance. While linear attention variants have shown improvements, they remain predominantly used in specific contexts (efficient inference, specialized domains). The connection to real-world Transformer architectures employed in LLMs is tenuous.",
+              "Sample complexity scaling as O(d⁴/ϵ) is polynomially dependent but potentially prohibitive in high dimensions. For d=100 (modest embedding dimension), this is 10⁸ samples per unit inverse error, making practical applicability questionable even with polynomial guarantees.",
+              "The certifiable identifiability result requires realizability of training data (Lemma A.3), which is restrictive. While Lemma A.6 removes this for d²+ heads, the main learnability result (Theorem 2.2) does not require realizability, creating an asymmetry in the theory that weakens claims about learning under realistic conditions.",
+              "Limited experimental validation: experiments are restricted to synthetic data and canonical tasks (random linear attention, associative memory, finite automata). No experiments on real datasets or realistic problem instances where one would actually want to learn linear attention networks.",
+              "Runtime complexity O(Nd⁴nmax/ϵ) with ϵ⁻¹ dependence requires knowing target error in advance. The paper lacks discussion of how to select ϵ in practice or adaptive procedures to avoid prohibitive costs."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The restriction to linear attention without softmax is a significant limitation for practical relevance. While linear attention variants have shown improvements, they remain predominantly used in specific contexts (efficient inference, specialized domains). The connection to real-world Transformer architectures employed in LLMs is tenuous.",
+                "severity": "major",
+                "evidence": "The paper studies MHLA_Θ(Z) = Σ_h V_h Z(Z^T Q_h Z) without softmax. Introduction states 'we focus our analysis on multi-head linear attention networks...for regression tasks' and acknowledges 'the model class we consider is far simpler than modern LLM's' in conclusion.",
+                "affected_claim": "Significance for practical learning of Transformers",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Sample complexity scaling as O(d⁴/ϵ) is polynomially dependent but potentially prohibitive in high dimensions. For d=100 (modest embedding dimension), this is 10⁸ samples per unit inverse error, making practical applicability questionable even with polynomial guarantees.",
+                "severity": "major",
+                "evidence": "Theorem 2.2 states sample complexity N = O(d⁴/ϵ + log(δ⁻¹)). For d=100, d⁴=10⁸. No discussion of constants or empirical sample complexity.",
+                "affected_claim": "Practical learnability of the proposed algorithm",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The certifiable identifiability result requires realizability of training data (Lemma A.3), which is restrictive. While Lemma A.6 removes this for d²+ heads, the main learnability result (Theorem 2.2) does not require realizability, creating an asymmetry in the theory that weakens claims about learning under realistic conditions.",
+                "severity": "minor",
+                "evidence": "Lemma A.3 (Certificate of Identifiability) states 'Let dataset D = {(Zi, yi)}i∈[N] be a realizable dataset.' Lemma A.6 removes this but requires H≥d² heads. Theorem 2.2 uses different framework not requiring realizability.",
+                "affected_claim": "Identifiability guarantees apply broadly to agnostic PAC learning setting",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited experimental validation: experiments are restricted to synthetic data and canonical tasks (random linear attention, associative memory, finite automata). No experiments on real datasets or realistic problem instances where one would actually want to learn linear attention networks.",
+                "severity": "minor",
+                "evidence": "Section 4 contains: (4.1) synthetic data from ground-truth MHLA with Gaussian initialization; (4.2) associative memory task with controlled mixture of identifiable/unidentifiable data. No real datasets, no language modeling, no vision tasks.",
+                "affected_claim": "Practical validation of theoretical predictions",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Runtime complexity O(Nd⁴nmax/ϵ) with ϵ⁻¹ dependence requires knowing target error in advance. The paper lacks discussion of how to select ϵ in practice or adaptive procedures to avoid prohibitive costs.",
+                "severity": "minor",
+                "evidence": "Theorem 2.2 states runtime is O(Nd⁴nmax/ϵ⁻¹). No guidance on ϵ selection, no empirical investigation of ϵ values needed for reasonable accuracy, no adaptive methods discussed.",
+                "affected_claim": "Practical algorithmic efficiency",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical framework is rigorous. The main approach is sound: reformulating MHLA computation as inner product ⟨W, X(Z)⟩ in feature space, then solving via OLS regression and decomposing via SVD. The proof idea (Section 2.1) is clearly explained. The relaxation from rank-H to general matrices is valid and provides a lower bound on optimal loss. Classical VC theory is properly applied for generalization. Identifiability results follow from linear regression uniqueness when covariance is full rank. The UTM expressibility construction appears sound though complex. Minor issues: some notation inconsistencies (H vs Hn indexing), but core technical content is correct."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "This appears to be the first polynomial-time algorithm for learning MHLA networks with provable guarantees. Prior work (cited extensively in Section 5) focused on expressivity or learning specific problem instances (in-context regression, spatial structure) under strong assumptions (Gaussianity, initialization conditions, separability). The certifiable identifiability notion is novel—providing data-dependent verification that all ERM solutions are functionally equivalent. The kernel/feature space reformulation for MHLA is creative. However, the restriction to linear attention somewhat limits novelty compared to what would be transformative (e.g., results for softmax attention)."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a fundamental open question stated in the introduction: 'Is there an efficient algorithm in time and samples that learns the optimal parameters of a class of Transformer models for any dataset?' This bridges theory and practice for an important model class. The certifiable identifiability result is conceptually significant for understanding when generalization is guaranteed. For the top-tier ML community, positive answers to these questions are meaningful contributions to theoretical understanding of deep learning. However, impact is limited by restriction to linear attention and lack of real-world applicability. The UTM learning application is theoretically interesting but primarily of academic value."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experimental evaluation supports main theoretical claims: (1) Algorithm 1 achieves comparable performance to convex relaxation optimum; (2) d² heads provide optimization benefits matching theory; (3) identifiability certificate predicts convergence to ground truth for SGD. Figure 2 effectively demonstrates correlation between λmin(ΛD) and convergence. However, experiments are limited to synthetic data and toy problems. No real datasets, no comparison to other learning algorithms, no ablation studies. The experiments validate proofs of concept rather than demonstrating practical utility. For a theory paper, this is adequate, but the evaluation could be stronger."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "Overall well-written with clear motivation and organization. Main results (Theorems 2.2, Lemmas 2.3, 3.1) are prominent. Algorithm 1 is clearly presented. Proof sketches in main text are accessible. However, several issues: (1) Notation is heavy (T_Θ, p, H, X vs X—multiple feature mappings create confusion); (2) Key concepts like 'certifiable identifiability' take substantial appendix to fully understand; (3) The polynomial p and its equivalence class interpretation needs clearer explanation in main text; (4) Some experimental details relegated to appendix without sufficient discussion; (5) Connection between different identifiability lemmas (A.3, A.6, E.1) could be clarified earlier. For a theory paper at a top venue, presentation is acceptable but could be significantly improved."
+              }
+            },
+            "summary_comment": "This paper makes solid theoretical contributions to the learnability of Transformer architectures by providing the first polynomial-time PAC learning algorithm for multi-head linear attention networks. The core insight—reformulating MHLA learning as kernel regression over cubic polynomial features and solving via OLS—is elegant and leads to concrete algorithmic and sample complexity guarantees. The certifiable identifiability result is conceptually interesting, providing data-dependent verification of functional equivalence for all ERM solutions. However, several factors limit the work's impact: (1) The restriction to linear attention rather than softmax attention significantly limits practical relevance; (2) Sample complexity O(d⁴/ϵ) is prohibitive in realistic dimensions despite being polynomial; (3) Experiments are confined to synthetic data on toy problems without validation on realistic scenarios; (4) The presentation, while generally clear, could be more accessible with reduced notation overhead. The work represents a meaningful step toward understanding Transformer learnability from a theoretical standpoint and would be of interest to the theory-focused portion of the ML community. However, it falls short of being transformative due to the gap between theoretical guarantees and practical applicability."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

@@ -1,0 +1,769 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 2,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 2
+      },
+      "strengths": [
+        "Addresses a practical and important problem: reducing computational overhead of neural image compression on resource-constrained edge devices, which is relevant to real-world IoT and edge computing scenarios.",
+        "Proposes a system (Easz) that is compatible with multiple existing compression algorithms (JPEG, BPG, MBT, Cheng-Anchor), potentially increasing its practical applicability.",
+        "Demonstrates significant latency improvements on edge devices (89% reduction compared to MBT/Cheng methods) and shows reduced power consumption and memory footprint on Jetson TX2."
+      ],
+      "weaknesses": [
+        "The core technical contribution—conditional uniform-based sampling—lacks theoretical justification and is admittedly introduced empirically without principled design. Author explicitly acknowledges δ and Δ constraints are based on observation in Figure 3 rather than principled derivation, stating 'we do not have a theoretical defense for the specific constraint formulation... beyond empirical observation.' This represents a fundamental gap in soundness.",
+        "Experimental evaluation uses PSNR/SSIM metrics in Table 1 despite Section 4.1 explicitly stating these metrics are inappropriate for erased content. The paper acknowledges 'removing content would negatively impact reference-based metrics such as PSNR and SSIM' yet reports these as primary comparison metrics. Author admits in rebuttal 'The use of PSNR/SSIM in Table 1 is indeed inconsistent with the stated methodology' but makes no correction in the submitted paper.",
+        "The reconstruction model is trained on CIFAR-10 (32×32 images) and tested on Kodak/CLIC without ablation showing zero-shot generalization performance. Figure 6d demonstrates fine-tuning helps, but baseline CIFAR-10-only performance on target datasets is not reported. Author acknowledges 'the paper lacks critical ablations showing performance of the CIFAR-10-pretrained model without fine-tuning on target datasets,' confirming this gap.",
+        "No comparison with standard model compression baselines (quantization, pruning, knowledge distillation). The paper frames the problem as reducing encoding latency but does not compare against the most direct alternative approaches. Author concedes in rebuttal this is 'a significant gap' but no such comparisons appear in the submitted paper.",
+        "Critical ablations are missing: δ and Δ constraint parameters are not systematically studied despite being central to the proposed method. Figure 6c ablates only patch sizes and erase ratios. No evaluation of scalability to high-resolution images (2K, 4K) is provided. Author confirms 'The constraint parameters δ and Δ should be systematically studied in ablation experiments... These are absent in the submitted work.'",
+        "Real-world validation scope is limited: all experiments use a single edge device (Jetson TX2) and two datasets (Kodak: 24 images; CLIC). The paper mentions Raspberry Pi 4 in motivation but evaluates only on TX2. Author acknowledges 'the work is presented as an engineering/systems contribution... [but] lacks the theoretical depth and comprehensive evaluation expected for a top-tier venue.'"
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The core technical contribution—conditional uniform-based sampling—lacks theoretical justification and is admittedly introduced empirically without principled design. Author explicitly acknowledges δ and Δ constraints are based on observation in Figure 3 rather than principled derivation, stating 'we do not have a theoretical defense for the specific constraint formulation... beyond empirical observation.' This represents a fundamental gap in soundness.",
+          "severity": "major",
+          "evidence": "Author's second rebuttal states: 'The reviewer is correct that δ and Δ are introduced empirically without principled justification. We do not have a theoretical defense for the specific constraint formulation in Section 3.2.2 beyond empirical observation that it works better than unconstrained random sampling.' This explicit admission confirms the core technical contribution lacks sound theoretical foundations. The submitted paper (Section 3.2.2) provides only mathematical notation without justification.",
+          "affected_claim": "The proposed conditional uniform-based sampler is a theoretically sound and well-justified solution",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Experimental evaluation uses PSNR/SSIM metrics in Table 1 despite Section 4.1 explicitly stating these metrics are inappropriate for erased content. The paper acknowledges 'removing content would negatively impact reference-based metrics such as PSNR and SSIM' yet reports these as primary comparison metrics. Author admits in rebuttal 'The use of PSNR/SSIM in Table 1 is indeed inconsistent with the stated methodology' but makes no correction in the submitted paper.",
+          "severity": "major",
+          "evidence": "Section 4.1, line 378-379: 'Since removing content would negatively impact reference-based metrics such as PSNR and SSIM... we employ non-reference perceptual metrics.' Table 1 still reports PSNR (28.96) and MS_SSIM (0.96) as primary metrics. Author's rebuttal acknowledges: 'The use of PSNR/SSIM in Table 1 is indeed inconsistent with the stated methodology in Section 4.1. The reviewer is correct that promising to \"clearly demarcate\" these results in a revision does not fix the problem in the current submission. In the submitted paper, Table 1 remains problematic as presented.'",
+          "affected_claim": "Easz outperforms super-resolution methods on appropriate comparison metrics",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The reconstruction model is trained on CIFAR-10 (32×32 images) and tested on Kodak/CLIC without ablation showing zero-shot generalization performance. Figure 6d demonstrates fine-tuning helps, but baseline CIFAR-10-only performance on target datasets is not reported. Author acknowledges 'the paper lacks critical ablations showing performance of the CIFAR-10-pretrained model without fine-tuning on target datasets,' confirming this gap.",
+          "severity": "major",
+          "evidence": "Section 4.1 states pretraining on CIFAR-10 with erase ratio 0.25. Figure 6d shows loss reduction with fine-tuning but not the absolute baseline. Author's rebuttal states: 'The paper lacks critical ablations showing performance of the CIFAR-10-pretrained model without fine-tuning on target datasets. Figure 6d demonstrates that fine-tuning helps, but the baseline CIFAR-10-only performance is not quantified. This is a significant omission for assessing generalization.'",
+          "affected_claim": "Easz generalizes effectively to diverse real-world image datasets",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "No comparison with standard model compression baselines (quantization, pruning, knowledge distillation). The paper frames the problem as reducing encoding latency but does not compare against the most direct alternative approaches. Author concedes in rebuttal this is 'a significant gap' but no such comparisons appear in the submitted paper.",
+          "severity": "major",
+          "evidence": "Section 4.1 lists baselines: JPEG, BPG, MBT, Cheng-Anchor only. No quantized versions or pruned models are included. Author's rebuttal: 'We acknowledge the absence of comparisons with quantized neural compression methods or other standard edge-deployment techniques. While Easz is designed to be compatible with existing compressors... direct comparison with quantized baselines would strengthen the evaluation.' Yet no such comparisons appear in the submitted paper.",
+          "affected_claim": "Easz is an optimal approach compared to standard edge deployment techniques",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Critical ablations are missing: δ and Δ constraint parameters are not systematically studied despite being central to the proposed method. Figure 6c ablates only patch sizes and erase ratios. No evaluation of scalability to high-resolution images (2K, 4K) is provided. Author confirms 'The constraint parameters δ and Δ should be systematically studied in ablation experiments... These are absent in the submitted work.'",
+          "severity": "major",
+          "evidence": "Figure 6c (page 452) ablates patch=1,2,4 and erase ratio=10%-50% on Kodak. No sensitivity analysis of δ or Δ. Author's rebuttal: 'The constraint parameters δ and Δ should be systematically studied in ablation experiments, as should scalability to higher-resolution images. These are absent in the submitted work.' This directly confirms these critical ablations are missing.",
+          "affected_claim": "The framework is thoroughly evaluated and understood",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Real-world validation scope is limited: all experiments use a single edge device (Jetson TX2) and two datasets (Kodak: 24 images; CLIC). The paper mentions Raspberry Pi 4 in motivation but evaluates only on TX2. Author acknowledges 'the work is presented as an engineering/systems contribution... [but] lacks the theoretical depth and comprehensive evaluation expected for a top-tier venue.'",
+          "severity": "minor",
+          "evidence": "Section 4.1: 'NVIDIA Jetson TX2 as the edge device.' Section 2 mentions Raspberry Pi 4 but it is not evaluated. Author's rebuttal: 'For a systems paper addressing edge IoT, broader evaluation across devices and datasets is important for credibility' and 'the work is presented as an engineering/systems contribution with practical results... but it lacks the theoretical depth and comprehensive evaluation expected for a top-tier venue.'",
+          "affected_claim": "Easz is practical and applicable to diverse edge IoT scenarios",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The author's second rebuttal demonstrates transparent acknowledgment but does not resolve the soundness issues. The author explicitly states: 'We do not have a theoretical defense for the specific constraint formulation... beyond empirical observation.' This confirms that the core technical contribution (δ and Δ constraints) lacks principled theoretical grounding. Additionally, the experimental methodology is internally inconsistent (stating PSNR/SSIM are inappropriate while using them as primary metrics in Table 1, confirmed as 'problematic' by the author). The generalization capability from CIFAR-10 to real datasets lacks ablation evidence. These represent fundamental soundness deficits."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The combination of selective pixel erasure with constrained random sampling for edge compression is a defensible incremental contribution. While not highly novel, it represents a systems-oriented approach to an important problem. The novelty gate passes, though the contribution is modest (score 3)."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "Significance remains limited. The paper trades content (erases patches) for reduced computation rather than optimizing the compression algorithm itself. The author's own rebuttal states: 'the work is presented as an engineering/systems contribution... [but] lacks the theoretical depth and comprehensive evaluation expected for a top-tier venue.' Without comparison to standard model compression techniques and with limited real-world evaluation, the contribution does not meet the significance bar for a selective conference."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "Evaluation issues are unresolved in the submitted paper. The author acknowledges but does not fix the PSNR/SSIM metric inconsistency, confirms missing ablations on δ and Δ parameters, admits absent generalization analysis, and concedes the lack of model compression baseline comparisons. The author's statement that 'Table 1 remains problematic as presented' confirms the issue persists in the submitted version. These are not minor oversights but fundamental gaps in evaluation methodology."
+        },
+        "presentation": {
+          "result": "fail",
+          "justification": "Presentation issues remain unfixed in the submitted paper. The author acknowledges 'Multiple presentation issues identified in the review (title formatting, notation inconsistencies, unclear motivation in Section 3.1) remain in the submitted paper.' The title still contains 'En- Hancement,' Section 3.1 still does not clearly motivate why uniform downsampling limits flexibility, and notation inconsistencies persist. These are fixable but were not addressed before resubmission."
+        }
+      },
+      "summary_comment": "The author's second rebuttal represents commendable intellectual honesty. Rather than defending the work, the author explicitly acknowledges major gaps: 'we do not have a theoretical defense for the specific constraint formulation... beyond empirical observation'; 'the use of PSNR/SSIM in Table 1 is indeed inconsistent with the stated methodology'; 'the paper lacks critical ablations'; and 'the work... lacks the theoretical depth and comprehensive evaluation expected for a top-tier venue.' These admissions are substantive and candid. However, they do not change the evaluation of the submitted paper itself, which remains unchanged. The rebuttal clarifies that the submitted paper has significant unresolved gaps in soundness, evaluation, and presentation. The work makes a practical engineering contribution (89% latency reduction on edge devices) with real experimental results. However, this does not overcome fundamental deficiencies: (1) the core sampling method δ and Δ is empirically motivated without theoretical justification; (2) experimental methodology is internally inconsistent (inappropriate metrics used despite acknowledgment); (3) critical ablations are absent; (4) no comparison with obvious alternative approaches (model compression); and (5) evaluation scope is narrow (one device, two small datasets). For a selective top-tier venue, these gaps are disqualifying. The author's transparent acknowledgment of these limitations is appreciated and demonstrates understanding of publication standards, but acknowledgment is not resolution. The submitted paper requires substantial additional work: principled parameter-setting mechanisms, fixed metric inconsistencies, comprehensive ablations, baseline comparisons, and broader evaluation. In its current form, the paper does not meet the acceptance bar."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper addresses a relevant machine learning systems problem: reducing computational overhead of neural compression on edge devices, which aligns with ICML's interest in 'machine learning systems (improved implementation and scalability, hardware, libraries, distributed methods)'\",\n      \"Proposes a practical framework compatible with existing compression algorithms, demonstrating systems-level thinking about deployment and scalability\",\n      \"Includes real-world testbed evaluation on edge hardware (NVIDIA Jetson TX2), showing attention to practical performance evaluation\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICML emphasizes 'theory of machine learning' and 'optimization' as core contributions; this paper's core technical contribution (δ and Δ constraint formulation) explicitly lacks theoretical justification, with the author admitting 'we do not have a theoretical defense for the specific constraint formulation... beyond empirical observation'\",\n      \"The contribution is primarily an engineering/systems optimization rather than a methodological advance in machine learning. ICML values papers that advance ML understanding; this work applies existing techniques (transformers, masking) to a specific systems problem without novel ML insights\",\n      \"Fundamental soundness issues unresolved: inconsistent use of metrics (PSNR/SSIM in Table 1 despite stating they're inappropriate), missing critical ablations on core parameters (δ, Δ), and generalization gaps (CIFAR-10 pretraining to different datasets without proper ablation) represent methodological rigor issues that ICML expects to be addressed\",\n      \"No comparison with standard ML model compression techniques (quantization, pruning, knowledge distillation), which are the direct alternative approaches to the problem posed. ICML would expect comprehensive baseline comparisons for any systems contribution\",\n      \"Limited novelty in ML methodology: selective pixel erasure + constrained random sampling + lightweight transformer reconstruction is an incremental systems-level combination rather than a novel ML contribution suitable for ICML\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"NeurIPS welcomes 'application-driven machine learning' and explicitly encourages 'interdisciplinary submissions that do not fit neatly into existing categories,' which describes this edge compression work\",\n      \"The paper demonstrates strong practical results on real hardware: 89% latency reduction, 71.3% power reduction on edge devices, and shows compatibility with multiple compression algorithms—valuable for the NeurIPS community interested in practical ML deployment\",\n      \"Addresses 'SysML Infrastructure' and 'AI/ML for edge/IoT scenarios' which align with NeurIPS's broad scope. The real-world testbed evaluation (edge device + server setup) shows attention to practical deployment\",\n      \"The lightweight transformer architecture (8.7MB) for reconstruction represents an engineering contribution to efficient neural network design on constrained devices, relevant to NeurIPS's systems interests\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The reviewer's analysis reveals fundamental soundness deficits that concern all top venues: core constraint parameters (δ, Δ) are 'introduced empirically without principled justification,' lacking the theoretical grounding or principled design that even applications papers at NeurIPS typically require\",\n      \"Experimental methodology contains internal contradictions: paper explicitly states PSNR/SSIM are inappropriate for erased content (Section 4.1) yet reports these as primary metrics in Table 1. Reviewer confirms the paper acknowledges this inconsistency but submitted version remains unchanged—this is a red flag for review quality\",\n      \"Missing critical ablations: the constraint parameters δ and Δ that are central to the proposed method are not systematically studied. Reviewer confirms 'these are absent in the submitted work.' This prevents understanding of method sensitivity and design choices\",\n      \"Generalization capability unvalidated: model trained on CIFAR-10 (32×32) tested on Kodak/CLIC without ablation showing zero-shot performance. Figure 6d shows fine-tuning helps but baseline performance without fine-tuning is not reported—reviewer explicitly confirms this gap remains in submitted paper\",\n      \"No comparison with obvious alternative approaches: standard model compression techniques (quantization, pruning, knowledge distillation) are absent despite being direct alternatives for the stated problem. Reviewer notes author 'concedes in rebuttal this is a significant gap' but comparisons do not appear in submitted paper\",\n      \"Limited evaluation scope for a venue valuing reproducibility: single edge device (Jetson TX2), two small datasets (Kodak: 24 images; CLIC unspecified size), no evaluation on mentioned Raspberry Pi 4 despite IoT motivation. This narrow scope reduces reproducibility and generalizability claims\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"ICLR has explicit interest in 'representation learning' and 'applications to...edge/IoT devices.' The paper applies deep learning to constrained edge deployment, which fits the applications scope\",\n      \"The lightweight transformer architecture for masked image reconstruction represents a reasonable contribution to efficient deep learning, relevant to ICLR's interest in 'learning representations' with computational constraints\",\n      \"Real-world evaluation on edge hardware demonstrates practical deep learning deployment, which aligns with ICLR's valuing of both theory and implementation\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"ICLR emphasizes 'learning theory' and principled deep learning contributions; this paper's core technical innovation (conditional uniform-based sampling) is explicitly acknowledged as lacking theoretical justification ('we do not have a theoretical defense... beyond empirical observation'). For a representation learning conference, lack of principled design is a fundamental misalignment\",\n      \"The reconstruction approach (masked image modeling with lightweight transformer) applies existing techniques without novel deep learning insights. ICLR expects papers advancing understanding of how representations are learned; this applies transformers as an engineering solution to a systems problem\",\n      \"Critical evaluation gaps directly relevant to ICLR: (1) no ablation of core sampling parameters despite being central to the method; (2) generalization from CIFAR-10 to real datasets unvalidated; (3) inconsistent metric usage (PSNR/SSIM in Table 1 despite acknowledging inappropriateness). ICLR's review standards expect these to be addressed\",\n      \"Limited contribution to representation learning: the work does not advance understanding of how image representations should be learned or reconstructed. It applies existing deep learning techniques (transformers, L1+LPIPS loss) to an engineering problem\",\n      \"No comparison with modern representation learning baselines: missing evaluations against standard model compression approaches and no analysis of what representations the lightweight transformer learns or how they differ from super-resolution approaches\",\n      \"ICLR values 'interpretability' and 'analysis' of learned representations; the paper provides minimal analysis of what the reconstruction model learns or why the proposed sampling strategy is superior beyond empirical metrics\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary Assessment\n\n**Paper Classification:** Systems/Applications paper addressing edge device image compression\n\n**Core Issues Across All Venues:**\n\n1. **Soundness Crisis:** The central technical contribution (δ and Δ constraint parameters) is admitted to lack theoretical justification, with the author explicitly stating there is \"no theoretical defense... beyond empirical observation.\" This is disqualifying for all selective venues.\n\n2. **Unresolved Evaluation Problems:** \n   - Table 1 uses PSNR/SSIM despite the paper stating these metrics are inappropriate for erased content\n   - Critical ablations on core parameters are absent\n   - Generalization from CIFAR-10 pretraining unvalidated\n   - No comparison with standard model compression techniques\n\n3. **Limited Novelty:** The contribution is primarily an engineering systems optimization combining existing techniques (selective erasure + constrained sampling + lightweight transformer) rather than advancing machine learning methodology.\n\n**Venue-Specific Misalignment:**\n\n- **ICML:** Expects theoretical grounding and ML methodology advances; this paper lacks both\n- **NeurIPS:** While more accommodating of applications, still expects sound experimental methodology and no internal contradictions; the metric inconsistency and missing ablations are unresolved\n- **ICLR:** Emphasizes representation learning and deep learning theory; this is a systems application of existing techniques without novel insights into learning\n\n**Recommendation:** All three venues should **reject**. The paper makes a practical engineering contribution (89% latency reduction demonstrated on real hardware) but falls short of publication standards for selective venues due to unresolved soundness, evaluation, and novelty gaps. The honest acknowledgment by the author in rebuttal of these deficiencies confirms they are substantive rather than presentation-level issues.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 2,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 2
+            },
+            "strengths": [
+              "Addresses a practical and important problem: reducing computational overhead of neural image compression on resource-constrained edge devices, which is relevant to real-world IoT and edge computing scenarios.",
+              "Proposes a system (Easz) that is compatible with multiple existing compression algorithms (JPEG, BPG, MBT, Cheng-Anchor), potentially increasing its practical applicability.",
+              "Demonstrates significant latency improvements on edge devices (89% reduction compared to MBT/Cheng methods) and shows reduced power consumption and memory footprint on Jetson TX2."
+            ],
+            "weaknesses": [
+              "The core technical contribution—conditional uniform-based sampling to replace uniform downsampling—is poorly motivated and unclear. The paper claims uniform downsampling limits flexibility, but the proposed random sampling with distance constraints (Section 3.2.2) appears ad-hoc and lacks theoretical justification for why this specific constraint formulation is optimal or necessary.",
+              "Fundamental soundness issues with the sampling method: the constraints (intra-row and inter-row distance thresholds δ and Δ) are introduced without principled definition or sensitivity analysis. Figure 3 shows that pure random sampling performs poorly, but the paper does not convincingly explain why the proposed constraints solve this beyond empirical observation.",
+              "The reconstruction method relies on a lightweight transformer trained on CIFAR-10 but tested on Kodak and CLIC datasets. The generalization capability from a toy dataset (32×32 images) to real-world datasets is questionable, and the paper does not adequately discuss dataset shift or domain adaptation challenges.",
+              "Experimental evaluation is limited and potentially unfair: (1) Comparison with super-resolution methods uses only PSNR/SSIM despite acknowledging these metrics are problematic for erased content (Section 4.1 states 'removing content would negatively impact reference-based metrics'), yet still uses them; (2) Perceptual metrics (Brisque, Pi, Tres) are non-standard and less interpretable than widely-used alternatives; (3) No comparison with other edge-optimized compression methods beyond traditional codecs.",
+              "The mask transmission overhead is dismissed without rigorous analysis. While the paper claims a 32×32 sub-patch mask is only 128 bytes, this overhead should be quantified as a fraction of total transmitted data across varying image sizes and compression levels.",
+              "Missing critical ablations and analysis: (1) No systematic study of hyperparameters δ and Δ and their impact on compression ratio/quality; (2) No analysis of how the method scales to very high-resolution images; (3) Limited discussion of how patch size p and sample size T interact with downstream compression algorithms.",
+              "The paper conflates two separate problems: (a) reducing edge-device compression load, and (b) improving reconstruction quality. The erase-and-squeeze approach sacrifices content to reduce computation, but it is unclear whether this tradeoff is optimal compared to other strategies (e.g., model quantization, pruning, or progressive compression).",
+              "Writing and presentation issues: The paper has grammatical errors and unclear explanations. For example, Section 3.2.1 introduces notation but uses it inconsistently. The implicit assumption about uniform downsampling (Section 3.1) is not clearly articulated as a problem until Section 3.2.4.",
+              "Limited real-world validation: Experiments use only two datasets (Kodak, CLIC) and a single edge device (Jetson TX2). No evaluation on actual IoT devices (e.g., Raspberry Pi) despite mentioning them as motivation."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The core technical contribution—conditional uniform-based sampling to replace uniform downsampling—is poorly motivated and unclear. The paper claims uniform downsampling limits flexibility, but the proposed random sampling with distance constraints (Section 3.2.2) appears ad-hoc and lacks theoretical justification for why this specific constraint formulation is optimal or necessary.",
+                "severity": "major",
+                "evidence": "Section 3.1 argues that uniform blur-kernel assumption limits flexibility, but the connection to compression flexibility is vague. Section 3.2.2 introduces intra-row and inter-row constraints with thresholds δ and Δ, but provides no principled derivation, no sensitivity analysis, and Figure 3(b) only shows empirically that certain patterns work better.",
+                "affected_claim": "The claim that relaxing uniform downsampling provides 'more adaptable and fine-grained compression levels' compared to super-resolution",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Fundamental soundness issues with the sampling method: the constraints (intra-row and inter-row distance thresholds δ and Δ) are introduced without principled definition or sensitivity analysis. Figure 3 shows that pure random sampling performs poorly, but the paper does not convincingly explain why the proposed constraints solve this beyond empirical observation.",
+                "severity": "major",
+                "evidence": "Section 3.2.2 defines constraints mathematically but provides no justification for the specific form. The paper states δ and Δ are 'threshold distance' and 'minimum separation' but does not specify how to set these values or how sensitive results are to them. Figure 3 compares T=1,2,3 visually but lacks quantitative analysis.",
+                "affected_claim": "The proposed conditional uniform-based sampler is an effective and well-justified solution to the flexibility problem",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The reconstruction method relies on a lightweight transformer trained on CIFAR-10 but tested on Kodak and CLIC datasets. The generalization capability from a toy dataset (32×32 images) to real-world datasets is questionable, and the paper does not adequately discuss dataset shift or domain adaptation challenges.",
+                "severity": "major",
+                "evidence": "Section 4.1 states 'the CIFAR-10 dataset is employed to pre-train the model' and training uses 'erase ratio of 0.25'. Testing on Kodak and CLIC involves different image statistics and resolutions. Figure 6d shows fine-tuning helps but only marginal improvements are discussed. No analysis of how performance degrades on out-of-distribution images.",
+                "affected_claim": "Easz can generalize effectively to diverse real-world image datasets and compression tasks",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental evaluation is limited and potentially unfair: (1) Comparison with super-resolution methods uses only PSNR/SSIM despite acknowledging these metrics are problematic for erased content (Section 4.1 states 'removing content would negatively impact reference-based metrics'), yet still uses them; (2) Perceptual metrics (Brisque, Pi, Tres) are non-standard and less interpretable than widely-used alternatives; (3) No comparison with other edge-optimized compression methods beyond traditional codecs.",
+                "severity": "major",
+                "evidence": "Section 4.1 explicitly states PSNR/SSIM are inappropriate but Table 1 reports them as primary comparison metrics. Section 4.6 uses Brisque, Pi, Tres without justifying why these specific metrics are chosen or why more standard alternatives (e.g., FID, LPIPS on full images) are not used. Baselines in Section 4.1 include only JPEG, BPG, MBT, Cheng-Anchor; no comparison with model compression techniques or progressive coding.",
+                "affected_claim": "Easz outperforms state-of-the-art super-resolution and compression methods",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The mask transmission overhead is dismissed without rigorous analysis. While the paper claims a 32×32 sub-patch mask is only 128 bytes, this overhead should be quantified as a fraction of total transmitted data across varying image sizes and compression levels.",
+                "severity": "minor",
+                "evidence": "Section 3.2.4 states 'if the sub-patch size is 32 × 32, then the corresponding mask size would be 128 bytes... Thus, the transmission of this size is not a concern.' This assumes a single mask per image, but the mask ratio depends on sampling density. For large images with many patches, cumulative overhead could be significant. No analysis of mask entropy coding or optimizations.",
+                "affected_claim": "Mask transmission overhead is negligible",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Missing critical ablations and analysis: (1) No systematic study of hyperparameters δ and Δ and their impact on compression ratio/quality; (2) No analysis of how the method scales to very high-resolution images; (3) Limited discussion of how patch size p and sample size T interact with downstream compression algorithms.",
+                "severity": "major",
+                "evidence": "Section 3.2.2 introduces δ and Δ but Figure 6c only ablates patch size (1, 2, 4) and erase ratio (10%-50%), not constraint thresholds. Section 4.4 mentions patch size selection but provides no principled guidance. Experiments use images from Kodak (512×768) and CLIC but no evaluation on high-resolution images (e.g., 4K, 8K).",
+                "affected_claim": "The framework is flexible and adaptable to various compression scenarios and image sizes",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The paper conflates two separate problems: (a) reducing edge-device compression load, and (b) improving reconstruction quality. The erase-and-squeeze approach sacrifices content to reduce computation, but it is unclear whether this tradeoff is optimal compared to other strategies (e.g., model quantization, pruning, or progressive compression).",
+                "severity": "major",
+                "evidence": "The motivation (Section 1, Fig. 1a) shows encoding times of 11-18 seconds but the paper's solution erases patches rather than optimizing the encoder itself. Section 3.2 acknowledges 'blurring-kernel-based super-resolution method is no longer suitable' due to erasing, forcing use of a separate transformer. No comparison of computational cost vs. reconstruction quality tradeoffs with quantization or other model compression techniques.",
+                "affected_claim": "Easz is an optimal or practical solution for edge image compression",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Writing and presentation issues: The paper has grammatical errors and unclear explanations. For example, Section 3.2.1 introduces notation but uses it inconsistently. The implicit assumption about uniform downsampling (Section 3.1) is not clearly articulated as a problem until Section 3.2.4.",
+                "severity": "minor",
+                "evidence": "Title has spacing error ('En- Hancement'). Section 3.1 discusses uniform blur kernels in super-resolution but the relevance to compression flexibility is unclear until later. Notation switches between X and 𝐗, and the formulation in Section 3.2.1 uses coordinate systems not consistently applied later. Figure 2 caption is overly long and hard to parse.",
+                "affected_claim": "The paper clearly explains the problem and proposed solution",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited real-world validation: Experiments use only two datasets (Kodak, CLIC) and a single edge device (Jetson TX2). No evaluation on actual IoT devices (e.g., Raspberry Pi) despite mentioning them as motivation.",
+                "severity": "minor",
+                "evidence": "Section 2 mentions Raspberry Pi 4 as an even more constrained device than Jetson TX2, but all experiments use only TX2. Datasets are limited to Kodak (24 images) and CLIC; no evaluation on modern high-resolution datasets or domain-specific images (medical, satellite, etc.).",
+                "affected_claim": "Easz is practical and applicable to diverse edge IoT scenarios",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The core sampling method lacks principled justification. The intra-row and inter-row constraints (δ, Δ) are introduced empirically without theoretical grounding. The paper acknowledges that direct random sampling fails but does not rigorously explain why the proposed constraints are optimal or necessary. The generalization of the reconstruction model from CIFAR-10 to real datasets is questionable and not adequately addressed. The experimental setup uses metrics (PSNR/SSIM) that the authors themselves acknowledge are inappropriate for the task."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The idea of relaxing uniform downsampling and using selective pixel erasure for edge compression is somewhat novel. However, the execution is incremental: the approach combines existing ideas (image erasing, masking, transformer-based reconstruction) without significant algorithmic or theoretical innovation. The conditional uniform sampler is a minor variation of random sampling with distance constraints. Compared to related work on lightweight compression and super-resolution, the contribution is modest but defensible as a systems paper."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "While the paper addresses a practical problem (edge device compression), the significance is limited. The proposed method sacrifices image content (erases patches) rather than optimizing the compression algorithm itself, which is a workaround rather than a fundamental advance. The results show improvements over certain baselines but lack comparison with model quantization, pruning, or other standard model compression techniques that could address the same problem more directly. The evaluation is narrow (two datasets, one device) and does not demonstrate broad applicability. For a top-tier venue, the contribution lacks sufficient novelty and impact."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Multiple evaluation issues undermine confidence in results: (1) The paper acknowledges PSNR/SSIM are problematic metrics (Section 4.1) but still uses them in Table 1 as primary comparison with super-resolution; (2) Perceptual metrics (Brisque, Pi, Tres) are non-standard and not well-motivated; (3) No comparison with model compression baselines (quantization, pruning, distillation); (4) Limited ablation studies on key hyperparameters (δ, Δ); (5) Experiments on only two datasets and one edge device; (6) The reconstruction model is trained on CIFAR-10 (32×32 images) and tested on Kodak/CLIC without discussion of domain shift; (7) Comparison with super-resolution uses different evaluation protocols."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "The paper has multiple presentation issues: (1) Title has formatting error ('En- Hancement'); (2) The motivation in Section 3.1 (implicit assumption of uniform downsampling) is not clearly connected to the compression flexibility problem until much later; (3) Mathematical notation is introduced but used inconsistently; (4) Figure 2 is complex and hard to parse; (5) The connection between relaxing uniform downsampling and the need for transformer-based reconstruction is not well explained; (6) Section 3.2.2 introduces constraints without sufficient motivation or sensitivity analysis. While the overall structure is reasonable, clarity and coherence need substantial improvement."
+              }
+            },
+            "summary_comment": "The paper tackles a practical problem—reducing compression latency on edge devices—but the execution has significant flaws. The core idea of selective pixel erasure with constrained sampling is reasonable as a systems approach, but it lacks theoretical justification and rigorous experimental validation. The sampling constraints (δ, Δ) are introduced empirically without principled design or sensitivity analysis. The reconstruction model is trained on CIFAR-10 yet tested on real images with limited discussion of generalization. Most critically, the evaluation uses inappropriate metrics that the authors themselves acknowledge, avoids comparison with standard model compression techniques, and is limited to two datasets and one edge device. The paper reads as an engineering solution to a systems problem rather than a scientifically rigorous contribution suitable for a top-tier venue. While the latency improvements are impressive, they come at the cost of erasing image content, and the paper does not convincingly argue this is better than alternative approaches like model quantization or progressive coding. For acceptance at a selective conference, the work needs stronger theoretical foundations, more comprehensive ablations, fairer experimental comparisons, and clearer presentation."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 2,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 2
+            },
+            "strengths": [
+              "Addresses a practical and important problem: reducing computational overhead of neural image compression on resource-constrained edge devices, which is relevant to real-world IoT and edge computing scenarios.",
+              "Proposes a system (Easz) that is compatible with multiple existing compression algorithms (JPEG, BPG, MBT, Cheng-Anchor), potentially increasing its practical applicability.",
+              "Demonstrates significant latency improvements on edge devices (89% reduction compared to MBT/Cheng methods) and shows reduced power consumption and memory footprint on Jetson TX2."
+            ],
+            "weaknesses": [
+              "The core technical contribution—conditional uniform-based sampling to replace uniform downsampling—is poorly motivated and unclear. The paper claims uniform downsampling limits flexibility, but the proposed random sampling with distance constraints (Section 3.2.2) appears ad-hoc and lacks theoretical justification for why this specific constraint formulation is optimal or necessary. The author acknowledges in their rebuttal that constraints δ and Δ are introduced 'empirically based on observation' without principled derivation, confirming this weakness.",
+              "Fundamental soundness issues with the sampling method: the constraints (intra-row and inter-row distance thresholds δ and Δ) are introduced without principled definition or sensitivity analysis. The author acknowledges the paper 'would benefit greatly from either: (1) a principled approach to setting these parameters... or (2) a learnable/adaptive mechanism,' but no such approach is present in the submitted paper.",
+              "Experimental evaluation uses PSNR/SSIM metrics in Table 1 despite authors acknowledging in Section 4.1 that these metrics are inappropriate for erased content. While the author's rebuttal concedes this is 'problematic' and 'not entirely fair,' no correction appears in the submitted paper itself. The rebuttal promises to 'clearly demarcate' these results but the submitted paper does not do so.",
+              "The reconstruction method relies on a lightweight transformer trained on CIFAR-10 but tested on Kodak and CLIC datasets. The generalization capability from a toy dataset (32×32 images) to real-world datasets is questionable. The author acknowledges the concern is 'valid' and states 'we should have reported' generalization gap metrics, but the submitted paper does not contain this analysis.",
+              "Missing comparison with standard model compression baselines (quantization, pruning, knowledge distillation). The author acknowledges this is 'a significant gap' in their rebuttal but the submitted paper contains no such comparisons. The paper frames the problem as reducing encoding latency but does not compare against the most direct alternative approaches.",
+              "Missing critical ablations and analysis: No systematic study of hyperparameters δ and Δ and their impact on compression ratio/quality; no analysis of how the method scales to very high-resolution images; limited discussion of how patch size p and sample size T interact with downstream compression algorithms. The author acknowledges 'these ablations are necessary for a complete contribution' but they are not present in the submitted paper.",
+              "Limited real-world validation: Experiments use only two datasets (Kodak with 24 images, CLIC) and a single edge device (Jetson TX2). The paper motivates the work by mentioning Raspberry Pi 4 as a more constrained device but evaluates only on TX2. The author acknowledges this in their rebuttal but provides no additional experimental evidence in the submitted paper."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The core technical contribution—conditional uniform-based sampling to replace uniform downsampling—is poorly motivated and unclear. The paper claims uniform downsampling limits flexibility, but the proposed random sampling with distance constraints (Section 3.2.2) appears ad-hoc and lacks theoretical justification for why this specific constraint formulation is optimal or necessary. The author acknowledges in their rebuttal that constraints δ and Δ are introduced 'empirically based on observation' without principled derivation, confirming this weakness.",
+                "severity": "major",
+                "evidence": "Section 3.2.2 introduces constraints mathematically but provides no justification. Author's rebuttal states: 'the constraint thresholds δ and Δ in Section 3.2.2 lack principled derivation. In the current submission, these are introduced empirically based on the observation in Figure 3 that unconstrained random sampling performs poorly.' This admission confirms the core technical contribution lacks sound theoretical foundations.",
+                "affected_claim": "The proposed conditional uniform-based sampler is an effective and well-justified solution to the flexibility problem",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Fundamental soundness issues with the sampling method: the constraints (intra-row and inter-row distance thresholds δ and Δ) are introduced without principled definition or sensitivity analysis. The author acknowledges in their rebuttal that constraints δ and Δ are introduced 'empirically based on observation' without principled derivation, confirming this weakness.",
+                "severity": "major",
+                "evidence": "Author's rebuttal: 'While we cannot provide new theoretical results here, we acknowledge that the work would benefit greatly from either: (1) a principled approach to setting these parameters (e.g., based on image statistics or information-theoretic arguments), or (2) a learnable/adaptive mechanism. This is an important direction for future work.' This acknowledges the theoretical gap but does not resolve it—no principled mechanism is provided in the submitted paper.",
+                "affected_claim": "The proposed sampling method is theoretically sound and well-motivated",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental evaluation uses PSNR/SSIM metrics in Table 1 despite authors acknowledging in Section 4.1 that these metrics are inappropriate for erased content. While the author's rebuttal concedes this is 'problematic' and 'not entirely fair,' no correction appears in the submitted paper itself. The rebuttal promises to 'clearly demarcate' these results but the submitted paper does not do so.",
+                "severity": "major",
+                "evidence": "Paper Section 4.1: 'Since removing content would negatively impact reference-based metrics such as PSNR and SSIM... we employ non-reference perceptual metrics.' Yet Table 1 still reports these metrics. Author's rebuttal admits: 'the reviewer points out a genuine inconsistency' and promises revision, but the submitted paper remains unchanged. No demarcation or clear labeling exists in Table 1.",
+                "affected_claim": "Easz outperforms super-resolution methods on standard metrics",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The reconstruction method relies on a lightweight transformer trained on CIFAR-10 but tested on Kodak and CLIC datasets. The generalization capability from a toy dataset (32×32 images) to real-world datasets is questionable. The author acknowledges the concern is 'valid' and states 'we should have reported' generalization gap metrics, but the submitted paper does not contain this analysis.",
+                "severity": "major",
+                "evidence": "Section 4.1 states pretraining on CIFAR-10 with erase ratio 0.25. Author's rebuttal: 'The concern about domain shift is valid... Figure 6d shows that fine-tuning on Kodak reduces loss, but the paper does not quantify the generalization gap without fine-tuning. We should have reported: (1) performance of the CIFAR-10-only model on each target dataset.' The submitted paper does not provide this critical analysis.",
+                "affected_claim": "Easz can generalize effectively to diverse real-world image datasets",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Missing comparison with standard model compression baselines (quantization, pruning, knowledge distillation). The author acknowledges this is 'a significant gap' in their rebuttal but the submitted paper contains no such comparisons. The paper frames the problem as reducing encoding latency but does not compare against the most direct alternative approaches.",
+                "severity": "major",
+                "evidence": "Section 4.1 lists baselines as JPEG, BPG, MBT, Cheng-Anchor only. Author's rebuttal explicitly states: 'The reviewer correctly notes that the paper frames the problem as reducing encoding latency on edge devices (Figure 1a shows encoding times of 11-18 seconds) but the solution erases patches rather than directly optimizing the encoder. The paper does not compare against quantization, pruning, or knowledge distillation, which are standard techniques... This is a significant gap.' Yet no such comparisons appear in the submitted paper.",
+                "affected_claim": "Easz is an optimal approach compared to standard edge deployment techniques",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Missing critical ablations and analysis: No systematic study of hyperparameters δ and Δ and their impact on compression ratio/quality; no analysis of how the method scales to very high-resolution images; limited discussion of how patch size p and sample size T interact with downstream compression algorithms. The author acknowledges 'these ablations are necessary for a complete contribution' but they are not present in the submitted paper.",
+                "severity": "major",
+                "evidence": "Figure 6c ablates only patch sizes (1,2,4) and erase ratios (10%-50%), not δ or Δ. Author's rebuttal states: 'Figure 6c ablates patch sizes and erase ratios but does not systematically study the constraint thresholds δ and Δ. This is a critical gap... Additionally, all experiments use images ~512×768; no evaluation on high-resolution images (2K, 4K)... We acknowledge these ablations are necessary for a complete contribution.' Yet no such ablations appear in the submitted paper.",
+                "affected_claim": "The framework is thoroughly evaluated and understood",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited real-world validation: Experiments use only two datasets (Kodak with 24 images, CLIC) and a single edge device (Jetson TX2). The paper motivates the work by mentioning Raspberry Pi 4 as a more constrained device but evaluates only on TX2. The author acknowledges this in their rebuttal but provides no additional experimental evidence in the submitted paper.",
+                "severity": "minor",
+                "evidence": "Section 2 mentions Raspberry Pi 4 but all experiments use Jetson TX2. Author's rebuttal admits: 'For a systems paper addressing edge IoT, broader evaluation across devices and datasets is important for credibility' and acknowledges evaluation is limited. However, the submitted paper still contains only TX2 experiments.",
+                "affected_claim": "Easz is practical and applicable to diverse edge IoT scenarios",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The author's rebuttal confirms rather than resolves the core soundness concern: constraint thresholds δ and Δ are introduced 'empirically based on observation' without principled justification. The author explicitly acknowledges the work would benefit from principled parameter-setting mechanisms or theoretical grounding, but states 'we cannot provide new theoretical results here.' This confirms the submitted paper lacks sound theoretical foundations. Additionally, the rebuttal acknowledges the use of PSNR/SSIM metrics is 'problematic' and 'not entirely fair,' and admits missing critical analysis of generalization from CIFAR-10 to real datasets. These are not fixed in the submitted paper; the rebuttal only promises future fixes."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The idea of selective pixel erasure with constrained random sampling for edge compression is somewhat novel. While it combines existing components (image erasing, masking, transformer reconstruction), the specific application to edge-device compression with relaxed uniform downsampling represents a defensible incremental contribution. The novelty score of 3 (acceptable but not strong) is appropriate—the work is not highly novel but passes the novelty gate for a systems-oriented contribution."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The significance remains limited. The paper addresses a practical problem but the solution sacrifices image content (erases patches) rather than fundamentally optimizing the compression algorithm. The author's rebuttal acknowledges: 'the paper frames the problem as reducing encoding latency on edge devices... but the solution erases patches rather than directly optimizing the encoder,' and admits 'this is a significant gap' in comparison with standard model compression approaches. Without comparing against quantization, pruning, or distillation—the standard techniques for edge deployment—the paper does not make a sufficiently significant contribution for a top-tier venue. The narrow evaluation scope (two datasets, one device) and lack of comparison with obvious alternatives further limits impact."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Evaluation issues persist and are not resolved by the rebuttal. The submitted paper continues to use PSNR/SSIM metrics in Table 1 despite acknowledging they are inappropriate. No comparisons with quantized models or other model compression baselines are present. Critical ablations on δ and Δ parameters and high-resolution scalability are absent. The author's rebuttal promises these improvements but they do not appear in the submitted paper. The generalization analysis from CIFAR-10 to real datasets is missing—Figure 6d shows fine-tuning helps but not the CIFAR-10-only baseline performance. These are not minor omissions; they are fundamental to assessing the method's validity and generalizability."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "While the rebuttal acknowledges presentation issues (title formatting, notation inconsistencies, clarity of motivation), none are fixed in the submitted paper itself. Section 3.1 still does not clearly articulate how uniform downsampling limits compression flexibility. The connection between relaxing uniform downsampling and needing transformer-based reconstruction remains unclear. Mathematical notation inconsistencies persist. The rebuttal only promises to fix these issues in a revision; the submitted paper remains unchanged."
+              }
+            },
+            "summary_comment": "The author's rebuttal demonstrates a commendable level of engagement with the feedback, acknowledging multiple major concerns and identifying them as valid. Critically, however, the rebuttal does not resolve these concerns within the scope of the submitted paper. The author explicitly admits that: (1) constraint thresholds δ and Δ lack 'principled derivation' and are introduced 'empirically'; (2) the use of PSNR/SSIM metrics is 'problematic' and 'not entirely fair'; (3) generalization from CIFAR-10 is insufficiently studied; (4) comparison with model compression baselines is 'a significant gap'; and (5) critical ablations on hyperparameters and scalability are absent. These admissions validate the original review's assessment. While the rebuttal promises revisions (demarcating metrics, adding experiments, conducting ablations), such promises do not constitute resolution of the concerns as they do not appear in the submitted paper. Evaluating the submission as presented, the core technical contribution remains theoretically unjustified, the experimental methodology remains problematic, and the evaluation remains incomplete. The paper makes a practical engineering contribution with useful empirical results, but these do not overcome fundamental soundness, evaluation, and presentation deficiencies required for acceptance at a selective top-tier venue. The rebuttal actually reinforces rather than diminishes confidence that the paper requires substantial additional work before publication."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Core technical contribution (conditional uniform-based sampling) lacks theoretical justification and appears ad-hoc\",\n        \"Soundness concerns: constraint thresholds δ and Δ introduced without principled definition or sensitivity analysis\",\n        \"Generalization issues: reconstruction model trained on CIFAR-10 (32×32) tested on real datasets without domain-shift analysis\",\n        \"Experimental evaluation fairness: uses PSNR/SSIM metrics despite authors acknowledging they are inappropriate for erased content\",\n        \"Limited baseline comparisons: no comparison with standard model compression techniques (quantization, pruning, distillation)\",\n        \"Missing critical ablations on hyperparameters δ and Δ and scalability to high-resolution images\",\n        \"Fundamental framing issue: the method sacrifices content rather than optimizing the compression algorithm\",\n        \"Presentation and clarity issues throughout the paper\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Conditional uniform-based sampling lacks theoretical justification\",\n          \"location\": \"Section 3.2.2 and Figure 3\",\n          \"explanation\": \"The paper introduces intra-row constraint |g_r^1(i,t+1) - g_r^1(i,t)| > δ and inter-row constraint without deriving why these specific formulations are optimal. Figure 3 shows empirically that pure random sampling performs poorly, but the paper does not rigorously explain the theoretical basis for the proposed constraints.\"\n        },\n        {\n          \"concern\": \"Acknowledgment that PSNR/SSIM are inappropriate metrics for erased content\",\n          \"location\": \"Section 4.1, page 378-379\",\n          \"explanation\": \"The paper explicitly states: 'Since removing content would negatively impact reference-based metrics such as PSNR and SSIM... we employ non-reference perceptual metrics.' Yet Table 1 reports PSNR and MS_SSIM as primary comparison metrics against super-resolution methods.\"\n        },\n        {\n          \"concern\": \"Reconstruction model trained on CIFAR-10, tested on Kodak/CLIC\",\n          \"location\": \"Section 4.1, page 377\",\n          \"explanation\": \"States 'the CIFAR-10 dataset is employed to pre-train the model' with 32×32 images and erase ratio of 0.25. Testing on Kodak and CLIC with different image statistics and resolutions is not adequately addressed. Figure 6d shows fine-tuning helps but provides limited analysis of domain shift.\"\n        },\n        {\n          \"concern\": \"Limited ablation on constraint hyperparameters\",\n          \"location\": \"Section 4.4 and Figure 6\",\n          \"explanation\": \"Ablation studies examine patch sizes (1, 2, 4) and erase ratios (10%-50%) in Figure 6c, but do not systematically study δ and Δ thresholds or their sensitivity to compression performance.\"\n        },\n        {\n          \"concern\": \"No comparison with model compression techniques\",\n          \"location\": \"Section 4.1, page 377\",\n          \"explanation\": \"Baselines include only JPEG, BPG, MBT, and Cheng-Anchor. No comparison with model quantization, pruning, knowledge distillation, or other standard edge-device compression techniques that address the same underlying problem.\"\n        },\n        {\n          \"concern\": \"Limited real-world validation scope\",\n          \"location\": \"Section 4.1 and Experiments\",\n          \"explanation\": \"All experiments use NVIDIA Jetson TX2. Despite mentioning Raspberry Pi 4 in Section 2 as an even more constrained device, no evaluation is performed. Only two datasets used (Kodak: 24 images; CLIC).\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Constraint thresholds δ and Δ lack principled design\",\n          \"proposed_change\": \"Provide theoretical analysis or principled derivation of how to set δ and Δ. Add comprehensive sensitivity analysis showing how performance varies with different threshold values. Alternatively, propose a learnable or adaptive mechanism for these parameters.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"PSNR/SSIM metrics are inappropriate yet used as primary comparison\",\n          \"proposed_change\": \"Remove PSNR and MS_SSIM from Table 1 comparison with super-resolution methods, or acknowledge the limitation more explicitly. If retaining these metrics, justify why they are still informative despite the acknowledged issues, or clearly label them as secondary metrics.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Generalization from CIFAR-10 to real datasets not adequately studied\",\n          \"proposed_change\": \"Add systematic domain-shift analysis: (1) Report performance on Kodak and CLIC without fine-tuning to quantify generalization gap; (2) Compare pre-trained-only vs. fine-tuned performance across datasets; (3) Evaluate on additional datasets with different image statistics to assess robustness.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Missing comparison with model compression baselines\",\n          \"proposed_change\": \"Add experimental comparison with quantized versions of MBT and Cheng-Anchor, and with other edge-optimized compression methods (e.g., distilled models, pruned networks). This allows readers to assess whether selective erasing is better than standard model compression for the edge setting.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited ablation on hyperparameters and scalability\",\n          \"proposed_change\": \"Conduct systematic ablation studies on δ and Δ values and their interaction with patch sizes and sampling ratios. Evaluate scalability by testing on high-resolution images (e.g., 2K, 4K) and report how computational complexity and reconstruction quality scale.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited real-world validation (single device type, two datasets)\",\n          \"proposed_change\": \"Expand evaluation to include Raspberry Pi 4 or other resource-constrained IoT devices mentioned in motivation. Test on additional datasets representing diverse image domains (medical, satellite, industrial inspection) to validate broad applicability.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Presentation: connection between uniform downsampling assumption and compression flexibility is unclear\",\n          \"proposed_change\": \"Rewrite Section 3.1 to clearly articulate how the uniform blur-kernel assumption in traditional super-resolution limits compression flexibility in the specific edge-compression context. Provide concrete examples of why uniform downsampling causes inflexibility before proposing the solution.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Title formatting error and notation inconsistencies\",\n          \"proposed_change\": \"Fix title formatting ('En- Hancement' → 'Enhancement'). Standardize mathematical notation throughout (e.g., consistent use of 𝐗 vs. X). Simplify Figure 2 caption for clarity.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We appreciate the detailed and constructive feedback. We acknowledge that several concerns raised are valid and reflect areas where the current submission can be significantly strengthened. Below, we address each major issue:\\n\\n**On the Theoretical Justification of Sampling Constraints:**\\nThe reviewer correctly identifies that the constraint thresholds δ and Δ in Section 3.2.2 lack principled derivation. In the current submission, these are introduced empirically based on the observation in Figure 3 that unconstrained random sampling performs poorly. We recognize this is insufficient for a rigorous contribution. While we cannot provide new theoretical results here, we acknowledge that the work would benefit greatly from either: (1) a principled approach to setting these parameters (e.g., based on image statistics or information-theoretic arguments), or (2) a learnable/adaptive mechanism. This is an important direction for future work and strengthens the reviewer's assessment.\\n\\n**On Experimental Metrics (PSNR/SSIM):**\\nThe reviewer points out a genuine inconsistency: Section 4.1 states that PSNR/SSIM are inappropriate for erased content, yet Table 1 reports them as primary metrics. We agree this is problematic. Table 1 was intended to compare pixel-level reconstruction performance against super-resolution methods (where uniform downsampling preserves all pixel locations, making PSNR/SSIM valid). However, the reviewer is correct that this comparison is not entirely fair given the fundamental difference in the problem formulation. In a revision, we would: (1) clearly demarcate Table 1 results as supplementary, showing that even on unfavorable metrics (PSNR/SSIM), Easz's reconstruction is competitive; (2) emphasize the perceptual metrics (Brisque, Pi, Tres) as primary comparisons; (3) alternatively, reframe Table 1 to acknowledge the methodological differences.\\n\\n**On Generalization from CIFAR-10 to Real Datasets:**\\nThe concern about domain shift is valid. The model is pretrained on CIFAR-10 (32×32 images) with a fixed erase ratio of 0.25, then tested on Kodak and CLIC. Figure 6d shows that fine-tuning on Kodak reduces loss, but the paper does not quantify the generalization gap without fine-tuning. We should have reported: (1) performance of the CIFAR-10-only model on each target dataset; (2) performance improvement from fine-tuning; (3) evidence that the model learns generalizable local feature patterns despite the dataset shift. The current submission does not adequately address this concern, and the reviewer is right to flag it as a soundness issue.\\n\\n**On Comparison with Model Compression Baselines:**\\nThe reviewer correctly notes that the paper frames the problem as reducing encoding latency on edge devices (Figure 1a shows encoding times of 11-18 seconds) but the solution erases patches rather than directly optimizing the encoder. The paper does not compare against quantization, pruning, or knowledge distillation, which are standard techniques for deploying neural networks on edge devices. This is a significant gap. While Easz is compatible with existing compressors and thus complementary, a fair evaluation should include: (1) quantized versions of MBT and Cheng-Anchor; (2) ablation showing Easz's improvement over these baselines; (3) discussion of when Easz is preferable to standard model compression. The current submission lacks this perspective.\\n\\n**On Missing Ablations:**\\nFigure 6c ablates patch sizes and erase ratios but does not systematically study the constraint thresholds δ and Δ. This is a critical gap, as these parameters are central to the proposed method. Additionally, all experiments use images ~512×768; no evaluation on high-resolution images (2K, 4K) is provided, limiting evidence of scalability. We acknowledge these ablations are necessary for a complete contribution.\\n\\n**On Real-World Validation Scope:**\\nThe paper motivates the work by mentioning Raspberry Pi 4 as an extremely resource-constrained device but evaluates only on Jetson TX2. Additionally, evaluation is limited to Kodak (24 images) and CLIC. For a systems paper addressing edge IoT, broader evaluation across devices and datasets is important for credibility.\\n\\n**On Presentation:**\\nThe reviewer identifies several clarity issues: (1) the connection between the implicit assumption of uniform downsampling in super-resolution (Section 3.1) and the flexibility problem in compression is not clearly articulated; (2) notation inconsistencies; (3) the title has a formatting error. These are valid observations, and revising Section 3.1 to more clearly motivate why uniform downsampling limits compression flexibility would significantly improve clarity.\\n\\n**Summary:**\\nWe acknowledge that the current submission has substantial weaknesses, particularly in theoretical justification, experimental fairness, and scope of evaluation. The core ideas (selective erasing + lightweight reconstruction) have merit for resource-constrained edge devices, but the execution and validation fall short of publication standards for a top-tier venue without significant revision. The reviewer's feedback identifies concrete areas for improvement, and addressing them would substantially strengthen the work.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 2,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 2
+            },
+            "strengths": [
+              "Addresses a practical and important problem: reducing computational overhead of neural image compression on resource-constrained edge devices, which is relevant to real-world IoT and edge computing scenarios.",
+              "Proposes a system (Easz) that is compatible with multiple existing compression algorithms (JPEG, BPG, MBT, Cheng-Anchor), potentially increasing its practical applicability.",
+              "Demonstrates significant latency improvements on edge devices (89% reduction compared to MBT/Cheng methods) and shows reduced power consumption and memory footprint on Jetson TX2."
+            ],
+            "weaknesses": [
+              "The core technical contribution—conditional uniform-based sampling—lacks theoretical justification and is admittedly introduced empirically without principled design. Author explicitly acknowledges δ and Δ constraints are based on observation in Figure 3 rather than principled derivation, stating 'we do not have a theoretical defense for the specific constraint formulation... beyond empirical observation.' This represents a fundamental gap in soundness.",
+              "Experimental evaluation uses PSNR/SSIM metrics in Table 1 despite Section 4.1 explicitly stating these metrics are inappropriate for erased content. The paper acknowledges 'removing content would negatively impact reference-based metrics such as PSNR and SSIM' yet reports these as primary comparison metrics. Author admits in rebuttal 'The use of PSNR/SSIM in Table 1 is indeed inconsistent with the stated methodology' but makes no correction in the submitted paper.",
+              "The reconstruction model is trained on CIFAR-10 (32×32 images) and tested on Kodak/CLIC without ablation showing zero-shot generalization performance. Figure 6d demonstrates fine-tuning helps, but baseline CIFAR-10-only performance on target datasets is not reported. Author acknowledges 'the paper lacks critical ablations showing performance of the CIFAR-10-pretrained model without fine-tuning on target datasets,' confirming this gap.",
+              "No comparison with standard model compression baselines (quantization, pruning, knowledge distillation). The paper frames the problem as reducing encoding latency but does not compare against the most direct alternative approaches. Author concedes in rebuttal this is 'a significant gap' but no such comparisons appear in the submitted paper.",
+              "Critical ablations are missing: δ and Δ constraint parameters are not systematically studied despite being central to the proposed method. Figure 6c ablates only patch sizes and erase ratios. No evaluation of scalability to high-resolution images (2K, 4K) is provided. Author confirms 'The constraint parameters δ and Δ should be systematically studied in ablation experiments... These are absent in the submitted work.'",
+              "Real-world validation scope is limited: all experiments use a single edge device (Jetson TX2) and two datasets (Kodak: 24 images; CLIC). The paper mentions Raspberry Pi 4 in motivation but evaluates only on TX2. Author acknowledges 'the work is presented as an engineering/systems contribution... [but] lacks the theoretical depth and comprehensive evaluation expected for a top-tier venue.'"
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The core technical contribution—conditional uniform-based sampling—lacks theoretical justification and is admittedly introduced empirically without principled design. Author explicitly acknowledges δ and Δ constraints are based on observation in Figure 3 rather than principled derivation, stating 'we do not have a theoretical defense for the specific constraint formulation... beyond empirical observation.' This represents a fundamental gap in soundness.",
+                "severity": "major",
+                "evidence": "Author's second rebuttal states: 'The reviewer is correct that δ and Δ are introduced empirically without principled justification. We do not have a theoretical defense for the specific constraint formulation in Section 3.2.2 beyond empirical observation that it works better than unconstrained random sampling.' This explicit admission confirms the core technical contribution lacks sound theoretical foundations. The submitted paper (Section 3.2.2) provides only mathematical notation without justification.",
+                "affected_claim": "The proposed conditional uniform-based sampler is a theoretically sound and well-justified solution",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental evaluation uses PSNR/SSIM metrics in Table 1 despite Section 4.1 explicitly stating these metrics are inappropriate for erased content. The paper acknowledges 'removing content would negatively impact reference-based metrics such as PSNR and SSIM' yet reports these as primary comparison metrics. Author admits in rebuttal 'The use of PSNR/SSIM in Table 1 is indeed inconsistent with the stated methodology' but makes no correction in the submitted paper.",
+                "severity": "major",
+                "evidence": "Section 4.1, line 378-379: 'Since removing content would negatively impact reference-based metrics such as PSNR and SSIM... we employ non-reference perceptual metrics.' Table 1 still reports PSNR (28.96) and MS_SSIM (0.96) as primary metrics. Author's rebuttal acknowledges: 'The use of PSNR/SSIM in Table 1 is indeed inconsistent with the stated methodology in Section 4.1. The reviewer is correct that promising to \"clearly demarcate\" these results in a revision does not fix the problem in the current submission. In the submitted paper, Table 1 remains problematic as presented.'",
+                "affected_claim": "Easz outperforms super-resolution methods on appropriate comparison metrics",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The reconstruction model is trained on CIFAR-10 (32×32 images) and tested on Kodak/CLIC without ablation showing zero-shot generalization performance. Figure 6d demonstrates fine-tuning helps, but baseline CIFAR-10-only performance on target datasets is not reported. Author acknowledges 'the paper lacks critical ablations showing performance of the CIFAR-10-pretrained model without fine-tuning on target datasets,' confirming this gap.",
+                "severity": "major",
+                "evidence": "Section 4.1 states pretraining on CIFAR-10 with erase ratio 0.25. Figure 6d shows loss reduction with fine-tuning but not the absolute baseline. Author's rebuttal states: 'The paper lacks critical ablations showing performance of the CIFAR-10-pretrained model without fine-tuning on target datasets. Figure 6d demonstrates that fine-tuning helps, but the baseline CIFAR-10-only performance is not quantified. This is a significant omission for assessing generalization.'",
+                "affected_claim": "Easz generalizes effectively to diverse real-world image datasets",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "No comparison with standard model compression baselines (quantization, pruning, knowledge distillation). The paper frames the problem as reducing encoding latency but does not compare against the most direct alternative approaches. Author concedes in rebuttal this is 'a significant gap' but no such comparisons appear in the submitted paper.",
+                "severity": "major",
+                "evidence": "Section 4.1 lists baselines: JPEG, BPG, MBT, Cheng-Anchor only. No quantized versions or pruned models are included. Author's rebuttal: 'We acknowledge the absence of comparisons with quantized neural compression methods or other standard edge-deployment techniques. While Easz is designed to be compatible with existing compressors... direct comparison with quantized baselines would strengthen the evaluation.' Yet no such comparisons appear in the submitted paper.",
+                "affected_claim": "Easz is an optimal approach compared to standard edge deployment techniques",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Critical ablations are missing: δ and Δ constraint parameters are not systematically studied despite being central to the proposed method. Figure 6c ablates only patch sizes and erase ratios. No evaluation of scalability to high-resolution images (2K, 4K) is provided. Author confirms 'The constraint parameters δ and Δ should be systematically studied in ablation experiments... These are absent in the submitted work.'",
+                "severity": "major",
+                "evidence": "Figure 6c (page 452) ablates patch=1,2,4 and erase ratio=10%-50% on Kodak. No sensitivity analysis of δ or Δ. Author's rebuttal: 'The constraint parameters δ and Δ should be systematically studied in ablation experiments, as should scalability to higher-resolution images. These are absent in the submitted work.' This directly confirms these critical ablations are missing.",
+                "affected_claim": "The framework is thoroughly evaluated and understood",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Real-world validation scope is limited: all experiments use a single edge device (Jetson TX2) and two datasets (Kodak: 24 images; CLIC). The paper mentions Raspberry Pi 4 in motivation but evaluates only on TX2. Author acknowledges 'the work is presented as an engineering/systems contribution... [but] lacks the theoretical depth and comprehensive evaluation expected for a top-tier venue.'",
+                "severity": "minor",
+                "evidence": "Section 4.1: 'NVIDIA Jetson TX2 as the edge device.' Section 2 mentions Raspberry Pi 4 but it is not evaluated. Author's rebuttal: 'For a systems paper addressing edge IoT, broader evaluation across devices and datasets is important for credibility' and 'the work is presented as an engineering/systems contribution with practical results... but it lacks the theoretical depth and comprehensive evaluation expected for a top-tier venue.'",
+                "affected_claim": "Easz is practical and applicable to diverse edge IoT scenarios",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The author's second rebuttal demonstrates transparent acknowledgment but does not resolve the soundness issues. The author explicitly states: 'We do not have a theoretical defense for the specific constraint formulation... beyond empirical observation.' This confirms that the core technical contribution (δ and Δ constraints) lacks principled theoretical grounding. Additionally, the experimental methodology is internally inconsistent (stating PSNR/SSIM are inappropriate while using them as primary metrics in Table 1, confirmed as 'problematic' by the author). The generalization capability from CIFAR-10 to real datasets lacks ablation evidence. These represent fundamental soundness deficits."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The combination of selective pixel erasure with constrained random sampling for edge compression is a defensible incremental contribution. While not highly novel, it represents a systems-oriented approach to an important problem. The novelty gate passes, though the contribution is modest (score 3)."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "Significance remains limited. The paper trades content (erases patches) for reduced computation rather than optimizing the compression algorithm itself. The author's own rebuttal states: 'the work is presented as an engineering/systems contribution... [but] lacks the theoretical depth and comprehensive evaluation expected for a top-tier venue.' Without comparison to standard model compression techniques and with limited real-world evaluation, the contribution does not meet the significance bar for a selective conference."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Evaluation issues are unresolved in the submitted paper. The author acknowledges but does not fix the PSNR/SSIM metric inconsistency, confirms missing ablations on δ and Δ parameters, admits absent generalization analysis, and concedes the lack of model compression baseline comparisons. The author's statement that 'Table 1 remains problematic as presented' confirms the issue persists in the submitted version. These are not minor oversights but fundamental gaps in evaluation methodology."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "Presentation issues remain unfixed in the submitted paper. The author acknowledges 'Multiple presentation issues identified in the review (title formatting, notation inconsistencies, unclear motivation in Section 3.1) remain in the submitted paper.' The title still contains 'En- Hancement,' Section 3.1 still does not clearly motivate why uniform downsampling limits flexibility, and notation inconsistencies persist. These are fixable but were not addressed before resubmission."
+              }
+            },
+            "summary_comment": "The author's second rebuttal represents commendable intellectual honesty. Rather than defending the work, the author explicitly acknowledges major gaps: 'we do not have a theoretical defense for the specific constraint formulation... beyond empirical observation'; 'the use of PSNR/SSIM in Table 1 is indeed inconsistent with the stated methodology'; 'the paper lacks critical ablations'; and 'the work... lacks the theoretical depth and comprehensive evaluation expected for a top-tier venue.' These admissions are substantive and candid. However, they do not change the evaluation of the submitted paper itself, which remains unchanged. The rebuttal clarifies that the submitted paper has significant unresolved gaps in soundness, evaluation, and presentation. The work makes a practical engineering contribution (89% latency reduction on edge devices) with real experimental results. However, this does not overcome fundamental deficiencies: (1) the core sampling method δ and Δ is empirically motivated without theoretical justification; (2) experimental methodology is internally inconsistent (inappropriate metrics used despite acknowledgment); (3) critical ablations are absent; (4) no comparison with obvious alternative approaches (model compression); and (5) evaluation scope is narrow (one device, two small datasets). For a selective top-tier venue, these gaps are disqualifying. The author's transparent acknowledgment of these limitations is appreciated and demonstrates understanding of publication standards, but acknowledgment is not resolution. The submitted paper requires substantial additional work: principled parameter-setting mechanisms, fixed metric inconsistencies, comprehensive ablations, baseline comparisons, and broader evaluation. In its current form, the paper does not meet the acceptance bar."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Reviewer rebuttal notes mismatch between what author promises in rebuttal and what appears in the submitted paper\",\n        \"Core technical contribution lacks principled theoretical justification—author admits δ and Δ are empirically derived\",\n        \"Use of inappropriate metrics (PSNR/SSIM) in Table 1 despite author acknowledging they are problematic\",\n        \"Missing generalization analysis from CIFAR-10 pretraining to real datasets\",\n        \"Absence of comparison with standard model compression baselines (quantization, pruning, distillation)\",\n        \"Missing critical ablations on constraint parameters and high-resolution scalability\",\n        \"Presentation issues remain unfixed in submitted paper despite author acknowledging them\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Constraint thresholds δ and Δ introduced empirically without principled justification\",\n          \"location\": \"Section 3.2.2 and Figure 3\",\n          \"explanation\": \"The paper introduces constraints mathematically but provides no theoretical derivation. The constraints are motivated only by empirical observation that pure random sampling performs poorly in Figure 3. The author's rebuttal explicitly confirms: 'these are introduced empirically based on the observation in Figure 3... without principled derivation.' No principled mechanism or theoretical analysis is provided in the submitted paper.\"\n        },\n        {\n          \"concern\": \"PSNR/SSIM metrics used in Table 1 despite stated inappropriateness\",\n          \"location\": \"Section 4.1 (page 378-379) and Table 1 (page 443)\",\n          \"explanation\": \"Section 4.1 explicitly states: 'Since removing content would negatively impact reference-based metrics such as PSNR and SSIM (a trend also observed in other downsampled-and-super-resolution methods), we employ non-reference perceptual metrics.' Despite this, Table 1 reports PSNR (28.96) and MS_SSIM (0.96) as primary comparison metrics. The author's rebuttal concedes this is 'problematic' and 'not entirely fair,' but the submitted paper remains unchanged and provides no clarification or demarcation of these metrics.\"\n        },\n        {\n          \"concern\": \"Generalization from CIFAR-10 (32×32 images) to real datasets not analyzed\",\n          \"location\": \"Section 4.1 (page 377) and Figure 6d (page 452)\",\n          \"explanation\": \"Section 4.1 states 'the CIFAR-10 dataset is employed to pre-train the model' with erase ratio 0.25. Figure 6d shows fine-tuning on Kodak reduces loss, but the paper does not report: (1) performance without fine-tuning (CIFAR-10-only model on Kodak/CLIC); (2) the magnitude of generalization gap; (3) analysis of domain shift. The author's rebuttal acknowledges 'we should have reported' these metrics, confirming they are absent from the submitted paper.\"\n        },\n        {\n          \"concern\": \"No comparison with standard model compression baselines\",\n          \"location\": \"Section 4.1 (page 377) - Baselines\",\n          \"explanation\": \"Baselines include only JPEG, BPG, MBT, and Cheng-Anchor. The paper does not compare against: quantized versions of neural compression methods, knowledge distillation approaches, or pruning-based edge deployment techniques. The author's rebuttal explicitly states this is 'a significant gap,' but no such comparisons appear in the submitted paper.\"\n        },\n        {\n          \"concern\": \"Ablations on constraint parameters δ and Δ are absent\",\n          \"location\": \"Section 4.4 (Ablation Study) and Figure 6 (page 452)\",\n          \"explanation\": \"Figure 6c ablates patch sizes (1, 2, 4) and erase ratios (10%-50%), but does not systematically vary δ and Δ thresholds or show their sensitivity to compression performance. The author's rebuttal acknowledges 'Figure 6c ablates patch sizes and erase ratios but does not systematically study the constraint thresholds δ and Δ. This is a critical gap,' confirming these ablations are missing.\"\n        },\n        {\n          \"concern\": \"No evaluation on high-resolution images or scalability analysis\",\n          \"location\": \"Section 4.1 - Datasets (page 377) and Experiments\",\n          \"explanation\": \"All experiments use Kodak (512×768) or CLIC images. No evaluation on high-resolution images (2K, 4K) is provided. The author's rebuttal states 'all experiments use images ~512×768; no evaluation on high-resolution images (2K, 4K) is provided, limiting evidence of scalability,' confirming this gap exists in the submitted paper.\"\n        },\n        {\n          \"concern\": \"Presentation issues acknowledged but not fixed in submitted paper\",\n          \"location\": \"Title (line 001), Sections 3.1-3.2, and Figure 2\",\n          \"explanation\": \"Title has formatting error ('En- Hancement'), Section 3.1 motivation is unclear, mathematical notation is inconsistent. The author's rebuttal states these should be revised, but the submitted paper remains unchanged. For example, Section 3.1 still does not clearly explain why uniform downsampling limits compression flexibility until Section 3.2.4.\"\n        },\n        {\n          \"concern\": \"Limited real-world validation scope\",\n          \"location\": \"Section 4.1 (Hardware platforms, page 377) and Section 2 (Related Work, line 074)\",\n          \"explanation\": \"Section 2 mentions Raspberry Pi 4 as a highly constrained device, but Section 4.1 states all experiments use 'NVIDIA Jetson TX2 as the edge device.' The author's rebuttal admits 'The paper motivates the work by mentioning Raspberry Pi 4... but evaluates only on TX2,' confirming this limitation exists in the submitted paper.\"\n        }\n      ],\n      \"proposed_future_revisions\": [],\n      \"response\": \"We appreciate the reviewer's thorough assessment and acknowledge the critical point they raise: the rebuttal's acknowledgment of issues does not constitute resolution of those issues within the submitted paper itself. This is an important and fair observation.\\n\\nThe reviewer's meta-level critique is correct and reflects a fundamental misunderstanding on our part regarding the purpose of a rebuttal. We should clarify: this rebuttal was prepared to acknowledge the reviewer's concerns and explain our thinking, not as a substitute for fixes to the paper itself. However, the reviewer correctly notes that many of the issues identified in the original review remain unresolved in the submitted version.\\n\\nGiven this limitation, we want to be transparent about the current state of the work:\\n\\n**On Core Soundness Issues:**\\nThe reviewer is correct that δ and Δ are introduced empirically without principled justification. We do not have a theoretical defense for the specific constraint formulation in Section 3.2.2 beyond empirical observation that it works better than unconstrained random sampling. This is a legitimate weakness. While we believe the approach has practical merit (as evidenced by the experimental results), the lack of theoretical grounding limits the contribution's rigor.\\n\\n**On Experimental Methodology:**\\nThe use of PSNR/SSIM in Table 1 is indeed inconsistent with the stated methodology in Section 4.1. The reviewer is correct that promising to \\\"clearly demarcate\\\" these results in a revision does not fix the problem in the current submission. In the submitted paper, Table 1 remains problematic as presented.\\n\\n**On Generalization Analysis:**\\nThe paper lacks critical ablations showing performance of the CIFAR-10-pretrained model without fine-tuning on target datasets. Figure 6d demonstrates that fine-tuning helps, but the baseline CIFAR-10-only performance is not quantified. This is a significant omission for assessing generalization.\\n\\n**On Missing Baselines:**\\nWe acknowledge the absence of comparisons with quantized neural compression methods or other standard edge-deployment techniques. While Easz is designed to be compatible with existing compressors (and can be applied on top of quantized models), direct comparison with quantized baselines would strengthen the evaluation.\\n\\n**On Ablation Studies:**\\nThe constraint parameters δ and Δ should be systematically studied in ablation experiments, as should scalability to higher-resolution images. These are absent in the submitted work.\\n\\n**On Presentation:**\\nMultiple presentation issues identified in the review (title formatting, notation inconsistencies, unclear motivation in Section 3.1) remain in the submitted paper.\\n\\n**Why These Gaps Exist:**\\nWe want to be honest about the current limitations: the work is presented as an engineering/systems contribution with practical results (demonstrated latency improvements, compatibility with existing compressors), but it lacks the theoretical depth and comprehensive evaluation expected for a top-tier venue. The rebuttal was intended to show that we understand these limitations and can articulate them, but that does not constitute having addressed them within the submitted paper.\\n\\n**Our Assessment:**\\nBased on the reviewer's valid critique, we agree that the submitted paper in its current form has significant gaps that prevent acceptance at a selective conference. The practical contributions (edge-compatible compression with 89% latency reduction) have merit, but they are undermined by: (1) theoretical gaps in the core sampling method, (2) incomplete experimental validation and inappropriate metric choices, (3) missing critical comparisons and ablations, and (4) presentation issues that make the contribution harder to understand and evaluate.\\n\\nThe reviewer's observation that our rebuttal often amounts to \\\"I acknowledge this problem but did not fix it\\\" is a fair and important critique. A rebuttal should either defend the paper as presented or acknowledge that the submission requires substantial additional work—which, in this case, is true.\\n\\nWe value the detailed feedback and believe it accurately identifies the work's current limitations. Future revisions of this work should prioritize: (1) providing principled or learnable mechanisms for setting δ and Δ, (2) fixing the metric inconsistency in Table 1, (3) conducting thorough generalization and ablation studies, (4) including comparisons with model compression baselines, and (5) improving presentation. These revisions would substantially strengthen the contribution.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_7fd7fb8fdf95",
+    "conference": "ICLR",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/iclr_reject_2025_010_extending_flexibility_of_image_coding_enhancement_framework_for_iots.md",
+    "target_paper_summary": {
+      "paper_id": "paper_7fd7fb8fdf95",
+      "title": "Extending Flexibility Of Image Coding En- Hancement Framework For Iots",
+      "abstract": "Neural image compression, necessary in various edge-device scenarios, suffers from its heavy encode-decode structures and inflexible compression level switch.\n\nThe primary issue is that the computational and storage capabilities of edge devices are weaker than those of servers, preventing them from handling the same amount of computation and storage. One solution is to downsample images and reconstruct them on the receiver side; however, current methods uniformly downsample the image and limit flexibility in compression levels. We take a step to break up this paradigm by proposing a conditional uniform-based sampler that allows for flexible image size reduction and reconstruction. Building on this, we introduce a lightweight transformer-based reconstruction structure to further reduce the reconstruction load on the receiver side. Extensive evaluations conducted on a real-world testbed demonstrate multiple advantages of our system over existing compression techniques, especially in terms of adaptability to different compression levels, computational efficiency, and image reconstruction quality.",
+      "topic": "",
+      "claims": [
+        "we introduce a lightweight transformer-based reconstruction structure to further reduce the reconstruction load on the receiver side."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_2facd3c8f",
+        "title": "Artificial Intelligence for Securing IoT Services in Edge Computing: A Survey",
+        "authors": [
+          "Zhanyang Xu",
+          "Wentao Liu",
+          "Jingwang Huang",
+          "Chenyi Yang",
+          "Jiawei Lu",
+          "Haozhe Tan"
+        ],
+        "year": 2020,
+        "publication_date": "2020-09-14",
+        "venue": "Security and Communication Networks",
+        "abstract": "With the explosive growth of data generated by the Internet of Things (IoT) devices, the traditional cloud computing model by transferring all data to the cloud for processing has gradually failed to meet the real-time requirement of IoT services due to high network latency. Edge computing (EC) as a new computing paradigm shifts the data processing from the cloud to the edge nodes (ENs), greatly improving the Quality of Service (QoS) for those IoT applications with low-latency requirements. However, compared to other endpoint devices such as smartphones or computers, distributed ENs are more vulnerable to attacks for restricted computing resources and storage. In the context that security and privacy preservation have become urgent issues for EC, great progress in artificial intelligence (AI) opens many possible windows to address the security challenges. The powerful learning ability of AI enables the system to identify malicious attacks more accurately and efficiently. Meanwhile, to a certain extent, transferring model parameters instead of raw data avoids privacy leakage. In this paper, a comprehensive survey of the contribution of AI to the IoT security in EC is presented. First, the research status and some basic definitions are introduced. Next, the IoT service framework with EC is discussed. The survey of privacy preservation and blockchain for edge-enabled IoT services with AI is then presented. In the end, the open issues and challenges on the application of AI in IoT services based on EC are discussed.",
+        "url": "https://doi.org/10.1155/2020/8872586",
+        "doi": "https://doi.org/10.1155/2020/8872586",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3085704645"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 68
+      },
+      {
+        "paper_id": "rw_002_0ce65f9c9",
+        "title": "Security of RPL Based 6LoWPAN Networks in the Internet of Things: A Review",
+        "authors": [
+          "Abhishek Verma",
+          "Virender Ranga"
+        ],
+        "year": 2020,
+        "publication_date": "2020-02-13",
+        "venue": "IEEE Sensors Journal",
+        "abstract": "Internet of Things (IoT) is one of the fastest emerging networking paradigms enabling a large number of applications for the benefit of mankind. Advancements in embedded system technology and compressed IPv6 have enabled the support of IP stack in resource constrained heterogeneous smart devices. However, global connectivity and resource constrained characteristics of smart devices have exposed them to different insider and outsider attacks, which put users' security and privacy at risk. Various risks associated with IoT slow down its growth and become an obstruction in the worldwide adoption of its applications. In RFC 6550, the IPv6 Routing Protocol for Low Power and Lossy Network (RPL) is specified by IETF's ROLL working group for facilitating efficient routing in 6LoWPAN networks, while considering its limitations. Due to resource constrained nature of nodes in the IoT, RPL is vulnerable to many attacks that consume the node's resources and degrade the network's performance. In this paper, we present a study on various attacks and their existing defense solutions, particularly to RPL. Open research issues, challenges, and future directions specific to RPL security are also discussed. A taxonomy of RPL attacks, considering the essential attributes like resources, topology, and traffic, is shown for better understanding. In addition, a study of existing cross-layered and RPL specific network layer based defense solutions suggested in the literature is also carried out.",
+        "url": "https://doi.org/10.1109/jsen.2020.2973677",
+        "doi": "https://doi.org/10.1109/jsen.2020.2973677",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3006589602"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 191
+      },
+      {
+        "paper_id": "rw_003_722e9848f",
+        "title": "A Theoretical Open Architecture Framework and Technology Stack for Digital Twins in Energy Sector Applications",
+        "authors": [
+          "Sri Nikhil Gupta Gourisetti",
+          "Sraddhanjoli Bhadra",
+          "D. Jonathan Sebastian-Cardenas",
+          "Md Touhiduzzaman",
+          "Osman Ahmed"
+        ],
+        "year": 2023,
+        "publication_date": "2023-06-21",
+        "venue": "Energies",
+        "abstract": "Digital twin is often viewed as a technology that can assist engineers and researchers make data-driven system and network-level decisions. Across the scientific literature, digital twins have been consistently theorized as a strong solution to facilitate proactive discovery of system failures, system and network efficiency improvement, system and network operation optimization, among others. With their strong affinity to the industrial metaverse concept, digital twins have the potential to offer high-value propositions that are unique to the energy sector stakeholders to realize the true potential of physical and digital convergence and pertinent sustainability goals. Although the technology has been known for a long time in theory, its practical real-world applications have been so far limited, nevertheless with tremendous growth projections. In the energy sector, there have been theoretical and lab-level experimental analysis of digital twins but few of those experiments resulted in real-world deployments. There may be many contributing factors to any friction associated with real-world scalable deployment in the energy sector such as cost, regulatory, and compliance requirements, and measurable and comparable methods to evaluate performance and return on investment. Those factors can be potentially addressed if the digital twin applications are built on the foundations of a scalable and interoperable framework that can drive a digital twin application across the project lifecycle: from ideation to theoretical deep dive to proof of concept to large-scale experiment to real-world deployment at scale. This paper is an attempt to define a digital twin open architecture framework that comprises a digital twin technology stack (D-Arc) coupled with information flow, sequence, and object diagrams. Those artifacts can be used by energy sector engineers and researchers to use any digital twin platform to drive research and engineering. This paper also provides critical details related to cybersecurity aspects, data management processes, and relevant energy sector use cases.",
+        "url": "https://doi.org/10.3390/en16134853",
+        "doi": "https://doi.org/10.3390/en16134853",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4381617698"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 41
+      },
+      {
+        "paper_id": "rw_004_de429c73d",
+        "title": "Document image analysis and recognition: a survey",
+        "authors": [
+          "Vladimir V. Arlazarov",
+          "Computer Sciences and Control\"",
+          "Е И Андреева",
+          "Konstantin Bulatov",
+          "Dmitry Nikolaev",
+          "Olga O. Petrova",
+          "B.I. Savelev",
+          "Oleg Slavin"
+        ],
+        "year": 2022,
+        "publication_date": "2022-08-01",
+        "venue": "Computer Optics",
+        "abstract": "This paper analyzes the problems of document image recognition and the existing solutions. Document recognition algorithms have been studied for quite a long time, but despite this, currently, the topic is relevant and research continues, as evidenced by a large number of associated publications and reviews. However, most of these works and reviews are devoted to individual recognition tasks. In this review, the entire set of methods, approaches, and algorithms necessary for document recognition is considered. A preliminary systematization allowed us to distinguish groups of methods for extracting information from documents of different types: single-page and multi-page, with text and handwritten contents, with a fixed template and flexible structure, and digitalized via different ways: scanning, photographing, video recording. Here, we consider methods of document recognition and analysis applied to a wide range of tasks: identification and verification of identity, due diligence, machine learning algorithms, questionnaires, and audits. The groups of methods necessary for the recognition of a single page image are examined: the classical computer vision algorithms, i.e., keypoints, local feature descriptors, Fast Hough Transforms, image binarization, and modern neural network models for document boundary detection, document classification, document structure analysis, i.e., text blocks and tables localization, extraction and recognition of the details, post-processing of recognition results. The review provides a description of publicly available experimental data packages for training and testing recognition algorithms. Methods for optimizing the performance of document image analysis and recognition methods are described.",
+        "url": "https://doi.org/10.18287/2412-6179-co-1020",
+        "doi": "https://doi.org/10.18287/2412-6179-co-1020",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4294474828"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 16
+      },
+      {
+        "paper_id": "rw_008_38bdcba30",
+        "title": "Sustainable Environmental Monitoring: Multistage Fusion Algorithm for Remotely Sensed Underwater Super-Resolution Image Enhancement and Classification",
+        "authors": [
+          "Wad Ghaban",
+          "Jawad Ahmad",
+          "Ali Akbar Siddique",
+          "Mohammad S. Alshehri",
+          "Anila Saghir",
+          "Faisal Saeed",
+          "Baraq Ghaleb",
+          "Mujeeb Ur Rehman"
+        ],
+        "year": 2024,
+        "publication_date": "2024-12-25",
+        "venue": "IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing",
+        "abstract": "Oceans and seas cover more than 70% of the Earth's surface. If compared with the land mass there are a lot of unexplored locations, a wealth of natural resources, and diverse ocean creatures that are inaccessible to us humans. Underwater rovers and vehicles play a vital role in discovering these resources, yet limited visibility in deep waters and technological constraints impede underwater exploration. To address these issues, advanced image super-resolution and enhancement techniques are crucial for reliable resource identification, species recognition, and underwater ecosystem study. This will ultimately bridge the current gap in environmental monitoring by facilitating resource tracking and underwater waste assessment. This article proposes a novel multistage fusion algorithm for underwater image super-resolution, designed to enhance the quality and spatial resolution of low-resolution underwater images toward a more accurate object characterization. The effectiveness of the proposed super-resolution technique is demonstrated using multiple performance metrics including accuracy, <italic xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">f</i>1-score, recall, and precision. By enhancing the spatial resolution of underwater images, our approach meets the increasing demand for detailed and accurate information in underwater earth observation applications.",
+        "url": "https://doi.org/10.1109/jstars.2024.3522202",
+        "doi": "https://doi.org/10.1109/jstars.2024.3522202",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4405778666"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 9
+      },
+      {
+        "paper_id": "rw_009_8e3a05f94",
+        "title": "The Internet of Sounds: Convergent Trends, Insights, and Future Directions",
+        "authors": [
+          "Luca Turchet",
+          "Mathieu Lagrange",
+          "Cristina Rottondi",
+          "György Fazekas",
+          "Nils Peters",
+          "Jan Østergaard",
+          "Frederic Font",
+          "Tom Bäckström",
+          "Carlo Fischione"
+        ],
+        "year": 2023,
+        "publication_date": "2023-03-07",
+        "venue": "IEEE Internet of Things Journal",
+        "abstract": "Current sound-based practices and systems developed in both academia and industry point to convergent research trends that bring together the field of Sound and Music Computing with that of the Internet of Things. This paper proposes a vision for the emerging field of the Internet of Sounds (IoS), which stems from such disciplines. The IoS relates to the network of Sound Things, i.e., devices capable of sensing, acquiring, processing, actuating, and exchanging data serving the purpose of communicating sound-related information. In the IoS paradigm, which merges under a unique umbrella the emerging fields of the Internet of Musical Things and the Internet of Audio Things, heterogeneous devices dedicated to musical and non-musical tasks can interact and cooperate with one another and with other things connected to the Internet to facilitate sound-based services and applications that are globally available to the users. We survey the state of the art in this space, discuss the technological and non-technological challenges ahead of us and propose a comprehensive research agenda for the field.",
+        "url": "https://doi.org/10.1109/jiot.2023.3253602",
+        "doi": "https://doi.org/10.1109/jiot.2023.3253602",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4323519173"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 82
+      },
+      {
+        "paper_id": "rw_010_ecf5fb50e",
+        "title": "Innovations in Wind Turbine Blade Engineering: Exploring Materials, Sustainability, and Market Dynamics",
+        "authors": [
+          "Ali Akbar Firoozi",
+          "Ali Akbar Firoozi",
+          "Ali Asghar Firoozi",
+          "Ali Asghar Firoozi",
+          "Farzad Hejazi"
+        ],
+        "year": 2024,
+        "publication_date": "2024-10-02",
+        "venue": "Sustainability",
+        "abstract": "This manuscript delves into the transformative advancements in wind turbine blade technology, emphasizing the integration of innovative materials, dynamic aerodynamic designs, and sustainable manufacturing practices. Through an exploration of the evolution from traditional materials to cutting-edge composites, the paper highlights how these developments significantly enhance the efficiency, durability, and environmental compatibility of wind turbines. Detailed case studies of notable global projects, such as the Hornsea Project One, the Gansu Wind Farm, and the Block Island Wind Farm, illustrate the practical applications of these technologies and their impact on energy production and sustainability. Additionally, the manuscript examines the critical role of regulatory frameworks and industry standards in fostering these technological advancements, ensuring safety, and promoting global adoption. By analyzing the current trends and future directions, this study underscores the potential of modern turbine technologies to meet the increasing global demand for renewable energy and contribute to sustainable development goals. The findings advocate for continued innovation and policy alignment to fully harness the potential of wind energy in the renewable energy landscape.",
+        "url": "https://doi.org/10.3390/su16198564",
+        "doi": "https://doi.org/10.3390/su16198564",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4403072554"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 48
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_008_38bdcba30",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "same_method",
+          "same_constraints"
+        ],
+        "rationale": "This paper addresses image enhancement and super-resolution for resource-constrained environments (underwater sensing), involving computational efficiency and quality improvement, aligning with the target's focus on lightweight reconstruction and image quality in edge scenarios.",
+        "evidence_summary": "In 2024, Ghaban et al. published 'Sustainable Environmental Monitoring: Multistage Fusion Algorithm for Remotely Sensed Underwater Super-Resolution Image Enhancement and Classification,' which proposed a novel multistage fusion algorithm for underwater image super-resolution to enhance quality and spatial resolution of low-resolution images. The method demonstrated effectiveness using performance metrics including accuracy, f1-score, recall, and precision, addressing challenges in underwater exploration due to limited visibility and technological constraints."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_004_de429c73d",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "This survey covers document image recognition methods, including neural network models and computer vision algorithms, which relate to the target's use of transformer-based reconstruction and image processing techniques.",
+        "evidence_summary": "In 2022, Arlazarov et al. published 'Document image analysis and recognition: a survey,' which analyzed problems and solutions in document image recognition, considering methods such as classical computer vision algorithms and modern neural network models for tasks like document boundary detection, classification, and structure analysis. The review provided descriptions of publicly available experimental data packages and covered applications in identity verification, due diligence, and machine learning algorithms."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_001_2facd3c8f",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "same_constraints",
+          "useful_background"
+        ],
+        "rationale": "This survey discusses edge computing for IoT services, highlighting resource constraints and security challenges, which provides background on the deployment setting and constraints relevant to the target's edge-device focus.",
+        "evidence_summary": "In 2020, Xu et al. published 'Artificial Intelligence for Securing IoT Services in Edge Computing: A Survey,' which presented a comprehensive survey on the contribution of AI to IoT security in edge computing, discussing the IoT service framework, privacy preservation, and blockchain. The survey addressed challenges such as restricted computing resources and storage in edge nodes and explored how AI enables more accurate and efficient identification of malicious attacks while avoiding privacy leakage by transferring model parameters instead of raw data."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_002_0ce65f9c9",
+        "relevance_score": 0.42,
+        "relevance_types": [
+          "same_constraints",
+          "useful_background"
+        ],
+        "rationale": "This review focuses on security in IoT networks with resource-constrained devices, relating to the target's emphasis on computational and storage limitations in edge devices.",
+        "evidence_summary": "In 2020, Verma and Ranga published 'Security of RPL Based 6LoWPAN Networks in the Internet of Things: A Review,' which studied various attacks and defense solutions for RPL in resource-constrained IoT networks, presenting a taxonomy of attacks based on resources, topology, and traffic. The paper discussed open research issues and challenges specific to RPL security, including vulnerabilities due to the resource-constrained nature of nodes and degradation of network performance."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_009_8e3a05f94",
+        "relevance_score": 0.4,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "This paper proposes a vision for the Internet of Sounds, involving networked devices for sound-related tasks, which provides tangential background on IoT applications but is not directly related to image coding.",
+        "evidence_summary": "In 2023, Turchet et al. published 'The Internet of Sounds: Convergent Trends, Insights, and Future Directions,' which proposed a vision for the Internet of Sounds, involving devices capable of sensing, acquiring, processing, actuating, and exchanging sound-related data. The paper surveyed state-of-the-art technologies, discussed challenges, and proposed a research agenda for sound-based services and applications in IoT contexts."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_003_722e9848f",
+        "relevance_score": 0.38,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "This theoretical framework for digital twins in energy applications provides background on scalable and interoperable systems but has weak relevance to image coding and edge devices.",
+        "evidence_summary": "In 2023, Gourisetti et al. published 'A Theoretical Open Architecture Framework and Technology Stack for Digital Twins in Energy Sector Applications,' which theorized digital twins as a technology for proactive failure discovery and system optimization in the energy sector. The paper discussed factors such as cost, regulatory requirements, and methods for evaluating performance and return on investment, aiming to address friction in real-world deployments."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_010_ecf5fb50e",
+        "relevance_score": 0.35,
+        "relevance_types": [
+          "weakly_related"
+        ],
+        "rationale": "This paper on wind turbine blade engineering focuses on materials and sustainability, with no direct connection to image coding, edge devices, or computational methods.",
+        "evidence_summary": "In 2024, Firoozi et al. published 'Innovations in Wind Turbine Blade Engineering: Exploring Materials, Sustainability, and Market Dynamics,' which delved into advancements in wind turbine blade technology, including innovative materials and aerodynamic designs. The paper highlighted case studies of global projects like the Hornsea Project One and discussed the role of regulatory frameworks in promoting technological advancements and sustainable development goals."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Wad Ghaban et al. published \"Sustainable Environmental Monitoring: Multistage Fusion Algorithm for Remotely Sensed Underwater Super-Resolution Image Enhancement and Classification\" in IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing. This article proposes a novel multistage fusion algorithm for underwater image super-resolution, designed to enhance the quality and spatial resolution of low-resolution underwater images toward a more accurate object characterization. The effectiveness of the proposed super-resolution technique is demonstrated using multiple performance metrics including accuracy, f 1-score, recall, and precision. To address these issues, advanced image super-resolution and enhancement techniques are crucial for reliable resource identification, species recognition, and underwater ecosystem study. In 2022, Vladimir V. Arlazarov et al. published \"Document image analysis and recognition: a survey\" in Computer Optics. However, most of these works and reviews are devoted to individual recognition tasks. The groups of methods necessary for the recognition of a single page image are examined: the classical computer vision algorithms, i.e., keypoints, local feature descriptors, Fast Hough Transforms, image binarization, and modern neural network models for document boundary detection, document classification, document structure analysis, i.e., text blocks and tables localization, extraction and recognition of the details, post-processing of recognition results. Here, the authors consider methods of document recognition and analysis applied to a wide range of tasks: identification and verification of identity, due diligence, machine learning algorithms, questionnaires, and audits. In 2020, Zhanyang Xu et al. published \"Artificial Intelligence for Securing IoT Services in Edge Computing: A Survey\" in Security and Communication Networks. In this paper, a comprehensive survey of the contribution of AI to the IoT security in EC is presented. With the explosive growth of data generated by the Internet of Things (IoT) devices, the traditional cloud computing model by transferring all data to the cloud for processing has gradually failed to meet the real-time requirement of IoT services due to high network latency. Edge computing (EC) as a new computing paradigm shifts the data processing from the cloud to the edge nodes (ENs), greatly improving the Quality of Service (QoS) for those IoT applications with low-latency requirements. In 2020, Abhishek Verma and Virender Ranga published \"Security of RPL Based 6LoWPAN Networks in the Internet of Things: A Review\" in IEEE Sensors Journal. In this paper, the authors present a study on various attacks and their existing defense solutions, particularly to RPL. Due to resource constrained nature of nodes in the IoT, RPL is vulnerable to many attacks that consume the node's resources and degrade the network's performance. However, global connectivity and resource constrained characteristics of smart devices have exposed them to different insider and outsider attacks, which put users' security and privacy at risk. In 2023, Luca Turchet et al. published \"The Internet of Sounds: Convergent Trends, Insights, and Future Directions\" in IEEE Internet of Things Journal. Current sound-based practices and systems developed in both academia and industry point to convergent research trends that bring together the field of Sound and Music Computing with that of the Internet of Things. The IoS relates to the network of Sound Things, i.e., devices capable of sensing, acquiring, processing, actuating, and exchanging data serving the purpose of communicating sound-related information. In the IoS paradigm, which merges under a unique umbrella the emerging fields of the Internet of Musical Things and the Internet of Audio Things, heterogeneous devices dedicated to musical and non-musical tasks can interact and cooperate with one another and with other things connected to the Internet to facilitate sound-based services and applications that are globally available to the users. In 2023, Sri Nikhil Gupta Gourisetti et al. published \"A Theoretical Open Architecture Framework and Technology Stack for Digital Twins in Energy Sector Applications\" in Energies. Digital twin is often viewed as a technology that can assist engineers and researchers make data-driven system and network-level decisions. Across the scientific literature, digital twins have been consistently theorized as a strong solution to facilitate proactive discovery of system failures, system and network efficiency improvement, system and network operation optimization, among others. This paper is an attempt to define a digital twin open architecture framework that comprises a digital twin technology stack (D-Arc) coupled with information flow, sequence, and object diagrams.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 3,
+      "num_removed_undated": 0,
+      "num_used": 7,
+      "num_cutoff_valid": 7,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 3,
+    "num_removed_undated": 0,
+    "num_used": 7,
+    "num_cutoff_valid": 7,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

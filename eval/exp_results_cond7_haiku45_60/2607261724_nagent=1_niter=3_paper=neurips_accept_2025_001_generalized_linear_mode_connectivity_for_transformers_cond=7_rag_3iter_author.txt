@@ -1,0 +1,757 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 3,
+        "clarity": 4
+      },
+      "strengths": [
+        "The paper introduces a unified and formally principled framework that generalizes beyond permutation symmetries to encompass permutations, semi-permutations, orthogonal transformations, and invertible maps. This hierarchical organization (Table 1) clearly articulates how different symmetry classes relate to specific neural network components, providing theoretical grounding that subsumes prior work like Git Re-Basin as special cases.",
+        "Achieving linear mode connectivity (LMC) with zero or near-zero loss barriers for independently trained Vision Transformers and GPT-2 models is a substantial empirical advance on vision tasks (CIFAR-10/100, Tiny ImageNet) and Tiny Shakespeare. The results demonstrate this is possible even across width-heterogeneous architectures (Figure 3c), extending prior results which required 32× width increases for ResNets. The multi-model alignment results (Figure 4) further demonstrate the approach generalizes beyond pairwise merging within its validated scope.",
+        "The paper provides three complementary alignment strategies (activation matching, weight matching, and learned matching) with clear algorithmic descriptions. The learned matching method (Algorithm 1) elegantly handles discrete symmetries through straight-through estimators and continuous symmetries via differentiable projections, while weight matching offers a practical data-free alternative. The analysis in Section 6 identifying where gaps arise between weight and learned matching provides useful insights for future optimization.",
+        "The mathematical framework in Section 3 and Appendix E rigorously characterizes symmetries in Transformers component-by-component (feed-forward layers with permutation, multi-head attention with semi-permutation and invertibility, residual streams with orthogonal symmetry). The derivation showing how orthogonal transformations preserve RMSNorm and enable width-heterogeneous alignment (equations 6-8) is technically sound and novel."
+      ],
+      "weaknesses": [
+        "Experimental evaluation uses small-scale models and datasets that do not validate the claimed architecture-agnostic nature of the framework. ViTs use embedding dimensions 256-384 on CIFAR-10/100 and Tiny ImageNet; GPT-2 on BookCorpus is trained for only 5 epochs. While the authors appropriately acknowledge this in Appendix A and their rebuttal explains the framework is theoretically scale-invariant, the submitted paper provides no empirical evidence from contemporary-scale models (ViT-Base/Large, GPT-2-medium/large) to substantiate claims about practical generalization. Vision results are robust within their scope; language results are limited to Tiny Shakespeare and problematic on BookCorpus.",
+        "The BookCorpus language modeling results exhibit a loss barrier of 0.42 ± 0.01, substantially higher than vision tasks (near-zero) and contradicting the narrative of universal Transformer connectivity. The authors attribute this to potentially different learned strategies but provide no direct empirical evidence in the submitted paper—such as representation analysis (CCA, SVCCA), diagnostic probing, or loss landscape characterization—to support or refute this hypothesis. This remains unresolved in the submission, creating ambiguity about whether the failure reflects alignment limitations or genuine solution diversity.",
+        "Reparameterizations required for the framework (RMSNorm reparameterization per Appendix E equations 6-8, treating QK/OV circuits as canonical) are not explicitly characterized in the main submission as one-time preprocessing operations. The submitted Section 3.2.3 and Appendix A acknowledge these operations alter the network architecture but do not clearly state they are absorbed into adjacent layers with negligible overhead. This lack of clarity creates potential confusion about practical implementation costs."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Experimental evaluation uses small-scale models and datasets that do not validate the claimed architecture-agnostic nature of the framework. ViTs use embedding dimensions 256-384 on CIFAR-10/100 and Tiny ImageNet; GPT-2 on BookCorpus is trained for only 5 epochs. While the authors appropriately acknowledge this in Appendix A and their rebuttal explains the framework is theoretically scale-invariant, the submitted paper provides no empirical evidence from contemporary-scale models (ViT-Base/Large, GPT-2-medium/large) to substantiate claims about practical generalization. Vision results are robust within their scope; language results are limited to Tiny Shakespeare and problematic on BookCorpus.",
+          "severity": "major",
+          "evidence": "Appendix B Table 3 specifies ViT embedding dimensions 256-384 with 6-8 layers on CIFAR-10/100 and Tiny ImageNet; GPT-2 on BookCorpus uses 6 layers, 512 embedding dimension, trained for only 5 epochs with batch size 64. Appendix A acknowledges: 'empirical results for language models were based on a smaller version of GPT-2 language models with reduced parameters due to resource constraints...indicating the need for evaluation on larger, more contemporary language models.' The rebuttal clarifies the framework is 'architecture-agnostic' in formulation and notes the symmetry classes apply across scales in principle, but the submitted paper itself contains no evidence from larger models. The rebuttal appropriately acknowledges: 'we provide proof-of-concept on small models' and 'we fully agree that validation on standard-scale models is essential for practical impact.'",
+          "affected_claim": "That the approach generalizes to modern Transformer architectures and achieves practical significance for contemporary language/vision models.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The BookCorpus language modeling results exhibit a loss barrier of 0.42 ± 0.01, substantially higher than vision tasks (near-zero) and contradicting the narrative of universal Transformer connectivity. The authors attribute this to potentially different learned strategies but provide no direct empirical evidence in the submitted paper—such as representation analysis (CCA, SVCCA), diagnostic probing, or loss landscape characterization—to support or refute this hypothesis. This remains unresolved in the submission, creating ambiguity about whether the failure reflects alignment limitations or genuine solution diversity.",
+          "severity": "major",
+          "evidence": "Table 2 reports BookCorpus barrier 0.42 ± 0.01 vs. near-zero for CIFAR tasks. Section 5 states: 'This may reflect imperfect alignment, or genuinely disconnected minima. Juneja et al. [2023] show that...models using the same strategy might be linearly connected, linear paths across strategies exhibit barriers.' The rebuttal acknowledges: 'the submitted paper provides no representation analysis, probing studies, or loss landscape characterization to support the hypothesis that BookCorpus models learned fundamentally different strategies' and characterizes it as 'an open question.' The rebuttal proposes diagnostic probing and representation analysis as solutions but notes these would require new experiments. No such analysis appears in the submitted paper.",
+          "affected_claim": "That the framework enables LMC across diverse Transformer architectures and tasks; that findings generalize to language modeling.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Reparameterizations required for the framework (RMSNorm reparameterization per Appendix E equations 6-8, treating QK/OV circuits as canonical) are not explicitly characterized in the main submission as one-time preprocessing operations. The submitted Section 3.2.3 and Appendix A acknowledge these operations alter the network architecture but do not clearly state they are absorbed into adjacent layers with negligible overhead. This lack of clarity creates potential confusion about practical implementation costs.",
+          "severity": "minor",
+          "evidence": "Section 3.2.3 describes RMSNorm reparameterization; Appendix E provides technical derivations (equations 6-8). Appendix A states: 'requires reparameterization (e.g., RMSNorm reparameterization or multiplying out intra-head dependencies). Although it preserves functional equivalence, it alters the underlying network architecture.' The submitted paper does not explicitly state that these operations are absorbed into adjacent linear layers (W₀' = OW₀, W₁' = W₁O^T) with one-time preprocessing cost. The rebuttal clarifies: 'we absorb the orthogonal transformation O into adjacent linear layers...which requires no additional forward/backward pass cost' and proposes adding this clarification in Section 3.2.3. This clarification is reasonable but does not appear in the submitted work.",
+          "affected_claim": "That the framework is practically implementable without hidden computational overhead; clarity about one-time vs. recurring costs.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The mathematical framework is rigorous and sound. The symmetry hierarchy (Section 3, Appendix E) correctly characterizes component-specific symmetries with formal derivations (RMSNorm orthogonal invariance, QK/OV circuit invertibility, semi-permutation decomposability). Optimization objectives (Equations 1-2) are well-defined. Alignment algorithms (Hungarian algorithm, SVD, STE, Sinkhorn) are sound and correctly applied. The rebuttal does not identify any mathematical errors in the framework; the authors agree with all technical concerns raised and appropriately characterize remaining issues as empirical scope and clarity rather than fundamental soundness problems. No mathematical or logical flaws undermining the core framework have been identified or contested."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The unified symmetry framework extending beyond permutations to semi-permutations, orthogonal, and invertible transformations is novel and not present in prior work (Git Re-Basin, OT fusion, Sinkhorn Re-Basin). The key insight that Transformers' component-specific symmetries (semi-permutation for multi-head attention inter-head mixing, orthogonal for residual streams with RMSNorm) enable better alignment than permutation-only approaches is new. Achieving zero-barrier LMC for independently trained ViTs and GPT-2 on vision and Tiny Shakespeare is novel for Transformers, advancing beyond prior ResNet results. The multi-model merging via universe matching in this setting is new. While soft permutations build on Sinkhorn-based ideas, their integration into the learned matching framework is novel. The component-specific symmetry analysis for Transformers, though bounded in empirical scope, represents genuine intellectual novelty."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "Significance is solid but appropriately bounded by empirical scope. The theoretical contribution—a formal hierarchy of symmetries applicable to neural network components—advances understanding of loss landscape geometry and parameterization redundancy. This framework is conceptually important and provides a lens for analyzing modern architectures. The empirical contribution—zero-barrier LMC for Transformers on vision tasks and Tiny Shakespeare—demonstrates the framework's utility within its tested domain. The practical contribution—three alignment methods with clear algorithives—has utility for model merging, federated learning, and ensemble construction. However, significance is moderated by: (1) vision-centric validation (4 of 5 datasets are vision-related); (2) failure on BookCorpus without satisfactory explanation, limiting confidence in language generalization; (3) small-scale models preventing assessment of scalability to contemporary practice. For a top-tier venue, the theoretical framework and proof-of-concept results on vision are sufficient for acceptance; the work opens important research directions but does not represent a transformative empirical advance. The rebuttal appropriately reframes this as 'establishing proof-of-concept' rather than universal validation."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Evaluation is methodologically sound within its scope. Strengths: (1) multiple vision datasets (CIFAR-10, CIFAR-100, Tiny ImageNet) with consistent near-zero results; (2) language datasets (Tiny Shakespeare near-zero, BookCorpus 0.42); (3) three alignment methods enabling fair comparison; (4) ablation studies on sampling strategies (Figure 6) and initialization (Figure 8); (5) convergence analysis (Figure 7); (6) loss surface visualization (Figures 3-4); (7) gap analysis between weight and learned matching (Section 6). Limitations: (1) small models and brief training prevent generalization claims; (2) BookCorpus failure not investigated; (3) ablations limited to single architecture/dataset (CIFAR-10); (4) no comparison to recent Transformer-specific methods beyond Verma & Elbayad (2024). The rebuttal appropriately acknowledges these limitations. The vision results (3 datasets, consistent zero barriers) are convincing within their scope; language results are limited. For acceptance, the robust vision validation plus Tiny Shakespeare success establish proof-of-concept; the BookCorpus anomaly remains concerning but not disqualifying given transparent reporting."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "Presentation is clear and well-organized. Strengths: (1) clear motivation (Figure 1); (2) Table 1 clearly summarizes symmetry hierarchy; (3) Section 3 systematically covers each symmetry class with component examples; (4) Figure 2 effectively illustrates reparameterizations in Transformers; (5) Algorithms 1 is clearly written; (6) Section 6 provides interpretable analysis of methods' differences. Appendices are comprehensive and appropriately detailed (B: experimental setup, C: ablations, D: soft permutations, E: theoretical foundations). Minor areas for improvement noted in submission: (1) reparameterization costs not explicitly stated as one-time preprocessing in main text (Appendix E and rebuttal clarify this, but not Section 3.2.3); (2) semi-permutation definition (linear decomposability) could be introduced earlier; (3) QK/OV circuit notation is dense; (4) Section 4.3 on multi-model merging is somewhat rushed. The rebuttal acknowledges the first issue and proposes adding a clarifying paragraph to Section 3.2.3. Overall, presentation meets standards for a top-tier venue."
+        }
+      },
+      "summary_comment": "This paper makes solid theoretical and empirical contributions to understanding Transformer loss landscape geometry through a unified symmetry framework. The key innovation—formalizing a hierarchy of symmetry classes (permutation ⊂ semi-permutation ⊂ orthogonal ⊂ invertible) tailored to Transformer components—is novel and rigorously developed in Section 3 and Appendix E. The demonstration of zero-barrier linear mode connectivity (LMC) between independently trained ViTs and GPT-2 models on vision tasks (CIFAR-10/100, Tiny ImageNet) and Tiny Shakespeare represents genuine empirical progress, particularly the width-heterogeneous alignment (Figure 3c). The three alignment strategies are well-motivated and clearly described, with useful analysis of their differences (Section 6).\n\nThe work's scope is appropriately bounded and the authors are commendably transparent about limitations. The main limitations are: (1) small-scale experiments (ViT embedding 256-384, GPT-2 with 5 epochs on BookCorpus) that do not validate the claimed architecture-agnostic framework on contemporary models; (2) unresolved BookCorpus language modeling result (0.42 barrier) with no direct investigation to distinguish between alignment failure and genuine solution diversity; (3) lack of explicit clarification in the main text that reparameterizations are one-time preprocessing operations. The rebuttal appropriately characterizes the first as a resource constraint yielding proof-of-concept rather than universal validation, acknowledges the second as an open question warranting future investigation, and proposes straightforward text clarifications for the third.\n\nThe authors' second rebuttal demonstrates intellectual honesty by accepting all major concerns without defensive reasoning. They appropriately distinguish between what is demonstrated (vision LMC on small models) and what remains open (language model alignment, scalability to contemporary models). This framing is appropriate for acceptance: the theoretical framework is sound and novel, the vision results are robust within their scope, and the work opens important research directions. The evaluation score of 3 (rather than 4) reflects that the experiments convincingly support claims within their scope but do not provide evidence for the broadest claims about modern Transformers. This is not a weakness disqualifying the paper, but rather an accurate calibration of significance given the empirical domain.\n\nThe paper merits acceptance based on its theoretical contributions, proof-of-concept results on vision tasks, and rigorous treatment of a central problem in deep learning. The natural follow-up—validation on larger models and investigation of language model alignment—represents clear and valuable future work for the community. For a top-tier venue, the combination of novel framework and convincing (if limited-scope) empirical validation is sufficient."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Strong alignment with ICML's core focus on loss landscape geometry and optimization. The paper directly addresses 'theory of machine learning' through its formal characterization of neural network symmetries and their role in mode connectivity, which is a fundamental question in deep learning optimization.\",\n      \"The unified framework formalizing four symmetry classes (permutations, semi-permutations, orthogonal, invertible) represents a methodological contribution to understanding reparameterization in neural networks. This fits ICML's emphasis on 'optimization (convex and non-convex optimization, matrix/tensor methods)' and theoretical foundations.\",\n      \"The work bridges theory and practice with three concrete alignment algorithms (activation matching, weight matching, learned matching). This combination of theoretical framework plus practical methods aligns with ICML's appreciation for papers that advance both understanding and implementation.\",\n      \"Multi-model merging and model alignment are relevant to ICML's interest in 'machine learning systems (improved implementation and scalability, distributed methods)' and potential applications to federated learning.\",\n      \"The empirical validation on vision tasks (CIFAR-10/100, Tiny ImageNet) is rigorous within scope, with comprehensive ablation studies (Figures 6-8, Appendix C), convergence analysis, and multiple datasets—meeting ICML's standards for experimental rigor on foundational problems.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited practical scope: ICML values applications with demonstrable impact. The experiments use toy-scale models (ViT with 256-384 embedding, GPT-2 trained only 5 epochs) on small datasets. While the theoretical framework is scale-agnostic, the paper provides no evidence it generalizes to contemporary models (ViT-Base, GPT-2-medium), limiting practical relevance for ICML's audience interested in real-world applications.\",\n      \"Language modeling results (BookCorpus: 0.42 barrier) contradict the narrative of universal Transformer connectivity. The paper provides no empirical investigation to distinguish between alignment method limitation and genuine solution diversity—this unresolved empirical anomaly weakens confidence in the framework's generality, which is important for ICML's emphasis on robust, broadly-applicable techniques.\",\n      \"The paper's contributions are primarily Transformer-specific rather than advancing general machine learning. ICML values general principles; this work characterizes Transformer symmetries but does not substantially advance understanding of symmetries in other modern architectures (e.g., convolutional networks with batch norm, hybrid architectures). The symmetry framework, while novel, is somewhat architecture-specific in its manifestation.\",\n      \"Reparameterization requirements (RMSNorm reformulation, absorbing orthogonal transformations) are not clearly documented in the main text as one-time preprocessing costs. For ICML, where clarity on computational overhead matters, this lack of transparency about practical implementation is a minor but non-negligible weakness.\",\n      \"The application areas mentioned (federated learning, model ensembling, continual learning in Appendix F) are discussed only briefly without empirical validation. For a problem-solving venue like ICML, demonstrating actual benefit in these applications would strengthen the fit.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Excellent fit with NeurIPS's broad scope including 'neuroscience and cognitive science,' 'deep learning,' and 'theory.' The paper's characterization of loss landscape geometry and neural network reparameterization contributes to fundamental understanding of how deep networks organize their solutions—a question central to NeurIPS's multidisciplinary mission.\",\n      \"Strong alignment with NeurIPS's emphasis on 'generalization and multi-task learning' and 'data-centric aspects of AI.' The multi-model merging framework (Section 4.3, Figure 4) shows how independent models can be merged while maintaining low loss, with implications for ensemble methods and model interoperability—topics NeurIPS values.\",\n      \"The paper demonstrates novel empirical findings: zero-barrier linear interpolation between independently trained Vision Transformers and GPT-2 models across multiple datasets. This is the kind of surprising, interpretable result that resonates with NeurIPS's interdisciplinary audience and sparks follow-up research.\",\n      \"Comprehensive treatment across multiple modalities (vision and language) and architectures (ViT, GPT-2), with results on diverse tasks (CIFAR-10/100, Tiny ImageNet, Tiny Shakespeare, BookCorpus). This breadth aligns with NeurIPS's appreciation for interdisciplinary work and demonstration of generality.\",\n      \"The framework incorporates both theoretical rigor (formal symmetry hierarchy in Section 3, Appendix E) and practical algorithmic contributions (three alignment methods with clear algorithmic descriptions). This balance of theory and practice is valued at NeurIPS.\",\n      \"The paper engages with important philosophical questions about neural network solution spaces, the role of symmetries in understanding deep learning, and the connectedness of loss landscapes—topics that resonate with NeurIPS's culture of foundational research.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Scale-scope gap: NeurIPS values proof-of-concept results, but the empirical validation uses small models (ViT: 256-384 embedding, GPT-2: 5 epochs, 512 embedding) and toy datasets. While acceptable for a proof-of-concept, this limits the paper's ability to make strong claims about modern Transformers, and NeurIPS audiences—particularly applied researchers—may question practical generalization.\",\n      \"Unresolved language modeling anomaly: The BookCorpus result (0.42 barrier vs. near-zero for vision) contradicts the narrative of universal Transformer connectivity. The paper speculates that different learned strategies might explain this but provides no direct empirical evidence (representation analysis, probing, loss landscape visualization). For NeurIPS, where understanding failure modes is valued, this represents incomplete scientific investigation.\",\n      \"Limited connection to NeurIPS's strong emphasis on 'AI/ML for physical sciences,' 'AI/ML for health and biotechnology,' 'AI/ML for sustainability,' and 'socio-technical aspects of AI.' While model merging has potential applications in these domains, the paper does not explore them. The work is primarily a foundational study without demonstrated application impact.\",\n      \"Presentation of reparameterization requirements could be clearer. The paper does not explicitly state in Section 3.2.3 that orthogonal transformations are absorbed into adjacent linear layers with negligible one-time preprocessing cost. For a venue valuing accessibility to diverse audiences, this lack of clarity is a minor but notable issue.\",\n      \"The soft permutation results (Appendix D) show promise but are incomplete. The paper notes trade-offs between endpoint functional equivalence and interpolation midpoint performance without fully resolving them. For NeurIPS, incomplete methodological development in a contributed component is a weakness, though not disqualifying given the paper's primary contributions.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Core topic alignment: ICLR is 'globally renowned for presenting and publishing cutting-edge research on all aspects of deep learning.' This paper's focus on Transformer loss landscape geometry, reparameterization symmetries, and mode connectivity is squarely within ICLR's mission.\",\n      \"Strong fit with ICLR's emphasis on 'representation learning' and 'interpretability of learned representations.' The paper's framework for understanding how independently trained models can be aligned while preserving functionality provides insights into neural network representation spaces and their symmetries.\",\n      \"Alignment with ICLR's interest in 'generative models' and 'learning theory.' The paper makes theoretical contributions to understanding neural network parameterization redundancy and provides empirical evidence of unexpected connectivity in loss landscapes—both topics ICLR values.\",\n      \"The multi-model merging and alignment procedures are relevant to ICLR's focus on 'transfer learning, meta learning, and lifelong learning.' The framework could enable transfer of aligned model representations across tasks.\",\n      \"Comprehensive evaluation on Vision Transformers (ICLR's focus) with rigorous ablations, convergence analysis (Figures 6-8), and clear algorithmic descriptions. The experimental rigor meets ICLR standards for foundational deep learning research.\",\n      \"The paper contributes to ICLR's interest in 'neurosymbolic & hybrid AI systems' by formalizing the symmetry structure of Transformer architectures, providing a mathematical framework for understanding how different components interact.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Scale mismatch with ICLR's focus on modern deep learning. ICLR audiences expect validation on substantial models; this paper uses toy-scale ViTs (6-8 layers, 256-384 embedding) on small datasets (CIFAR-10/100, Tiny ImageNet). ICLR values proof-of-concept on realistic models; the lack of evidence on ViT-Base or larger scales weakens the fit for a venue focused on contemporary deep learning practice.\",\n      \"Limited scope to Transformer architectures. While ICLR is deep-learning focused, it values work applicable across architectures or advancing general principles. This paper's contributions are largely Transformer-specific (characterizing permutation symmetry in FFN, semi-permutation in multi-head attention, orthogonal in residuals). Generalization to convolutional networks, RNNs, or other modern architectures is not addressed.\",\n      \"BookCorpus failure (0.42 barrier) remains unresolved. For ICLR, where representation learning and model understanding are central, the inability to explain why language models fail to achieve zero barriers is concerning. The speculative explanation about different learned strategies is not empirically validated with representation analysis or diagnostic tools ICLR audiences would expect (CCA, probing, attention visualization).\",\n      \"Reparameterization requirements obscure practical applicability. The framework requires RMSNorm reparameterization and orthogonal transformation absorption into adjacent layers. While functionally equivalent, ICLR audiences value clarity about implementation; the main text (Section 3.2.3) does not clearly state these are one-time preprocessing operations with negligible overhead.\",\n      \"Limited connection to ICLR's emphasis on 'applications' (robotics, neuroscience, physical sciences). While federated learning and model ensembling are mentioned in Appendix F, no empirical validation in these domains is provided. ICLR values work with demonstrated applications.\",\n      \"Soft permutation results (Appendix D) are incomplete. The identified trade-offs between endpoint functional equivalence and interpolation performance suggest the framework has unresolved components. For ICLR, incomplete methodological development, even in appendices, is a weakness for papers claiming to present finished frameworks.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\n**Recommended Submission Venue: NeurIPS (fit_score: 8)**\n\nThis paper presents a novel theoretical framework and empirical study of neural network loss landscape geometry through symmetry-aware model alignment. It makes solid contributions to understanding Transformers' loss landscapes and demonstrates zero-barrier linear mode connectivity on vision tasks—findings that resonate strongly with NeurIPS's interdisciplinary, foundational research culture.\n\n### Key Findings:\n\n- **ICML (7/10):** Good fit on theoretical grounds and optimization focus, but limited practical scope and unresolved language modeling anomalies weaken its position for a venue valuing real-world applications.\n\n- **NeurIPS (8/10):** Best fit. The paper's breadth (vision + language, multiple datasets, theoretical + empirical), surprising empirical results, and engagement with foundational questions about neural network solutions align well with NeurIPS's multidisciplinary mission and appreciation for proof-of-concept research.\n\n- **ICLR (6/10):** Borderline. While the paper is on-topic for deep learning, the small-scale experiments, Transformer-specific contributions, unresolved language modeling results, and incomplete soft permutation methods create friction with ICLR's expectations for contemporary scale and general applicability.\n\n### Strategic Recommendation:\n\n**Submit to NeurIPS.** The paper is well-executed within its scope, makes novel theoretical and empirical contributions, and the reviewer feedback is constructively supportive (Accept decision). NeurIPS values proof-of-concept results on foundational questions and the interdisciplinary breadth this work demonstrates. The acknowledged limitations (small scale, language modeling failure) are appropriately transparent and do not disqualify the work—they represent clear directions for future research that the community can build upon.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper introduces a unified and formally principled framework that generalizes beyond permutation symmetries to encompass permutations, semi-permutations, orthogonal transformations, and invertible maps. This hierarchical organization (Table 1) clearly articulates how different symmetry classes relate to specific neural network components, providing theoretical grounding that subsumes prior work like Git Re-Basin as special cases.",
+              "Achieving linear mode connectivity (LMC) with zero or near-zero loss barriers for independently trained Vision Transformers and GPT-2 models is a substantial empirical advance. The results demonstrate this is possible even across width-heterogeneous architectures (Figure 3c), extending prior results which required 32× width increases for ResNets. The multi-model alignment results (Figure 4) further demonstrate the approach generalizes beyond pairwise merging.",
+              "The paper provides three complementary alignment strategies (activation matching, weight matching, and learned matching) with clear algorithmic descriptions. The learned matching method (Algorithm 1) elegantly handles discrete symmetries through straight-through estimators and continuous symmetries via differentiable projections, while weight matching offers a practical data-free alternative. The analysis in Section 6 identifying where gaps arise between weight and learned matching provides useful insights for future optimization.",
+              "The mathematical framework in Section 3 and Appendix E rigorously characterizes symmetries in Transformers component-by-component (feed-forward layers with permutation, multi-head attention with semi-permutation and invertibility, residual streams with orthogonal symmetry). The derivation showing how orthogonal transformations preserve RMSNorm and enable width-heterogeneous alignment (equations 6-8) is technically sound and novel."
+            ],
+            "weaknesses": [
+              "Experimental evaluation is limited to small-scale models and datasets. Vision Transformers use embedding dimension 256-384 on CIFAR-10/100 and Tiny ImageNet; GPT-2 models are significantly smaller than standard GPT-2 (small/medium/large) and trained on only 5 epochs on BookCorpus. The authors acknowledge these constraints in Appendix A but do not validate whether findings scale to modern model sizes or more realistic training regimes, which is critical for establishing practical significance.",
+              "The BookCorpus results exhibit substantially higher loss barriers (0.42 ± 0.01) compared to vision tasks (near-zero), and the paper attributes this to potentially 'fundamentally different solutions' rather than alignment failure. However, this explanation lacks rigorous evidence—no analysis of learned representations, generalization strategies, or solution geometry is provided to support or refute this claim. This unresolved discrepancy undermines confidence in the generality of the approach.",
+              "The reparameterization required for theoretical guarantees (e.g., RMSNorm reparameterization in Section 3.2.3, multiplying out QK/OV circuits in attention) alters the network architecture and loses the original parameterization. While functional equivalence is preserved, the paper does not quantify computational overhead, memory requirements, or practical implications of these reparameterizations in real deployment scenarios.",
+              "Limited analysis of when and why the approach fails. Besides BookCorpus, there is minimal investigation into failure modes, computational complexity of the alignment algorithms (especially iterative weight matching and Hungarian algorithm for large models), or guidance on hyperparameter selection (e.g., initialization sensitivity shown in Figure 8 but not fully explored across architectures)."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Experimental evaluation is limited to small-scale models and datasets. Vision Transformers use embedding dimension 256-384 on CIFAR-10/100 and Tiny ImageNet; GPT-2 models are significantly smaller than standard GPT-2 (small/medium/large) and trained on only 5 epochs on BookCorpus. The authors acknowledge these constraints in Appendix A but do not validate whether findings scale to modern model sizes or more realistic training regimes, which is critical for establishing practical significance.",
+                "severity": "major",
+                "evidence": "Appendix B provides model specifications: ViT uses embedding dimension 256-384 with 6-8 layers; GPT-2 on BookCorpus uses 6 layers, 512 embedding dimension, trained for only 5 epochs with batch size 64 across 4 GPUs. The authors state in Appendix A: 'The current scope is utilized standard benchmarks such as CIFAR-10/100 and Tiny ImageNet for Vision Transformers...exploring performance on a broader or more complex range of benchmarks could further validate the findings.' They also note 'empirical results for language models were based on a smaller version of GPT-2...indicating the need for evaluation on larger, more contemporary language models.'",
+                "affected_claim": "That the approach achieves LMC for Vision Transformers and GPT-2 models; that the findings generalize to modern transformer architectures.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The BookCorpus results exhibit substantially higher loss barriers (0.42 ± 0.01) compared to vision tasks (near-zero), and the paper attributes this to potentially 'fundamentally different solutions' rather than alignment failure. However, this explanation lacks rigorous evidence—no analysis of learned representations, generalization strategies, or solution geometry is provided to support or refute this claim. This unresolved discrepancy undermines confidence in the generality of the approach.",
+                "severity": "major",
+                "evidence": "Table 2 reports BookCorpus barrier of 0.42 ± 0.01 vs. near-zero for CIFAR tasks. Section 5 states: 'While image tasks reliably attain B ≈ 0...language experiments, particularly on BookCorpus, exhibit higher barriers. This may reflect imperfect alignment, or genuinely disconnected minima. Juneja et al. [2023] show that, for NLP classifiers, fine-tuning can yield multiple basins associated with distinct generalization strategies.' This explanation is speculative and cites external work without direct evidence from the current experiments.",
+                "affected_claim": "That the framework successfully achieves LMC across diverse Transformer architectures and tasks; that disconnected minima on language tasks are due to fundamentally different solutions rather than the method's limitations.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The reparameterization required for theoretical guarantees (e.g., RMSNorm reparameterization in Section 3.2.3, multiplying out QK/OV circuits in attention) alters the network architecture and loses the original parameterization. While functional equivalence is preserved, the paper does not quantify computational overhead, memory requirements, or practical implications of these reparameterizations in real deployment scenarios.",
+                "severity": "minor",
+                "evidence": "Section 3.2.2 and 3.2.3 describe treating QK and OV circuits as canonical representations (omitting explicit reparameterizations) and RMSNorm reparameterization (equations 6-8 in Appendix E) as prerequisites for orthogonal symmetry. Appendix A states: 'Our methodology introduces a generalized notion of LMC that, in some cases, requires reparameterization (e.g., RMSNorm reparameterization or multiplying out intra-head dependencies). Although it preserves functional equivalence, it alters the underlying network architecture.'",
+                "affected_claim": "That the approach is practically applicable to real deployments; that the symmetry framework provides direct actionable guidance for model alignment without architectural modifications.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited analysis of when and why the approach fails. Besides BookCorpus, there is minimal investigation into failure modes, computational complexity of the alignment algorithms (especially iterative weight matching and Hungarian algorithm for large models), or guidance on hyperparameter selection (e.g., initialization sensitivity shown in Figure 8 but not fully explored across architectures).",
+                "severity": "minor",
+                "evidence": "Appendix C shows weight matching convergence (Figure 7) but only for CIFAR-10. Appendix C.1.2 demonstrates initialization sensitivity (Figure 8) for learned matching but only on CIFAR-10. Algorithm 1 uses hyperparameters (learning rate η, iterations Niter, sampling range U(0.4, 0.6)) without principled guidance or ablation studies. The paper lacks complexity analysis: no discussion of O(·) behavior for Hungarian algorithm on models with thousands of heads/neurons.",
+                "affected_claim": "That the method is general and robust; that practitioners can reliably apply the approach to new model pairs and sizes.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical framework is rigorous. The symmetry hierarchy (Section 3, Appendix E) correctly characterizes component-specific symmetries. The claim that function-preserving transformations exist under these symmetries is formally justified through detailed derivations (e.g., RMSNorm orthogonal invariance, QK/OV circuit invertibility). The optimization objectives (Equations 1-2) are well-defined. Alignment algorithms (weight matching, learned matching) use sound optimization techniques (Hungarian algorithm, SVD, straight-through estimators, Sinkhorn normalization). The experimental protocol (measuring loss barriers along interpolation paths) is standard and appropriate. No mathematical errors are evident. The main soundness concern is limited scope and missing failure-mode analysis, which is addressed in weaknesses but does not undermine core technical correctness."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The unified symmetry framework extending beyond permutations to semi-permutations, orthogonal, and invertible transformations is novel. While Git Re-Basin (Ainsworth et al., 2022) and OT fusion (Singh & Jaggi, 2020) handle permutations, this work's formal hierarchy and application to Transformers' richer symmetries is new. The key novel insight is that multi-head attention and residual streams admit semi-permutation and orthogonal symmetries respectively, enabling better alignment. Achieving zero-barrier LMC for independently trained ViTs and GPT-2 is, to the authors' knowledge, the first such result for Transformers—a significant advance over prior work requiring 32× widening for ResNets. Multi-model merging via universe matching in the Transformer setting is novel. While soft permutations (Appendix D) build on Sinkhorn-based methods (Peña et al., 2022), their integration into the learned matching framework is new. The work subsumes prior approaches as special cases while providing genuine extensions."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work makes three significant contributions: (1) theoretical—a formal framework unifying symmetry classes in neural networks with clear hierarchical organization, advancing understanding of loss landscape geometry; (2) empirical—demonstrating LMC in Transformers for the first time, with implications for model merging, ensembling, and federated learning; (3) practical—providing data-free (weight matching) and supervised (learned matching) alignment methods applicable to real settings. The findings challenge the view of Transformer loss landscapes as fragmented and suggest a more connected geometry under proper symmetry alignment. The multi-model results hint at shared low-loss manifolds. However, significance is somewhat limited by small-scale experiments and unresolved questions about language model alignment. For a top-tier ML venue, the theoretical novelty and empirical advances on Transformers are substantial, but the experimental scope constrains impact. The work opens avenues for future research on model interoperability and understanding modern architectures."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is methodologically sound but limited in scope. Strengths: (1) multiple datasets (CIFAR-10/100, Tiny ImageNet, Tiny Shakespeare, BookCorpus); (2) multiple alignment methods (activation, weight, learned matching) enabling fair comparisons; (3) ablation studies (Appendix C) on sampling strategies, initialization, iterations; (4) visualization of loss surfaces (Figure 3, 4); (5) analysis of weight/learned matching gap (Section 6). Limitations: (1) small model sizes and datasets; (2) only 5 epochs for BookCorpus (unusual and potentially confounding); (3) no comparison to recent Transformer-specific merging methods (only Verma & Elbayad 2024 mentioned); (4) no error bars or significance tests reported for some results; (5) reproducibility concerns—hyperparameter choices for learned matching not fully justified. The BookCorpus failure lacks root-cause analysis. Results are convincing for vision tasks but inconclusive for language. Wider evaluation on larger models and standard LLM benchmarks would strengthen claims. Overall, evaluation adequately supports central claims but falls short of comprehensive validation at scale."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with logical organization. Strengths: (1) concrete motivation via Figure 1; (2) Table 1 clearly summarizes symmetry hierarchy; (3) Section 3 systematically covers each symmetry class with examples; (4) Figure 2 effectively illustrates reparameterizations in Transformers; (5) Algorithms 1 clearly describes learned matching; (6) Section 6 provides interpretable analysis of weight/learned gap via eigenangle distribution. Appendices are comprehensive and well-organized (B: experimental details, C: ablations, D: soft permutations, E: theory). Notational consistency is maintained. Some areas could be improved: (1) semi-permutation definition (linear decomposability) could be introduced earlier; (2) QK/OV circuit notation is dense; (3) multi-model merging (Section 4.3) feels rushed; (4) connection between soft and hard symmetries in Appendix D could be better integrated. Overall, the paper is accessible to researchers familiar with transformers and model alignment, though deep engagement with Appendix E is needed for full understanding. Presentation quality is suitable for a top-tier venue."
+              }
+            },
+            "summary_comment": "This paper makes solid theoretical and empirical contributions to understanding neural network loss landscape geometry through a unified symmetry framework. The key innovation is formalizing a hierarchy of symmetry classes (permutation ⊂ semi-permutation ⊂ orthogonal ⊂ invertible) tailored to Transformer architectures, enabling discovery of low-barrier linear interpolation paths between independently trained ViTs and GPT-2 models—a novel result. The three alignment strategies (activation, weight, learned matching) are well-motivated and the analysis isolating where weight and learned matching diverge is insightful. However, the work is constrained by evaluation on small-scale models (ViT embedding dim 256-384, GPT-2 with 5 epochs on BookCorpus), unresolved questions about language model alignment (barrier=0.42), and limited discussion of failure modes and computational complexity. The BookCorpus results suggest the approach may not generalize universally, with the paper's explanation (fundamentally different solutions) being speculative without supporting evidence. The required reparameterizations (RMSNorm, multiplying out circuits) alter architecture but practical implications are unexplored. For a top-tier ML conference, the theoretical framework and empirical advance on Transformers constitute a meaningful contribution, but the limited experimental scope and unresolved questions prevent this from being a strong accept. The work would benefit from evaluation on standard-scale models (ViT-base/large, GPT-2 medium/large) and deeper investigation of when/why the method fails. Nevertheless, the core contributions are sound, novel, and advance our understanding of modern neural network geometry."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper introduces a unified and formally principled framework that generalizes beyond permutation symmetries to encompass permutations, semi-permutations, orthogonal transformations, and invertible maps. This hierarchical organization (Table 1) clearly articulates how different symmetry classes relate to specific neural network components, providing theoretical grounding that subsumes prior work like Git Re-Basin as special cases.",
+              "Achieving linear mode connectivity (LMC) with zero or near-zero loss barriers for independently trained Vision Transformers and GPT-2 models is a substantial empirical advance. The results demonstrate this is possible even across width-heterogeneous architectures (Figure 3c), extending prior results which required 32× width increases for ResNets. The multi-model alignment results (Figure 4) further demonstrate the approach generalizes beyond pairwise merging.",
+              "The paper provides three complementary alignment strategies (activation matching, weight matching, and learned matching) with clear algorithmic descriptions. The learned matching method (Algorithm 1) elegantly handles discrete symmetries through straight-through estimators and continuous symmetries via differentiable projections, while weight matching offers a practical data-free alternative. The analysis in Section 6 identifying where gaps arise between weight and learned matching provides useful insights for future optimization.",
+              "The mathematical framework in Section 3 and Appendix E rigorously characterizes symmetries in Transformers component-by-component (feed-forward layers with permutation, multi-head attention with semi-permutation and invertibility, residual streams with orthogonal symmetry). The derivation showing how orthogonal transformations preserve RMSNorm and enable width-heterogeneous alignment (equations 6-8) is technically sound and novel."
+            ],
+            "weaknesses": [
+              "Experimental evaluation uses small-scale models and datasets, limiting evidence for practical applicability to contemporary architectures. ViTs use embedding dimensions 256-384 on CIFAR-10/100 and Tiny ImageNet; GPT-2 on BookCorpus is trained for only 5 epochs. While the symmetry framework is architecture-agnostic and the authors provide honest acknowledgment in Appendix A, validation on standard-scale models (ViT-Base/Large, GPT-2-medium/large) would be required to substantiate claims about generalization to modern practice.",
+              "The BookCorpus language modeling results exhibit a notably higher loss barrier (0.42 ± 0.01) compared to vision tasks (near-zero), contradicting the broader narrative of universal Transformer connectivity. While the authors acknowledge this discrepancy and cite Juneja et al. [2023] about potentially different learned strategies, the submitted paper provides no direct evidence—such as representation analysis, probing studies, or loss landscape characterization—to support or refute whether the barrier reflects alignment failure or genuine solution diversity. This remains an unresolved limitation of the submitted work.",
+              "Reparameterizations required for the framework (RMSNorm reparameterization per Appendix E equations 6-8, treating QK/OV circuits as canonical) technically preserve function but alter the standard parameterization. The authors clarify in their rebuttal that these are one-time operations absorbed into adjacent layers, which is a valid point. However, the submitted paper does not explicitly characterize these operations as one-time preprocessing; readers must infer this from Appendix E derivations. This lack of clarity in the main submission remains a minor presentation issue."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Experimental evaluation uses small-scale models and datasets, limiting evidence for practical applicability to contemporary architectures. ViTs use embedding dimensions 256-384 on CIFAR-10/100 and Tiny ImageNet; GPT-2 on BookCorpus is trained for only 5 epochs. While the symmetry framework is architecture-agnostic and the authors provide honest acknowledgment in Appendix A, validation on standard-scale models (ViT-Base/Large, GPT-2-medium/large) would be required to substantiate claims about generalization to modern practice.",
+                "severity": "major",
+                "evidence": "Appendix B Table 3 specifies ViT embedding dimensions 256-384 with 6-8 layers; GPT-2 on BookCorpus uses 6 layers, 512 embedding dimension, trained for only 5 epochs with batch size 64. Authors acknowledge in Appendix A: 'empirical results for language models were based on a smaller version of GPT-2 language models with reduced parameters due to resource constraints...indicating the need for evaluation on larger, more contemporary language models.' The rebuttal argues the framework is scale-invariant in formulation and notes consistent vision results across three datasets, but this does not provide evidence from larger models, only theoretical reasoning about why they should work.",
+                "affected_claim": "That the approach generalizes to modern Transformer architectures and achieves practical significance for contemporary language/vision models.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The BookCorpus language modeling results exhibit a notably higher loss barrier (0.42 ± 0.01) compared to vision tasks (near-zero), contradicting the broader narrative of universal Transformer connectivity. While the authors acknowledge this discrepancy and cite Juneja et al. [2023] about potentially different learned strategies, the submitted paper provides no direct evidence—such as representation analysis, probing studies, or loss landscape characterization—to support or refute whether the barrier reflects alignment failure or genuine solution diversity. This remains an unresolved limitation of the submitted work.",
+                "severity": "major",
+                "evidence": "Table 2 reports BookCorpus barrier of 0.42 ± 0.01 vs. near-zero for CIFAR tasks. Section 5 states: 'This may reflect imperfect alignment, or genuinely disconnected minima.' The rebuttal acknowledges this as 'an open question' and notes the contrast with Tiny Shakespeare (near-zero), suggesting dataset complexity or 5-epoch training as possible factors, but the submitted paper contains no empirical analysis to distinguish between these hypotheses. The rebuttal promises this as 'future work' but does not provide evidence from the submission.",
+                "affected_claim": "That the framework enables LMC across diverse Transformer architectures and tasks; that findings generalize to language modeling.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Reparameterizations required for the framework (RMSNorm reparameterization per Appendix E equations 6-8, treating QK/OV circuits as canonical) technically preserve function but alter the standard parameterization. The authors clarify in their rebuttal that these are one-time operations absorbed into adjacent layers, which is a valid point. However, the submitted paper does not explicitly characterize these operations as one-time preprocessing; readers must infer this from Appendix E derivations. This lack of clarity in the main submission remains a minor presentation issue.",
+                "severity": "minor",
+                "evidence": "Section 3.2.3 describes RMSNorm reparameterization and Appendix E provides derivations, but neither explicitly states that absorption into adjacent layers is a one-time cost. Appendix A acknowledges 'reparameterization...alters the underlying network architecture' without clarification of computational implications. The rebuttal states: 'In practice, we absorb the orthogonal transformation O into adjacent linear layers (W₀' = OW₀, W₁' = W₁O^T), which requires no additional forward/backward pass cost.' This is reasonable and resolves the concern for practitioners who read the rebuttal, but the submitted paper lacks this clarity.",
+                "affected_claim": "That the framework is practically implementable without hidden computational overhead.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical framework remains rigorous. The symmetry hierarchy (Section 3, Appendix E) correctly characterizes component-specific symmetries with formal derivations (RMSNorm orthogonal invariance, QK/OV circuit invertibility). Optimization objectives (Equations 1-2) are well-defined. Alignment algorithms (Hungarian algorithm, SVD, STE, Sinkhorn) are sound. The rebuttal clarifies that reparameterizations are one-time operations, which is consistent with Appendix E but not explicitly stated in main text. No mathematical errors are evident. The main concern—limited scale and unresolved BookCorpus discrepancy—do not undermine core technical correctness but rather the breadth of empirical validation."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The unified symmetry framework extending beyond permutations to semi-permutations, orthogonal, and invertible transformations is novel. The key insight that Transformers' richer symmetries (semi-permutation for multi-head attention, orthogonal for residual streams with RMSNorm) enable better alignment is new and not present in Git Re-Basin or OT fusion. Achieving zero-barrier LMC for independently trained ViTs and GPT-2 (on vision and Tiny Shakespeare tasks) is novel for Transformers, advancing beyond prior ResNet results. Multi-model merging via universe matching in this setting is new. Soft permutations (Appendix D) integrate Sinkhorn-based ideas (Peña et al., 2022) into the learned matching framework in a novel way. The rebuttal's clarification that the framework is architecture-agnostic does not diminish novelty—the component-specific symmetry analysis for Transformers is the novel technical contribution."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "Significance remains at the accept threshold. Theoretical contribution: a formal hierarchy of symmetries in neural networks, advancing understanding of loss landscape geometry and parameterization redundancy. Empirical contribution: first demonstration of zero-barrier LMC in Transformers on vision and language (Tiny Shakespeare). Practical contribution: three alignment methods (data-free weight matching, supervised learned matching, activation matching) with demonstrated utility. However, significance is moderated by: (1) experiments on small-scale models limiting applicability to contemporary practice; (2) failure on BookCorpus (0.42 barrier) without satisfactory explanation, suggesting limited scope of generality; (3) vision-centric results (4/5 datasets are vision-related). The framework is conceptually important and opens research directions (model merging, federated learning, ensemble construction), but empirical validation falls short of sweeping claims about universal Transformer connectivity. For a top-tier venue, the theoretical framework and proof-of-concept results are sufficient, though not exceptional."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Evaluation is methodologically sound but limited in scope, justifying the score reduction to 3 from the initial 4. Strengths: (1) multiple datasets (CIFAR-10/100, Tiny ImageNet, Tiny Shakespeare, BookCorpus); (2) three alignment methods enabling fair comparison; (3) ablation studies (Appendix C) on sampling, initialization; (4) loss surface visualization (Figures 3-4); (5) gap analysis between methods (Section 6). Limitations: (1) small models and brief training (5 epochs for BookCorpus) limit generalizability claims; (2) BookCorpus failure is reported but not rigorously investigated; (3) no comparison to recent Transformer-specific methods beyond Verma & Elbayad (2024); (4) Tiny Shakespeare is a small synthetic dataset; (5) ablations limited to CIFAR-10 (Figures 7-8). The rebuttal clarifies that the framework is architecture-agnostic in principle, but the submitted paper provides no evidence from larger models. For acceptance, the vision results plus Tiny Shakespeare success are sufficient to establish proof-of-concept; however, the gap between theoretical claims and empirical scope is notable."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with logical organization. Strengths: (1) Table 1 clearly summarizes symmetry hierarchy; (2) Section 3 systematically covers symmetry classes with component examples; (3) Figure 2 effectively illustrates reparameterizations; (4) Algorithms 1 clearly describes learned matching; (5) Section 6 provides interpretable analysis via eigenangle distribution. Appendices are comprehensive (B: experimental details, C: ablations, D: soft permutations, E: theoretical grounding). Some areas could be improved: (1) reparameterization costs not explicitly characterized in main text as one-time preprocessing (only clarified in rebuttal); (2) semi-permutation definition (linear decomposability) is dense and could be introduced earlier; (3) QK/OV circuit notation is notation-heavy; (4) Section 4.3 on multi-model merging feels rushed. Overall, presentation is suitable for a top-tier venue, though the rebuttal provides helpful clarifications not in the main text (e.g., one-time cost of reparameterizations)."
+              }
+            },
+            "summary_comment": "This paper makes solid theoretical and empirical contributions to understanding Transformer loss landscape geometry through a unified symmetry framework. The key innovation—formalizing a hierarchy of symmetries (permutation ⊂ semi-permutation ⊂ orthogonal ⊂ invertible) tailored to Transformer components—is novel and well-executed. The demonstration of zero-barrier linear mode connectivity (LMC) between independently trained ViTs and GPT-2 models represents genuine empirical progress, particularly on vision tasks (CIFAR-10/100, Tiny ImageNet, width-heterogeneous alignment) and Tiny Shakespeare. The three alignment strategies are well-motivated with clear algorithmic descriptions, and the analysis identifying where weight and learned matching diverge (Section 6) is insightful.\n\nHowever, the work's impact is moderated by experimental scope limitations: small models (ViT embedding dim 256-384, GPT-2 with 5-epoch training), small/synthetic datasets (Tiny ImageNet, Tiny Shakespeare), and lack of evidence from contemporary-scale models. The authors honestly acknowledge these constraints in Appendix A and provide a constructive rebuttal clarifying that the framework is architecture-agnostic in formulation. Nevertheless, the submitted paper provides no empirical validation of this claim; practitioners would need larger-scale experiments to assess generalizability.\n\nA second significant concern is the unresolved BookCorpus result: the 0.42 barrier (vs. near-zero for vision) contradicts the narrative of universal Transformer connectivity. While the rebuttal acknowledges this as 'an open question' and notes the contrast with Tiny Shakespeare's near-zero barrier, the submitted paper provides no direct evidence (representation analysis, probing, loss landscape characterization) to determine whether this reflects alignment failure or genuinely different solutions. The rebuttal's suggestion that this warrants future investigation is reasonable but does not resolve the concern within the submission.\n\nThird, while reparameterizations (RMSNorm, QK/OV circuits) preserve functional equivalence, the submitted paper does not clearly state that these are one-time preprocessing costs with negligible overhead (only clarified in the rebuttal). This is a minor presentation issue.\n\nDespite these limitations, the paper merits acceptance. The theoretical framework is rigorous and novel, advancing understanding of neural network symmetries. The vision results are robust across three datasets, and Tiny Shakespeare demonstrates the approach can work for language tasks. The work opens valuable research directions in model merging, federated learning, and landscape analysis. The authors have been appropriately transparent about limitations and scope, avoiding overclaiming. The natural next step—validation on ViT-Base/Large and GPT-2-medium/large—is a straightforward extension that will clarify practical applicability. For a top-tier venue, the theoretical contribution and proof-of-concept empirical results constitute sufficient grounds for acceptance, with the understanding that follow-up work should address scalability and language model alignment. The modest evaluation score (3) reflects this: the experiments are sound and convince on their scope, but do not fully support the broadest claims about modern Transformers."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited experimental scale: small models (ViT embedding 256-384, GPT-2 with 5 epochs) and standard benchmarks raise questions about generalization to modern architectures\",\n        \"Unresolved discrepancy on BookCorpus: higher barrier (0.42) attributed speculatively to 'fundamentally different solutions' without direct evidence or analysis\",\n        \"Architectural reparameterization requirements not thoroughly analyzed: computational overhead, memory costs, and practical deployment implications of RMSNorm reparameterization and circuit multiplying-out are not quantified\",\n        \"Limited failure-mode analysis: minimal investigation into when/why methods fail beyond BookCorpus, computational complexity of alignment algorithms, or hyperparameter sensitivity across architectures\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Small-scale experiments\",\n          \"location\": \"Appendix B (Table 3) and Section 5\",\n          \"explanation\": \"Table 3 specifies ViT embedding dimensions 256-384 with 6-8 layers; GPT-2 on BookCorpus uses 6 layers, 512 embedding, trained for only 5 epochs with batch size 64. Authors acknowledge in Appendix A: 'empirical results for language models were based on a smaller version of GPT-2...indicating the need for evaluation on larger, more contemporary language models.'\"\n        },\n        {\n          \"concern\": \"BookCorpus barrier discrepancy\",\n          \"location\": \"Table 2 and Section 5\",\n          \"explanation\": \"Table 2 reports BookCorpus barrier of 0.42 ± 0.01 vs near-zero for vision tasks. Section 5 states: 'This may reflect imperfect alignment, or genuinely disconnected minima. Juneja et al. [2023] show that...models using the same strategy might be linearly connected, linear paths across strategies exhibit barriers.' This explanation cites external work without direct empirical support from the current experiments.\"\n        },\n        {\n          \"concern\": \"Reparameterization requirements\",\n          \"location\": \"Section 3.2.3, Appendix E (equations 6-8), and Appendix A\",\n          \"explanation\": \"Section 3.2.3 describes RMSNorm reparameterization and treating QK/OV circuits as canonical. Appendix A acknowledges: 'Our methodology introduces a generalized notion of LMC that, in some cases, requires reparameterization (e.g., RMSNorm reparameterization or multiplying out intra-head dependencies). Although it preserves functional equivalence, it alters the underlying network architecture.' However, no quantification of computational/memory overhead is provided.\"\n        },\n        {\n          \"concern\": \"Limited failure-mode and complexity analysis\",\n          \"location\": \"Appendix C, Appendix A, and Section 4\",\n          \"explanation\": \"Appendix C shows weight matching convergence only for CIFAR-10 (Figure 7); initialization sensitivity only on CIFAR-10 (Figure 8). Algorithm 1 specifies hyperparameters (η, Niter, U(0.4,0.6)) without ablation or principled guidance. No asymptotic complexity analysis provided for Hungarian algorithm or iterative refinement on large models.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Limited experimental scale undermines claims about generalization to modern architectures\",\n          \"proposed_change\": \"Conduct experiments on standard-scale models: ViT-Base/Large on ImageNet, GPT-2 small/medium/large on standard datasets with standard training regimes (not 5 epochs). This is not required for acceptance but would substantially strengthen claims. Alternatively, provide clear characterization of which results depend on model scale and which are fundamental to the symmetry framework.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"BookCorpus results lack rigorous explanation; speculative attribution to 'fundamentally different solutions' without evidence\",\n          \"proposed_change\": \"Provide empirical analysis to support or refute the hypothesis: (1) Compute and analyze learned representations (e.g., via representational similarity analysis) to detect if models learned different strategies; (2) perform probing tasks to measure what linguistic phenomena each model captures; (3) compare loss landscapes of aligned vs. unaligned models to characterize barrier structure. Alternatively, acknowledge this as an open question warranting future investigation.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Practical implications of reparameterization unclear; computational overhead not quantified\",\n          \"proposed_change\": \"Quantify the cost of reparameterizations: (1) Measure time/memory overhead for RMSNorm reparameterization and QK/OV circuit preparation on representative models; (2) discuss whether these operations are one-time costs (acceptable) or repeated per alignment call (problematic); (3) estimate total alignment cost (including Hungarian algorithm, Procrustes, learned matching iterations) as a fraction of model training time. This helps practitioners assess practical feasibility.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Lack of principled guidance for hyperparameter selection and architecture-specific tuning\",\n          \"proposed_change\": \"Extend ablations in Appendix C to multiple architectures (not just CIFAR-10): test initialization sensitivity, coefficient sampling strategies, and iteration counts on Tiny ImageNet and language models. Provide a simple heuristic or decision tree for practitioners (e.g., 'for models with embedding dim >512, use X iterations'). Alternatively, analyze which hyperparameters are universal vs. architecture-dependent.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Computational complexity of alignment algorithms not analyzed\",\n          \"proposed_change\": \"Provide asymptotic complexity analysis: (1) Hungarian algorithm on permutation matrices for H heads and d hidden dims is O(H³) or O(d³); (2) iterative weight matching with K iterations; (3) learned matching with N_iter gradient steps and Sinkhorn projections. Provide runtime comparisons between methods on models of increasing size to characterize scalability.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"Thank you for the thorough and constructive review. We appreciate the detailed feedback and address each major concern below.\\n\\n**1. Experimental Scale and Generalization (Major Concern)**\\n\\nYou correctly identify that our experiments use relatively small models and datasets. We acknowledge this limitation in Appendix A: we train ViTs with embedding dimension 256-384 on CIFAR-10/100 and Tiny ImageNet, and GPT-2 models on Tiny Shakespeare and BookCorpus with only 5 epochs. This reflects resource constraints during development, not a fundamental limitation of the approach.\\n\\nCrucially, the symmetry framework in Section 3 and Appendix E is *architecture-agnostic* and does not depend on model scale. The key insights—that feed-forward layers exhibit permutation/semi-permutation symmetry, multi-head attention exhibits semi-permutation and invertible symmetry within heads, and residual streams (with RMSNorm) exhibit orthogonal symmetry—apply equally to ViT-Base and ViT-Large as to our smaller models. The alignment algorithms (weight matching, learned matching) are scale-invariant in their formulation, though we recognize that computational complexity may become a practical concern for very large models.\\n\\nOur results on vision tasks consistently achieve zero or near-zero barriers across three datasets (CIFAR-10, CIFAR-100, Tiny ImageNet), and Figure 3c demonstrates width-heterogeneous alignment, suggesting robustness of the approach within the vision domain. We view this as supporting the generality of the symmetry framework, even if not validated on the largest contemporary models. We believe the theoretical contributions and proof-of-concept empirical results merit publication, and we fully agree that validation on standard-scale models (ViT-Base, GPT-2-medium) would substantially strengthen claims about practical applicability.\\n\\n**2. BookCorpus Discrepancy and Language Model Alignment (Major Concern)**\\n\\nYou correctly point out that our explanation for the higher BookCorpus barrier (0.42 ± 0.01 vs. ~0 for vision tasks) is speculative and lacks direct evidence. We cited Juneja et al. [2023] to suggest that language models may learn fundamentally different solutions (e.g., lexical vs. syntactic strategies), but we did not verify this in our experiments.\\n\\nWe emphasize two points: (1) This is an honest observation—the method achieves excellent results on vision but not on this language task, and we report it transparently rather than omitting the result. (2) The barrier is still substantially lower than vanilla averaging (4.34 ± 0.09), and importantly, the Tiny Shakespeare results (0.02 ± 0.00 barrier with learned matching) show that the approach *can* work for language models under different conditions.\\n\\nThe distinction between Tiny Shakespeare (near-zero barrier) and BookCorpus (0.42 barrier) is telling. Both are language modeling tasks with identical model sizes; the difference may relate to dataset complexity, domain shift between training and test, or the brief 5-epoch training on BookCorpus. We acknowledge this as an open question and agree that rigorous investigation via representation analysis, probing tasks, or loss landscape characterization would be valuable future work. For the current submission, we report the results honestly and note this as a limitation (Appendix A).\\n\\n**3. Reparameterization Requirements and Practical Implications (Minor Concern)**\\n\\nYou raise an important point: our framework requires reparameterizations (e.g., RMSNorm reparameterization per Equations 6-8, treating QK/OV circuits as canonical) that alter the network architecture slightly, even while preserving functional equivalence. We acknowledge this in Appendix A.\\n\\nHowever, we clarify that these reparameterizations are not obstacles in practice:\\n\\n- **RMSNorm reparameterization (Appendix E):** This is a one-time rewriting of the model for analysis purposes. In practice, we absorb the orthogonal transformation O into adjacent linear layers (W₀' = OW₀, W₁' = W₁O^T), which requires no additional forward/backward pass cost beyond the standard model. This is computationally equivalent to applying a learned linear transformation to layer outputs, already common in the literature (e.g., linear probing).\\n\\n- **QK/OV circuits:** We treat these as canonical representations because they are invariant under invertible transformations in the query, key, value, and output projections. In our weight matching algorithm (Section 4.1, Equation in text), we explicitly compute QK and OV circuit products once, then solve a linear assignment problem—this is a one-time preprocessing step.\\n\\nThese operations are not repeated per alignment call; they are performed once during initialization. We should have been clearer about this, and we agree that quantifying the computational cost would be helpful. In practice, the dominant computational cost of our method is the Hungarian algorithm (for head permutations) and learned matching iterations, not the reparameterization.\\n\\n**4. Failure-Mode Analysis and Computational Complexity (Minor Concern)**\\n\\nYou note limited investigation into when/why methods fail and lack of complexity analysis. We agree and point to evidence supporting our approach within tested domains:\\n\\n- **Ablations (Appendix C):** We provide ablations on coefficient sampling (Figure 6), initialization strategy (Figure 8), and convergence iterations (Figure 7). These are conducted on CIFAR-10; extending them to other domains would be valuable but represents incremental additional work.\\n\\n- **Complexity:** Our algorithms use well-known components—Hungarian algorithm O(H³) for H heads, SVD for Procrustes, STE-based projection for permutations. We do not provide explicit complexity analysis in the paper, but these are standard techniques. For learned matching, the cost is proportional to N_iter gradient steps, which is a hyperparameter we set (e.g., 100-200 iterations in practice based on Figure 8 convergence).\\n\\n- **Failure modes:** Beyond BookCorpus, our framework succeeds on all tested vision and Tiny Shakespeare tasks. This suggests the approach is reasonably robust within its tested scope. We do not have evidence of failure modes other than the BookCorpus language task, which we discuss transparently.\\n\\n**Conclusion**\\n\\nWe view your review as identifying important directions for future work: scaling to larger models, deeper investigation of language model alignment, and practical cost quantification. These do not invalidate our core contributions—a unified symmetry framework and the first demonstration of zero-barrier LMC for Transformers on multiple domains—but they appropriately calibrate the scope of the current work. We believe the paper makes sufficient contributions for acceptance, with honest acknowledgment of limitations, and we fully expect follow-up work to address scaling and extend the approach to larger, contemporary models.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper introduces a unified and formally principled framework that generalizes beyond permutation symmetries to encompass permutations, semi-permutations, orthogonal transformations, and invertible maps. This hierarchical organization (Table 1) clearly articulates how different symmetry classes relate to specific neural network components, providing theoretical grounding that subsumes prior work like Git Re-Basin as special cases.",
+              "Achieving linear mode connectivity (LMC) with zero or near-zero loss barriers for independently trained Vision Transformers and GPT-2 models is a substantial empirical advance on vision tasks (CIFAR-10/100, Tiny ImageNet) and Tiny Shakespeare. The results demonstrate this is possible even across width-heterogeneous architectures (Figure 3c), extending prior results which required 32× width increases for ResNets. The multi-model alignment results (Figure 4) further demonstrate the approach generalizes beyond pairwise merging within its validated scope.",
+              "The paper provides three complementary alignment strategies (activation matching, weight matching, and learned matching) with clear algorithmic descriptions. The learned matching method (Algorithm 1) elegantly handles discrete symmetries through straight-through estimators and continuous symmetries via differentiable projections, while weight matching offers a practical data-free alternative. The analysis in Section 6 identifying where gaps arise between weight and learned matching provides useful insights for future optimization.",
+              "The mathematical framework in Section 3 and Appendix E rigorously characterizes symmetries in Transformers component-by-component (feed-forward layers with permutation, multi-head attention with semi-permutation and invertibility, residual streams with orthogonal symmetry). The derivation showing how orthogonal transformations preserve RMSNorm and enable width-heterogeneous alignment (equations 6-8) is technically sound and novel."
+            ],
+            "weaknesses": [
+              "Experimental evaluation uses small-scale models and datasets that do not validate the claimed architecture-agnostic nature of the framework. ViTs use embedding dimensions 256-384 on CIFAR-10/100 and Tiny ImageNet; GPT-2 on BookCorpus is trained for only 5 epochs. While the authors appropriately acknowledge this in Appendix A and their rebuttal explains the framework is theoretically scale-invariant, the submitted paper provides no empirical evidence from contemporary-scale models (ViT-Base/Large, GPT-2-medium/large) to substantiate claims about practical generalization. Vision results are robust within their scope; language results are limited to Tiny Shakespeare and problematic on BookCorpus.",
+              "The BookCorpus language modeling results exhibit a loss barrier of 0.42 ± 0.01, substantially higher than vision tasks (near-zero) and contradicting the narrative of universal Transformer connectivity. The authors attribute this to potentially different learned strategies but provide no direct empirical evidence in the submitted paper—such as representation analysis (CCA, SVCCA), diagnostic probing, or loss landscape characterization—to support or refute this hypothesis. This remains unresolved in the submission, creating ambiguity about whether the failure reflects alignment limitations or genuine solution diversity.",
+              "Reparameterizations required for the framework (RMSNorm reparameterization per Appendix E equations 6-8, treating QK/OV circuits as canonical) are not explicitly characterized in the main submission as one-time preprocessing operations. The submitted Section 3.2.3 and Appendix A acknowledge these operations alter the network architecture but do not clearly state they are absorbed into adjacent layers with negligible overhead. This lack of clarity creates potential confusion about practical implementation costs."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Experimental evaluation uses small-scale models and datasets that do not validate the claimed architecture-agnostic nature of the framework. ViTs use embedding dimensions 256-384 on CIFAR-10/100 and Tiny ImageNet; GPT-2 on BookCorpus is trained for only 5 epochs. While the authors appropriately acknowledge this in Appendix A and their rebuttal explains the framework is theoretically scale-invariant, the submitted paper provides no empirical evidence from contemporary-scale models (ViT-Base/Large, GPT-2-medium/large) to substantiate claims about practical generalization. Vision results are robust within their scope; language results are limited to Tiny Shakespeare and problematic on BookCorpus.",
+                "severity": "major",
+                "evidence": "Appendix B Table 3 specifies ViT embedding dimensions 256-384 with 6-8 layers on CIFAR-10/100 and Tiny ImageNet; GPT-2 on BookCorpus uses 6 layers, 512 embedding dimension, trained for only 5 epochs with batch size 64. Appendix A acknowledges: 'empirical results for language models were based on a smaller version of GPT-2 language models with reduced parameters due to resource constraints...indicating the need for evaluation on larger, more contemporary language models.' The rebuttal clarifies the framework is 'architecture-agnostic' in formulation and notes the symmetry classes apply across scales in principle, but the submitted paper itself contains no evidence from larger models. The rebuttal appropriately acknowledges: 'we provide proof-of-concept on small models' and 'we fully agree that validation on standard-scale models is essential for practical impact.'",
+                "affected_claim": "That the approach generalizes to modern Transformer architectures and achieves practical significance for contemporary language/vision models.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The BookCorpus language modeling results exhibit a loss barrier of 0.42 ± 0.01, substantially higher than vision tasks (near-zero) and contradicting the narrative of universal Transformer connectivity. The authors attribute this to potentially different learned strategies but provide no direct empirical evidence in the submitted paper—such as representation analysis (CCA, SVCCA), diagnostic probing, or loss landscape characterization—to support or refute this hypothesis. This remains unresolved in the submission, creating ambiguity about whether the failure reflects alignment limitations or genuine solution diversity.",
+                "severity": "major",
+                "evidence": "Table 2 reports BookCorpus barrier 0.42 ± 0.01 vs. near-zero for CIFAR tasks. Section 5 states: 'This may reflect imperfect alignment, or genuinely disconnected minima. Juneja et al. [2023] show that...models using the same strategy might be linearly connected, linear paths across strategies exhibit barriers.' The rebuttal acknowledges: 'the submitted paper provides no representation analysis, probing studies, or loss landscape characterization to support the hypothesis that BookCorpus models learned fundamentally different strategies' and characterizes it as 'an open question.' The rebuttal proposes diagnostic probing and representation analysis as solutions but notes these would require new experiments. No such analysis appears in the submitted paper.",
+                "affected_claim": "That the framework enables LMC across diverse Transformer architectures and tasks; that findings generalize to language modeling.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Reparameterizations required for the framework (RMSNorm reparameterization per Appendix E equations 6-8, treating QK/OV circuits as canonical) are not explicitly characterized in the main submission as one-time preprocessing operations. The submitted Section 3.2.3 and Appendix A acknowledge these operations alter the network architecture but do not clearly state they are absorbed into adjacent layers with negligible overhead. This lack of clarity creates potential confusion about practical implementation costs.",
+                "severity": "minor",
+                "evidence": "Section 3.2.3 describes RMSNorm reparameterization; Appendix E provides technical derivations (equations 6-8). Appendix A states: 'requires reparameterization (e.g., RMSNorm reparameterization or multiplying out intra-head dependencies). Although it preserves functional equivalence, it alters the underlying network architecture.' The submitted paper does not explicitly state that these operations are absorbed into adjacent linear layers (W₀' = OW₀, W₁' = W₁O^T) with one-time preprocessing cost. The rebuttal clarifies: 'we absorb the orthogonal transformation O into adjacent linear layers...which requires no additional forward/backward pass cost' and proposes adding this clarification in Section 3.2.3. This clarification is reasonable but does not appear in the submitted work.",
+                "affected_claim": "That the framework is practically implementable without hidden computational overhead; clarity about one-time vs. recurring costs.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical framework is rigorous and sound. The symmetry hierarchy (Section 3, Appendix E) correctly characterizes component-specific symmetries with formal derivations (RMSNorm orthogonal invariance, QK/OV circuit invertibility, semi-permutation decomposability). Optimization objectives (Equations 1-2) are well-defined. Alignment algorithms (Hungarian algorithm, SVD, STE, Sinkhorn) are sound and correctly applied. The rebuttal does not identify any mathematical errors in the framework; the authors agree with all technical concerns raised and appropriately characterize remaining issues as empirical scope and clarity rather than fundamental soundness problems. No mathematical or logical flaws undermining the core framework have been identified or contested."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The unified symmetry framework extending beyond permutations to semi-permutations, orthogonal, and invertible transformations is novel and not present in prior work (Git Re-Basin, OT fusion, Sinkhorn Re-Basin). The key insight that Transformers' component-specific symmetries (semi-permutation for multi-head attention inter-head mixing, orthogonal for residual streams with RMSNorm) enable better alignment than permutation-only approaches is new. Achieving zero-barrier LMC for independently trained ViTs and GPT-2 on vision and Tiny Shakespeare is novel for Transformers, advancing beyond prior ResNet results. The multi-model merging via universe matching in this setting is new. While soft permutations build on Sinkhorn-based ideas, their integration into the learned matching framework is novel. The component-specific symmetry analysis for Transformers, though bounded in empirical scope, represents genuine intellectual novelty."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "Significance is solid but appropriately bounded by empirical scope. The theoretical contribution—a formal hierarchy of symmetries applicable to neural network components—advances understanding of loss landscape geometry and parameterization redundancy. This framework is conceptually important and provides a lens for analyzing modern architectures. The empirical contribution—zero-barrier LMC for Transformers on vision tasks and Tiny Shakespeare—demonstrates the framework's utility within its tested domain. The practical contribution—three alignment methods with clear algorithives—has utility for model merging, federated learning, and ensemble construction. However, significance is moderated by: (1) vision-centric validation (4 of 5 datasets are vision-related); (2) failure on BookCorpus without satisfactory explanation, limiting confidence in language generalization; (3) small-scale models preventing assessment of scalability to contemporary practice. For a top-tier venue, the theoretical framework and proof-of-concept results on vision are sufficient for acceptance; the work opens important research directions but does not represent a transformative empirical advance. The rebuttal appropriately reframes this as 'establishing proof-of-concept' rather than universal validation."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Evaluation is methodologically sound within its scope. Strengths: (1) multiple vision datasets (CIFAR-10, CIFAR-100, Tiny ImageNet) with consistent near-zero results; (2) language datasets (Tiny Shakespeare near-zero, BookCorpus 0.42); (3) three alignment methods enabling fair comparison; (4) ablation studies on sampling strategies (Figure 6) and initialization (Figure 8); (5) convergence analysis (Figure 7); (6) loss surface visualization (Figures 3-4); (7) gap analysis between weight and learned matching (Section 6). Limitations: (1) small models and brief training prevent generalization claims; (2) BookCorpus failure not investigated; (3) ablations limited to single architecture/dataset (CIFAR-10); (4) no comparison to recent Transformer-specific methods beyond Verma & Elbayad (2024). The rebuttal appropriately acknowledges these limitations. The vision results (3 datasets, consistent zero barriers) are convincing within their scope; language results are limited. For acceptance, the robust vision validation plus Tiny Shakespeare success establish proof-of-concept; the BookCorpus anomaly remains concerning but not disqualifying given transparent reporting."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "Presentation is clear and well-organized. Strengths: (1) clear motivation (Figure 1); (2) Table 1 clearly summarizes symmetry hierarchy; (3) Section 3 systematically covers each symmetry class with component examples; (4) Figure 2 effectively illustrates reparameterizations in Transformers; (5) Algorithms 1 is clearly written; (6) Section 6 provides interpretable analysis of methods' differences. Appendices are comprehensive and appropriately detailed (B: experimental setup, C: ablations, D: soft permutations, E: theoretical foundations). Minor areas for improvement noted in submission: (1) reparameterization costs not explicitly stated as one-time preprocessing in main text (Appendix E and rebuttal clarify this, but not Section 3.2.3); (2) semi-permutation definition (linear decomposability) could be introduced earlier; (3) QK/OV circuit notation is dense; (4) Section 4.3 on multi-model merging is somewhat rushed. The rebuttal acknowledges the first issue and proposes adding a clarifying paragraph to Section 3.2.3. Overall, presentation meets standards for a top-tier venue."
+              }
+            },
+            "summary_comment": "This paper makes solid theoretical and empirical contributions to understanding Transformer loss landscape geometry through a unified symmetry framework. The key innovation—formalizing a hierarchy of symmetry classes (permutation ⊂ semi-permutation ⊂ orthogonal ⊂ invertible) tailored to Transformer components—is novel and rigorously developed in Section 3 and Appendix E. The demonstration of zero-barrier linear mode connectivity (LMC) between independently trained ViTs and GPT-2 models on vision tasks (CIFAR-10/100, Tiny ImageNet) and Tiny Shakespeare represents genuine empirical progress, particularly the width-heterogeneous alignment (Figure 3c). The three alignment strategies are well-motivated and clearly described, with useful analysis of their differences (Section 6).\n\nThe work's scope is appropriately bounded and the authors are commendably transparent about limitations. The main limitations are: (1) small-scale experiments (ViT embedding 256-384, GPT-2 with 5 epochs on BookCorpus) that do not validate the claimed architecture-agnostic framework on contemporary models; (2) unresolved BookCorpus language modeling result (0.42 barrier) with no direct investigation to distinguish between alignment failure and genuine solution diversity; (3) lack of explicit clarification in the main text that reparameterizations are one-time preprocessing operations. The rebuttal appropriately characterizes the first as a resource constraint yielding proof-of-concept rather than universal validation, acknowledges the second as an open question warranting future investigation, and proposes straightforward text clarifications for the third.\n\nThe authors' second rebuttal demonstrates intellectual honesty by accepting all major concerns without defensive reasoning. They appropriately distinguish between what is demonstrated (vision LMC on small models) and what remains open (language model alignment, scalability to contemporary models). This framing is appropriate for acceptance: the theoretical framework is sound and novel, the vision results are robust within their scope, and the work opens important research directions. The evaluation score of 3 (rather than 4) reflects that the experiments convincingly support claims within their scope but do not provide evidence for the broadest claims about modern Transformers. This is not a weakness disqualifying the paper, but rather an accurate calibration of significance given the empirical domain.\n\nThe paper merits acceptance based on its theoretical contributions, proof-of-concept results on vision tasks, and rigorous treatment of a central problem in deep learning. The natural follow-up—validation on larger models and investigation of language model alignment—represents clear and valuable future work for the community. For a top-tier venue, the combination of novel framework and convincing (if limited-scope) empirical validation is sufficient."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Experimental evaluation uses small-scale models (ViT embedding 256-384, GPT-2 trained 5 epochs) and datasets, limiting evidence for generalization to contemporary architectures despite framework being theoretically architecture-agnostic\",\n        \"BookCorpus language modeling results show notably higher barrier (0.42 ± 0.01) than vision tasks (near-zero), contradicting the broader connectivity narrative, with no direct empirical analysis (representation analysis, probing, loss landscape characterization) in the submitted paper to distinguish between alignment failure and genuine solution diversity\",\n        \"Reparameterization costs (RMSNorm, QK/OV circuits) not explicitly characterized in the main submission as one-time preprocessing; readers must infer this from Appendix E derivations, creating unclear practical implications for practitioners reading the submitted paper\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Small-scale models limit generalization claims\",\n          \"location\": \"Appendix B (Table 3), Section 5, and Appendix A\",\n          \"explanation\": \"Table 3 specifies ViT embedding dimensions 256-384 with 6-8 layers on CIFAR-10/100 and Tiny ImageNet; GPT-2 on BookCorpus uses 6 layers, 512 embedding, trained for only 5 epochs with batch size 64. Appendix A states: 'empirical results for language models were based on a smaller version of GPT-2 language models with reduced parameters due to resource constraints...indicating the need for evaluation on larger, more contemporary language models.' The rebuttal notes the framework is 'scale-invariant in formulation' but the submitted paper provides no empirical evidence from larger models to support this claim.\"\n        },\n        {\n          \"concern\": \"BookCorpus barrier contradicts universal connectivity narrative without direct explanation\",\n          \"location\": \"Table 2, Section 5, and Appendix A\",\n          \"explanation\": \"Table 2 reports BookCorpus barrier 0.42 ± 0.01 vs. near-zero on vision tasks. Section 5 states: 'This may reflect imperfect alignment, or genuinely disconnected minima. Juneja et al. [2023] show that...models using the same strategy might be linearly connected, linear paths across strategies exhibit barriers.' This explanation is speculative, citing external work without direct evidence. Appendix A acknowledges: 'further investigation could extend these methodologies to models trained on (partially) different tasks.' The submitted paper contains no representation analysis, probing studies, or loss landscape characterization to support the hypothesis that BookCorpus models learned fundamentally different strategies.\"\n        },\n        {\n          \"concern\": \"Reparameterization computational costs not clearly stated in main text\",\n          \"location\": \"Section 3.2.3, Appendix E (equations 6-8), and Appendix A\",\n          \"explanation\": \"Section 3.2.3 describes RMSNorm reparameterization and treating QK/OV circuits as canonical. Appendix E provides technical derivations (equations 6-8 for RMSNorm orthogonal symmetry). Appendix A acknowledges: 'our methodology...requires reparameterization (e.g., RMSNorm reparameterization or multiplying out intra-head dependencies). Although it preserves functional equivalence, it alters the underlying network architecture.' However, the submitted paper does not explicitly state that these are one-time preprocessing operations absorbed into adjacent layers with no forward/backward pass overhead. This clarification appears only in the rebuttal.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Lack of empirical evidence from larger models to support scale-invariance claim\",\n          \"proposed_change\": \"In the main paper (not just rebuttal), explicitly state: 'While our experiments use relatively small models due to resource constraints, the symmetry framework in Section 3 is architecture-agnostic: the symmetry classes (permutation for elementwise activations, semi-permutation for linearly decomposable functions like ReLU, orthogonal for norm layers, invertible for linear layers) apply regardless of model scale. The alignment algorithms (weight matching, learned matching) scale in formulation, though computational complexity grows with model size. We characterize scalability limitations in Section 6 [or new section].' This reframes the contribution as conceptual rather than empirical and sets reader expectations appropriately.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"BookCorpus discrepancy lacks direct empirical analysis in submission\",\n          \"proposed_change\": \"Add a subsection in Section 5 (or Appendix) titled 'Investigation of Language Model Alignment Failure' that: (1) compares learned representations of aligned vs. unaligned BookCorpus models via representational similarity (e.g., CCA, SVCCA); (2) measures what linguistic phenomena each model learns via diagnostic probing; (3) examines loss landscape geometry along the interpolation path (Hessian spectrum, loss variance). This need not be exhaustive but should provide direct evidence to support or refute the hypothesis that models learned different strategies. Alternatively, acknowledge this as an open question and propose it as immediate future work.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Reparameterization costs not clearly characterized in main text as one-time operations\",\n          \"proposed_change\": \"Add a short paragraph in Section 3.2.3 after the RMSNorm derivation: 'In practice, the orthogonal transformation O is absorbed into adjacent linear layers (W₀' = OW₀, W₁' = W₁O^T), resulting in a one-time preprocessing cost with no additional forward/backward pass overhead during alignment or inference. Similarly, the QK and OV circuit products are computed once during weight matching initialization. Thus, the computational cost of reparameterization is negligible relative to model training or inference time.' This clarifies practical implications without requiring new experiments.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"Thank you for this thorough and balanced review. We recognize that your concerns accurately capture the gap between the scope of our submitted work and the breadth of claims. We address each issue:\\n\\n**1. Scale and Generalization (Major Concern)**\\n\\nYou correctly note that while our framework is theoretically architecture-agnostic, the submitted paper provides no empirical evidence from larger models. We appreciate your distinction: the framework's formulation scales, but we lack validation on contemporary-scale models (ViT-Base/Large, GPT-2-medium/large).\\n\\nOur rebuttal's argument that \\\"the symmetry framework is scale-invariant in formulation\\\" is conceptually sound but does not substitute for empirical validation. You are right to require evidence from the submission itself. In a revised version, we would explicitly reframe the contribution in the main text: we establish that the symmetry hierarchy (permutation for elementwise activations, semi-permutation for piecewise-linear layers, orthogonal for norm layers, invertible for linear layers) applies across model scales in principle, and we provide proof-of-concept on small models. This distinction between architectural applicability and empirical scope appropriately calibrates the significance claim.\\n\\nWe fully agree that validation on standard-scale models is essential for practical impact, and we view this as the natural next step for the community to pursue.\\n\\n**2. BookCorpus Discrepancy (Major Concern)**\\n\\nYou identify the core issue: the submitted paper reports a 0.42 barrier on BookCorpus (vs. near-zero on vision) without providing direct empirical investigation to distinguish between alignment failure and genuinely different learned solutions. Your review correctly identifies this as unresolved *within the submission* despite our acknowledgment of it.\\n\\nThe contrast with Tiny Shakespeare (near-zero barrier) is revealing but insufficient explanation. Your suggested analysis—representation similarity (CCA/SVCCA), diagnostic probing, or loss landscape characterization—would directly address the ambiguity. We acknowledge this as a limitation of the submitted work and agree that such analysis should be included in a revision rather than deferred to future work.\\n\\nThe honest framing of this as an open question is appropriate for a submission, but we recognize that providing even preliminary investigation (e.g., comparing attention patterns or probing linguistic knowledge) would substantially strengthen the work. We thank you for the concrete guidance on what would constitute sufficient evidence.\\n\\n**3. Reparameterization Costs (Minor Concern)**\\n\\nYou correctly identify that the submitted paper does not explicitly state reparameterization operations are one-time preprocessing. While Appendix E provides technical derivations, practitioners reading Section 3.2.3 may infer that reparameterization adds runtime overhead, when in fact it does not.\\n\\nYour suggested clarification—adding a paragraph to Section 3.2.3 stating that orthogonal transformations are absorbed into adjacent layers (W₀' = OW₀, W₁' = W₁O^T) with negligible overhead, and QK/OV circuits are computed once during initialization—is precisely the addition needed. This is straightforward to implement in revision and removes ambiguity for practitioners.\\n\\n**Overall Assessment**\\n\\nYour review captures a nuanced position: the theoretical contributions (unified symmetry framework) and proof-of-concept empirical results merit publication, but the experimental scope and unresolved language model discrepancy appropriately temper significance claims. We appreciate that you do not dismiss the work for limited scale but rather contextualize it as establishing proof-of-concept on a narrow empirical domain while opening questions about broader applicability.\\n\\nThe three revisions you suggest would substantially strengthen the submission:\\n1. Explicit reframing of scale-invariance as architectural claim supported by principle, not empirical proof\\n2. Direct investigation of BookCorpus discrepancy via representation analysis or probing\\n3. Clarification of reparameterization costs as one-time preprocessing\\n\\nWe view these as appropriate modifications that would improve clarity and rigor without requiring fundamental changes to the work. Thank you for the constructive feedback.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_dd4e29c76e40",
+    "conference": "NEURIPS",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/neurips_accept_2025_001_generalized_linear_mode_connectivity_for_transformers.md",
+    "target_paper_summary": {
+      "paper_id": "paper_dd4e29c76e40",
+      "title": "Generalized Linear Mode Connectivity For Transformers",
+      "abstract": "Understanding the geometry of neural network loss landscapes is a central question in deep learning, with implications for generalization and optimization. A striking phenomenon is *linear mode connectivity* (LMC), where independently trained models can be connected by low- or zero-barrier paths, despite appearing to lie in separate loss basins. However, this is often obscured by symmetries in parameter space—such as neuron permutations—which make functionally equivalent models appear dissimilar. Prior work has predominantly focused on neuron reordering through permutations, but such approaches are limited in scope and fail to capture the richer symmetries exhibited by modern architectures such as Transformers. In this work, we introduce a unified framework that captures four symmetry classes—permutations, semi-permutations, orthogonal transformations, and general invertible maps—broadening the set of valid reparameterizations and subsuming many previous approaches as special cases. Crucially, this generalization enables, for the first time, the discovery of low- and zero-barrier linear interpolation paths between independently trained Vision Transformers and GPT-2 models. Furthermore, our framework extends beyond pairwise alignment, to multi-model and width-heterogeneous settings, enabling alignment across architectures of different sizes. These results reveal deeper structure in the loss landscape and underscore the importance of symmetry-aware analysis for understanding model space geometry. Our code is available here.",
+      "topic": "",
+      "claims": [
+        "we introduce a unified framework that captures four symmetry classes—permutations, semi-permutations, orthogonal transformations, and general invertible maps—broadening the set of valid reparameterizations and subsuming many previous approaches as special cases.",
+        "our framework extends beyond pairwise alignment, to multi-model and width-heterogeneous settings, enabling alignment across architectures of different sizes."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_7dc9cd61c",
+        "title": "GPT (Generative Pre-Trained Transformer)— A Comprehensive Review on Enabling Technologies, Potential Applications, Emerging Challenges, and Future Directions",
+        "authors": [
+          "Gokul Yenduri",
+          "M. Ramalingam",
+          "G. Chemmalar Selvi",
+          "Y. Supriya",
+          "Gautam Srivastava",
+          "Praveen Kumar Reddy Maddikunta",
+          "G. Deepti Raj",
+          "Rutvij H. Jhaveri",
+          "B. Prabadevi",
+          "Weizheng Wang",
+          "Athanasios V. Vasilakos",
+          "Thippa Reddy Gadekallu"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-01",
+        "venue": "IEEE Access",
+        "abstract": "The Generative Pre-trained Transformer (GPT) represents a notable breakthrough in the domain of natural language processing, which is propelling us toward the development of machines that can understand and communicate using language in a manner that closely resembles that of humans. GPT is based on the transformer architecture, a deep neural network designed for natural language processing tasks. Due to their impressive performance on natural language processing tasks and ability to effectively converse, GPT have gained significant popularity among researchers and industrial communities, making them one of the most widely used and effective models in natural language processing and related fields, which motivated to conduct this review. This review provides a detailed overview of the GPT, including its architecture, working process, training procedures, enabling technologies, and its impact on various applications. In this review, we also explored the potential challenges and limitations of a GPT. Furthermore, we discuss potential solutions and future directions. Overall, this paper aims to provide a comprehensive understanding of GPT, its enabling technologies, their impact on various applications, emerging challenges, and potential solutions.",
+        "url": "https://doi.org/10.1109/access.2024.3389497",
+        "doi": "https://doi.org/10.1109/access.2024.3389497",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4394828356"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 555
+      },
+      {
+        "paper_id": "rw_002_f444c290b",
+        "title": "Knowledge-Enhanced Hierarchical Graph Transformer Network for Multi-Behavior Recommendation",
+        "authors": [
+          "Lianghao Xia",
+          "Chao Huang",
+          "Yong Xu",
+          "Peng Dai",
+          "Xiyue Zhang",
+          "Hongsheng Yang",
+          "Jian Pei",
+          "Liefeng Bo"
+        ],
+        "year": 2021,
+        "publication_date": "2021-05-18",
+        "venue": "Proceedings of the AAAI Conference on Artificial Intelligence",
+        "abstract": "Accurate user and item embedding learning is crucial for modern recommender systems. However, most existing recommendation techniques have thus far focused on modeling users' preferences over singular type of user-item interactions. Many practical recommendation scenarios involve multi-typed user interactive behaviors (e.g., page view, add-to-favorite and purchase), which presents unique challenges that cannot be handled by current recommendation solutions. In particular: i) complex inter-dependencies across different types of user behaviors; ii) the incorporation of knowledge-aware item relations into the multi-behavior recommendation framework; iii) dynamic characteristics of multi-typed user-item interactions. To tackle these challenges, this work proposes a Knowledge-Enhanced Hierarchical Graph Transformer Network (KHGT), to investigate multi-typed interactive patterns between users and items in recommender systems. Specifically, KHGT is build upon a graph-structured neural architecture to i) capture type-specific behavior semantics; ii) explicitly discriminate which types of user-item interactions are more important in assisting the forecasting task on the target behavior. Additionally, we further integrate the multi-modal graph attention layer with temporal encoding strategy, to empower the learned embeddings be reflective of both dedicated multiplex user-item and item-item collaborative relations, as well as the underlying interaction dynamics. Extensive experiments conducted on three real-world datasets show that KHGT consistently outperforms many state-of-the-art recommendation methods across various evaluation settings. Our implementation is available in https://github.com/akaxlh/KHGT.",
+        "url": "https://doi.org/10.1609/aaai.v35i5.16576",
+        "doi": "https://doi.org/10.1609/aaai.v35i5.16576",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3207257408"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 228
+      },
+      {
+        "paper_id": "rw_003_9268e6293",
+        "title": "Transformer Architecture and Attention Mechanisms in Genome Data Analysis: A Comprehensive Review",
+        "authors": [
+          "Sanghyuk Roy Choi",
+          "Minhyeok Lee"
+        ],
+        "year": 2023,
+        "publication_date": "2023-07-22",
+        "venue": "Biology",
+        "abstract": "The emergence and rapid development of deep learning, specifically transformer-based architectures and attention mechanisms, have had transformative implications across several domains, including bioinformatics and genome data analysis. The analogous nature of genome sequences to language texts has enabled the application of techniques that have exhibited success in fields ranging from natural language processing to genomic data. This review provides a comprehensive analysis of the most recent advancements in the application of transformer architectures and attention mechanisms to genome and transcriptome data. The focus of this review is on the critical evaluation of these techniques, discussing their advantages and limitations in the context of genome data analysis. With the swift pace of development in deep learning methodologies, it becomes vital to continually assess and reflect on the current standing and future direction of the research. Therefore, this review aims to serve as a timely resource for both seasoned researchers and newcomers, offering a panoramic view of the recent advancements and elucidating the state-of-the-art applications in the field. Furthermore, this review paper serves to highlight potential areas of future investigation by critically evaluating studies from 2019 to 2023, thereby acting as a stepping-stone for further research endeavors.",
+        "url": "https://doi.org/10.3390/biology12071033",
+        "doi": "https://doi.org/10.3390/biology12071033",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4385201870"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 216
+      },
+      {
+        "paper_id": "rw_004_c919f2fa8",
+        "title": "End-to-End Transformer-Based Models in Textual-Based NLP",
+        "authors": [
+          "Abir Rahali",
+          "Moulay A. Akhloufi"
+        ],
+        "year": 2023,
+        "publication_date": "2023-01-05",
+        "venue": "AI",
+        "abstract": "Transformer architectures are highly expressive because they use self-attention mechanisms to encode long-range dependencies in the input sequences. In this paper, we present a literature review on Transformer-based (TB) models, providing a detailed overview of each model in comparison to the Transformer’s standard architecture. This survey focuses on TB models used in the field of Natural Language Processing (NLP) for textual-based tasks. We begin with an overview of the fundamental concepts at the heart of the success of these models. Then, we classify them based on their architecture and training mode. We compare the advantages and disadvantages of popular techniques in terms of architectural design and experimental value. Finally, we discuss open research, directions, and potential future work to help solve current TB application challenges in NLP.",
+        "url": "https://doi.org/10.3390/ai4010004",
+        "doi": "https://doi.org/10.3390/ai4010004",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4313558932"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 153
+      },
+      {
+        "paper_id": "rw_005_8953aa102",
+        "title": "Vision Transformers in Image Restoration: A Survey",
+        "authors": [
+          "Anas M. Ali",
+          "Bilel Benjdira",
+          "Anis Koubâa",
+          "Walid El‐Shafai",
+          "Zahid Khan",
+          "Wadii Boulila"
+        ],
+        "year": 2023,
+        "publication_date": "2023-02-21",
+        "venue": "Sensors",
+        "abstract": "The Vision Transformer (ViT) architecture has been remarkably successful in image restoration. For a while, Convolutional Neural Networks (CNN) predominated in most computer vision tasks. Now, both CNN and ViT are efficient approaches that demonstrate powerful capabilities to restore a better version of an image given in a low-quality format. In this study, the efficiency of ViT in image restoration is studied extensively. The ViT architectures are classified for every task of image restoration. Seven image restoration tasks are considered: Image Super-Resolution, Image Denoising, General Image Enhancement, JPEG Compression Artifact Reduction, Image Deblurring, Removing Adverse Weather Conditions, and Image Dehazing. The outcomes, the advantages, the limitations, and the possible areas for future research are detailed. Overall, it is noted that incorporating ViT in the new architectures for image restoration is becoming a rule. This is due to some advantages compared to CNN, such as better efficiency, especially when more data are fed to the network, robustness in feature extraction, and a better feature learning approach that sees better the variances and characteristics of the input. Nevertheless, some drawbacks exist, such as the need for more data to show the benefits of ViT over CNN, the increased computational cost due to the complexity of the self-attention block, a more challenging training process, and the lack of interpretability. These drawbacks represent the future research direction that should be targeted to increase the efficiency of ViT in the image restoration domain.",
+        "url": "https://doi.org/10.3390/s23052385",
+        "doi": "https://doi.org/10.3390/s23052385",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4321497943"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 136
+      },
+      {
+        "paper_id": "rw_006_d70e3f0aa",
+        "title": "DICE-Net: A Novel Convolution-Transformer Architecture for Alzheimer Detection in EEG Signals",
+        "authors": [
+          "Ανδρέας Μιλτιάδους",
+          "Emmanouil Gionanidis",
+          "Katerina D. Tzimourta",
+          "Νικόλαος Γιαννακέας",
+          "Alexandros T. Tzallas"
+        ],
+        "year": 2023,
+        "publication_date": "2023-01-01",
+        "venue": "IEEE Access",
+        "abstract": "Objective: Alzheimer’s disease (AD) is a progressive neurodegenerative disorder that affects a significant percentage of the elderly. EEG has emerged as a promising tool for the timely diagnosis and classification of AD or other dementia types. This paper proposes a novel approach to AD EEG classification using a Dual-Input Convolution Encoder Network (DICE-net). Approach: Recordings of 36 AD, 23 Frontotemporal dementia (FTD), and 29 age-matched healthy individuals (CN) were used. After denoising, Band power and Coherence features were extracted and fed to DICE-net, which consists of Convolution, Transformer Encoder, and Feed-Forward layers. Main results: Our results show that DICE-net achieved an accuracy of 83.28% in the AD-CN problem using Leave-One-Subject-Out validation, outperforming several baseline models, and achieving good generalization performance. Significance: Our findings suggest that a convolution transformer network can effectively capture the complex features of EEG signals for the classification of AD patients versus control subjects and may be expanded to other types of dementia, such as FTD. This approach could improve the accuracy of early diagnosis and lead to the development of more effective interventions for AD.",
+        "url": "https://doi.org/10.1109/access.2023.3294618",
+        "doi": "https://doi.org/10.1109/access.2023.3294618",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4384080511"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 177
+      },
+      {
+        "paper_id": "rw_007_a46d77698",
+        "title": "A Review of Multilevel Converters With Parallel Connectivity",
+        "authors": [
+          "Jingyang Fang",
+          "Frede Blaabjerg",
+          "Steven Liu",
+          "Stefan M. Goetz"
+        ],
+        "year": 2021,
+        "publication_date": "2021-04-23",
+        "venue": "IEEE Transactions on Power Electronics",
+        "abstract": "Cascaded-bridge converters (CBCs) and modular multilevel converters (MMCs) enjoy growing popularity mostly due to modularity and scalability. Conventionally, their submodules allow only serial and bypass operation so that the use of low-voltage components for high-voltage output becomes possible. Dually, submodule parallelization adds the switched-capacitor behavior to CBCs/MMCs and has witnessed an upward trend in recent years. The salient advantages of parallel operation comprise sensorless voltage balancing, capacitance saving, current sharing, and system efficiency optimization. To capture the advancement in the field, this article reviews the state-of-the-art multilevel converters with parallel connectivity, covering various submodules, macrolevel circuit topologies, implementation challenges, and solutions, as well as control and optimization schemes. In particular, this article derives and classifies submodules as well as macro-level topologies according to basic H-bridge, asymmetrical half-bridge, and symmetrical half-bridge submodules. On top of that, this article introduces strategies for the simplification of submodules and the creation of novel topologies yet maintaining parallel connectivity. We highlight the role of graph theory in creating new analytic and synthetic methodologies for multilevel converters. In addition, this article discloses the relationship between multilevel converters with parallel connectivity and switched-capacitor converters.",
+        "url": "https://doi.org/10.1109/tpel.2021.3075211",
+        "doi": "https://doi.org/10.1109/tpel.2021.3075211",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3157571362"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 148
+      },
+      {
+        "paper_id": "rw_008_1954d7be3",
+        "title": "B2-ViT Net: Broad Vision Transformer Network With Broad Attention for Seizure Prediction",
+        "authors": [
+          "Shuiling Shi",
+          "Wenqi Liu"
+        ],
+        "year": 2023,
+        "publication_date": "2023-12-25",
+        "venue": "IEEE Transactions on Neural Systems and Rehabilitation Engineering",
+        "abstract": "Seizure prediction are necessary for epileptic patients. The global spatial interactions among channels, and long-range temporal dependencies play a crucial role in seizure onset prediction. In addition, it is necessary to search for seizure prediction features in a vast space to learn new generalized feature representations. Many previous deep learning algorithms have achieved some results in automatic seizure prediction. However, most of them do not consider global spatial interactions among channels and long-range temporal dependencies together, and only learn the feature representation in the deep space. To tackle these issues, in this study, an novel bi-level programming seizure prediction model, B2-ViT Net, is proposed for learning the new generalized spatio-temporal long-range correlation features, which can characterize the global interactions among channels in spatial, and long-range dependencies in temporal required for seizure prediction. In addition, the proposed model can comprehensively learn generalized seizure prediction features in a vast space due to its strong deep and broad feature search capabilities. Sufficient experiments are conducted on two public datasets, CHB-MIT and Kaggle datasets. Compared with other existing methods, our proposed model has shown promising results in automatic seizure prediction tasks, and provides a certain degree of interpretability.",
+        "url": "https://doi.org/10.1109/tnsre.2023.3346955",
+        "doi": "https://doi.org/10.1109/tnsre.2023.3346955",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4390204163"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 108
+      },
+      {
+        "paper_id": "rw_009_0a2b1bd86",
+        "title": "EEGformer: A transformer–based brain activity classification method using EEG signal",
+        "authors": [
+          "Zhijiang Wan",
+          "Manyu Li",
+          "Shichang Liu",
+          "Jiajin Huang",
+          "Hai Tan",
+          "Wenfeng Duan"
+        ],
+        "year": 2023,
+        "publication_date": "2023-03-24",
+        "venue": "Frontiers in Neuroscience",
+        "abstract": "Background: The effective analysis methods for steady-state visual evoked potential (SSVEP) signals are critical in supporting an early diagnosis of glaucoma. Most efforts focused on adopting existing techniques to the SSVEPs-based brain-computer interface (BCI) task rather than proposing new ones specifically suited to the domain. Method: Given that electroencephalogram (EEG) signals possess temporal, regional, and synchronous characteristics of brain activity, we proposed a transformer-based EEG analysis model known as EEGformer to capture the EEG characteristics in a unified manner. We adopted a one-dimensional convolution neural network (1DCNN) to automatically extract EEG-channel-wise features. The output was fed into the EEGformer, which is sequentially constructed using three components: regional, synchronous, and temporal transformers. In addition to using a large benchmark database (BETA) toward SSVEP-BCI application to validate model performance, we compared the EEGformer to current state-of-the-art deep learning models using two EEG datasets, which are obtained from our previous study: SJTU emotion EEG dataset (SEED) and a depressive EEG database (DepEEG). Results: The experimental results show that the EEGformer achieves the best classification performance across the three EEG datasets, indicating that the rationality of our model architecture and learning EEG characteristics in a unified manner can improve model classification performance. Conclusion: EEGformer generalizes well to different EEG datasets, demonstrating our approach can be potentially suitable for providing accurate brain activity classification and being used in different application scenarios, such as SSVEP-based early glaucoma diagnosis, emotion recognition and depression discrimination.",
+        "url": "https://doi.org/10.3389/fnins.2023.1148855",
+        "doi": "https://doi.org/10.3389/fnins.2023.1148855",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4360871668"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 99
+      },
+      {
+        "paper_id": "rw_010_4d16b9cd6",
+        "title": "Deep scaffold hopping with multimodal transformer neural networks",
+        "authors": [
+          "Shuangjia Zheng",
+          "Zengrong Lei",
+          "Haitao Ai",
+          "Hongming Chen",
+          "Daiguo Deng",
+          "Yuedong Yang"
+        ],
+        "year": 2021,
+        "publication_date": "2021-11-13",
+        "venue": "Journal of Cheminformatics",
+        "abstract": "Scaffold hopping is a central task of modern medicinal chemistry for rational drug design, which aims to design molecules of novel scaffolds sharing similar target biological activities toward known hit molecules. Traditionally, scaffolding hopping depends on searching databases of available compounds that can't exploit vast chemical space. In this study, we have re-formulated this task as a supervised molecule-to-molecule translation to generate hopped molecules novel in 2D structure but similar in 3D structure, as inspired by the fact that candidate compounds bind with their targets through 3D conformations. To efficiently train the model, we curated over 50 thousand pairs of molecules with increased bioactivity, similar 3D structure, but different 2D structure from public bioactivity database, which spanned 40 kinases commonly investigated by medicinal chemists. Moreover, we have designed a multimodal molecular transformer architecture by integrating molecular 3D conformer through a spatial graph neural network and protein sequence information through Transformer. The trained DeepHop model was shown able to generate around 70% molecules having improved bioactivity together with high 3D similarity but low 2D scaffold similarity to the template molecules. This ratio was 1.9 times higher than other state-of-the-art deep learning methods and rule- and virtual screening-based methods. Furthermore, we demonstrated that the model could generalize to new target proteins through fine-tuning with a small set of active compounds. Case studies have also shown the advantages and usefulness of DeepHop in practical scaffold hopping scenarios.",
+        "url": "https://doi.org/10.1186/s13321-021-00565-5",
+        "doi": "https://doi.org/10.1186/s13321-021-00565-5",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3213530673"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 75
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_001_7dc9cd61c",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Provides comprehensive background on GPT-2 and transformer architectures, which are directly referenced in the target paper's experiments and framework application.",
+        "evidence_summary": "Yenduri et al. (2024) published a review on GPT, detailing its transformer architecture, enabling technologies, and impact on various applications, while also discussing challenges and future directions."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_005_8953aa102",
+        "relevance_score": 0.42,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Focuses on Vision Transformers (ViT), one of the model types examined in the target paper for linear mode connectivity, providing context on ViT applications and limitations.",
+        "evidence_summary": "Ali et al. (2023) surveyed Vision Transformers in image restoration tasks, classifying architectures across seven tasks and noting advantages like efficiency and robustness, alongside drawbacks such as computational cost and data requirements."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_008_1954d7be3",
+        "relevance_score": 0.38,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Uses a Vision Transformer variant with attention mechanisms, relevant to understanding transformer symmetries and architectures discussed in the target.",
+        "evidence_summary": "Shi and Liu (2023) proposed B2-ViT Net, a bi-level programming model for seizure prediction that uses broad attention in a Vision Transformer to capture spatio-temporal correlations, validated on CHB-MIT and Kaggle datasets with improved accuracy."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_009_0a2b1bd86",
+        "relevance_score": 0.36,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Introduces a transformer-based model for EEG analysis, demonstrating another application domain for transformers which aligns with the target's broad architectural focus.",
+        "evidence_summary": "Wan et al. (2023) developed EEGformer, a transformer-based method for EEG signal classification that integrates 1DCNN with regional, synchronous, and temporal transformers, achieving top performance on BETA, SEED, and DepEEG datasets."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_002_f444c290b",
+        "relevance_score": 0.34,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Employs a graph transformer network, contributing to the understanding of transformer variants and multi-behavior contexts, though less directly related to mode connectivity.",
+        "evidence_summary": "Xia et al. (2021) presented a Knowledge-Enhanced Hierarchical Graph Transformer Network for multi-behavior recommendation, using graph attention and temporal encoding to model user-item interactions and dependencies across behavior types."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_003_9268e6293",
+        "relevance_score": 0.32,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Reviews transformer applications in genome data, offering background on transformer adaptability and attention mechanisms, which are foundational to the target's symmetry analysis.",
+        "evidence_summary": "Choi and Lee (2023) reviewed transformer architectures and attention mechanisms in genome data analysis, evaluating advancements from 2019 to 2023 and discussing their advantages and limitations in bioinformatics contexts."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_004_c919f2fa8",
+        "relevance_score": 0.3,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Provides a literature review on transformer-based models in NLP, relevant for general transformer context but not specific to mode connectivity or symmetries.",
+        "evidence_summary": "Rahali and Akhloufi (2023) conducted a literature review on end-to-end transformer-based models in textual NLP tasks, classifying models by architecture and training mode, and discussing open research challenges."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_006_d70e3f0aa",
+        "relevance_score": 0.28,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Uses a convolution-transformer architecture, showing hybrid approaches but not directly addressing connectivity or symmetries in transformers.",
+        "evidence_summary": "Gionanidis et al. (2023) introduced DICE-Net, a convolution-transformer architecture for Alzheimer's detection in EEG signals, achieving 83.28% accuracy in AD-CN classification using band power and coherence features."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_010_4d16b9cd6",
+        "relevance_score": 0.26,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Applies multimodal transformers in cheminformatics, demonstrating transformer versatility but with no overlap in the target's focus on neural network loss landscapes.",
+        "evidence_summary": "Zheng et al. (2021) developed a multimodal transformer neural network for scaffold hopping in drug design, integrating 3D conformer and protein sequence data, and showing improved bioactivity generation compared to other methods."
+      },
+      {
+        "rank": 10,
+        "paper_id": "rw_007_a46d77698",
+        "relevance_score": 0.1,
+        "relevance_types": [],
+        "rationale": "Discusses connectivity in multilevel converters, which is terminologically similar but unrelated to neural network mode connectivity, making it weakly relevant.",
+        "evidence_summary": "Fang et al. (2021) reviewed multilevel converters with parallel connectivity, covering submodules, topologies, and control schemes in power electronics, with advantages like sensorless voltage balancing and efficiency optimization."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Gokul Yenduri et al. published \"GPT (Generative Pre-Trained Transformer)— A Comprehensive Review on Enabling Technologies, Potential Applications, Emerging Challenges, and Future Directions\" in IEEE Access. The Generative Pre-trained Transformer (GPT) represents a notable breakthrough in the domain of natural language processing, which is propelling us toward the development of machines that can understand and communicate using language in a manner that closely resembles that of humans. Due to their impressive performance on natural language processing tasks and ability to effectively converse, GPT have gained significant popularity among researchers and industrial communities, making them one of the most widely used and effective models in natural language processing and related fields, which motivated to conduct this review. In this review, the authors also explored the potential challenges and limitations of a GPT. In 2023, Anas M. Ali et al. published \"Vision Transformers in Image Restoration: A Survey\" in Sensors. Overall, it is noted that incorporating ViT in the new architectures for image restoration is becoming a rule. For a while, Convolutional Neural Networks (CNN) predominated in most computer vision tasks. The outcomes, the advantages, the limitations, and the possible areas for future research are detailed. In 2023, Shuiling Shi and Wenqi Liu published \"B2-ViT Net: Broad Vision Transformer Network With Broad Attention for Seizure Prediction\" in IEEE Transactions on Neural Systems and Rehabilitation Engineering. To tackle these issues, in this study, an novel bi-level programming seizure prediction model, B2-ViT Net, is proposed for learning the new generalized spatio-temporal long-range correlation features, which can characterize the global interactions among channels in spatial, and long-range dependencies in temporal required for seizure prediction. Sufficient experiments are conducted on two public datasets, CHB-MIT and Kaggle datasets. Many previous deep learning algorithms have achieved some results in automatic seizure prediction. In 2023, Zhijiang Wan et al. published \"EEGformer: A transformer–based brain activity classification method using EEG signal\" in Frontiers in Neuroscience. Most efforts focused on adopting existing techniques to the SSVEPs-based brain-computer interface (BCI) task rather than proposing new ones specifically suited to the domain. Results: The experimental results show that the EEGformer achieves the best classification performance across the three EEG datasets, indicating that the rationality of the model architecture and learning EEG characteristics in a unified manner can improve model classification performance. In addition to using a large benchmark database (BETA) toward SSVEP-BCI application to validate model performance, the authors compared the EEGformer to current state-of-the-art deep learning models using two EEG datasets, which are obtained from the authors' previous study: SJTU emotion EEG dataset (SEED) and a depressive EEG database (DepEEG). In 2021, Lianghao Xia et al. published \"Knowledge-Enhanced Hierarchical Graph Transformer Network for Multi-Behavior Recommendation\" in Proceedings of the AAAI Conference on Artificial Intelligence. Many practical recommendation scenarios involve multi-typed user interactive behaviors (e.g., page view, add-to-favorite and purchase), which presents unique challenges that cannot be handled by current recommendation solutions. Extensive experiments conducted on three real-world datasets show that KHGT consistently outperforms many state-of-the-art recommendation methods across various evaluation settings. To tackle these challenges, this work proposes a Knowledge-Enhanced Hierarchical Graph Transformer Network (KHGT), to investigate multi-typed interactive patterns between users and items in recommender systems. In 2023, Sanghyuk Roy Choi and Minhyeok Lee published \"Transformer Architecture and Attention Mechanisms in Genome Data Analysis: A Comprehensive Review\" in Biology. The emergence and rapid development of deep learning, specifically transformer-based architectures and attention mechanisms, have had transformative implications across several domains, including bioinformatics and genome data analysis. Therefore, this review aims to serve as a timely resource for both seasoned researchers and newcomers, offering a panoramic view of the recent advancements and elucidating the state-of-the-art applications in the field. The focus of this review is on the critical evaluation of these techniques, discussing their advantages and limitations in the context of genome data analysis.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 0,
+      "num_removed_undated": 0,
+      "num_used": 10,
+      "num_cutoff_valid": 10,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 0,
+    "num_removed_undated": 0,
+    "num_used": 10,
+    "num_cutoff_valid": 10,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

@@ -1,0 +1,514 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Innovative integration of a black-box COP solver into a latent variable model (VAE) framework, ensuring decoded outputs are always feasible solutions.",
+        "Effectively addresses the challenge of modeling data from multiple agents/contexts with different cost functions without requiring explicit labels, a limitation of many Inverse Optimization/IRL methods.",
+        "Provides a thorough experimental evaluation on both synthetic and real-world datasets (ship routing, TSPLIB) demonstrating capabilities in latent space analysis, reconstruction, and prediction."
+      ],
+      "weaknesses": [
+        "Scalability of the method is not deeply analyzed, particularly the computational cost of repeatedly calling the black-box solver (e.g., Dijkstra, TSP) during training for large graphs.",
+        "The assumption that all observed solutions are optimal according to some underlying COP cost may be too strong for some real-world noisy data scenarios.",
+        "The comparison baseline PO (Perturbed Optimizer) is a simplified adaptation of a context-based method, which may not be the strongest or most direct competitor."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Scalability of the method is not deeply analyzed, particularly the computational cost of repeatedly calling the black-box solver (e.g., Dijkstra, TSP) during training for large graphs.",
+          "severity": "minor",
+          "evidence": "The paper mentions solver calls occur per data sample during SGD training (Alg. 1) and that experiments were run on a CPU (24 cores). It notes that the work by Lahoud et al. (2024) 'struggles with scalability as graph size increases', but does not provide a similar scalability analysis for its own method.",
+          "affected_claim": "Claim of practical applicability to real-world graph-based problems.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The assumption that all observed solutions are optimal according to some underlying COP cost may be too strong for some real-world noisy data scenarios.",
+          "severity": "minor",
+          "evidence": "Section 3.3 states: 'we assume the observed structured decision samples in D... are COP optimal solutions'. While the method adds noise to costs during path generation for the synthetic dataset, the core formulation assumes optimality of the input data.",
+          "affected_claim": "General applicability of the method to datasets where observed solutions might be suboptimal or highly noisy.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The method is built on a solid theoretical foundation combining VAEs and Fenchel-Young loss gradient estimation. The logic of using the solver-in-the-loop for feasible decoding and the gradient estimation technique is correctly applied and justified with references to prior work (e.g., Berthet et al., 2020)."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The specific combination of a latent variable model (for multi-agent cost representation) with a black-box COP solver using Fenchel-Young loss gradients for combinatorial problems like path planning is novel. It distinctively addresses the multi-agent learning challenge without labels, which differentiates it from prior Inverse Optimization/IRL methods that typically assume a single or context-conditioned cost."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The work provides a meaningful advance by enabling learning of interpretable latent cost representations from decision data of potentially multiple agents. This has significant implications for analyzing agent behavior, predicting decisions for new scenarios, and generating feasible solutions in graph-based planning."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Experiments are comprehensive, using synthetic and real-world datasets. They convincingly demonstrate the method's capabilities in latent space disentanglement, reconstruction quality (surpassing a VAE baseline), and distribution prediction. Metrics (Recall, JSD, Spearman) are appropriate, and comparisons with baselines (VAE, PO) are fair."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written, with a well-structured explanation of the problem, method, and experiments. Figures effectively illustrate key concepts like latent space organization and qualitative reconstruction results."
+        }
+      },
+      "summary_comment": "The author's response acknowledges the identified weaknesses but does not resolve them with evidence from the submitted paper. The assessment must therefore be based on the manuscript as submitted. The paper's core contributions remain strong: a novel methodology for inverse optimization with latent cost representations, supported by thorough experiments. The weaknesses concerning scalability analysis and the optimality assumption are minor and do not materially undermine the central claims. The decision remains Accept. The authors' plan to address these limitations in a revised version is noted as encouraging but does not affect the evaluation of the current submission."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "ICML": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "Strong methodological contribution combining variational inference with optimization techniques, aligning with ICML's focus on machine learning theory and methods",
+        "Novel integration of Fenchel-Young losses and black-box solver gradient estimation addresses important challenge in structured output learning",
+        "Comprehensive experimental evaluation on both synthetic and real-world datasets demonstrates practical utility",
+        "Work bridges machine learning with optimization, fitting ICML's interdisciplinary scope"
+      ],
+      "why_it_does_not_fit": [
+        "Application focus on graph-based planning problems may be somewhat narrow for ICML's broad ML audience",
+        "While theoretically sound, the computational scalability limitations noted by reviewers might be more concerning for ICML's systems-oriented track",
+        "The paper's optimization-heavy approach might appeal more to specialized optimization audiences than general ML researchers"
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Strong focus on learning representations and latent variable models aligns with NeurIPS interests",
+        "Application to real-world ship routing data demonstrates practical relevance to transportation and planning domains",
+        "Method addresses important challenge of learning from multiple agents without supervision",
+        "Interdisciplinary nature combining ML with optimization fits NeurIPS' broad scope"
+      ],
+      "why_it_does_not_fit": [
+        "The graph-based planning focus may be too application-specific for NeurIPS' general ML audience",
+        "Reviewer concerns about scalability and optimality assumptions might be more problematic for NeurIPS' high standards",
+        "While novel, the method builds heavily on existing Fenchel-Young and VAE frameworks rather than introducing fundamentally new concepts"
+      ]
+    },
+    "ICLR": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "Use of variational autoencoders and latent space learning aligns with ICLR's focus on representation learning",
+        "Method demonstrates how to incorporate constraints into generative models, relevant to ICLR's deep learning focus",
+        "Learning interpretable latent representations connects with ICLR's interest in explainable AI"
+      ],
+      "why_it_does_not_fit": [
+        "Primary focus on optimization and inverse problems rather than deep learning architectures",
+        "Limited emphasis on neural network innovations - the deep learning components are relatively standard",
+        "Application domain (graph planning) is not a core ICLR focus area",
+        "Reviewer concerns about scalability could be more problematic for ICLR's systems track"
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Innovative integration of a black-box COP solver into a latent variable model (VAE) framework, ensuring decoded outputs are always feasible solutions.",
+              "Effectively addresses the challenge of modeling data from multiple agents/contexts with different cost functions without requiring explicit labels, a limitation of many Inverse Optimization/IRL methods.",
+              "Provides a thorough experimental evaluation on both synthetic and real-world datasets (ship routing, TSPLIB) demonstrating capabilities in latent space analysis, reconstruction, and prediction."
+            ],
+            "weaknesses": [
+              "Scalability of the method is not deeply analyzed, particularly the computational cost of repeatedly calling the black-box solver (e.g., Dijkstra, TSP) during training for large graphs.",
+              "The assumption that all observed solutions are optimal according to some underlying COP cost may be too strong for some real-world noisy data scenarios.",
+              "The comparison baseline PO (Perturbed Optimizer) is a simplified adaptation of a context-based method, which may not be the strongest or most direct competitor."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Scalability of the method is not deeply analyzed, particularly the computational cost of repeatedly calling the black-box solver (e.g., Dijkstra, TSP) during training for large graphs.",
+                "severity": "minor",
+                "evidence": "The paper mentions solver calls occur per data sample during SGD training (Alg. 1) and that experiments were run on a CPU (24 cores). It notes that the work by Lahoud et al. (2024) 'struggles with scalability as graph size increases', but does not provide a similar scalability analysis for its own method.",
+                "affected_claim": "Claim of practical applicability to real-world graph-based problems.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The assumption that all observed solutions are optimal according to some underlying COP cost may be too strong for some real-world noisy data scenarios.",
+                "severity": "minor",
+                "evidence": "Section 3.3 states: 'we assume the observed structured decision samples in D... are COP optimal solutions'. While the method adds noise to costs during path generation for the synthetic dataset, the core formulation assumes optimality of the input data.",
+                "affected_claim": "General applicability of the method to datasets where observed solutions might be suboptimal or highly noisy.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The method is built on a solid theoretical foundation combining VAEs and Fenchel-Young loss gradient estimation. The logic of using the solver-in-the-loop for feasible decoding and the gradient estimation technique is correctly applied and justified with references to prior work (e.g., Berthet et al., 2020)."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The specific combination of a latent variable model (for multi-agent cost representation) with a black-box COP solver using Fenchel-Young loss gradients for combinatorial problems like path planning is novel. It distinctively addresses the multi-agent learning challenge without labels, which differentiates it from prior Inverse Optimization/IRL methods that typically assume a single or context-conditioned cost. The related-work evidence does not reveal prior work with this specific integration for this problem setting."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work provides a meaningful advance by enabling learning of interpretable latent cost representations from decision data of potentially multiple agents. This has significant implications for analyzing agent behavior, predicting decisions for new scenarios, and generating feasible solutions in graph-based planning, which is relevant to fields like robotics, logistics, and transportation."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive, using synthetic and real-world datasets. They convincingly demonstrate the method's capabilities in latent space disentanglement, reconstruction quality (surpassing a VAE baseline), and distribution prediction. Metrics (Recall, JSD, Spearman) are appropriate, and comparisons with baselines (VAE, PO) are fair."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written, with a well-structured explanation of the problem, method, and experiments. Figures effectively illustrate key concepts like latent space organization and qualitative reconstruction results. The algorithm description is clear."
+              }
+            },
+            "summary_comment": "IO-LVM presents a novel and well-executed approach for learning latent representations of COP costs from observed solutions, effectively handling multi-agent data without labels. Its integration of a VAE framework with a black-box solver and Fenchel-Young loss gradients is technically sound and addresses a clear gap in inverse optimization. The experimental validation is thorough and convincing. While minor concerns exist regarding scalability analysis and the optimality assumption, the paper clearly meets the standard for a top-tier machine learning conference. The strengths significantly outweigh the weaknesses."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Innovative integration of a black-box COP solver into a latent variable model (VAE) framework, ensuring decoded outputs are always feasible solutions.",
+              "Effectively addresses the challenge of modeling data from multiple agents/contexts with different cost functions without requiring explicit labels, a limitation of many Inverse Optimization/IRL methods.",
+              "Provides a thorough experimental evaluation on both synthetic and real-world datasets (ship routing, TSPLIB) demonstrating capabilities in latent space analysis, reconstruction, and prediction."
+            ],
+            "weaknesses": [
+              "Scalability of the method is not deeply analyzed, particularly the computational cost of repeatedly calling the black-box solver (e.g., Dijkstra, TSP) during training for large graphs.",
+              "The assumption that all observed solutions are optimal according to some underlying COP cost may be too strong for some real-world noisy data scenarios.",
+              "The comparison baseline PO (Perturbed Optimizer) is a simplified adaptation of a context-based method, which may not be the strongest or most direct competitor."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Scalability of the method is not deeply analyzed, particularly the computational cost of repeatedly calling the black-box solver (e.g., Dijkstra, TSP) during training for large graphs.",
+                "severity": "minor",
+                "evidence": "The paper mentions solver calls occur per data sample during SGD training (Alg. 1) and that experiments were run on a CPU (24 cores). It notes that the work by Lahoud et al. (2024) 'struggles with scalability as graph size increases', but does not provide a similar scalability analysis for its own method.",
+                "affected_claim": "Claim of practical applicability to real-world graph-based problems.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The assumption that all observed solutions are optimal according to some underlying COP cost may be too strong for some real-world noisy data scenarios.",
+                "severity": "minor",
+                "evidence": "Section 3.3 states: 'we assume the observed structured decision samples in D... are COP optimal solutions'. While the method adds noise to costs during path generation for the synthetic dataset, the core formulation assumes optimality of the input data.",
+                "affected_claim": "General applicability of the method to datasets where observed solutions might be suboptimal or highly noisy.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The method is built on a solid theoretical foundation combining VAEs and Fenchel-Young loss gradient estimation. The logic of using the solver-in-the-loop for feasible decoding and the gradient estimation technique is correctly applied and justified with references to prior work (e.g., Berthet et al., 2020)."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The specific combination of a latent variable model (for multi-agent cost representation) with a black-box COP solver using Fenchel-Young loss gradients for combinatorial problems like path planning is novel. It distinctively addresses the multi-agent learning challenge without labels, which differentiates it from prior Inverse Optimization/IRL methods that typically assume a single or context-conditioned cost."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work provides a meaningful advance by enabling learning of interpretable latent cost representations from decision data of potentially multiple agents. This has significant implications for analyzing agent behavior, predicting decisions for new scenarios, and generating feasible solutions in graph-based planning."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive, using synthetic and real-world datasets. They convincingly demonstrate the method's capabilities in latent space disentanglement, reconstruction quality (surpassing a VAE baseline), and distribution prediction. Metrics (Recall, JSD, Spearman) are appropriate, and comparisons with baselines (VAE, PO) are fair."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written, with a well-structured explanation of the problem, method, and experiments. Figures effectively illustrate key concepts like latent space organization and qualitative reconstruction results."
+              }
+            },
+            "summary_comment": "The author's response acknowledges the minor weaknesses but does not resolve them with evidence from the submitted paper; it promises future discussion and analysis. The final assessment must be based on the submitted manuscript. The paper's core contributions—a novel integration of a latent variable model with a COP solver for multi-agent inverse optimization, supported by solid methodology and thorough experiments—remain strong and meet the acceptance criteria for a top-tier conference. The identified weaknesses are minor and do not materially undermine the central contribution. The decision remains Accept."
+          },
+          "author_response": "{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Scalability analysis is lacking, particularly regarding the computational cost of repeated solver calls during training for large graphs\",\n        \"The core assumption that all observed solutions are COP-optimal may be too strong for some real-world noisy data scenarios\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Scalability of the method is not deeply analyzed\",\n          \"location\": \"Section 4.1, Appendix B\",\n          \"explanation\": \"The paper mentions that experiments were run on a CPU (24 cores) and that solver calls occur per data sample during SGD training (Algorithm 1). The discussion of Lahoud et al. (2024) struggling with scalability implicitly acknowledges this as an important consideration, though a dedicated analysis for IO-LVM is not provided.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Scalability analysis\",\n          \"proposed_change\": \"We will add a discussion in the limitations section (or experimental section) analyzing the computational cost of our method, including the relationship between graph size/number of edges and training time. We will also discuss potential strategies for scaling, such as using approximate solvers or batch processing.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Optimality assumption for real-world data\",\n          \"proposed_change\": \"We will clarify in the limitations section that our method assumes solutions are approximately optimal with respect to some underlying cost function, and discuss how the noise injection in our synthetic data generation and the variational framework provide some robustness to moderate deviations from optimality. We will also note that highly suboptimal or random behavior would require methodological extensions.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We thank the reviewer for their positive assessment and thoughtful comments. Regarding scalability, we acknowledge that repeatedly calling combinatorial solvers during training presents computational challenges for very large graphs. While our current implementation efficiently processes batches in parallel (as noted in Appendix B), we agree that a more systematic analysis of scalability would strengthen the paper. We will add a dedicated discussion of computational complexity and practical limitations in the revised manuscript.\\n\\nConcerning the optimality assumption, we agree this is an important consideration. Our method is designed for scenarios where decisions are guided by some underlying cost structure, which is a common assumption in inverse optimization. The noise injection in our data generation and the probabilistic nature of our framework provide some tolerance to deviations from strict optimality. However, we will clarify in the limitations that the method works best when observed solutions are reasonably optimal with respect to some cost function, and that handling highly suboptimal behavior would require extensions beyond our current scope.\"\n    }\n  ]\n}",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Innovative integration of a black-box COP solver into a latent variable model (VAE) framework, ensuring decoded outputs are always feasible solutions.",
+              "Effectively addresses the challenge of modeling data from multiple agents/contexts with different cost functions without requiring explicit labels, a limitation of many Inverse Optimization/IRL methods.",
+              "Provides a thorough experimental evaluation on both synthetic and real-world datasets (ship routing, TSPLIB) demonstrating capabilities in latent space analysis, reconstruction, and prediction."
+            ],
+            "weaknesses": [
+              "Scalability of the method is not deeply analyzed, particularly the computational cost of repeatedly calling the black-box solver (e.g., Dijkstra, TSP) during training for large graphs.",
+              "The assumption that all observed solutions are optimal according to some underlying COP cost may be too strong for some real-world noisy data scenarios.",
+              "The comparison baseline PO (Perturbed Optimizer) is a simplified adaptation of a context-based method, which may not be the strongest or most direct competitor."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Scalability of the method is not deeply analyzed, particularly the computational cost of repeatedly calling the black-box solver (e.g., Dijkstra, TSP) during training for large graphs.",
+                "severity": "minor",
+                "evidence": "The paper mentions solver calls occur per data sample during SGD training (Alg. 1) and that experiments were run on a CPU (24 cores). It notes that the work by Lahoud et al. (2024) 'struggles with scalability as graph size increases', but does not provide a similar scalability analysis for its own method.",
+                "affected_claim": "Claim of practical applicability to real-world graph-based problems.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The assumption that all observed solutions are optimal according to some underlying COP cost may be too strong for some real-world noisy data scenarios.",
+                "severity": "minor",
+                "evidence": "Section 3.3 states: 'we assume the observed structured decision samples in D... are COP optimal solutions'. While the method adds noise to costs during path generation for the synthetic dataset, the core formulation assumes optimality of the input data.",
+                "affected_claim": "General applicability of the method to datasets where observed solutions might be suboptimal or highly noisy.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The method is built on a solid theoretical foundation combining VAEs and Fenchel-Young loss gradient estimation. The logic of using the solver-in-the-loop for feasible decoding and the gradient estimation technique is correctly applied and justified with references to prior work (e.g., Berthet et al., 2020)."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The specific combination of a latent variable model (for multi-agent cost representation) with a black-box COP solver using Fenchel-Young loss gradients for combinatorial problems like path planning is novel. It distinctively addresses the multi-agent learning challenge without labels, which differentiates it from prior Inverse Optimization/IRL methods that typically assume a single or context-conditioned cost."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work provides a meaningful advance by enabling learning of interpretable latent cost representations from decision data of potentially multiple agents. This has significant implications for analyzing agent behavior, predicting decisions for new scenarios, and generating feasible solutions in graph-based planning."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive, using synthetic and real-world datasets. They convincingly demonstrate the method's capabilities in latent space disentanglement, reconstruction quality (surpassing a VAE baseline), and distribution prediction. Metrics (Recall, JSD, Spearman) are appropriate, and comparisons with baselines (VAE, PO) are fair."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written, with a well-structured explanation of the problem, method, and experiments. Figures effectively illustrate key concepts like latent space organization and qualitative reconstruction results."
+              }
+            },
+            "summary_comment": "The author's response acknowledges the identified weaknesses but does not resolve them with evidence from the submitted paper. The assessment must therefore be based on the manuscript as submitted. The paper's core contributions remain strong: a novel methodology for inverse optimization with latent cost representations, supported by thorough experiments. The weaknesses concerning scalability analysis and the optimality assumption are minor and do not materially undermine the central claims. The decision remains Accept. The authors' plan to address these limitations in a revised version is noted as encouraging but does not affect the evaluation of the current submission."
+          },
+          "author_response": "{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Lack of scalability analysis regarding computational cost of solver calls\",\n        \"Strong assumption that observed solutions are COP-optimal for real-world noisy data\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Scalability limitations\",\n          \"location\": \"Section 4.1, Appendix B\",\n          \"explanation\": \"The paper acknowledges computational constraints by mentioning experiments were run on a 24-core CPU and discusses scalability challenges of related work (Lahoud et al., 2024), though it does not provide a dedicated scalability analysis for IO-LVM.\"\n        },\n        {\n          \"concern\": \"Optimality assumption\",\n          \"location\": \"Section 3.3\",\n          \"explanation\": \"The paper explicitly states the assumption that observed solutions are COP-optimal, which is fundamental to the inverse optimization formulation.\"\n        }\n      ],\n      \"proposed_future_revisions\": [],\n      \"response\": \"We thank the reviewer for their positive assessment and for recognizing the novelty and significance of our work. We acknowledge that the current submission does not include a detailed scalability analysis or address the limitations of the optimality assumption in depth. These are valid points that we will address in a revised version. Regarding scalability, we will add a discussion of computational complexity and practical limitations. Concerning the optimality assumption, we will clarify the scope of applicability and discuss robustness to moderate deviations from optimality. We appreciate the reviewer's judgment that these are minor weaknesses that do not undermine the core contributions.\"\n    }\n  ]\n}",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_7fcfeea88e9d",
+    "conference": "ICML",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/icml_reject_2025_033_io_lvm_inverse_optimization_latent_variable_models_with_graph_based_planning_app.md",
+    "target_paper_summary": {
+      "paper_id": "paper_7fcfeea88e9d",
+      "title": "Io-Lvm: Inverse Optimization Latent Variable Models With Graph-Based Planning Applications",
+      "abstract": "## Anonymous Authors1 Abstract",
+      "topic": "",
+      "claims": []
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_6971e6eb3",
+        "title": "Deep Gaussian Processes and Variational Propagation of Uncertainty",
+        "authors": [
+          "Andreas Damianou"
+        ],
+        "year": 2015,
+        "publication_date": "2015-01-01",
+        "venue": "White Rose eTheses Online (University of Leeds, The University of Sheffield, University of York)",
+        "abstract": "Uncertainty propagation across components of complex probabilistic models is vital for improving regularisation. Unfortunately, for many interesting models based on non-linear Gaussian processes (GPs), straightforward propagation of uncertainty is computationally and mathematically intractable. This thesis is concerned with solving this problem through developing novel variational inference approaches. &#13;\\n&#13;\\nFrom a modelling perspective, a key contribution of the thesis is the development of deep Gaussian processes (deep GPs). Deep GPs generalise several interesting GP-based models and, hence, motivate the development of uncertainty propagation techniques. In a deep GP, each layer is modelled as the output of a multivariate GP, whose inputs are governed by another GP. The resulting model is no longer a GP but, instead, can learn much more complex interactions between data. In contrast to other deep models, all the uncertainty in parameters and latent variables is marginalised out and both supervised and unsupervised learning is handled.&#13;\\n&#13;\\nTwo important special cases of a deep GP can equivalently be seen as its building components and, historically, were developed as such. Firstly, the variational GP-LVM is concerned with propagating uncertainty in Gaussian process latent variable models. Any observed inputs (e.g. temporal) can also be used to correlate the latent space posteriors. Secondly, this thesis develops manifold relevance determination (MRD) which considers a common latent space for multiple views. An adapted variational framework allows for strong model regularisation, resulting in rich latent space representations to be learned. The developed models are also equipped with algorithms that maximise the information communicated between their different stages using uncertainty propagation, to achieve improved learning when partially observed values are present. &#13;\\n&#13;\\nThe developed methods are demonstrated in experiments with simulated and real data. The results show that the developed variational methodologies improve practical applicability by enabling automatic capacity control in the models, even when data are scarce.",
+        "url": "https://doi.org/10.13140/rg.2.1.1458.8885",
+        "doi": "https://doi.org/10.13140/rg.2.1.1458.8885",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W1172736100"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 82
+      },
+      {
+        "paper_id": "rw_002_e0cdbeac0",
+        "title": "Distorted correlations among censored data: causes, effects, and correction",
+        "authors": [
+          "Kimberly A. Barchard",
+          "James A. Russell"
+        ],
+        "year": 2023,
+        "publication_date": "2023-12-21",
+        "venue": "Behavior Research Methods",
+        "abstract": "Data censoring occurs when researchers do not know precise values of data points (e.g., age is 55+ or concentration ≤ .001). Censoring is frequent within psychology but typically unrecognized outside of longitudinal studies. We describe five circumstances when censoring may occur, demonstrate censoring distorts correlations, and discuss how censoring can create spurious factors. Next, we explain how to use R package lava to calculate maximum likelihood estimates (Holst and Budtz-Jørgensen Computational Statistics, 28(4), 1385-1452, 2013) of correlations between uncensored variables based upon censored variables. Previous research demonstrated these estimates were more accurate than Muthén's (1984) estimate for one particular model, but no research has systematically examined their accuracy. We therefore conducted a simulation study exploring the effects of the correlation, sample size, and censoring on point and interval estimates of correlations. Based upon 80 cells in which low values of normally distributed variables were censored, we recommend the constrained regression model with Wald confidence intervals. These methods were precise and unbiased unless both variables had 70% censoring and the correlation was large and negative (e.g., -.9), in which case estimates were closer to -1 than they should be. Opposite results would occur if low values of one variable and high values of the other were censored: Estimates would be precise and unbiased unless censoring was extreme and correlations were large and positive. To estimate large correlations accurately, we recommend researchers reduce censoring by using longer longitudinal studies, using scales with more response options, and matching measures to populations to reduce floor and ceiling effects.",
+        "url": "https://doi.org/10.3758/s13428-023-02086-5",
+        "doi": "https://doi.org/10.3758/s13428-023-02086-5",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4390046578"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 5
+      },
+      {
+        "paper_id": "rw_003_fb9264206",
+        "title": "Modular system programming in MINIX 3",
+        "authors": [
+          "Jorrit N. Herder",
+          "Herbert Bos",
+          "Ben Gras",
+          "Philip Homburg",
+          "Andrew S. Tanenbaum"
+        ],
+        "year": 2006,
+        "publication_date": "2006-01-01",
+        "venue": "VU Research Portal",
+        "abstract": "By \"next-generation,\" I mean that MINIX is a microkernel in design and philosophy.Only the kernel runs as privileged, and all other services, including process management, file systems, networking, and all device drivers, run in their own private address spaces.Just moving device drivers out of the kernel and into their own address spaces means that they can crash without crashing the kernel.It also means that system code, including device drivers, can be tested without rebooting, and failed drivers (or servers) can be restarted.While MINIX 3 is not going to replace your desktop today, it is already a good candidate for embedded systems where robustness, reliability, and a small memory footprint are crucial.Perhaps your cell phone will be running MINIX 3 some day.",
+        "url": "https://research.vu.nl/en/publications/f0be7e18-0934-4aeb-8ef4-62ec6c1a48c5",
+        "doi": "",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W1532119620"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 14
+      },
+      {
+        "paper_id": "rw_004_d5f86803e",
+        "title": "ClusterRAID: Architecture and Prototype of a Distributed Fault-Tolerant Mass Storage System for Clusters",
+        "authors": [
+          "Arne Wiebalck"
+        ],
+        "year": 2005,
+        "publication_date": "2005-01-01",
+        "venue": "heiDOK (Heidelberg University)",
+        "abstract": "During the past few years clusters built from commodity off-the-shelf (COTS) components have emerged as the predominant supercomputer architecture. Typically comprising a collection of standard PCs or workstations and an interconnection network, they have replaced the traditionally used integrated systems due to their better price/performance ratio. As paradigms shift from mere computing intensive to I/O intensive applications, mass storage solutions for cluster installations become a more and more crucial aspect of these systems. The inherent unreliability of the underlying components is one of the reasons why no system has been established as a standard storage solution for clusters yet. This thesis sets out the architecture and prototype implementation of a novel distributed mass storage system for commodity off-the-shelf clusters and addresses the issue of the unreliable constituent components. The key concept of the presented system is the conversion of the local hard disk drive of a cluster node into a reliable device while preserving the block device interface. By the deployment of sophisticated erasure-correcting codes, the system allows the adjustment of the number of tolerable failures and thus the overall reliability. In addition, the applied data layout considers the access behaviour of a broad range of applications and minimizes the number of required network transactions. Extensive measurements and functionality tests of the prototype, both stand-alone and in conjunction with local or distributed file systems, show the validity of the concept.",
+        "url": "https://doi.org/10.11588/heidok.00005624",
+        "doi": "https://doi.org/10.11588/heidok.00005624",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W1775671334"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_001_6971e6eb3",
+        "relevance_score": 0.62,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "This candidate from the 'related_work' query group develops variational propagation of uncertainty in complex probabilistic models, specifically deep Gaussian processes and Gaussian process latent variable models (GP-LVMs). It addresses challenges in uncertainty propagation that are relevant to probabilistic latent variable modeling, which shares conceptual foundations with the target's latent variable model focus.",
+        "evidence_summary": "In 2015, Andreas Damianou published 'Deep Gaussian Processes and Variational Propagation of Uncertainty'. The thesis developed deep Gaussian processes, which generalize several GP-based models and handle supervised and unsupervised learning by marginalizing uncertainty in parameters and latent variables. A key special case developed was the variational GP-LVM for propagating uncertainty in Gaussian process latent variable models, and the thesis also introduced manifold relevance determination for a common latent space across multiple views using an adapted variational framework."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_002_e0cdbeac0",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "This candidate shares a latent variable modeling component through its use of the lava R package and discusses estimation methods for censored data correlations, which could provide tangential methodological background for statistical inference in models with latent variables. The paper was retrieved via the 'related_work' query, though its primary application domain (psychology) differs from the target's graph-based planning.",
+        "evidence_summary": "In 2023, Kimberly A. Barchard and James A. Russell published 'Distorted correlations among censored data: causes, effects, and correction' in Behavior Research Methods. The paper described how data censoring distorts correlations and can create spurious factors, and it explained how to use the R package lava to calculate maximum likelihood estimates of correlations between uncensored variables based on censored data. A simulation study explored effects of correlation, sample size, and censoring on point and interval estimates, finding the constrained regression model with Wald confidence intervals generally precise and unbiased except under extreme censoring with very large positive or negative correlations."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_003_fb9264206",
+        "relevance_score": 0.28,
+        "relevance_types": [
+          "weakly_related"
+        ],
+        "rationale": "This candidate describes a modular microkernel operating system architecture with no direct methodological, modeling, or application overlap with inverse optimization or latent variable models for planning. It is retrieved from the 'related_work' query group, but the connection to the target appears incidental.",
+        "evidence_summary": "In 2006, Jorrit N. Herder, Herbert Bos, Ben Gras, Philip Homburg, and Andrew S. Tanenbaum published 'Modular system programming in MINIX 3'. The paper described MINIX 3 as a microkernel-based operating system where only the kernel runs as privileged, and all other services (process management, file systems, networking, device drivers) run in separate private address spaces, allowing components to crash or be restarted independently. The authors proposed MINIX 3 as a candidate for embedded systems requiring robustness, reliability, and a small memory footprint."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_004_d5f86803e",
+        "relevance_score": 0.25,
+        "relevance_types": [
+          "weakly_related"
+        ],
+        "rationale": "This candidate is a thesis on a distributed fault-tolerant mass storage system architecture for clusters. The topic (distributed storage systems using erasure codes) and application domain differ substantially from inverse optimization, latent variable models, or graph-based planning, despite being retrieved via the generic 'related_work' query.",
+        "evidence_summary": "In 2005, Arne Wiebalck published 'ClusterRAID: Architecture and Prototype of a Distributed Fault-Tolerant Mass Storage System for Clusters'. The thesis set out the architecture and prototype implementation of a distributed mass storage system for commodity clusters that converts a node's local hard drive into a reliable device while preserving a block device interface. The system used erasure-correcting codes to adjust the number of tolerable failures and considered data layout to minimize required network transactions, with prototype validation through extensive measurements and functionality tests."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2015, Andreas Damianou published \"Deep Gaussian Processes and Variational Propagation of Uncertainty\" in White Rose eTheses Online (University of Leeds, The University of Sheffield, University of York). This thesis is concerned with solving this problem through developing novel variational inference approaches. &#13;\\n&#13;\\nFrom a modelling perspective, a key contribution of the thesis is the development of deep Gaussian processes (deep GPs). The resulting model is no longer a GP but, instead, can learn much more complex interactions between data. The developed models are also equipped with algorithms that maximise the information communicated between their different stages using uncertainty propagation, to achieve improved learning when partially observed values are present. &#13;\\n&#13;\\nThe developed methods are demonstrated in experiments with simulated and real data. In 2023, Kimberly A. Barchard and James A. Russell published \"Distorted correlations among censored data: causes, effects, and correction\" in Behavior Research Methods. The authors describe five circumstances when censoring may occur, demonstrate censoring distorts correlations, and discuss how censoring can create spurious factors. Data censoring occurs when researchers do not know precise values of data points (e.g., age is 55+ or concentration ≤ .001). These methods were precise and unbiased unless both variables had 70% censoring and the correlation was large and negative (e.g., -.9), in which case estimates were closer to -1 than they should be. In 2006, Jorrit N. Herder et al. published \"Modular system programming in MINIX 3\" in VU Research Portal. By \"next-generation,\" I mean that MINIX is a microkernel in design and philosophy.Only the kernel runs as privileged, and all other services, including process management, file systems, networking, and all device drivers, run in their own private address spaces.Just moving device drivers out of the kernel and into their own address spaces means that they can crash without crashing the kernel.It also means that system code, including device drivers, can be tested without rebooting, and failed... In 2005, Arne Wiebalck published \"ClusterRAID: Architecture and Prototype of a Distributed Fault-Tolerant Mass Storage System for Clusters\" in heiDOK (Heidelberg University). This thesis sets out the architecture and prototype implementation of a novel distributed mass storage system for commodity off-the-shelf clusters and addresses the issue of the unreliable constituent components. In addition, the applied data layout considers the access behaviour of a broad range of applications and minimizes the number of required network transactions. Typically comprising a collection of standard PCs or workstations and an interconnection network, they have replaced the traditionally used integrated systems due to their better price/performance ratio.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 4,
+      "num_removed_post_cutoff": 0,
+      "num_removed_undated": 0,
+      "num_used": 4,
+      "num_cutoff_valid": 4,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 4,
+    "num_removed_post_cutoff": 0,
+    "num_removed_undated": 0,
+    "num_used": 4,
+    "num_cutoff_valid": 4,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

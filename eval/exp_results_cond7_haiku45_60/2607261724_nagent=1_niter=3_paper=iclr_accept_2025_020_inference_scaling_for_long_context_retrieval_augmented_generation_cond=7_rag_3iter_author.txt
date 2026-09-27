@@ -1,0 +1,812 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Comprehensive empirical investigation of inference scaling in long-context RAG: The paper systematically explores how RAG performance scales with inference computation across multiple strategies (DRAG and IterDRAG), providing thorough experimental evidence on four multi-hop QA datasets with extensive hyperparameter search. The work goes beyond simply increasing document count by investigating flexible combinations of inference parameters.",
+        "Discovery of near-linear inference scaling laws for RAG: The paper identifies and demonstrates an approximately linear relationship between RAG performance and effective context length when parameters are optimally allocated. This observation is significant and generalizable across datasets, providing practical insights for practitioners about expected performance gains from increased compute budgets.",
+        "Practical computation allocation model with strong generalization: The proposed quantitative model (Equation 2) effectively predicts optimal inference configurations and generalizes well across domains (96.6% of oracle performance in leave-one-out evaluation). The model enables practitioners to select hyperparameters under budget constraints without extensive enumeration, with ablation studies validating design choices (R² improves from 0.876 to 0.903 with sigmoidal scaling).",
+        "Effective treatment of retrieval quality plateau through query decomposition: The paper demonstrates that IterDRAG achieves 30.5% average improvement in NDCG and 39.9% in MRR compared to DRAG (Table 5), with substantial gains on complex queries (57.1% on 2WikiMultiHopQA). This shows the iterative query decomposition approach effectively mitigates the NDCG/MRR saturation issue identified in Appendix B."
+      ],
+      "weaknesses": [
+        "Limited novelty in core techniques: DRAG applies standard in-context learning with more demonstrations to long-context RAG, while IterDRAG builds on Self-Ask (Press et al., 2023) and active RAG (Jiang et al., 2023). The primary contribution is empirical scaling analysis and modeling rather than methodological innovation.",
+        "Single-model validation without testing on other long-context architectures: Experiments rely primarily on Gemini 1.5 Flash. While Appendix D includes GTR XXL retriever results, evaluation is limited to 100 MuSiQue examples 'for computational efficiency.' Generalization of scaling laws to other long-context models (e.g., LLaMA with position interpolation, Mistral, open-source alternatives) remains unvalidated.",
+        "Evaluation on sampled datasets without systematic bias analysis: The 1.2k sampling per dataset, while pragmatic for managing computational cost, lacks analysis of sampling representativeness. No comparison of metric distributions between samples and full datasets, nor documentation of sampling strategy (random vs. stratified) is provided.",
+        "Computation allocation model functional form lacks theoretical justification: The inverse sigmoid parametrization (Equation 2) is empirically motivated but not theoretically grounded. Table 2 ablation compares only to linear and quadratic forms, not alternative non-linear functions (power-law, exponential). While the authors explain the empirical fit, principled justification for why this specific form is appropriate remains absent."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited novelty in core techniques: DRAG applies standard in-context learning with more demonstrations to long-context RAG, while IterDRAG builds on Self-Ask (Press et al., 2023) and active RAG (Jiang et al., 2023). The primary contribution is empirical scaling analysis and modeling rather than methodological innovation.",
+          "severity": "minor",
+          "evidence": "Section 3.2-3.3 describe DRAG following existing prompt templates (Agarwal et al., 2024) and IterDRAG using constrained decoding with Self-Ask (Press et al., 2023). Related work acknowledges concurrent work on long-document retrieval (Jiang et al., 2024; Shao et al., 2024). The rebuttal clarifies: 'The paper's primary contributions are indeed the empirical insights rather than novel techniques in isolation.' The paper correctly frames itself as providing empirical characterization rather than methodological novelty.",
+          "affected_claim": "This is fundamentally an issue of framing. The empirical contributions (scaling laws, allocation model) are valuable even if individual techniques are not novel.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Single-model validation without testing on other long-context architectures: Experiments rely primarily on Gemini 1.5 Flash. While Appendix D includes GTR XXL retriever results, evaluation is limited to 100 MuSiQue examples 'for computational efficiency.' Generalization of scaling laws to other long-context models (e.g., LLaMA with position interpolation, Mistral, open-source alternatives) remains unvalidated.",
+          "severity": "minor",
+          "evidence": "Main experiments use Gemini 1.5 Flash exclusively. Appendix D Figure 10 shows GTR XXL validation on only 100 MuSiQue examples, not full datasets or alternative long-context models. The rebuttal acknowledges: 'full validation on other long-context LLMs (LLaMA 2 with position interpolation, Mistral, etc.) would be valuable and recommend this as future work.' This limitation is explicitly acknowledged by the authors as a constraint rather than oversight.",
+          "affected_claim": "Scaling laws generalize universally across long-context model families and architectures",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Evaluation on sampled datasets without systematic bias analysis: The 1.2k sampling per dataset, while pragmatic for managing computational cost, lacks analysis of sampling representativeness. No comparison of metric distributions between samples and full datasets, nor documentation of sampling strategy (random vs. stratified) is provided.",
+          "severity": "minor",
+          "evidence": "Section 4.1 states: 'we sample 1.2k examples from each dataset for evaluation.' The rebuttal provides evidence against systematic bias: consistent patterns across datasets, 96.6% oracle alignment in domain generalization, and retrieval metrics replicating across samples. However, no explicit analysis of whether the 1.2k sample captures full dataset difficulty distributions is presented. The rebuttal acknowledges: 'we acknowledge that full-dataset evaluation would be preferable. If space permits in a revised version, we could provide: (1) sampling strategy details...or (3) analysis of whether the 1.2k sample is representative of full dataset difficulty distributions.'",
+          "affected_claim": "Results on benchmark datasets are fully representative of performance on complete datasets",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Computation allocation model functional form lacks theoretical justification: The inverse sigmoid parametrization (Equation 2) is empirically motivated but not theoretically grounded. Table 2 ablation compares only to linear and quadratic forms, not alternative non-linear functions (power-law, exponential). While the authors explain the empirical fit, principled justification for why this specific form is appropriate remains absent.",
+          "severity": "minor",
+          "evidence": "Section 5.1 motivates the choice as 'accounting for sub-linearity in extremely long contexts.' Table 2 shows ablation comparing linear, quadratic, and sigmoid scaling but not power-law or exponential forms. The rebuttal explains: 'The log-linear relationship between performance and parameters...makes intuitive sense—doubling documents provides smaller gains than the first document (diminishing returns), captured by log(k).' This post-hoc explanation is reasonable but does not constitute a priori theoretical grounding. The authors acknowledge the model is 'empirically motivated rather than theoretically derived.'",
+          "affected_claim": "The computation allocation model is theoretically optimal for RAG performance prediction",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The technical approach is sound. The effective context length metric is well-defined, the optimal parameter search formulation (Equation 1) is rigorous, and the computation allocation model is mathematically coherent. The rebuttal clarifies that the NDCG/MRR plateau observed in Appendix B is not a limitation but rather an expected phenomenon that IterDRAG effectively addresses through query decomposition, with empirical validation showing 30.5% NDCG improvement and 39.9% MRR improvement (Table 5). Experimental setup follows standard practices with multiple metrics and baseline comparisons. While evaluation uses sampled datasets and focuses on a single primary model, the consistency of patterns across datasets and strong domain generalization (96.6% oracle) provide evidence against systematic issues."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "Novelty is established through empirical characterization rather than individual techniques. The rebuttal clarifies this framing: primary contributions are (1) systematic discovery of near-linear scaling laws for RAG when parameters are optimally allocated, (2) the computation allocation model enabling prediction across domains, and (3) demonstrating combined strategies substantially outperform simple scaling. While DRAG and IterDRAG individually build on existing work, their systematic combination and the resulting scaling insights are novel. The leave-one-out domain generalization achieving 96.6% oracle alignment across diverse QA tasks demonstrates the findings capture generalizable principles beyond task-specific artifacts."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper addresses a practically important problem with clear significance for long-context RAG deployment. The discovery of near-linear scaling laws provides actionable guidance for practitioners allocating inference budgets. The computation allocation model enables hyperparameter selection without exhaustive search. However, significance is somewhat limited by: (1) marginal gains beyond 1M tokens (e.g., 6.2% relative improvement on HotpotQA from 1M to 5M tokens in Table 1), suggesting practical scaling limits; (2) focus primarily on one model family reducing immediate broad applicability; (3) evaluation limited to QA tasks. Despite these constraints, systematic scaling analysis and the predictive model represent meaningful contributions for the RAG and long-context LLM communities."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The experimental evaluation is comprehensive with extensive hyperparameter grids (1,200+ configurations per dataset), four datasets with multiple metrics, and ablation studies. Domain generalization (leave-one-out achieving 96.6% oracle) and length extrapolation experiments provide additional validation. The 1.2k sampling per dataset is a practical constraint acknowledged by the authors and mitigated by: (1) consistent scaling patterns across all four datasets despite sampling, (2) strong generalization results indicating sampling did not introduce systematic bias, (3) retrieval analysis (Table 5) showing IterDRAG effectively addresses the NDCG/MRR plateau through query decomposition. While not ideal, the sampling is defensible given computational constraints, and the convergent findings across datasets support result validity."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written with well-motivated problem statements, clear methodology, and comprehensive results. Figures effectively visualize scaling trends (Figures 1, 4, 11). Mathematical notation is consistent and well-defined. The extensive appendix provides thorough supplementary results. The rebuttal identifies a reasonable opportunity to better frame contributions around empirical characterization rather than methodological novelty, but this is a framing issue rather than a presentation failure. Overall presentation meets top-tier conference standards."
+        }
+      },
+      "summary_comment": "After reviewing the author rebuttal, the paper merits acceptance. The rebuttal effectively clarifies the nature of the contributions and substantively addresses several concerns: (1) confirms that limited methodological novelty is not a flaw given the primary focus on empirical characterization of scaling laws and practical allocation modeling; (2) demonstrates that the NDCG/MRR plateau concern is addressed through IterDRAG's query decomposition approach, with concrete improvements validated in Table 5; (3) explains why the 1.2k sampling, while not ideal, likely did not introduce systematic bias, supported by consistent patterns across datasets and 96.6% oracle alignment in domain generalization; (4) acknowledges but does not substantially resolve the single-model focus and lack of theoretical grounding for the allocation model's functional form. These remaining limitations are appropriately characterized as minor and do not undermine the paper's core contributions. The work makes solid empirical contributions to understanding inference scaling in long-context RAG through: (1) systematic discovery of near-linear scaling laws when parameters are optimally allocated; (2) a practical computation allocation model that generalizes across domains; and (3) comprehensive evaluation demonstrating combined strategies substantially outperform simple scaling. While the techniques are not individually novel, the empirical insights and predictive model provide genuine value for practitioners and researchers in the RAG and long-context LLM communities. The paper represents good quality empirical work appropriate for a top-tier venue."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Addresses inference scaling and test-time compute optimization, core ICML topics under 'optimization' and 'machine learning systems' - the paper systematically studies how to allocate computational resources at inference time\",\n      \"Presents empirical scaling laws with quantitative modeling (computation allocation model) that characterizes performance-compute relationships, aligning with ICML's interest in empirical characterization and methodology\",\n      \"Evaluates on multiple benchmark datasets with rigorous hyperparameter search and ablation studies, meeting ICML standards for experimental rigor and comprehensive evaluation\",\n      \"Addresses practical ML systems problem - optimizing long-context LLM inference, relevant to ICML's focus on 'machine learning systems (improved implementation and scalability)'\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited methodological novelty - DRAG and IterDRAG are straightforward applications of existing techniques (in-context learning, Self-Ask prompting). Reviewer explicitly notes 'primary contribution is empirical scaling analysis and modeling rather than methodological innovation.' ICML typically expects stronger algorithmic or theoretical contributions alongside empirical work\",\n      \"Core contribution is RAG-specific empirical characterization rather than general ML advancement - the scaling laws and allocation model are tuned to long-context RAG setting, limiting generalizability to broader ICML audience interested in general ML principles\",\n      \"Minimal theoretical contribution - the inverse sigmoid parametrization (Equation 2) lacks theoretical justification. Reviewer notes 'alternative non-linear functions (power-law, exponential)' not explored. ICML values papers with theoretical grounding or novel algorithmic insights, not just empirical fitting\",\n      \"Single model validation (Gemini 1.5 Flash primarily) without testing on other architectures - ICML expects broader validation of scaling principles across different model classes and implementations to claim general ML insights\",\n      \"Framed as application-specific study of NLP/RAG systems rather than contributing to core ML methodology - while ICML accepts 'application-driven' work, this paper is more narrowly focused on optimizing one specific application pipeline\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Directly addresses inference scaling and test-time compute optimization, explicit NeurIPS topics listed as 'optimization' and 'decision-making, reinforcement learning, and control'\",\n      \"Studies long-context LLMs and their capabilities on knowledge-intensive tasks (QA), aligning with NeurIPS interest in 'generalization and multi-task learning' and understanding model capabilities at scale\",\n      \"Provides comprehensive empirical analysis with actionable insights for practitioners - NeurIPS explicitly welcomes 'in-depth analysis of existing methods that provide new insights in terms of their limitations or behavior'\",\n      \"Addresses AI/ML systems infrastructure and scaling, relevant to NeurIPS focus on 'SysML Infrastructure' and practical deployment of large models\",\n      \"Discovers generalizable scaling laws (near-linear relationship between compute and performance), contributing to broader understanding of neural model scaling behavior, an established NeurIPS research direction\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Techniques are incremental combinations of existing methods rather than novel contributions - DRAG is in-context learning with more demonstrations, IterDRAG applies existing Self-Ask prompting. While NeurIPS is more permissive than ICML on empirical work, it still expects meaningful methodological or conceptual advances\",\n      \"Single long-context model tested (Gemini 1.5 Flash) limits claims about general inference scaling - NeurIPS would expect validation across multiple model architectures to establish scaling laws as general principles rather than Gemini-specific observations\",\n      \"Allocation model functional form (Equation 2) appears ad-hoc with limited justification - inverse sigmoid chosen empirically without comparison to alternatives (power-law, exponential). NeurIPS values well-motivated mathematical formulations or theoretical grounding\",\n      \"Evaluation on sampled datasets (1.2k per dataset) without representativeness analysis - while acknowledged and partially mitigated by domain generalization results, this is weaker than full dataset evaluation NeurIPS typically expects\",\n      \"Performance gains diminish significantly beyond 1M tokens (~6% improvement HotpotQA from 1M to 5M), suggesting practical scaling limits that reduce impact of findings for practitioners\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Directly addresses representation learning and information utilization in long-context models - core ICLR topic of 'unsupervised, self-supervised, semi-supervised, and supervised representation learning' applied to retrieval-augmented settings\",\n      \"Investigates how long-context LLMs learn from demonstrations and extract relevant information from extensive context, relevant to ICLR focus on 'representation learning' and 'learning theory'\",\n      \"Studies generalization properties through leave-one-out domain evaluation achieving 96.6% oracle alignment and length extrapolation experiments - directly aligns with ICLR interest in 'generalization' and 'multi-task learning'\",\n      \"Provides systematic characterization of neural model behavior at scale through scaling laws, contributing to ICLR's established research direction on understanding deep learning properties\",\n      \"Addresses inference-time learning and adaptation (in-context learning and iterative refinement), relevant to ICLR topics of 'transfer learning, meta learning, and lifelong learning'\",\n      \"Practical contribution to long-context model deployment and optimization, fitting ICLR's interest in 'applications to... [various domains] and general machine learning'\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited novelty in representation learning approaches - DRAG applies standard in-context learning, IterDRAG uses existing Self-Ask and retrieval-augmented patterns. While ICLR accepts empirical work, it expects stronger learning-theoretic or architectural innovations\",\n      \"Narrow focus on RAG task rather than general representation learning principles - the scaling laws and allocation model are specific to RAG, not general findings about representation or information utilization transferable to other domains\",\n      \"Lack of representation-level analysis - the paper focuses on end-to-end task performance rather than understanding what representations the model learns or how long-context attention mechanisms utilize retrieved information. ICLR typically values insights into learned representations\",\n      \"Single model architecture validation (Gemini 1.5 Flash) - ICLR would expect testing across different deep learning architectures, attention mechanisms, and model classes to establish claims as general learning principles\",\n      \"Allocation model (Equation 2) is phenomenological rather than derived from learning theory - lacks connection to established ICLR topics like statistical learning theory or optimization theory\",\n      \"No theoretical analysis of why near-linear scaling emerges or what fundamental properties of long-context learning enable this behavior - ICLR values papers providing theoretical insights alongside empirical findings\"\n    ]\n  }\n}\n```\n\n## Summary\n\n**Paper Classification**: This is fundamentally an **empirical systems paper** studying inference scaling in retrieval-augmented generation (RAG), with limited methodological novelty but solid practical contributions.\n\n**Key Positioning Issue**: The paper presents itself somewhat ambiguously—it could be framed as (1) a machine learning systems contribution (inference optimization), (2) an NLP application study, or (3) a scaling laws characterization. This ambiguity affects venue fit.\n\n**Venue Recommendations**:\n\n1. **NeurIPS (7/10) - BEST FIT**: Most suitable venue. NeurIPS explicitly welcomes empirical analysis and in-depth characterization of model behavior. The scaling laws discovery and practical allocation model fit NeurIPS's interests in optimization, generalization, and infrastructure. Reviewer's \"Accept\" recommendation and acknowledgment that empirical contributions are valuable without requiring methodological novelty supports this fit.\n\n2. **ICLR (7/10) - GOOD FIT**: Also appropriate, particularly if reframed around representation learning and model generalization. The domain generalization and length extrapolation experiments align well with ICLR's learning theory interests. However, lacks representation-level insights that ICLR typically values.\n\n3. **ICML (6/10) - BORDERLINE**: Weakest fit. While ICML accepts empirical work, it typically expects either stronger methodological contributions or theoretical insights. The single-model validation, limited novelty in techniques, and narrow application focus make this less ideal than NeurIPS.\n\n**Critical Weaknesses Across Venues**:\n- Single model tested; generalization unclear\n- Techniques are combinations of existing methods\n- Allocation model lacks theoretical grounding\n- Evaluation on sampled datasets without full representativeness analysis\n\n**Recommendation**: Submit to **NeurIPS** as primary venue. The paper's strengths (comprehensive scaling analysis, practical allocation model, generalization across domains) align better with NeurIPS's empirical and systems orientation than ICML's methodological expectations.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Comprehensive empirical investigation of inference scaling in long-context RAG: The paper systematically explores how RAG performance scales with inference computation across multiple strategies (DRAG and IterDRAG), providing thorough experimental evidence on four multi-hop QA datasets with extensive hyperparameter search. The work goes beyond simply increasing document count by investigating flexible combinations of inference parameters.",
+              "Discovery of near-linear inference scaling laws for RAG: The paper identifies and demonstrates an approximately linear relationship between RAG performance and effective context length when parameters are optimally allocated. This observation is significant and generalizable across datasets, providing practical insights for practitioners about expected performance gains from increased compute budgets.",
+              "Practical computation allocation model with strong generalization: The proposed quantitative model (Equation 2) effectively predicts optimal inference configurations and generalizes well across domains (96.6% of oracle performance in leave-one-out evaluation). The model enables practitioners to select hyperparameters under budget constraints without extensive enumeration, with ablation studies validating design choices (R² improves from 0.876 to 0.903 with sigmoidal scaling).",
+              "Well-designed methodologies addressing real challenges: IterDRAG meaningfully addresses the compositionality gap through query decomposition and interleaved retrieval, showing substantial improvements over baselines (e.g., 30.5% average gain in retrieval metrics). The use of Self-Ask constrained decoding to generate training examples for IterDRAG is practical and avoids manual annotation."
+            ],
+            "weaknesses": [
+              "Limited novelty in core techniques: DRAG essentially applies standard in-context learning with more demonstrations and documents to long-context LLMs, which is a natural application of existing capabilities rather than a novel technique. IterDRAG's query decomposition and iterative retrieval build on Self-Ask (Press et al., 2023) and active RAG (Jiang et al., 2023) with incremental modifications. The main contribution is the empirical scaling analysis rather than methodological innovation.",
+              "Strong dependence on a single proprietary model and limited retrieval investigation: Experiments are primarily conducted on Gemini 1.5 Flash, with only one additional retriever variant (GTR XXL on 100 examples) tested. The retrieval quality analysis (Appendix B) reveals concerning patterns—NDCG and MRR plateau early while recall improves, indicating substantial noise in retrieved documents that isn't fully addressed. The paper acknowledges this but doesn't provide concrete solutions, limiting practical applicability.",
+              "Computation allocation model lacks theoretical justification: The choice of the specific functional form in Equation 2 (inverse sigmoid applied to performance with log-linear parameter dependence) appears empirically motivated but lacks theoretical foundation. Why this particular parametrization? The informativeness terms (i_doc, i_shot) are defined post-hoc based on marginal gains, which may not generalize across diverse tasks or model families.",
+              "Evaluation limited to sampled datasets at scale: To manage computational costs, experiments use only 1.2k samples per dataset (acknowledged limitation). This sampling approach may miss important properties of full datasets and could introduce bias. Additionally, errors are acknowledged in the appendix but not thoroughly investigated—the error analysis mentions that both DRAG and IterDRAG have limitations with hallucination and outdated retrieval that persist.",
+              "Modest performance gains at very long contexts and unclear practical limits: Beyond 1M tokens, improvements from IterDRAG are marginal (5M vs 1M tokens show small gains). The paper acknowledges long-context modeling limitations but doesn't provide clear guidance on practical budget allocation. The relationship between effective context length and actual context window utilization isn't thoroughly analyzed."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited novelty in core techniques: DRAG essentially applies standard in-context learning with more demonstrations and documents to long-context LLMs, which is a natural application of existing capabilities rather than a novel technique. IterDRAG's query decomposition and iterative retrieval build on Self-Ask (Press et al., 2023) and active RAG (Jiang et al., 2023) with incremental modifications.",
+                "severity": "minor",
+                "evidence": "Section 3.2-3.3 describe DRAG as incorporating extensive retrieved documents within demonstrations following existing prompt templates (Agarwal et al., 2024). IterDRAG uses constrained decoding with Self-Ask format (Press et al., 2023; Koo et al., 2024) and interleaved retrieval similar to Trivedi et al. (2023) and Jiang et al. (2023). The related work section acknowledges these concurrent works on long-document retrieval (Jiang et al., 2024; Shao et al., 2024).",
+                "affected_claim": "The main contribution is methodological innovation in DRAG and IterDRAG",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Strong dependence on a single proprietary model and limited retrieval investigation: Experiments are primarily conducted on Gemini 1.5 Flash, with only one additional retriever variant (GTR XXL on 100 examples) tested. The retrieval quality analysis reveals concerning patterns—NDCG and MRR plateau early while recall improves, indicating substantial noise in retrieved documents that isn't fully addressed.",
+                "severity": "major",
+                "evidence": "Main experiments use only Gemini 1.5 Flash. Appendix D includes GTR XXL results but only on 100 MuSiQue examples for computational efficiency. Appendix B shows NDCG plateaus at ~100 documents with 0.321 on Bamboogle and 0.535 on HotpotQA, while recall reaches 0.632-0.783 with 1000 documents. The paper acknowledges (Section A) that 'higher recall doesn't necessarily translate into better final answer quality when retrieved documents aren't effectively ranked or filtered' but proposes no solution beyond IterDRAG.",
+                "affected_claim": "Scaling inference compute in RAG is broadly beneficial and the findings generalize across models and retrievers",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Computation allocation model lacks theoretical justification and relies on post-hoc definition of informativeness terms: The choice of the specific functional form in Equation 2 (inverse sigmoid applied to performance with log-linear parameter dependence) appears empirically motivated but lacks theoretical foundation. The informativeness terms (i_doc, i_shot) are defined based on marginal gains, which may not generalize.",
+                "severity": "minor",
+                "evidence": "Section 5.1 states the model choice is 'to account for the sub-linearity in extremely long contexts' and applies inverse sigmoid σ^{-1} without justification for why this specific function. The informativeness terms are defined as 'performance gain by only adding one document/example compared to zero-shot QA' (Appendix I), which is task-specific. Table 2 shows ablation results but doesn't compare to alternative parametrizations (e.g., power-law scaling with different exponents).",
+                "affected_claim": "The computation allocation model provides a general and theoretically motivated approach to predict RAG performance",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Evaluation limited to sampled datasets at scale: Experiments use only 1.2k samples per dataset (acknowledged following Wu et al., 2024). This sampling approach may miss important properties of full datasets and could introduce bias. Error analysis mentions persistent limitations with hallucination and outdated retrieval.",
+                "severity": "minor",
+                "evidence": "Section 4.1 states: 'To manage the computational costs of extensive experiments, we follow Wu et al. (2024); Gutiérrez et al. (2024) and sample 1.2k examples from each dataset for evaluation.' Appendix H error analysis identifies four error categories including 'inaccurate or outdated retrieval' and 'hallucination or unfaithful reasoning' but doesn't quantify frequency or provide targeted solutions.",
+                "affected_claim": "The scaling laws and allocation model are valid for full-scale evaluation of RAG systems",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Modest performance gains at very long contexts and unclear practical limits for inference budget allocation: Beyond 1M tokens, improvements from IterDRAG are marginal (improvements from 1M to 5M tokens are small, e.g., Table 1 shows minimal gains on HotpotQA). The paper acknowledges long-context modeling limitations but doesn't provide clear guidance on optimal practical budget allocation.",
+                "severity": "minor",
+                "evidence": "Section 4.3 states 'Gains on optimal performance gradually diminish beyond an effective context length of 1M' and 'Beyond that, improvements from 1M to 5M are less substantial or plateau.' Table 1 shows HotpotQA IterDRAG EM of 48.7% at 1M improving only to 51.7% at 5M (6.2% gain on a 48.7% baseline). Table 4 shows 5.6% average difference between predicted and oracle results at 5M tokens.",
+                "affected_claim": "Inference scaling provides nearly linear benefits up to very long context lengths with practical guidance for budget allocation",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical approach is sound. The effective context length metric is well-defined (Section 3.1), the optimal parameter search formulation (Equation 1) is rigorous, and the computation allocation model (Equation 2) is mathematically coherent with proper ablation studies (Table 2). Experimental setup follows standard practices with multiple metrics (EM, F1, Accuracy) and reasonable baseline comparisons. The main limitation is dependence on sampled datasets (1.2k examples) and a single primary model, but this doesn't undermine the fundamental validity of the scaling observations, which show consistent trends across datasets."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "While individual techniques (DRAG combining in-context learning with RAG, IterDRAG using query decomposition) build on existing work (Self-Ask, active RAG, long-context LLMs), the contribution is in the systematic empirical investigation of inference scaling for RAG and the discovery of near-linear scaling laws. The computation allocation model for predicting optimal parameter configurations under budget constraints is a novel practical contribution. The related work (concurrent publications on long-document retrieval) confirms this is an active area, but the paper's specific focus on scaling laws and allocation modeling appears novel and complementary to prior work."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a practically important problem—how to optimally allocate inference compute in long-context RAG systems. The discovery of near-linear scaling laws provides actionable insights for practitioners. The computation allocation model enabling hyperparameter prediction without exhaustive search has practical value. The 58.9% performance gains mentioned in the abstract, though achieved on sampled datasets, demonstrate material improvements. For long-context LLM research and RAG deployment, understanding scaling properties and optimal compute allocation is significant. However, significance is somewhat limited by dependence on a single model family and the modest gains at extreme scales."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is comprehensive: four multi-hop QA datasets, extensive hyperparameter grids (k ∈ {0,1,2,5,10,20,50,100,200,500,1000}, m ranging 2^0 to 2^8, n up to 5), multiple metrics (EM, F1, Accuracy), and comparison to reasonable baselines (zero-shot, many-shot, standard RAG). Ablation studies validate model design choices. Domain generalization (leave-one-out) and length extrapolation experiments (Table 3-4) provide additional validation. The main limitation is using only 1.2k samples per dataset for computational efficiency, which is acknowledged but could introduce sampling bias. Retrieval analysis (Appendix B) is thorough but reveals unresolved issues with noise in long document sets."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with well-motivated problem statements (Section 1), clear methodology descriptions (Section 3), and comprehensive results presentation. Figures effectively visualize scaling trends (Figures 1, 4) and parameter effects (Figure 5). Mathematical notation is consistent and well-defined. The appendix is extensive with supplementary results and error analysis. Some technical details (e.g., exact definition of informativeness terms in Equation 2) could be clearer in the main text, but overall presentation meets top-tier standards. Tables and figures are informative and properly contextualized."
+              }
+            },
+            "summary_comment": "This paper makes a solid empirical contribution to understanding inference scaling in long-context RAG systems. The main strengths are: (1) systematic investigation of RAG scaling through two complementary strategies (DRAG and IterDRAG) with comprehensive experimental validation; (2) discovery of near-linear scaling laws for RAG performance with effective context length under optimal parameter allocation; (3) a practical computation allocation model that predicts optimal configurations across domains with 96.6% oracle alignment; and (4) clear practical value for allocating inference budgets in long-context LLM systems. The weaknesses are: (1) limited methodological novelty—the core techniques apply existing capabilities rather than introducing fundamentally new approaches; (2) strong dependence on a single proprietary model (Gemini 1.5 Flash) with limited validation on other architectures; (3) unresolved retrieval quality issues (NDCG/MRR plateau despite recall improvements) that limit practical applicability; (4) evaluation on sampled datasets (1.2k examples) which may introduce bias; and (5) marginal gains beyond 1M tokens of context. The paper provides valuable empirical insights and a useful predictive model, making it a solid contribution to the RAG/long-context LLM literature. The work is technically sound, appropriately evaluated, and addresses a practically important problem, though with somewhat incremental methodological innovation. For a top-tier venue, this represents good empirical work with practical utility, meriting acceptance despite limitations in novelty and generalization."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Comprehensive empirical investigation of inference scaling in long-context RAG: The paper systematically explores how RAG performance scales with inference computation across multiple strategies (DRAG and IterDRAG), providing thorough experimental evidence on four multi-hop QA datasets with extensive hyperparameter search. The work goes beyond simply increasing document count by investigating flexible combinations of inference parameters.",
+              "Discovery of near-linear inference scaling laws for RAG: The paper identifies and demonstrates an approximately linear relationship between RAG performance and effective context length when parameters are optimally allocated. This observation is significant and generalizable across datasets, providing practical insights for practitioners about expected performance gains from increased compute budgets.",
+              "Practical computation allocation model with strong generalization: The proposed quantitative model (Equation 2) effectively predicts optimal inference configurations and generalizes well across domains (96.6% of oracle performance in leave-one-out evaluation). The model enables practitioners to select hyperparameters under budget constraints without extensive enumeration, with ablation studies validating design choices (R² improves from 0.876 to 0.903 with sigmoidal scaling).",
+              "Well-designed methodologies addressing real challenges: IterDRAG meaningfully addresses the compositionality gap through query decomposition and interleaved retrieval, showing substantial improvements over baselines. The use of Self-Ask constrained decoding to generate training examples is practical. Importantly, IterDRAG achieves 30.5% average improvement in NDCG and 39.9% in MRR (Table 5) compared to DRAG, demonstrating it effectively mitigates the retrieval quality plateau issue."
+            ],
+            "weaknesses": [
+              "Limited novelty in core techniques: DRAG essentially applies standard in-context learning with more demonstrations and documents to long-context LLMs. IterDRAG builds on Self-Ask (Press et al., 2023) and active RAG (Jiang et al., 2023). The primary contribution is empirical scaling analysis rather than methodological innovation.",
+              "Limited cross-model validation: Experiments are primarily on Gemini 1.5 Flash with minimal alternative model testing. While Appendix D provides GTR XXL results, it evaluates on only 100 MuSiQue examples rather than full datasets. Generalization of scaling laws to other long-context models remains unvalidated.",
+              "Evaluation uses sampled datasets: Experiments employ 1.2k examples per dataset due to computational constraints. While the authors argue consistency across datasets mitigates sampling bias, and domain generalization achieves 96.6% oracle alignment, the sampling approach could systematically miss harder examples or create unrecognized biases.",
+              "Computation allocation model lacks theoretical grounding: The inverse sigmoid parametrization (Equation 2) is empirically motivated but lacks theoretical justification. While Table 2 shows ablation results, no comparison to alternative functional forms (power-law, exponential) is provided. The informativeness terms (i_doc, i_shot) are defined post-hoc based on marginal gains."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited novelty in core techniques: DRAG essentially applies standard in-context learning with more demonstrations and documents to long-context LLMs. IterDRAG builds on Self-Ask (Press et al., 2023) and active RAG (Jiang et al., 2023). The primary contribution is empirical scaling analysis rather than methodological innovation.",
+                "severity": "minor",
+                "evidence": "Section 3.2-3.3 describe DRAG following existing prompt templates (Agarwal et al., 2024) and IterDRAG using constrained decoding with Self-Ask (Press et al., 2023). Related work acknowledges concurrent work on long-document retrieval (Jiang et al., 2024; Shao et al., 2024). The authors' rebuttal acknowledges this: 'DRAG and IterDRAG are not fundamentally new techniques in isolation' but argues the primary contribution is 'systematic empirical characterization...the discovery of near-linear inference scaling laws for RAG.'",
+                "affected_claim": "This is primarily an issue of framing rather than technical correctness. The work makes valuable empirical contributions even if techniques are not novel individually.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited cross-model validation: Experiments are primarily on Gemini 1.5 Flash with minimal alternative model testing. While Appendix D provides GTR XXL results, it evaluates on only 100 MuSiQue examples rather than full datasets. Generalization of scaling laws to other long-context models remains unvalidated.",
+                "severity": "minor",
+                "evidence": "Main experiments use Gemini 1.5 Flash exclusively. Appendix D (Figure 10) shows GTR XXL results on 100 MuSiQue examples with note 'for computational efficiency.' The rebuttal states: 'Full replication on other large-context models...would strengthen generalization claims. We note this as a limitation for future work—the paper's insights about scaling laws should transfer to other models, though the absolute performance levels may differ.' This acknowledges but does not resolve the limitation within the submitted work.",
+                "affected_claim": "Scaling laws generalize across model families and architectures",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Evaluation uses sampled datasets: Experiments employ 1.2k examples per dataset due to computational constraints. While consistency across datasets and domain generalization provide some evidence against sampling bias, the sampling approach could systematically miss harder examples or edge cases.",
+                "severity": "minor",
+                "evidence": "Section 4.1 explicitly states: 'we sample 1.2k examples from each dataset for evaluation.' The rebuttal argues: 'we observe consistent patterns across all four datasets despite this sampling' and 'domain generalization...with 96.6% oracle alignment...demonstrates the findings are not artifacts of sampling bias.' However, these arguments demonstrate robustness within the sampling, not that sampling introduced no bias. No analysis of sampling representativeness (e.g., comparing metric distributions or sampling strategy details) is provided in the paper.",
+                "affected_claim": "Results on benchmark datasets are fully representative and unbiased",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Computation allocation model lacks theoretical grounding: The inverse sigmoid parametrization (Equation 2) is empirically motivated but lacks theoretical justification. The informativeness terms are defined post-hoc based on marginal gains.",
+                "severity": "minor",
+                "evidence": "Section 5.1 motivates the choice as 'to account for the sub-linearity in extremely long contexts' but provides no principled justification for why this specific functional form. Table 2 ablation compares to linear and quadratic forms but not to other non-linear functions (power-law, exponential). The rebuttal states: 'We chose this form because: (1) performance follows log-linear behavior for moderate lengths but saturates beyond 1M tokens...' This post-hoc explanation, while reasonable, does not constitute theoretical grounding. The informativeness definition is acknowledged as task-specific by design, which the authors argue enables generalization (96.6% oracle), so this aspect is less problematic.",
+                "affected_claim": "The computation allocation model is theoretically justified and its functional form is optimal",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical approach remains sound after rebuttal examination. The effective context length metric, optimal parameter search formulation (Equation 1), and computation allocation model are mathematically coherent. The rebuttal clarifies that NDCG/MRR plateauing is not a flaw but rather evidence that IterDRAG's query decomposition mitigates noise through simpler sub-queries, with empirical validation (Table 5 shows 30.5% NDCG improvement and 39.9% MRR improvement). While evaluation uses sampled datasets, the authors demonstrate consistency across datasets and strong domain generalization (96.6% oracle alignment), which provides evidence against systematic bias. The main limitation—single-model focus and limited cross-model validation—does not undermine the soundness of the reported results, only their generalizability."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "Novelty is established through the empirical characterization rather than individual techniques. The rebuttal clarifies this framing: the paper's primary contributions are (1) systematic discovery of near-linear scaling laws for RAG when parameters are optimally allocated, (2) the computation allocation model for predicting optimal configurations across domains, and (3) demonstrating that combined strategies substantially outperform simple document scaling. While DRAG and IterDRAG individually build on existing work (in-context learning, Self-Ask, iterative retrieval), their systematic combination and the resulting scaling insights appear novel. The domain generalization results (96.6% oracle) and near-universal applicability of the allocation model across datasets strengthen the novelty claim for the overall contribution."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a practically important problem with clear significance for long-context RAG deployment. The discovery of near-linear scaling laws provides actionable guidance for practitioners allocating compute budgets. The computation allocation model enables hyperparameter selection without exhaustive search, which has practical value. However, significance is somewhat limited by: (1) marginal gains beyond 1M tokens (6.2% relative gain on HotpotQA from 1M to 5M), suggesting practical scaling limits; (2) focus on a single model family reducing immediate applicability; and (3) dependence on QA tasks. Despite these limitations, the systematic scaling analysis and predictive model represent meaningful contributions for the RAG and long-context LLM community."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is comprehensive with extensive hyperparameter grids, multiple datasets, and multiple metrics. Ablation studies validate design choices. Domain generalization and length extrapolation experiments provide additional evidence. The main limitation—1.2k sampling per dataset—is acknowledged by the authors. However, the consistency of patterns across datasets and the strong domain generalization results (96.6% oracle alignment leaving out one domain) provide evidence that sampling did not substantially bias results. The rebuttal's explanation that GTR XXL retriever validation still shows the same scaling pattern (Appendix D, Figure 10) with 'consistent patterns...across this alternative configuration' strengthens confidence. Retrieval analysis (Appendix B) is thorough, and the rebuttal demonstrates that IterDRAG addresses the NDCG/MRR plateau issue through query decomposition."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with well-motivated problem statements, clear methodology, and comprehensive results. Figures effectively visualize scaling trends. Mathematical notation is consistent. The extensive appendix provides supplementary results. The rebuttal acknowledges framing could better emphasize empirical contributions rather than claiming methodological novelty, which is a minor clarity issue rather than a presentation failure. Overall presentation meets top-tier standards."
+              }
+            },
+            "summary_comment": "After examining the author rebuttal, the paper maintains its acceptance recommendation. The rebuttal effectively clarifies several concerns: (1) acknowledges limited methodological novelty but correctly identifies the primary contribution as empirical characterization of scaling laws and the computation allocation model; (2) addresses the retrieval quality plateau concern by showing IterDRAG achieves 30.5% NDCG improvement and 39.9% MRR improvement (Table 5), demonstrating the approach mitigates the identified issue; (3) defends the 1.2k sampling strategy by noting consistent patterns across datasets and strong domain generalization (96.6% oracle), though acknowledges this as a limitation for future work with full datasets; (4) explains the inverse sigmoid model choice empirically, though theoretical grounding remains limited. The rebuttal does not resolve concerns about single-model focus (GTR XXL validation limited to 100 examples) or marginal gains beyond 1M tokens, but these are framed as acknowledged limitations rather than flaws. The paper makes solid empirical contributions to understanding inference scaling in long-context RAG through systematic investigation, practical modeling, and strong cross-dataset validation. While not methodologically novel, the work provides genuine value for practitioners and the research community. The near-linear scaling laws discovery and computation allocation model represent meaningful insights that advance understanding of how to effectively allocate inference compute in RAG systems."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited methodological novelty: DRAG and IterDRAG are relatively straightforward applications of existing techniques\",\n        \"Strong dependence on a single proprietary model (Gemini 1.5 Flash) with limited cross-model validation\",\n        \"Retrieval quality issues not fully addressed: NDCG/MRR plateau early while recall improves, indicating noise\",\n        \"Evaluation uses only 1.2k sampled examples per dataset, potentially introducing bias\",\n        \"Computation allocation model lacks theoretical justification for its functional form\",\n        \"Marginal performance gains beyond 1M tokens limit practical value at extreme scales\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"DRAG builds on existing in-context learning and RAG techniques\",\n          \"location\": \"Section 3.2, Related Work (Section 2.2-2.3)\",\n          \"explanation\": \"The paper explicitly acknowledges that DRAG follows existing prompt templates from Agarwal et al. (2024) and incorporates standard in-context learning principles. The contribution is applying these to long-context LLMs rather than introducing new techniques.\"\n        },\n        {\n          \"concern\": \"IterDRAG uses Self-Ask and iterative retrieval from prior work\",\n          \"location\": \"Section 3.3, Related Work section\",\n          \"explanation\": \"The paper uses Self-Ask constrained decoding (Press et al., 2023) and interleaved retrieval similar to Trivedi et al. (2023) and Jiang et al. (2023). The paper acknowledges concurrent work on long-document retrieval (Jiang et al., 2024; Shao et al., 2024).\"\n        },\n        {\n          \"concern\": \"Experiments primarily on Gemini 1.5 Flash with limited cross-model validation\",\n          \"location\": \"Section 4.1, Appendix D\",\n          \"explanation\": \"Main experiments use Gemini 1.5 Flash exclusively. Appendix D includes GTR XXL retriever results only on 100 MuSiQue examples, not on the main model variations or architectural families.\"\n        },\n        {\n          \"concern\": \"Retrieval quality issues: NDCG and MRR plateau while recall improves\",\n          \"location\": \"Appendix B (Retrieval Quality), Section A (Discussion)\",\n          \"explanation\": \"Figure 7 and Table 5 show NDCG plateauing at ~0.3-0.5 while recall reaches 0.6-0.9 with 1k documents. The discussion acknowledges 'higher recall doesn't necessarily translate into better final answer quality when retrieved documents aren't effectively ranked or filtered' but proposes no concrete solution.\"\n        },\n        {\n          \"concern\": \"Dataset sampling at 1.2k examples per dataset\",\n          \"location\": \"Section 4.1\",\n          \"explanation\": \"The paper explicitly states: 'To manage the computational costs of extensive experiments, we follow Wu et al. (2024); Gutiérrez et al. (2024) and sample 1.2k examples from each dataset for evaluation.'\"\n        },\n        {\n          \"concern\": \"Computation allocation model functional form not theoretically justified\",\n          \"location\": \"Section 5.1, Equation 2\",\n          \"explanation\": \"The choice of inverse sigmoid applied to log-linear parameters is motivated by 'accounting for sub-linearity in extremely long contexts' but no theoretical justification or comparison to alternative functional forms (e.g., power-law) is provided.\"\n        },\n        {\n          \"concern\": \"Marginal gains beyond 1M tokens\",\n          \"location\": \"Section 4.3, Table 1\",\n          \"explanation\": \"Table 1 shows IterDRAG improvements from 1M to 5M are minimal (e.g., HotpotQA EM: 48.7% → 51.7%, a 6.2% relative gain). Section 4.3 states 'gains are smaller beyond 1M tokens' and Table 4 shows 5.6% average prediction error at 5M.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Limited novelty in core techniques\",\n          \"proposed_change\": \"Emphasize the paper's primary contribution as the empirical characterization of scaling laws and the computation allocation model rather than claiming methodological novelty. Reframe abstract and introduction to highlight: (1) the discovery of near-linear scaling relationships, (2) the practical predictive model, and (3) systematic comparison across scaling strategies. Consider adding a discussion of how scaling insights extend beyond current techniques.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Dependence on single proprietary model\",\n          \"proposed_change\": \"While full replication on multiple proprietary models may not be feasible, expand validation with open-source models: (1) Run full experiments with LLaMA 2, Mistral, or other open models to demonstrate generalization; (2) Include these results as main findings, not relegated to appendix; (3) Discuss how scaling laws may vary across model families; (4) Provide results on the standard full datasets rather than 100-example samples.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Retrieval quality plateau not addressed\",\n          \"proposed_change\": \"Expand investigation of why NDCG/MRR plateau while recall improves: (1) Analyze the relationship between document ranking quality and downstream QA performance; (2) Investigate whether re-ranking methods (mentioned in Section A) mitigate this issue—provide empirical results; (3) Quantify the performance loss attributable to noise vs. useful information; (4) If not addressed in current submission, discuss as a concrete limitation and suggest solutions for future work.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Evaluation on sampled datasets introduces potential bias\",\n          \"proposed_change\": \"If computationally feasible, provide results on full datasets in addition to sampled results. If not feasible: (1) Analyze whether the 1.2k sample is representative by comparing metric distributions to full datasets; (2) Report confidence intervals or error bars across multiple samples; (3) Clarify the sampling strategy (random vs. stratified) and discuss potential sources of bias.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Computation allocation model lacks theoretical justification\",\n          \"proposed_change\": \"Strengthen the model's theoretical grounding: (1) Provide motivation for why the inverse sigmoid parametrization is chosen—compare to alternative functional forms (power-law, exponential, polynomial); (2) Include ablation comparing different parametrizations in Table 2 or a new table; (3) Discuss the informativeness terms (i_doc, i_shot) more formally—why is post-hoc definition sufficient? Could a task-agnostic definition improve generalization?\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Marginal gains beyond 1M tokens and unclear practical guidance\",\n          \"proposed_change\": \"Provide clearer practical guidance: (1) In Section 4.3 or new subsection, explicitly recommend optimal budget allocation strategies (e.g., 'beyond 1M tokens, gains diminish; for budgets > 5M, consider alternative approaches'); (2) Analyze the cost-benefit tradeoff explicitly (performance gains vs. inference cost); (3) Discuss when practitioners should stop scaling vs. invest in retrieval quality improvements.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We thank Reviewer 1 for the comprehensive and constructive feedback. We address each concern systematically:\\n\\n**On methodological novelty:** We acknowledge that DRAG and IterDRAG are not fundamentally new techniques in isolation—they apply well-established principles (in-context learning, iterative retrieval, query decomposition) to long-context settings. However, the paper's primary contribution is not methodological innovation but rather the systematic empirical characterization of how these strategies scale together. The key novel insights are: (1) the discovery of near-linear inference scaling laws for RAG when parameters are optimally allocated, (2) the computation allocation model that predicts optimal configurations across domains, and (3) the demonstration that IterDRAG substantially outperforms simple scaling of documents alone. We recognize the reviewer's point and believe the paper's framing could better emphasize these empirical contributions.\\n\\n**On single-model dependence:** This is a valid concern. While we used Gemini 1.5 Flash as our primary model due to its exceptional long-context capabilities, we have included additional validation:\\n- Appendix D (Figure 10) presents results with an alternative retriever (GTR XXL) on MuSiQue\\n- The pattern of consistent improvements with DRAG/IterDRAG vs. baseline RAG holds across this alternative configuration\\n\\nWe acknowledge the evaluation with GTR XXL is limited in scope (100 examples). Full replication on other large-context models (e.g., Llama 2 with position interpolation, or open alternatives) would strengthen generalization claims. We note this as a limitation for future work—the paper's insights about scaling laws should transfer to other models, though the absolute performance levels may differ.\\n\\n**On retrieval quality (NDCG/MRR plateau):** This is an important observation we actively investigated. The divergence between recall and ranking metrics reflects a real phenomenon: while retrieving more documents increases the chance of including relevant information (recall), the ranking quality plateaus, introducing noise. Our findings show that:\\n- DRAG performance peaks around 100-500 documents (Figure 5b), aligning with NDCG/MRR saturation, then plateaus or declines\\n- IterDRAG mitigates this by using simpler sub-queries that retrieve more focused results—Table 5 shows IterDRAG achieves 30.5% average improvement in NDCG and 39.9% in MRR\\n\\nThis is not a flaw but rather evidence that IterDRAG's query decomposition strategy is effective at managing noise. The paper already provides this analysis in Appendix B and Section A. Future work on re-ranking (acknowledged in Section A) could further improve this, but the current strategies already substantially address the issue for complex queries.\\n\\n**On 1.2k dataset sampling:** We followed the practice of Wu et al. (2024) and Gutiérrez et al. (2024) to manage computational costs when conducting extensive hyperparameter searches (k ∈ {0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000}, m ∈ {2^0, ..., 2^8}, n up to 5) across four datasets. This represents 1,200 parameter configurations per dataset. Critically, we observe consistent patterns across all four datasets despite this sampling, suggesting robustness. The scaling laws (Figure 4, Figure 11) show nearly identical trends across datasets, which would not be expected if sampling introduced substantial bias. Additionally, our model generalizes to unseen domains with 96.6% oracle alignment (Table 3), demonstrating the findings are not artifacts of sampling bias.\\n\\n**On computation allocation model theoretical justification:** The inverse sigmoid parametrization in Equation 2 was chosen empirically to capture the sub-linearity observed at extreme context lengths (>1M). We chose this form because: (1) performance follows log-linear behavior for moderate lengths but saturates beyond 1M tokens, (2) sigmoid-like saturation curves are theoretically motivated for resource-limited systems, and (3) Table 2's ablation shows this choice significantly improves fit (R² = 0.903 vs. 0.876 with linear σ). While we could have tested additional functional forms, the inverse sigmoid provides strong empirical performance. The informativeness terms (i_doc, i_shot) are task-specific by design—they capture how useful external knowledge is for each particular task, while the parameters (a, b, c) capture model-level scaling properties. This separation enables generalization: we estimate (a, b, c) once on multiple datasets and apply to new tasks by computing only i. Table 3 validates this approach with 96.6% oracle alignment on unseen domains.\\n\\n**On marginal gains beyond 1M tokens:** We agree that gains diminish beyond 1M effective context length (Section 4.3, Table 1). However, this observation is itself important: it quantifies where the performance plateau occurs and provides practitioners with concrete guidance. For instance, HotpotQA gains only 6.2% from 1M to 5M tokens, suggesting allocation beyond 1M may have diminishing returns. This is valuable for budget-constrained practitioners. We acknowledge this limitation and have discussed it in Section A (Long-Context Modeling); additional practical guidance could be added (e.g., recommending optimal stopping points based on task difficulty).\\n\\n**Summary:** The paper's strengths lie in its comprehensive empirical characterization of scaling laws and the practical computation allocation model, which has already proven useful for selecting hyperparameters without exhaustive search. We acknowledge that individual techniques build on prior work, and that extending validation to additional models would strengthen the findings. The insights about scaling properties and optimal parameter allocation provide genuine practical value for practitioners deploying long-context RAG systems.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Comprehensive empirical investigation of inference scaling in long-context RAG: The paper systematically explores how RAG performance scales with inference computation across multiple strategies (DRAG and IterDRAG), providing thorough experimental evidence on four multi-hop QA datasets with extensive hyperparameter search. The work goes beyond simply increasing document count by investigating flexible combinations of inference parameters.",
+              "Discovery of near-linear inference scaling laws for RAG: The paper identifies and demonstrates an approximately linear relationship between RAG performance and effective context length when parameters are optimally allocated. This observation is significant and generalizable across datasets, providing practical insights for practitioners about expected performance gains from increased compute budgets.",
+              "Practical computation allocation model with strong generalization: The proposed quantitative model (Equation 2) effectively predicts optimal inference configurations and generalizes well across domains (96.6% of oracle performance in leave-one-out evaluation). The model enables practitioners to select hyperparameters under budget constraints without extensive enumeration, with ablation studies validating design choices (R² improves from 0.876 to 0.903 with sigmoidal scaling).",
+              "Effective treatment of retrieval quality plateau through query decomposition: The paper demonstrates that IterDRAG achieves 30.5% average improvement in NDCG and 39.9% in MRR compared to DRAG (Table 5), with substantial gains on complex queries (57.1% on 2WikiMultiHopQA). This shows the iterative query decomposition approach effectively mitigates the NDCG/MRR saturation issue identified in Appendix B."
+            ],
+            "weaknesses": [
+              "Limited novelty in core techniques: DRAG applies standard in-context learning with more demonstrations to long-context RAG, while IterDRAG builds on Self-Ask (Press et al., 2023) and active RAG (Jiang et al., 2023). The primary contribution is empirical scaling analysis and modeling rather than methodological innovation.",
+              "Single-model validation without testing on other long-context architectures: Experiments rely primarily on Gemini 1.5 Flash. While Appendix D includes GTR XXL retriever results, evaluation is limited to 100 MuSiQue examples 'for computational efficiency.' Generalization of scaling laws to other long-context models (e.g., LLaMA with position interpolation, Mistral, open-source alternatives) remains unvalidated.",
+              "Evaluation on sampled datasets without systematic bias analysis: The 1.2k sampling per dataset, while pragmatic for managing computational cost, lacks analysis of sampling representativeness. No comparison of metric distributions between samples and full datasets, nor documentation of sampling strategy (random vs. stratified) is provided.",
+              "Computation allocation model functional form lacks theoretical justification: The inverse sigmoid parametrization (Equation 2) is empirically motivated but not theoretically grounded. Table 2 ablation compares only to linear and quadratic forms, not alternative non-linear functions (power-law, exponential). While the authors explain the empirical fit, principled justification for why this specific form is appropriate remains absent."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited novelty in core techniques: DRAG applies standard in-context learning with more demonstrations to long-context RAG, while IterDRAG builds on Self-Ask (Press et al., 2023) and active RAG (Jiang et al., 2023). The primary contribution is empirical scaling analysis and modeling rather than methodological innovation.",
+                "severity": "minor",
+                "evidence": "Section 3.2-3.3 describe DRAG following existing prompt templates (Agarwal et al., 2024) and IterDRAG using constrained decoding with Self-Ask (Press et al., 2023). Related work acknowledges concurrent work on long-document retrieval (Jiang et al., 2024; Shao et al., 2024). The rebuttal clarifies: 'The paper's primary contributions are indeed the empirical insights rather than novel techniques in isolation.' The paper correctly frames itself as providing empirical characterization rather than methodological novelty.",
+                "affected_claim": "This is fundamentally an issue of framing. The empirical contributions (scaling laws, allocation model) are valuable even if individual techniques are not novel.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Single-model validation without testing on other long-context architectures: Experiments rely primarily on Gemini 1.5 Flash. While Appendix D includes GTR XXL retriever results, evaluation is limited to 100 MuSiQue examples 'for computational efficiency.' Generalization of scaling laws to other long-context models (e.g., LLaMA with position interpolation, Mistral, open-source alternatives) remains unvalidated.",
+                "severity": "minor",
+                "evidence": "Main experiments use Gemini 1.5 Flash exclusively. Appendix D Figure 10 shows GTR XXL validation on only 100 MuSiQue examples, not full datasets or alternative long-context models. The rebuttal acknowledges: 'full validation on other long-context LLMs (LLaMA 2 with position interpolation, Mistral, etc.) would be valuable and recommend this as future work.' This limitation is explicitly acknowledged by the authors as a constraint rather than oversight.",
+                "affected_claim": "Scaling laws generalize universally across long-context model families and architectures",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Evaluation on sampled datasets without systematic bias analysis: The 1.2k sampling per dataset, while pragmatic for managing computational cost, lacks analysis of sampling representativeness. No comparison of metric distributions between samples and full datasets, nor documentation of sampling strategy (random vs. stratified) is provided.",
+                "severity": "minor",
+                "evidence": "Section 4.1 states: 'we sample 1.2k examples from each dataset for evaluation.' The rebuttal provides evidence against systematic bias: consistent patterns across datasets, 96.6% oracle alignment in domain generalization, and retrieval metrics replicating across samples. However, no explicit analysis of whether the 1.2k sample captures full dataset difficulty distributions is presented. The rebuttal acknowledges: 'we acknowledge that full-dataset evaluation would be preferable. If space permits in a revised version, we could provide: (1) sampling strategy details...or (3) analysis of whether the 1.2k sample is representative of full dataset difficulty distributions.'",
+                "affected_claim": "Results on benchmark datasets are fully representative of performance on complete datasets",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Computation allocation model functional form lacks theoretical justification: The inverse sigmoid parametrization (Equation 2) is empirically motivated but not theoretically grounded. Table 2 ablation compares only to linear and quadratic forms, not alternative non-linear functions (power-law, exponential). While the authors explain the empirical fit, principled justification for why this specific form is appropriate remains absent.",
+                "severity": "minor",
+                "evidence": "Section 5.1 motivates the choice as 'accounting for sub-linearity in extremely long contexts.' Table 2 shows ablation comparing linear, quadratic, and sigmoid scaling but not power-law or exponential forms. The rebuttal explains: 'The log-linear relationship between performance and parameters...makes intuitive sense—doubling documents provides smaller gains than the first document (diminishing returns), captured by log(k).' This post-hoc explanation is reasonable but does not constitute a priori theoretical grounding. The authors acknowledge the model is 'empirically motivated rather than theoretically derived.'",
+                "affected_claim": "The computation allocation model is theoretically optimal for RAG performance prediction",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical approach is sound. The effective context length metric is well-defined, the optimal parameter search formulation (Equation 1) is rigorous, and the computation allocation model is mathematically coherent. The rebuttal clarifies that the NDCG/MRR plateau observed in Appendix B is not a limitation but rather an expected phenomenon that IterDRAG effectively addresses through query decomposition, with empirical validation showing 30.5% NDCG improvement and 39.9% MRR improvement (Table 5). Experimental setup follows standard practices with multiple metrics and baseline comparisons. While evaluation uses sampled datasets and focuses on a single primary model, the consistency of patterns across datasets and strong domain generalization (96.6% oracle) provide evidence against systematic issues."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "Novelty is established through empirical characterization rather than individual techniques. The rebuttal clarifies this framing: primary contributions are (1) systematic discovery of near-linear scaling laws for RAG when parameters are optimally allocated, (2) the computation allocation model enabling prediction across domains, and (3) demonstrating combined strategies substantially outperform simple scaling. While DRAG and IterDRAG individually build on existing work, their systematic combination and the resulting scaling insights are novel. The leave-one-out domain generalization achieving 96.6% oracle alignment across diverse QA tasks demonstrates the findings capture generalizable principles beyond task-specific artifacts."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a practically important problem with clear significance for long-context RAG deployment. The discovery of near-linear scaling laws provides actionable guidance for practitioners allocating inference budgets. The computation allocation model enables hyperparameter selection without exhaustive search. However, significance is somewhat limited by: (1) marginal gains beyond 1M tokens (e.g., 6.2% relative improvement on HotpotQA from 1M to 5M tokens in Table 1), suggesting practical scaling limits; (2) focus primarily on one model family reducing immediate broad applicability; (3) evaluation limited to QA tasks. Despite these constraints, systematic scaling analysis and the predictive model represent meaningful contributions for the RAG and long-context LLM communities."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is comprehensive with extensive hyperparameter grids (1,200+ configurations per dataset), four datasets with multiple metrics, and ablation studies. Domain generalization (leave-one-out achieving 96.6% oracle) and length extrapolation experiments provide additional validation. The 1.2k sampling per dataset is a practical constraint acknowledged by the authors and mitigated by: (1) consistent scaling patterns across all four datasets despite sampling, (2) strong generalization results indicating sampling did not introduce systematic bias, (3) retrieval analysis (Table 5) showing IterDRAG effectively addresses the NDCG/MRR plateau through query decomposition. While not ideal, the sampling is defensible given computational constraints, and the convergent findings across datasets support result validity."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with well-motivated problem statements, clear methodology, and comprehensive results. Figures effectively visualize scaling trends (Figures 1, 4, 11). Mathematical notation is consistent and well-defined. The extensive appendix provides thorough supplementary results. The rebuttal identifies a reasonable opportunity to better frame contributions around empirical characterization rather than methodological novelty, but this is a framing issue rather than a presentation failure. Overall presentation meets top-tier conference standards."
+              }
+            },
+            "summary_comment": "After reviewing the author rebuttal, the paper merits acceptance. The rebuttal effectively clarifies the nature of the contributions and substantively addresses several concerns: (1) confirms that limited methodological novelty is not a flaw given the primary focus on empirical characterization of scaling laws and practical allocation modeling; (2) demonstrates that the NDCG/MRR plateau concern is addressed through IterDRAG's query decomposition approach, with concrete improvements validated in Table 5; (3) explains why the 1.2k sampling, while not ideal, likely did not introduce systematic bias, supported by consistent patterns across datasets and 96.6% oracle alignment in domain generalization; (4) acknowledges but does not substantially resolve the single-model focus and lack of theoretical grounding for the allocation model's functional form. These remaining limitations are appropriately characterized as minor and do not undermine the paper's core contributions. The work makes solid empirical contributions to understanding inference scaling in long-context RAG through: (1) systematic discovery of near-linear scaling laws when parameters are optimally allocated; (2) a practical computation allocation model that generalizes across domains; and (3) comprehensive evaluation demonstrating combined strategies substantially outperform simple scaling. While the techniques are not individually novel, the empirical insights and predictive model provide genuine value for practitioners and researchers in the RAG and long-context LLM communities. The paper represents good quality empirical work appropriate for a top-tier venue."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited novelty in core techniques (DRAG and IterDRAG build on existing methods)\",\n        \"Limited cross-model validation (primarily Gemini 1.5 Flash, minimal alternative testing)\",\n        \"Evaluation uses sampled datasets (1.2k examples per dataset)\",\n        \"Computation allocation model lacks theoretical grounding for its functional form\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"DRAG applies existing in-context learning and RAG techniques to long-context settings\",\n          \"location\": \"Section 3.2, Related Work (Section 2.2-2.3)\",\n          \"explanation\": \"Paper acknowledges DRAG follows existing prompt templates from Agarwal et al. (2024) and incorporates standard in-context learning. IterDRAG uses Self-Ask constrained decoding (Press et al., 2023) and interleaved retrieval similar to Trivedi et al. (2023) and Jiang et al. (2023).\"\n        },\n        {\n          \"concern\": \"Experiments primarily on Gemini 1.5 Flash with limited alternative model validation\",\n          \"location\": \"Section 4.1, Appendix D (Figure 10)\",\n          \"explanation\": \"Main experiments use Gemini 1.5 Flash. Alternative retriever validation (GTR XXL) appears in Appendix D but evaluated on only 100 MuSiQue examples 'for computational efficiency,' not full datasets or alternative long-context models.\"\n        },\n        {\n          \"concern\": \"Dataset evaluation uses 1.2k sampled examples per dataset\",\n          \"location\": \"Section 4.1\",\n          \"explanation\": \"Paper states: 'To manage the computational costs of extensive experiments, we follow Wu et al. (2024); Gutiérrez et al. (2024) and sample 1.2k examples from each dataset for evaluation.'\"\n        },\n        {\n          \"concern\": \"Inverse sigmoid parametrization lacks explicit theoretical justification\",\n          \"location\": \"Section 5.1, Equation 2, Table 2\",\n          \"explanation\": \"Model choice is motivated by 'accounting for sub-linearity in extremely long contexts,' but Table 2 ablation only compares to linear and quadratic forms, not alternative non-linear parametrizations (power-law, exponential). Informativeness terms are defined post-hoc based on marginal gains.\"\n        },\n        {\n          \"concern\": \"IterDRAG effectively addresses retrieval quality plateau through query decomposition\",\n          \"location\": \"Appendix B (Table 5), Section A (Discussion)\",\n          \"explanation\": \"Table 5 shows IterDRAG achieves 30.5% average improvement in NDCG and 39.9% in MRR compared to DRAG, with higher gains on complex queries (e.g., 57.1% on 2WikiMultiHopQA). This demonstrates the iterative approach mitigates the NDCG/MRR plateau issue by using simpler sub-queries.\"\n        },\n        {\n          \"concern\": \"Domain generalization validation of computation allocation model\",\n          \"location\": \"Section 5.2, Table 3\",\n          \"explanation\": \"Leave-one-out domain generalization achieves 96.6% of oracle performance, indicating the model generalizes well across unseen domains despite task-specific informativeness terms.\"\n        },\n        {\n          \"concern\": \"Scaling laws consistent across datasets despite sampling\",\n          \"location\": \"Figure 4, Figure 11, Section 4.3\",\n          \"explanation\": \"Nearly identical scaling trends observed across all four datasets (Bamboogle, HotpotQA, MuSiQue, 2WikiMultiHopQA), with consistent near-linear relationship between performance and effective context length, suggesting sampling did not introduce substantial systematic bias.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Framing could better emphasize empirical contributions rather than claiming methodological novelty\",\n          \"proposed_change\": \"In Abstract and Introduction, reframe primary contributions as: (1) systematic empirical characterization of RAG scaling properties, (2) discovery of near-linear scaling laws when parameters are optimally allocated, (3) practical computation allocation model for budget-constrained scenarios. This better reflects the paper's actual contributions and addresses reviewer concerns about novelty framing.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Limited theoretical justification for computation allocation model functional form\",\n          \"proposed_change\": \"Expand Section 5.1 discussion to better explain model design choices: (1) explicitly state that inverse sigmoid was chosen empirically to fit observed saturation at extreme lengths (>1M tokens), and that performance follows log-linear behavior for moderate lengths; (2) add to Table 2 ablation a comparison to power-law and exponential functional forms to demonstrate inverse sigmoid's superiority is data-driven rather than arbitrary; (3) clarify why log-linear parameter dependence is appropriate (e.g., doubling document count has diminishing returns).\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Single-model focus limits generalization of scaling law insights\",\n          \"proposed_change\": \"While full replication on additional proprietary models may not be feasible, provide validation on open-source models: (1) Conduct experiments with LLaMA 2 (with position interpolation or other context extension methods) and Mistral to test if scaling laws transfer; (2) Include these results in main paper or prominent appendix position rather than relegated to brief mention; (3) Discuss how scaling law slopes or saturation points may vary across model families while maintaining the core insight about near-linear scaling with optimal allocation.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We thank Reviewer 1 for the thorough and balanced assessment. The rebuttal has effectively clarified the paper's contributions and addressed several substantive concerns. We provide additional perspective on the remaining issues:\\n\\n**On Limited Novelty in Core Techniques:**\\n\\nThe reviewer's assessment is fair and aligns with our own characterization. We appreciate the acknowledgment that this is 'primarily an issue of framing rather than technical correctness.' The paper's primary contributions are indeed the empirical insights rather than novel techniques in isolation. We can strengthen this by reframing the abstract and introduction to emphasize: (1) the systematic discovery of near-linear scaling laws for RAG, (2) the practical computation allocation model, and (3) the demonstration that combined strategies substantially outperform simple document scaling. The novelty lies in the *characterization* of scaling properties and the *predictive model*, not in the individual techniques.\\n\\n**On Limited Cross-Model Validation:**\\n\\nWe acknowledge this is the most substantive remaining limitation. The paper's focus on Gemini 1.5 Flash reflects both its exceptional long-context capabilities (up to 1M tokens) and our computational constraints. However, we recognize that validation on additional long-context models would significantly strengthen generalizability claims. \\n\\nTo address this concern within the current submission, we note that:\\n- Figure 10 (Appendix D) demonstrates the scaling pattern holds with an alternative retriever (GTR XXL), showing 'consistent patterns...across this alternative configuration'\\n- The near-universal applicability of scaling laws across four diverse datasets (Bamboogle, HotpotQA, MuSiQue, 2WikiMultiHopQA) suggests the findings are not specific to a single task or retrieval method\\n- The computation allocation model generalizes to unseen domains with 96.6% oracle alignment, indicating the approach captures task-general principles rather than model-specific artifacts\\n\\nWe acknowledge that full validation on other long-context LLMs (LLaMA 2 with position interpolation, Mistral, etc.) would be valuable and recommend this as future work. The insights about scaling laws should transfer to other models, though absolute performance levels may differ.\\n\\n**On Evaluation Using Sampled Datasets:**\\n\\nThe reviewer correctly notes that consistency across datasets and domain generalization results provide evidence against *systematic* bias from sampling, but do not prove sampling introduced no bias. This is a fair distinction. The 1.2k sampling was necessary to conduct comprehensive hyperparameter search (1,200+ configurations per dataset with multiple random seeds). \\n\\nWe maintain that the evidence supports the robustness of our findings:\\n- Consistent scaling patterns across all four datasets despite sampling\\n- 96.6% oracle alignment in domain generalization (leave-one-out), indicating the model captures generalizable principles\\n- Retrieval quality metrics (Table 5) and error analysis patterns replicate across sampled and mentioned full-dataset results\\n\\nHowever, we acknowledge that full-dataset evaluation would be preferable. If space permits in a revised version, we could provide: (1) sampling strategy details (e.g., random vs. stratified), (2) confidence intervals across multiple samples, or (3) analysis of whether the 1.2k sample is representative of full dataset difficulty distributions.\\n\\n**On Computation Allocation Model Theoretical Grounding:**\\n\\nThe reviewer's point about theoretical justification is well-taken. The model's functional form in Equation 2 (inverse sigmoid + log-linear parameters) is empirically motivated rather than theoretically derived. To address this:\\n\\n1. **Inverse sigmoid choice:** We chose this form because it captures the observed behavior: log-linear improvement for moderate context lengths, followed by saturation beyond ~1M tokens. This is theoretically motivated for resource-constrained systems where diminishing returns eventually occur. However, we could strengthen this by comparing to power-law and exponential alternatives in Table 2's ablation.\\n\\n2. **Log-linear parameter dependence:** The log-linear relationship between performance and parameters (k, m, n) makes intuitive sense—doubling documents provides smaller gains than the first document (diminishing returns), captured by log(k). This could be made explicit.\\n\\n3. **Informativeness terms (i_doc, i_shot):** These are defined post-hoc based on marginal gains, but are intentionally task-specific. The design separates model-level scaling properties (a, b, c) from task-specific knowledge utility (i), enabling generalization to new tasks by computing only i. This principle—not the specific definition—is what enables the 96.6% oracle alignment on unseen domains.\\n\\n**Summary Response:**\\n\\nThe rebuttal and reviewer assessment confirm the paper makes solid empirical contributions despite limited methodological novelty. The key strengths—near-linear scaling law discovery, practical allocation model with strong generalization, and systematic evaluation—provide genuine value for the RAG and long-context LLM communities. The acknowledged limitations (single-model focus, sampled datasets, lack of theoretical grounding for model form) are real but do not undermine the validity of reported results or the usefulness of the practical insights. We welcome the reviewer's suggestion to better frame contributions around empirical characterization, which more accurately reflects the paper's nature and removes misleading claims about methodological novelty.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_925d27a9c038",
+    "conference": "ICLR",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/iclr_accept_2025_020_inference_scaling_for_long_context_retrieval_augmented_generation.md",
+    "target_paper_summary": {
+      "paper_id": "paper_925d27a9c038",
+      "title": "Inference Scaling For Long-Context Retrieval Augmented Generation",
+      "abstract": "The scaling of inference computation has unlocked the potential of long-context large language models (LLMs) across diverse settings. For knowledge-intensive tasks, the increased compute is often allocated to incorporate more external knowledge. However, without effectively utilizing such knowledge, solely expanding context does not always enhance performance. In this work, we investigate inference scaling for retrieval augmented generation (RAG), exploring the combination of multiple strategies beyond simply increasing the quantity of knowledge, including in-context learning and iterative prompting. These strategies provide additional flexibility to scale test-time computation (e.g., by increasing retrieved documents or generation steps), thereby enhancing LLMs' ability to effectively acquire and utilize contextual information. We address two key questions: (1) How does RAG\nperformance benefit from the *scaling of inference computation* when optimally configured? (2) Can we predict the optimal *test-time compute allocation* for a given budget by modeling the relationship between RAG performance and inference parameters? Our observations reveal that increasing inference computation leads to nearly linear gains in RAG performance when optimally allocated, a relationship we describe as the *inference scaling laws for RAG*. Building on this, we further develop the *computation allocation model* to estimate RAG performance across different inference configurations. The model predicts optimal inference parameters under various computation constraints, which align closely with the experimental results. By applying these optimal configurations, we demonstrate that scaling inference compute on long-context LLMs achieves up to 58.9% gains on benchmark datasets compared to standard RAG.",
+      "topic": "",
+      "claims": [
+        "we demonstrate that scaling inference compute on long-context LLMs achieves up to 58."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_83a182516",
+        "title": "Inference Scaling for Long-Context Retrieval Augmented Generation",
+        "authors": [
+          "Zhenrui Yue",
+          "Honglei Zhuang",
+          "Aijun Bai",
+          "Kai Hui",
+          "Rolf Jagerman",
+          "Hansi Zeng",
+          "Zhen Qin",
+          "Dong Wang",
+          "Xuanhui Wang",
+          "Michael Bendersky"
+        ],
+        "year": 2024,
+        "publication_date": "2024-10-06",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "The scaling of inference computation has unlocked the potential of long-context large language models (LLMs) across diverse settings. For knowledge-intensive tasks, the increased compute is often allocated to incorporate more external knowledge. However, without effectively utilizing such knowledge, solely expanding context does not always enhance performance. In this work, we investigate inference scaling for retrieval augmented generation (RAG), exploring the combination of multiple strategies beyond simply increasing the quantity of knowledge, including in-context learning and iterative prompting. These strategies provide additional flexibility to scale test-time computation (e.g., by increasing retrieved documents or generation steps), thereby enhancing LLMs' ability to effectively acquire and utilize contextual information. We address two key questions: (1) How does RAG performance benefit from the scaling of inference computation when optimally configured? (2) Can we predict the optimal test-time compute allocation for a given budget by modeling the relationship between RAG performance and inference parameters? Our observations reveal that increasing inference computation leads to nearly linear gains in RAG performance when optimally allocated, a relationship we describe as the inference scaling laws for RAG. Building on this, we further develop the computation allocation model to estimate RAG performance across different inference configurations. The model predicts optimal inference parameters under various computation constraints, which align closely with the experimental results. By applying these optimal configurations, we demonstrate that scaling inference compute on long-context LLMs achieves up to 58.9% gains on benchmark datasets compared to standard RAG.",
+        "url": "http://arxiv.org/abs/2410.04343",
+        "doi": "https://doi.org/10.48550/arxiv.2410.04343",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4403963848"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 3
+      },
+      {
+        "paper_id": "rw_002_acb87e3bd",
+        "title": "Retrieval-Augmented Generation for Large Language Models: A Survey",
+        "authors": [
+          "Yunfan Gao",
+          "Yun Xiong",
+          "Xinyu Gao",
+          "Kangxiang Jia",
+          "Jinliu Pan",
+          "Yuxi Bi",
+          "Yi Dai",
+          "Jiawei Sun",
+          "Wang, Meng",
+          "Wang, Haofen"
+        ],
+        "year": 2023,
+        "publication_date": "2023-12-18",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Large Language Models (LLMs) showcase impressive capabilities but encounter challenges like hallucination, outdated knowledge, and non-transparent, untraceable reasoning processes. Retrieval-Augmented Generation (RAG) has emerged as a promising solution by incorporating knowledge from external databases. This enhances the accuracy and credibility of the generation, particularly for knowledge-intensive tasks, and allows for continuous knowledge updates and integration of domain-specific information. RAG synergistically merges LLMs' intrinsic knowledge with the vast, dynamic repositories of external databases. This comprehensive review paper offers a detailed examination of the progression of RAG paradigms, encompassing the Naive RAG, the Advanced RAG, and the Modular RAG. It meticulously scrutinizes the tripartite foundation of RAG frameworks, which includes the retrieval, the generation and the augmentation techniques. The paper highlights the state-of-the-art technologies embedded in each of these critical components, providing a profound understanding of the advancements in RAG systems. Furthermore, this paper introduces up-to-date evaluation framework and benchmark. At the end, this article delineates the challenges currently faced and points out prospective avenues for research and development.",
+        "url": "http://arxiv.org/abs/2312.10997",
+        "doi": "https://doi.org/10.48550/arxiv.2312.10997",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4389984066"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 686
+      },
+      {
+        "paper_id": "rw_003_34b5ac3bb",
+        "title": "Active Retrieval Augmented Generation",
+        "authors": [
+          "Zhengbao Jiang",
+          "Frank F. Xu",
+          "Luyu Gao",
+          "Zhiqing Sun",
+          "Qian Liu",
+          "Jane Dwivedi-Yu",
+          "Yiming Yang",
+          "Jamie Callan",
+          "Graham Neubig"
+        ],
+        "year": 2023,
+        "publication_date": "2023-01-01",
+        "venue": "",
+        "abstract": "Zhengbao Jiang, Frank Xu, Luyu Gao, Zhiqing Sun, Qian Liu, Jane Dwivedi-Yu, Yiming Yang, Jamie Callan, Graham Neubig. Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing. 2023.",
+        "url": "https://doi.org/10.18653/v1/2023.emnlp-main.495",
+        "doi": "https://doi.org/10.18653/v1/2023.emnlp-main.495",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4389519118"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 385
+      },
+      {
+        "paper_id": "rw_004_d4528dbc4",
+        "title": "In-Context Retrieval-Augmented Language Models",
+        "authors": [
+          "Ori Ram",
+          "Yoav Levine",
+          "Itay Dalmedigos",
+          "Dor Muhlgay",
+          "Amnon Shashua",
+          "Kevin Leyton‐Brown",
+          "Yoav Shoham"
+        ],
+        "year": 2023,
+        "publication_date": "2023-01-01",
+        "venue": "Transactions of the Association for Computational Linguistics",
+        "abstract": "Abstract Retrieval-Augmented Language Modeling (RALM) methods, which condition a language model (LM) on relevant documents from a grounding corpus during generation, were shown to significantly improve language modeling performance. In addition, they can mitigate the problem of factually inaccurate text generation and provide natural source attribution mechanism. Existing RALM approaches focus on modifying the LM architecture in order to facilitate the incorporation of external information, significantly complicating deployment. This paper considers a simple alternative, which we dub In-Context RALM: leaving the LM architecture unchanged and prepending grounding documents to the input, without any further training of the LM. We show that In-Context RALM that builds on off-the-shelf general purpose retrievers provides surprisingly large LM gains across model sizes and diverse corpora. We also demonstrate that the document retrieval and ranking mechanism can be specialized to the RALM setting to further boost performance. We conclude that In-Context RALM has considerable potential to increase the prevalence of LM grounding, particularly in settings where a pretrained LM must be used without modification or even via API access.1",
+        "url": "https://doi.org/10.1162/tacl_a_00605",
+        "doi": "https://doi.org/10.1162/tacl_a_00605",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4388778348"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 360
+      },
+      {
+        "paper_id": "rw_005_ae9521594",
+        "title": "Data clustering",
+        "authors": [
+          "Anil K. Jain",
+          "M. Narasimha Murty",
+          "Patrick J. Flynn"
+        ],
+        "year": 1999,
+        "publication_date": "1999-09-01",
+        "venue": "ACM Computing Surveys",
+        "abstract": "Clustering is the unsupervised classification of patterns (observations, data items, or feature vectors) into groups (clusters). The clustering problem has been addressed in many contexts and by researchers in many disciplines; this reflects its broad appeal and usefulness as one of the steps in exploratory data analysis. However, clustering is a difficult problem combinatorially, and differences in assumptions and contexts in different communities has made the transfer of useful generic concepts and methodologies slow to occur. This paper presents an overview of pattern clustering methods from a statistical pattern recognition perspective, with a goal of providing useful advice and references to fundamental concepts accessible to the broad community of clustering practitioners. We present a taxonomy of clustering techniques, and identify cross-cutting themes and recent advances. We also describe some important applications of clustering algorithms such as image segmentation, object recognition, and information retrieval.",
+        "url": "https://doi.org/10.1145/331499.331504",
+        "doi": "https://doi.org/10.1145/331499.331504",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W1992419399"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 13225
+      },
+      {
+        "paper_id": "rw_006_5a18ced38",
+        "title": "Benchmarking Large Language Models in Retrieval-Augmented Generation",
+        "authors": [
+          "Jiawei Chen",
+          "Hongyu Lin",
+          "Xianpei Han",
+          "Le Sun"
+        ],
+        "year": 2024,
+        "publication_date": "2024-03-24",
+        "venue": "Proceedings of the AAAI Conference on Artificial Intelligence",
+        "abstract": "Retrieval-Augmented Generation (RAG) is a promising approach for mitigating the hallucination of large language models (LLMs). However, existing research lacks rigorous evaluation of the impact of retrieval-augmented generation on different large language models, which make it challenging to identify the potential bottlenecks in the capabilities of RAG for different LLMs. In this paper, we systematically investigate the impact of Retrieval-Augmented Generation on large language models. We analyze the performance of different large language models in 4 fundamental abilities required for RAG, including noise robustness, negative rejection, information integration, and counterfactual robustness. To this end, we establish Retrieval-Augmented Generation Benchmark (RGB), a new corpus for RAG evaluation in both English and Chinese. RGB divides the instances within the benchmark into 4 separate testbeds based on the aforementioned fundamental abilities required to resolve the case. Then we evaluate 6 representative LLMs on RGB to diagnose the challenges of current LLMs when applying RAG. Evaluation reveals that while LLMs exhibit a certain degree of noise robustness, they still struggle significantly in terms of negative rejection, information integration, and dealing with false information. The aforementioned assessment outcomes indicate that there is still a considerable journey ahead to effectively apply RAG to LLMs.",
+        "url": "https://doi.org/10.1609/aaai.v38i16.29728",
+        "doi": "https://doi.org/10.1609/aaai.v38i16.29728",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4393147129"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 338
+      },
+      {
+        "paper_id": "rw_007_76108f292",
+        "title": "Benchmarking Retrieval-Augmented Generation for Medicine",
+        "authors": [
+          "Guangzhi Xiong",
+          "Qiao Jin",
+          "Zhiyong Lu",
+          "Aidong Zhang"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-01",
+        "venue": "",
+        "abstract": "While large language models (LLMs) have achieved state-of-the-art performance on a wide range of medical question answering (QA) tasks, they still face challenges with hallucinations and outdated knowledge.Retrievalaugmented generation (RAG) is a promising solution and has been widely adopted.However, a RAG system can involve multiple flexible components, and there is a lack of best practices regarding the optimal RAG setting for various medical purposes.To systematically evaluate such systems, we propose the Medical Information Retrieval-Augmented Generation Evaluation (MIRAGE), a first-of-its-kind benchmark including 7,663 questions from five medical QA datasets.Using MIRAGE, we conducted large-scale experiments with over 1.8 trillion prompt tokens on 41 combinations of different corpora, retrievers, and backbone LLMs through the MEDRAG toolkit introduced in this work.Overall, MEDRAG improves the accuracy of six different LLMs by up to 18% over chain-of-thought prompting, elevating the performance of GPT-3.5 and Mixtral to GPT-4level.Our results show that the combination of various medical corpora and retrievers achieves the best performance.In addition, we discovered a log-linear scaling property and the \"lostin-the-middle\" effects in medical RAG.We believe our comprehensive evaluations can serve as practical guidelines for implementing RAG systems for medicine 1 .",
+        "url": "https://doi.org/10.18653/v1/2024.findings-acl.372",
+        "doi": "https://doi.org/10.18653/v1/2024.findings-acl.372",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4402670290"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 232
+      },
+      {
+        "paper_id": "rw_008_45c91d6df",
+        "title": "From image descriptions to visual denotations: New similarity metrics for semantic inference over event descriptions",
+        "authors": [
+          "Peter Young",
+          "Alice Lai",
+          "Micah Hodosh",
+          "Julia Hockenmaier"
+        ],
+        "year": 2014,
+        "publication_date": "2014-12-01",
+        "venue": "Transactions of the Association for Computational Linguistics",
+        "abstract": "We propose to use the visual denotations of linguistic expressions (i.e. the set of images they describe) to define novel denotational similarity metrics, which we show to be at least as beneficial as distributional similarities for two tasks that require semantic inference. To compute these denotational similarities, we construct a denotation graph, i.e. a subsumption hierarchy over constituents and their denotations, based on a large corpus of 30K images and 150K descriptive captions.",
+        "url": "https://doi.org/10.1162/tacl_a_00166",
+        "doi": "https://doi.org/10.1162/tacl_a_00166",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2185175083"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 2487
+      },
+      {
+        "paper_id": "rw_009_750d0f07b",
+        "title": "Generation-Augmented Retrieval for Open-Domain Question Answering",
+        "authors": [
+          "Yuning Mao",
+          "Pengcheng He",
+          "Xiaodong Liu",
+          "Yelong Shen",
+          "Jianfeng Gao",
+          "Jiawei Han",
+          "Weizhu Chen"
+        ],
+        "year": 2021,
+        "publication_date": "2021-01-01",
+        "venue": "",
+        "abstract": "Yuning Mao, Pengcheng He, Xiaodong Liu, Yelong Shen, Jianfeng Gao, Jiawei Han, Weizhu Chen. Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers). 2021.",
+        "url": "https://doi.org/10.18653/v1/2021.acl-long.316",
+        "doi": "https://doi.org/10.18653/v1/2021.acl-long.316",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3176182290"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 144
+      },
+      {
+        "paper_id": "rw_010_1fefb506e",
+        "title": "Query Rewriting in Retrieval-Augmented Large Language Models",
+        "authors": [
+          "Xinbei Ma",
+          "Yeyun Gong",
+          "Pengcheng He",
+          "Hai Zhao",
+          "Nan Duan"
+        ],
+        "year": 2023,
+        "publication_date": "2023-01-01",
+        "venue": "",
+        "abstract": "Large Language Models (LLMs) play powerful, black-box readers in the retrieve-then-read pipeline, making remarkable progress in knowledge-intensive tasks. This work introduces a new framework, Rewrite-Retrieve-Read instead of the previous retrieve-then-read for the retrieval-augmented LLMs from the perspective of the query rewriting. Unlike prior studies focusing on adapting either the retriever or the reader, our approach pays attention to the adaptation of the search query itself, for there is inevitably a gap between the input text and the needed knowledge in retrieval. We first prompt an LLM to generate the query, then use a web search engine to retrieve contexts. Furthermore, to better align the query to the frozen modules, we propose a trainable scheme for our pipeline. A small language model is adopted as a trainable rewriter to cater to the black-box LLM reader. The rewriter is trained using the feedback of the LLM reader by reinforcement learning. Evaluation is conducted on downstream tasks, open-domain QA and multiple-choice QA. Experiments results show consistent performance improvement, indicating that our framework is proven effective and scalable, and brings a new framework for retrieval-augmented LLM.",
+        "url": "https://doi.org/10.18653/v1/2023.emnlp-main.322",
+        "doi": "https://doi.org/10.18653/v1/2023.emnlp-main.322",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4389518671"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 227
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_001_83a182516",
+        "relevance_score": 1.0,
+        "relevance_types": [
+          "same_problem",
+          "same_method",
+          "benchmark_baseline",
+          "novelty_competitor"
+        ],
+        "rationale": "The paper is a direct duplicate of the target, with identical title, abstract, authors, and focus on inference scaling for RAG.",
+        "evidence_summary": "In 2024, Yue et al. published 'Inference Scaling for Long-Context Retrieval Augmented Generation,' which investigated scaling inference computation for retrieval-augmented generation by combining strategies like in-context learning and iterative prompting. They proposed inference scaling laws for RAG and a computation allocation model to optimize performance under compute constraints, demonstrating up to 58.9% gains on benchmark datasets compared to standard RAG."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_002_acb87e3bd",
+        "relevance_score": 0.88,
+        "relevance_types": [
+          "same_problem",
+          "benchmark_baseline",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The survey provides foundational background on RAG, including paradigms, technologies, and challenges, which is crucial for understanding the target's context and limitations.",
+        "evidence_summary": "In 2023, Gao et al. published 'Retrieval-Augmented Generation for Large Language Models: A Survey,' which examined the progression of RAG paradigms, including Naive, Advanced, and Modular RAG, and analyzed retrieval, generation, and augmentation techniques. The survey highlighted challenges like hallucination and outdated knowledge in LLMs, and discussed evaluation frameworks and benchmarks for RAG systems."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_006_5a18ced38",
+        "relevance_score": 0.82,
+        "relevance_types": [
+          "benchmark_baseline",
+          "limitations_counterevidence",
+          "same_method"
+        ],
+        "rationale": "The paper benchmarks LLMs in RAG, assessing fundamental abilities like noise robustness and information integration, which relates to the target's performance evaluation and constraints.",
+        "evidence_summary": "In 2024, Chen et al. published 'Benchmarking Large Language Models in Retrieval-Augmented Generation,' which introduced the Retrieval-Augmented Generation Benchmark (RGB) to evaluate LLMs in English and Chinese across four abilities: noise robustness, negative rejection, information integration, and counterfactual robustness. They found that LLMs struggle with negative rejection and information integration, indicating challenges in applying RAG effectively."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_007_76108f292",
+        "relevance_score": 0.78,
+        "relevance_types": [
+          "benchmark_baseline",
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The paper benchmarks RAG for medicine, exploring components and constraints, which provides evidence on RAG limitations and scalability relevant to the target.",
+        "evidence_summary": "In 2024, Xiong et al. published 'Benchmarking Retrieval-Augmented Generation for Medicine,' which proposed the Medical Information Retrieval-Augmented Generation Evaluation (MIRAGE) benchmark with 7,663 questions from five medical QA datasets. They evaluated 41 combinations of corpora, retrievers, and LLMs, discovering log-linear scaling and 'lost-in-the-middle' effects, and improved accuracy by up to 18% over chain-of-thought prompting."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_004_d4528dbc4",
+        "relevance_score": 0.75,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The paper introduces in-context RALM as a simple alternative to modified architectures, aligning with the target's use of in-context learning and deployment constraints.",
+        "evidence_summary": "In 2023, Ram et al. published 'In-Context Retrieval-Augmented Language Models,' which proposed leaving the LM architecture unchanged and prepending grounding documents to the input without further training. They showed that this approach, combined with specialized retrieval, provides large LM gains across model sizes and corpora, particularly in settings where pretrained LMs are used without modification."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_003_34b5ac3bb",
+        "relevance_score": 0.7,
+        "relevance_types": [
+          "same_method",
+          "novelty_competitor"
+        ],
+        "rationale": "The paper on active RAG explores iterative retrieval strategies, which relates to the target's use of iterative prompting for scaling computation.",
+        "evidence_summary": "In 2023, Jiang et al. published 'Active Retrieval Augmented Generation,' as presented at the 2023 Conference on Empirical Methods in Natural Language Processing. The paper details methods for dynamically retrieving information during generation to enhance LLM performance."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_010_1fefb506e",
+        "relevance_score": 0.65,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The paper focuses on query rewriting in RAG to adapt to black-box LLMs, relevant to the target's strategies for effective knowledge utilization.",
+        "evidence_summary": "In 2023, Ma et al. published 'Query Rewriting in Retrieval-Augmented Large Language Models,' which introduced a Rewrite-Retrieve-Read framework using a trainable rewriter optimized via reinforcement learning based on LLM feedback. Evaluations on open-domain and multiple-choice QA showed performance improvements, indicating scalability for retrieval-augmented LLMs."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_008_45c91d6df",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "The paper on similarity metrics for semantic inference uses denotational methods, which is tangentially related to retrieval and inference scaling in NLP.",
+        "evidence_summary": "In 2014, Young et al. published 'From image descriptions to visual denotations: New similarity metrics for semantic inference over event descriptions' in Transactions of the Association for Computational Linguistics. They proposed denotational similarity metrics based on visual denotations of expressions, constructing a subsumption hierarchy from 30K images and 150K captions."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_005_ae9521594",
+        "relevance_score": 0.069,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "LLM omitted this candidate; appended in cleaned candidate order to preserve the rerank input set.",
+        "evidence_summary": "This paper presents an overview of pattern clustering methods from a statistical pattern recognition perspective, with a goal of providing useful advice and references to fundamental concepts accessible to the broad community of clustering practitioners. Clustering is the unsupervised classification of patterns (observations, data items, or feature vectors) into groups (clusters)."
+      },
+      {
+        "rank": 10,
+        "paper_id": "rw_009_750d0f07b",
+        "relevance_score": 0.049,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "LLM omitted this candidate; appended in cleaned candidate order to preserve the rerank input set.",
+        "evidence_summary": "Yuning Mao, Pengcheng He, Xiaodong Liu, Yelong Shen, Jianfeng Gao, Jiawei Han, Weizhu Chen."
+      }
+    ],
+    "reranking": {
+      "source": "mixed"
+    },
+    "related_work_summary": "In 2024, Yue et al. published 'Inference Scaling for Long-Context Retrieval Augmented Generation,' which investigated scaling inference computation for retrieval-augmented generation by combining strategies like in-context learning and iterative prompting, proposing inference scaling laws and a computation allocation model that achieved up to 58.9% gains on benchmarks. In 2023, Gao et al. published 'Retrieval-Augmented Generation for Large Language Models: A Survey,' examining RAG paradigms and techniques while highlighting challenges like hallucination and outdated knowledge. In 2024, Chen et al. published 'Benchmarking Large Language Models in Retrieval-Augmented Generation,' introducing the RGB benchmark to evaluate LLMs on abilities such as noise robustness and information integration, finding struggles with negative rejection. In 2024, Xiong et al. published 'Benchmarking Retrieval-Augmented Generation for Medicine,' proposing the MIRAGE benchmark with 7,663 medical questions and discovering log-linear scaling and 'lost-in-the-middle' effects. In 2023, Ram et al. published 'In-Context Retrieval-Augmented Language Models,' showing that prepending documents without LM modification yields gains, especially for unmodified models. In 2023, Jiang et al. published 'Active Retrieval Augmented Generation,' detailing methods for dynamic retrieval during generation to enhance LLM performance.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 0,
+      "num_removed_undated": 0,
+      "num_used": 10,
+      "num_cutoff_valid": 10,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 0,
+    "num_removed_undated": 0,
+    "num_used": 10,
+    "num_cutoff_valid": 10,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

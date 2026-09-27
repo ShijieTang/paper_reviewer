@@ -1,5 +1,6 @@
 import importlib
 import os
+import time
 
 
 VALID_PROVIDERS = {"cmu", "openai", "gemini", "claude", "deepseek", "qwen", "openrouter"}
@@ -10,7 +11,7 @@ DEFAULT_MODELS = {
     "claude": "claude-3-5-sonnet-20240620",
     "deepseek": "deepseek-v4-flash",
     "qwen": "qwen3.7-plus",
-    "openrouter": "google/gemini-3.5-flash",
+    "openrouter": "google/gemini-2.5-flash",
 }
 
 OPENAI_COMPATIBLE_BASE_URLS = {
@@ -29,6 +30,11 @@ OPENAI_COMPATIBLE_ENV_BASE_URL = {
 OPENAI_COMPATIBLE_MAX_TOKENS = {
     "openrouter": 25600,
 }
+
+# Transient gateway failures are retried with exponential backoff so a batch run
+# of hundreds of reviews survives a single bad response.
+_MAX_LLM_RETRIES = 4
+_LLM_RETRY_BASE_DELAY = 5
 
 
 def validate_api_key_for_provider(provider: str, api_key: str) -> str:
@@ -180,12 +186,28 @@ class OpenAICompatibleClient:
 
     def complete(self, system_prompt: str, messages: list[dict]) -> str:
         kwargs = {"max_tokens": self.max_tokens} if self.max_tokens is not None else {}
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "system", "content": system_prompt}, *messages],
-            **kwargs,
-        )
-        return (response.choices[0].message.content or "").strip()
+        # Gateways such as OpenRouter occasionally answer with a non-JSON body
+        # (rate-limit page, truncated stream), which the SDK surfaces as a hard
+        # error. Retrying keeps a long batch run from dying on a single blip.
+        last_exc = None
+        for attempt in range(_MAX_LLM_RETRIES):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "system", "content": system_prompt}, *messages],
+                    **kwargs,
+                )
+                return (response.choices[0].message.content or "").strip()
+            except Exception as exc:
+                last_exc = exc
+                if attempt == _MAX_LLM_RETRIES - 1:
+                    break
+                delay = _LLM_RETRY_BASE_DELAY * (2 ** attempt)
+                print(f"[{self.provider}] request failed ({type(exc).__name__}: {exc}); "
+                      f"retrying in {delay}s "
+                      f"({attempt + 2}/{_MAX_LLM_RETRIES})")
+                time.sleep(delay)
+        raise last_exc
 
 
 class GeminiClient:

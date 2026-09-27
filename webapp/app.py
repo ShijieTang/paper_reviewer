@@ -45,21 +45,14 @@ def _rag_signature(paper: str, provider: str, model: str, rag_config: dict) -> d
         "model": model,
         "cutoff_date": rag_config.get("cutoff_date", DEFAULT_RAG_CONFIG["cutoff_date"]),
         "allow_undated_evidence": bool(rag_config.get("allow_undated_evidence", False)),
-        "enable_review_memory_rag": bool(
-            rag_config.get("enable_review_memory_rag", DEFAULT_RAG_CONFIG["enable_review_memory_rag"])
-        ),
         "provider_top_k": int(rag_config.get("provider_top_k", DEFAULT_RAG_CONFIG["provider_top_k"])),
         "rerank_top_k": int(rag_config.get("rerank_top_k", DEFAULT_RAG_CONFIG["rerank_top_k"])),
-        "review_memory_max_reviews": int(rag_config.get("review_memory_max_reviews", DEFAULT_RAG_CONFIG["review_memory_max_reviews"])),
     }
 
 
 def _request_rag_config(data: dict) -> dict:
     rag_config = dict(DEFAULT_RAG_CONFIG)
     rag_config["enable_rag"] = bool(data.get("enable_rag", rag_config["enable_rag"]))
-    # Review-memory RAG is retained in the core module for future experiments,
-    # but is intentionally disabled in the web workflow for now.
-    rag_config["enable_review_memory_rag"] = False
     if data.get("cutoff_date"):
         rag_config["cutoff_date"] = str(data.get("cutoff_date"))
     if "allow_undated_evidence" in data:
