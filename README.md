@@ -18,7 +18,7 @@ paper_reviewer/
 ├── prompts/               # Persona prompts for each agent type
 ├── eval/                  # Experiment scripts and evaluation
 │   ├── papers.json        # Ground truth paper metadata (24 papers)
-│   ├── experiment.py      # Condition A (single) vs B (multi-agent ABC) experiment
+│   ├── experiment.py      # Seven module-ablation conditions, parallel paper runs
 │   ├── experiment_persona.py     # ABC × 3 iter experiment (agenttype=ABC)
 │   ├── experiment_nopersona.py   # NNN × 3 iter baseline (agenttype=NNN)
 │   ├── evaluation.py      # Benchmarking against OpenReview ground truth
@@ -110,26 +110,42 @@ python scripts/archive_experiment_artifacts.py
 Legacy runners reuse existing outputs. New trigger runs use strict provenance
 checks and seal failed trajectories without drawing replacement samples.
 
-### Condition A vs B (single-agent vs multi-agent)
+### Module-ablation experiments (conditions 1-7)
 
-Runs two conditions on all 24 papers in `eval/papers.json`:
-- **Condition A**: `reviewer_a` × 1 iteration
-- **Condition B**: `reviewer_a, reviewer_b, reviewer_c` × 3 iterations
+The current `eval/experiment.py` preserves the remote module-ablation runner,
+including parallel paper execution and precomputed RAG-package reuse. Its numeric
+conditions are distinct from the historical C1-C5 conditions in
+`eval/experiment_advanced.py` and the T0-T2 screening in `eval/experiment_trigger.py`.
+
+| Condition | RAG | Rounds | Reviewers | Author rebuttal | Style evaluator |
+|---|---|---|---|---|---|
+| 1 | No | 1 | 1 neutral | Not applicable | No |
+| 2 | Yes | 1 | 1 neutral | Not applicable | No |
+| 3 | No | 2 | 1 neutral | No | Yes |
+| 4 | No | 3 | 1 neutral | Yes | No |
+| 5 | No | 1 | 3 personas | Not applicable | No |
+| 6 | No | 2 | 1 neutral | No | No |
+| 7 | Yes | 3 | 1 neutral | Yes | No |
 
 ```bash
 python eval/experiment.py \
-    --json_file eval/papers.json \
+    --json_file eval/openreview_60_module_test.json \
     --api_key YOUR_API_KEY \
     --output_dir experiment_artifacts/local/eval/exp_results \
-    [--paper_id iclr_accept_001]
+    --conditions 1,2,3,4,5,6,7 --concurrency 5
 ```
 
 Output filenames:
 ```
-{timestamp}_nagent=1_niter=1_paper={name}_cond=A_single.txt
-{timestamp}_nagent=3_niter=3_paper={name}_cond=B_multi.txt
+{timestamp}_nagent=1_niter=1_paper={name}_cond=1_no_rag_1iter_1rev.txt
 experiment_summary_{timestamp}.json
 ```
+
+Pipeline outputs retain the remote `iterations` trace and also include
+`workflow_status`, `turn_outcomes`, and `turn_failures`. Required role outputs use
+shared validation in `review_schema.py`; exhausted failures stop the workflow.
+Use `--disable_author_rebuttal` for intentional author ablations. Such runs are
+not eligible for the T0-T2 protocol, which requires author turns.
 
 ### 3 persona reviewers × 3 iterations (agenttype=ABC)
 

@@ -1,0 +1,836 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 3,
+        "significance": 4,
+        "evaluation": 3,
+        "clarity": 4
+      },
+      "strengths": [
+        "Novel approach combining differentiable simulators with LTL specifications: To the best of the reviewer's knowledge, this is the first method integrating LTL specifications with differentiable simulators for accelerated gradient-based learning. The soft labeling technique (Equations 3-8) elegantly addresses the non-differentiability challenge introduced by discrete automaton transitions and binary reward functions, enabling end-to-end differentiable learning.",
+        "Strong empirical validation with careful ablation study: The paper demonstrates substantial speedup (4-5x convergence advantage) across diverse robotic tasks. Critically, Figure 4 provides a well-designed ablation that convincingly isolates differentiability as the key factor by comparing performance on simplified LTL specifications where all methods succeed. This addresses potential confounds and strengthens the causal claim.",
+        "Addresses a genuine and important practical problem: Learning from sparse LTL specifications is genuinely difficult, and the paper demonstrates this by showing near-complete failure of non-differentiable methods on CartPole due to extreme sparsity (1 reward transition out of 192). The approach makes learning from formal specifications tractable in high-sparsity regimes where standard RL fails."
+      ],
+      "weaknesses": [
+        "Correctness preservation under soft labeling lacks formal justification: Theorem 1 applies to discrete rewards with binary indicator functions. The paper does not formally prove or provide bounded approximation guarantees for how the soft labeling approximation (probabilistic labels via sigmoid, continuous rewards) preserves satisfaction probability. While Figure 1 shows empirical agreement on the parking task and Figure 4 demonstrates high satisfaction on simplified specs, general theoretical guarantees are absent.",
+        "Limited experimental baselines and scope: Experiments compare only against generic RL methods (PPO, SAC, SHAC, AHAC), not against other LTL-specific RL approaches (refs [38, 45, 46]). The author's rebuttal clarifies these are orthogonal methods, which is reasonable, but no empirical comparison is provided to situate the work within the LTL-RL literature. All experiments use a single differentiable simulator (dFlex); generalizability across simulators remains unvalidated.",
+        "CDF hyperparameter lacks empirical guidance: The paper states any differentiable CDF could work but uses sigmoid without sensitivity analysis or tuning guidance. The author's rebuttal notes sigmoid worked consistently in their experiments, but this is post-hoc observation, not systematic study. Practitioners lack principled guidance on CDF choice and steepness."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Correctness preservation under soft labeling lacks formal justification: Theorem 1 applies to discrete rewards with binary indicator functions. The paper does not formally prove or provide bounded approximation guarantees for how the soft labeling approximation (probabilistic labels via sigmoid, continuous rewards) preserves satisfaction probability. While Figure 1 shows empirical agreement on the parking task and Figure 4 demonstrates high satisfaction on simplified specs, general theoretical guarantees are absent.",
+          "severity": "major",
+          "evidence": "Theorem 1 (lines 191-195) guarantees lim_{γ→1−} E[G(σ)] = Pr(σ |= □♢B) for discrete rewards R(s) ∈ {0, 1-β}. Soft labeling (Equations 3-8) replaces binary rewards with continuous R((s,q)) = (1-β)∑_{q∈B} q_q where q_q are probabilities. No theorem, lemma, or proposition in the paper bounds the approximation error or proves the optimal policy under soft rewards maximizes satisfaction probability. Figure 1 shows empirical agreement for parking on a 1D parameter space, not general correctness guarantee. Figure 4 shows high satisfaction on simplified specs but does not bound approximation error as a function of CDF properties.",
+          "affected_claim": "Abstract (lines 13-15) claims 'without compromising objective correctness.' This is not formally justified, only empirically supported for tested environments.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Limited experimental baselines and scope: Experiments compare only against generic RL methods (PPO, SAC, SHAC, AHAC), not against other LTL-specific RL approaches (refs [38, 45, 46]). The author's rebuttal clarifies these are orthogonal methods, which is reasonable, but no empirical comparison is provided to situate the work within the LTL-RL literature. All experiments use a single differentiable simulator (dFlex); generalizability across simulators remains unvalidated.",
+          "severity": "major",
+          "evidence": "Lines 273-281 show baselines are PPO, SAC, SHAC, AHAC. References [38, 45, 46] are cited throughout but not tested experimentally. Author's rebuttal explains [38] is 'complementary, not competitive' and claims it would require substantial implementation to compare fairly. However, the paper does not experimentally establish this claim or position itself relative to other acceleration methods. Lines 265-271 state only dFlex was used; no ablation across simulators provided.",
+          "affected_claim": "The claim of 'significant improvements' (abstract, lines 16-17) is relative to generic RL + differentiable LTL rewards, not relative to other LTL-RL acceleration methods. The scope is limited to one simulator.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "CDF hyperparameter lacks empirical guidance: The paper states any differentiable CDF could work but uses sigmoid without sensitivity analysis or tuning guidance. The author's rebuttal notes sigmoid worked consistently in their experiments, but this is post-hoc observation, not systematic study. Practitioners lack principled guidance on CDF choice and steepness.",
+          "severity": "minor",
+          "evidence": "Lines 209-210 state 'any differentiable CDF h : R → [0, 1] could be applied' but no comparison of CDFs is provided. Section 6 (lines 377-378) acknowledges CDF as a hyperparameter. Author's rebuttal states 'we used sigmoid with a fixed configuration without tuning' and 'worked consistently,' but this is empirical observation without systematic ablation.",
+          "affected_claim": "The method introduces an additional hyperparameter without systematic guidance on its setting, making reproducibility and transfer to new domains less straightforward.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The mathematical framework for soft labeling is technically sound: Equations 3-8 correctly derive differentiable approximations to discrete automaton transitions and rewards. The core idea—using sigmoid-based CDFs to assign probabilistic labels and smooth automaton transitions—is mathematically correct and well-formed. The rebuttal provides helpful clarification that soft labeling recovers discrete behavior as sigmoid steepness increases, strengthening the intuition. However, a significant gap remains: no formal theorem bounds the approximation error or proves that optimal policies under soft rewards maximize satisfaction probability as claimed. This gap is acknowledged in the rebuttal, which forthrightly states a formal theorem would be needed for complete rigor. For empirical ML work, the strong experimental evidence (Figure 4 shows high satisfaction across tasks; ablation convincingly isolates differentiability) provides practical support. The pass reflects that the core technical approach is sound and well-reasoned, even though theoretical guarantees are incomplete. This represents a limitation in the correctness analysis rather than an error in the method itself."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The integration of differentiable simulators with LTL specifications via soft labeling represents a novel contribution. The rebuttal clarifies that soft labeling enables a new capability distinct from prior work. While prior work addresses LTL-based RL and differentiable RL separately, the specific combination of soft labeling for probabilistic automaton transitions is new. The technical contribution is not deeply novel (softening discrete functions is a known technique), but its application to make LTL automata differentiable is novel. The work establishes a new connection between formal specifications and differentiable learning that has not been previously explored, which meets the novelty threshold for a selective venue."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper addresses a meaningful problem: learning from sparse LTL rewards is genuinely difficult, and the rebuttal provides concrete evidence (1 reward transition out of 192 in CartPole) of why this matters. The empirical improvements are substantial (4-5x speedup), which is practically significant. The work enables a new capability—gradient-based learning from formal specifications—relevant to safety-critical RL. The ablation study demonstrates causality, showing improvements come from differentiability rather than environment factors. However, significance is bounded by: (1) simulation-only evaluation, (2) applicability conditional on differentiable simulator availability, (3) lack of comparison with other LTL acceleration methods. The rebuttal's clarification that complementary methods exist is helpful but does not establish whether differentiable simulators provide unique advantages. The contribution is solid and meaningful for the formal methods + learning community but represents incremental advance rather than paradigm shift. This is sufficient for a selective venue without being groundbreaking."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The experimental validation adequately supports the main claims within a defined scope. Multiple environments are tested (CartPole, Hopper, Cheetah, Ant); standard deviations are reported; the ablation study (Figure 4) is well-designed and convincingly isolates differentiability as the causal factor. The rebuttal's explanation of CartPole's extreme sparsity (1/192 reward-yielding transitions) contextualizes why non-differentiable methods fail completely, alleviating concerns about unfair comparison. The parking example effectively illustrates the challenge. However, evaluation has clear limitations: (1) only simulation-based, (2) single simulator backend, (3) baselines limited to generic RL (though rebuttal clarifies other LTL methods are orthogonal), (4) no statistical significance testing beyond error bars, (5) no complexity scaling analysis. The rebuttal forthrightly acknowledges these are implementation limitations rather than claiming the experiments are comprehensive. The pass reflects that experiments adequately validate the main claim (differentiability accelerates learning from LTL) within stated scope, despite limited breadth. The ablation study is particularly valuable for establishing causality."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-written with clear motivation, formal problem statement, and logical structure. The soft labeling contribution is presented clearly with good equation formatting and intuitive explanations. Algorithm 1 provides helpful pseudocode. Figure 1 offers useful intuition via the parking example. The rebuttal acknowledges that the transition from discrete to soft labeling could benefit from more intuition before heavy notation. Presentation quality is good overall: notation is mostly well-introduced, the flow is logical, and key concepts are explained. Minor improvements could be made (e.g., clearer introduction of L_{q,q'}, more discussion of soft labeling's impact on correctness in main text), but these do not prevent understanding. The pass reflects that presentation is clear enough to permit reliable assessment and does not impede understanding of the technical contribution."
+        }
+      },
+      "summary_comment": "This paper presents a novel approach to accelerating learning from LTL specifications by leveraging differentiable simulators and soft labeling. The core contribution—using sigmoid-based CDFs to make automaton transitions probabilistic and differentiable—is technically sound and addresses a genuine problem: sparse LTL rewards make standard RL intractable. The empirical results are strong (4-5x speedup across robotic tasks), and the ablation study (Figure 4) convincingly demonstrates that improvements stem from differentiability rather than environment properties. The rebuttal provides helpful clarification that soft labeling recovers discrete behavior as sigmoid steepness increases, strengthening intuition about why the approach should work.\n\nHowever, three substantive limitations persist in the submitted work: (1) **Lack of formal correctness guarantee**: While Theorem 1 justifies discrete LTL rewards, the paper does not prove or bound the approximation error when using soft labels. The rebuttal candidly acknowledges this gap and proposes a formal theorem as future work, but it is not in the current submission. Empirical evidence (Figure 1, Figure 4) supports the approach in tested domains but does not establish general theoretical guarantees. (2) **Limited experimental scope**: Experiments use only generic RL baselines and a single differentiable simulator. The rebuttal clarifies that other LTL-specific methods are orthogonal rather than competitive, which is reasonable, but this positioning is not empirically validated. Generalizability across simulators remains undemonstrated. (3) **CDF hyperparameter lacks systematic guidance**: The paper introduces an additional hyperparameter (CDF choice) without sensitivity analysis. The rebuttal notes sigmoid worked consistently in tested environments, but this is post-hoc observation rather than systematic study.\n\nDespite these limitations, the paper merits acceptance at a top-tier venue. The work is novel, technically competent, and solves a meaningful problem. The rebuttal is notably honest in distinguishing between what is in the submitted paper (strong empirical validation, sound technical approach) and what would strengthen it (formal correctness theorems, broader baselines, simulator generalization). The ablation study is particularly valuable for establishing causality. The contribution meaningfully advances the intersection of formal methods and differentiable learning, enabling a new capability (gradient-based learning from LTL specifications) with substantial practical improvements. For a selective conference, this represents solid work that meets the acceptance threshold, though it falls short of being a clear strong accept due to the theoretical gap on correctness preservation and limited experimental scope relative to the state of LTL-RL methods."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Core contribution falls squarely within ICML's focus on optimization and machine learning systems: The paper introduces a novel technique for making discrete automaton transitions differentiable via soft labeling, enabling gradient-based optimization on formally specified tasks. This bridges formal methods and differentiable optimization, a core ML concern.\",\n      \"Addresses reinforcement learning with novel algorithmic contribution: The work leverages differentiable RL algorithms (SHAC, AHAC) combined with differentiable simulators to accelerate learning from sparse rewards. RL is a major ICML topic, and the paper makes a concrete algorithmic advance (differentiable product MDPs with soft transitions) applicable to policy learning.\",\n      \"Strong empirical methodology with ablation study: The paper includes careful experimental design with proper baselines, ablation studies (Figure 4) isolating the contribution, and statistical reporting (error bars, multiple seeds). This methodological rigor aligns with ICML's emphasis on evaluation and reproducibility.\",\n      \"Practical systems contribution: Implementation using PyTorch and dFlex, with provided code and hyperparameter details, demonstrates commitment to reproducibility and systems-level contribution valued by ICML.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited theoretical novelty or learning theory contribution: While the soft labeling idea is novel, it is a relatively straightforward application of sigmoid smoothing to make discrete functions differentiable—a well-known technique. ICML values theoretical advances in learning theory, optimization, or generalization bounds. The paper lacks formal theorems characterizing the approximation quality of soft labels or optimality guarantees under the proposed method.\",\n      \"Narrow application domain with simulation-only evaluation: The work is tightly focused on LTL-based RL in simulated robotic systems using one differentiable simulator (dFlex). ICML values general ML contributions applicable across domains. The paper does not demonstrate scalability beyond the tested environments or transferability to other simulators, limiting its perceived impact within ICML's broad audience.\",\n      \"Missing comparison with related LTL acceleration methods: The paper compares only against generic RL baselines (PPO, SAC) rather than other LTL-specific acceleration approaches (refs [38, 45, 46]). While the rebuttal argues these are orthogonal, the absence of empirical comparison weakens the positioning within the LTL-RL literature, which overlaps significantly with ICML's RL audience.\",\n      \"Incomplete correctness analysis for the main contribution: Theorem 1 applies to discrete rewards; the paper does not formally prove that soft labeling preserves correctness guarantees. This gap undermines the claim of 'objective correctness' (abstract, line 14) and would be scrutinized at a venue like ICML that values rigorous theoretical justification of algorithmic claims.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Directly addresses a topic in NeurIPS's interdisciplinary scope: The paper bridges formal methods (LTL, automata) and machine learning (differentiable RL), exemplifying the 'interdisciplinary submissions that do not fit neatly into existing categories' that NeurIPS welcomes. The combination of formal specification languages with neural policy learning is novel and cross-domain.\",\n      \"Reinforcement learning contribution with practical robotics applications: NeurIPS lists RL, decision-making, and robotics as core topics. The work addresses a concrete problem in safe RL for robotic control using formal specifications, relevant to the safety and reliability concerns discussed in NeurIPS's AI/ML for robotics focus.\",\n      \"Comprehensive experimental validation across robotic domains: Experiments span CartPole, Hopper, Cheetah, and Ant with careful ablation study. The scale and rigor of evaluation, along with provided code and reproducibility details, align with NeurIPS's emphasis on empirical validation and open science.\",\n      \"Addresses an emerging area of intersection: LTL-based RL is gaining traction in the formal methods + learning community. The paper's novel use of differentiable simulators to accelerate learning from formal specs represents a timely contribution to this emerging area, fitting NeurIPS's interest in novel research directions.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Reviewer explicitly flags lack of formal correctness guarantees: The rebuttal candidly acknowledges that Theorem 1 applies only to discrete rewards, and soft labeling lacks formal approximation bounds or optimality proofs. At NeurIPS, which values both empirical and theoretical rigor, this gap—acknowledged as 'not in the current submission'—is a notable weakness. The claim that the approach preserves correctness is supported only empirically.\",\n      \"Limited scope and generalizability beyond tested settings: All experiments use a single differentiable simulator (dFlex) in simulation-only environments. The paper does not demonstrate: (a) transfer to other simulators, (b) real-world robot experiments, (c) scalability to more complex LTL specifications beyond those tested. This narrow scope limits relevance to NeurIPS's broad, interdisciplinary audience.\",\n      \"Missing systematic comparison with other LTL acceleration methods: The paper compares against generic RL but not against other LTL-RL acceleration approaches (refs [38, 45, 46]). While rebuttal argues these are orthogonal, empirical comparison would strengthen the positioning. The absence leaves open whether differentiable simulators provide unique advantages over complementary acceleration techniques.\",\n      \"CDF hyperparameter introduces unexplored design choice: The paper introduces an additional hyperparameter (CDF for soft labels) without sensitivity analysis or principled guidance for practitioners. The rebuttal notes sigmoid 'worked consistently' but provides no ablation across CDFs or steepness parameters. At NeurIPS, such unexplored design choices raise reproducibility and generalization concerns.\",\n      \"Reviewer concern about incomplete evaluation: The rebuttal identifies evaluation as having 'clear limitations'—single simulator, simulation-only, no statistical significance testing beyond error bars, no complexity scaling analysis. While the rebuttal attributes these to implementation constraints rather than fundamental issues, they limit the breadth of validation expected at a top venue like NeurIPS.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Representation learning via differentiable transition functions: The paper's core contribution—making automaton state transitions differentiable through soft labeling—relates to ICLR's focus on representation learning and learned state representations. The probabilistic automaton states (Equations 5-6) can be viewed as learned representations of formal specification semantics.\",\n      \"Deep learning for control and reinforcement learning: ICLR emphasizes deep learning applications to RL and control. The integration of differentiable simulators with learned policies to satisfy formal specifications aligns with ICLR's focus on learning-based control and the intersection of deep RL with systems.\",\n      \"Neurosymbolic and hybrid AI systems: ICLR explicitly lists 'neurosymbolic & hybrid AI systems (physics-informed, logic & formal reasoning)' as a key topic. This paper combines logical specifications (LTL automata) with differentiable learning, fitting squarely into ICLR's stated interest in hybrid symbolic-neural approaches.\",\n      \"Applications to robotics and autonomous systems: ICLR lists applications to robotics and autonomy. The paper demonstrates learning control policies for robotic systems (legged locomotion, cart-pole) under formal specifications, directly addressing this application area.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited focus on representation learning itself: While the paper touches on learned representations (probabilistic automaton states), the core contribution is algorithmic rather than representational. The soft labeling technique is a mechanism to make discrete functions differentiable, not a novel representation learning method. ICLR places strong emphasis on understanding and improving learned representations; this paper's focus on differentiable rewards is secondary.\",\n      \"Lack of deep learning novelty or neural architecture contribution: The paper does not propose new neural architectures, deep learning techniques, or insights into how deep networks learn from formal specifications. It uses standard RL algorithms (PPO, SAC) and existing differentiable simulators. For ICLR, which is deeply rooted in deep learning advances, the contribution feels more like an application of existing techniques rather than a deep learning innovation.\",\n      \"Missing theoretical guarantees on learning or generalization: ICLR values learning theory contributions characterizing sample complexity, generalization, or convergence properties. The paper lacks formal analysis of: (a) how soft labeling approximates discrete rewards, (b) whether learned policies maintain correctness, (c) sample efficiency gains from differentiability. The rebuttal acknowledges the absence of formal correctness theorems, which is particularly important for ICLR's audience.\",\n      \"Narrow experimental scope limits relevance to ICLR's vision: ICLR seeks contributions that advance deep learning broadly. The experiments are confined to simulation with a single simulator, simple robotic tasks, and narrow LTL specifications. No evaluation on vision-based control, language-conditioned learning, or complex compositional tasks reduces relevance to ICLR's emphasis on diverse learning modalities and complex problem domains.\",\n      \"Incomplete analysis of when differentiable simulators help: The paper does not characterize what properties of tasks or simulators make differentiability beneficial. For ICLR, which values insights into learning mechanisms, a deeper analysis of the gradient landscape (e.g., why soft labels improve gradients beyond Figure 1's parking example) would strengthen the contribution.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\n**Overall Assessment:**\n\nThis paper presents a technically sound and novel approach to accelerating RL from LTL specifications using differentiable simulators and soft labeling. The empirical validation is strong, and the ablation study is well-designed. However, three substantive limitations affect venue fit:\n\n1. **Incomplete Correctness Analysis**: The paper claims to preserve objective correctness but lacks formal guarantees that soft labeling maintains the satisfaction probability properties proven in Theorem 1 for discrete rewards.\n\n2. **Limited Scope**: Simulation-only evaluation with a single differentiable simulator, limited baseline comparisons (no other LTL acceleration methods), and focused application domain (robotic control under LTL specs) reduce perceived impact.\n\n3. **Unexplored Design Choices**: The CDF hyperparameter is introduced without systematic guidance, and the reviewer flags this as a gap in reproducibility and generalizability.\n\n**Venue Recommendations:**\n\n- **ICML (7/10 - Good fit)**: The algorithmic contribution (differentiable automaton transitions) and optimization focus align well with ICML's strengths. However, limited theoretical novelty and narrow application scope prevent a higher score.\n\n- **NeurIPS (6/10 - Borderline/Risky)**: The interdisciplinary nature and robotics applications fit NeurIPS's scope, but the lack of formal correctness guarantees (acknowledged by reviewer and rebuttal) and simulation-only evaluation create risk. The paper is borderline—could succeed with strong reviewer enthusiasm but faces pushback on theoretical gaps.\n\n- **ICLR (5/10 - Borderline/Risky)**: While neurosymbolic AI and RL are ICLR topics, the paper lacks deep learning novelty or theoretical insights into learning/generalization. It reads more as an application of existing techniques (standard RL + differentiable simulators) rather than a deep learning advance. Below the threshold for ICLR's selectivity.\n\n**Best Fit: ICML**, where the optimization and RL focus, along with systems contributions, are most valued despite the theoretical gaps.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel approach combining differentiable simulators with LTL specifications: To the best of the reviewers' knowledge based on the paper's claims and the related work survey, this is the first method integrating LTL specifications with differentiable simulators for accelerated gradient-based learning. The soft labeling technique (Equations 3-8) elegantly addresses the non-differentiability challenge introduced by discrete automaton transitions and binary reward functions, enabling end-to-end differentiable learning while preserving logical correctness.",
+              "Strong theoretical grounding with practical implementation: The paper builds upon established theory (Lemma 1, Theorem 1) and rigorously develops differentiable variants of key components. The soft label formulation (Equation 4) and probabilistic transition functions (Equations 5-7) are mathematically sound and well-motivated. The parking example (Figure 1) effectively illustrates why differentiable rewards with low-variance gradients matter for LTL-based learning.",
+              "Significant empirical improvements demonstrated across diverse tasks: Experiments show substantial speedup (20M vs 100M steps for convergence) and superior final performance of differentiable RL methods over non-differentiable baselines on CartPole and three legged-robot environments. The ablation study (Figure 4, Equations 11-12) convincingly isolates the source of improvements as the differentiability of LTL rewards rather than environment-specific properties, strengthening the core contribution."
+            ],
+            "weaknesses": [
+              "Limited experimental scope and scale: Experiments are restricted to relatively simple simulated environments using a single differentiable simulator (dFlex). No evaluation on real robotic systems or comparison with other formal specification methods (e.g., STL-based approaches with differentiable variants). The paper claims advantages over non-differentiable methods but only compares against PPO and SAC, not against other recent LTL-RL methods like those in reference [38, 45, 46].",
+              "Incomplete analysis of the soft labeling approximation: The choice of sigmoid as the CDF (Equation 3) is stated as arbitrary ('any differentiable CDF could apply'), but the paper provides no sensitivity analysis or guidance on how the CDF choice affects learning efficiency and correctness guarantees. The smoothing introduced near satisfaction boundaries (Figure 1) is acknowledged but the impact on satisfaction probability estimation and potential for violating hard safety constraints is not thoroughly discussed.",
+              "Dependency on differentiable simulators and hyperparameters introduces practical limitations: The method's performance is inherently tied to simulator quality and gradient computation efficiency (acknowledged in Section 6). The paper requires tuning an additional hyperparameter (the CDF) beyond those inherited from RL baselines. Formalization of LTL specifications itself requires domain expertise. These practical hurdles are mentioned but not systematically addressed.",
+              "Insufficient discussion of correctness preservation under soft labeling: While Theorem 1 guarantees that optimal policies maximize satisfaction probability with discrete rewards, the paper does not formally analyze how the soft labeling approximation (probabilistic labels and transitions) affects this correctness guarantee. The claim that correctness is preserved lacks rigorous proof."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited experimental scope and scale: Experiments are restricted to relatively simple simulated environments using a single differentiable simulator (dFlex). No evaluation on real robotic systems or comparison with other formal specification methods (e.g., STL-based approaches with differentiable variants). The paper claims advantages over non-differentiable methods but only compares against PPO and SAC, not against other recent LTL-RL methods like those in reference [38, 45, 46].",
+                "severity": "major",
+                "evidence": "Experiments section (line 262-340) uses only dFlex simulator on CartPole, Hopper, Cheetah, and Ant environments. Baselines (lines 273-281) are limited to PPO, SAC, SHAC, and AHAC. Recent LTL-RL methods [38, 45, 46] in references are not included as baselines. No real-world experiments mentioned.",
+                "affected_claim": "The paper claims 'significant improvements in both reward attainment and training time compared to the discrete methods' but only compares against two model-free RL methods, not against other LTL-specific RL approaches.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Incomplete analysis of the soft labeling approximation: The choice of sigmoid as the CDF (Equation 3) is stated as arbitrary ('any differentiable CDF could apply'), but the paper provides no sensitivity analysis or guidance on how the CDF choice affects learning efficiency and correctness guarantees. The smoothing introduced near satisfaction boundaries (Figure 1) is acknowledged but the impact on satisfaction probability estimation and potential for violating hard safety constraints is not thoroughly discussed.",
+                "severity": "major",
+                "evidence": "Lines 209-210: 'Although we use the widely adopted sigmoid function here, any differentiable cumulative distribution function (CDF) h : R 7→ [0, 1] could be applied.' Section 6 (lines 377-378) mentions CDF as an additional hyperparameter to be tuned but provides no guidance. Figure 1 caption notes smoother transitions near boundaries but no analysis of safety implications provided.",
+                "affected_claim": "The paper claims soft labeling 'effectively mitigates the sparse-reward issue intrinsic to LTL without compromising objective correctness' (lines 13-14), but the impact of the CDF choice on correctness is not formally analyzed.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Insufficient discussion of correctness preservation under soft labeling: While Theorem 1 guarantees that optimal policies maximize satisfaction probability with discrete rewards, the paper does not formally analyze how the soft labeling approximation (probabilistic labels and transitions) affects this correctness guarantee. The claim that correctness is preserved lacks rigorous proof.",
+                "severity": "major",
+                "evidence": "Theorem 1 (lines 191-195) applies to discrete rewards with indicator functions, not probabilistic soft labels. The paper transitions from discrete to soft labeling (lines 203-239) but does not provide a formal analysis of how the approximation affects the satisfaction probability guarantee. The claim in the abstract (lines 13-15) states correctness is preserved without formal justification.",
+                "affected_claim": "The core claim that 'our approach introduces soft labeling to achieve differentiable rewards and states, effectively mitigating the sparse-reward issue intrinsic to LTL without compromising objective correctness' (lines 13-15) lacks formal proof that soft labeling preserves the correctness properties of Theorem 1.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Dependency on differentiable simulators and hyperparameters introduces practical limitations that limit applicability: The method's performance is inherently tied to simulator quality and gradient computation efficiency. The paper requires tuning an additional hyperparameter (the CDF) beyond those inherited from RL baselines.",
+                "severity": "minor",
+                "evidence": "Section 6 (lines 357-379) explicitly acknowledges limitations: 'if a simulator provides poor gradient information or computes gradients slowly, the learning process will be significantly slowed down' (lines 364-366), 'applying our approach to new environments may require additional hyperparameter tuning' (lines 369-370), and 'CDF used for probability estimation, which must also be tuned' (lines 378-379).",
+                "affected_claim": "The paper claims the method 'facilitates efficient gradient-based learning' (line 12) but the efficiency depends on external factors (simulator quality, gradient computation speed) and additional hyperparameter tuning.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core mathematical framework is sound. Theorem 1 is properly cited and its assumptions are clearly stated. The soft labeling technique (Equations 3-8) is mathematically well-formed, deriving differentiable transitions and rewards through probabilistic superposition over automaton states. The derivation of the differentiable reward and discounting functions (Equation 8) follows logically from the soft label framework. However, there is a gap: the paper does not formally prove that the soft labeling approximation preserves the correctness guarantees of Theorem 1. This is a concern for the central claim but does not invalidate the technical soundness of the proposed method itself. The experimental methodology is reasonable with proper ablation studies."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The combination of differentiable simulators with LTL specifications via soft labeling is novel. The paper positions itself as the first to integrate these two paradigms. While LTL-based RL [28-50] and differentiable RL [71-75] are established areas, their combination with soft labeling for automata is new. The soft labeling approach (probabilistic labels and transitions) is a creative solution to the non-differentiability problem. However, the novelty is somewhat incremental: it applies existing differentiable RL techniques to LTL rewards through a relatively straightforward softening of discrete transitions. The core insight—using sigmoid-like functions to make automaton transitions differentiable—is not deeply novel, though the execution is competent."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a real and important problem: learning from sparse LTL specifications is genuinely difficult, and the ability to leverage gradient information from differentiable simulators is valuable. The results demonstrate substantial improvements (4-5x speedup in convergence) which is meaningful for RL. The work enables a new mode of learning—direct gradient-based optimization from formal specifications—which is relevant to the safety-critical RL community. However, significance is somewhat limited by: (1) restriction to simulation-only experiments, (2) lack of comparison with other LTL-RL methods, and (3) reliance on differentiable simulators which are not yet widely adopted in practice. The contribution is solid but not groundbreaking for a top-tier venue."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experiments are reasonably well-designed with an ablation study that isolates the contribution of differentiability (Figure 4). Standard deviations are reported and multiple environments tested. However, evaluation has clear limitations: (1) only simulation-based, (2) limited to a single differentiable simulator backend (dFlex), (3) baselines are limited to generic RL methods (PPO, SAC) rather than other LTL-specific RL approaches [38, 45, 46], (4) no statistical significance testing beyond error bars, and (5) no analysis of how performance scales with automaton complexity or specification richness. The parking example provides good intuition but is a toy problem. For CartPole, all non-differentiable RL methods fail completely, which raises questions about fair comparison and hyperparameter tuning. Overall, the evaluation supports the main claims but is not comprehensive."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear motivation and problem formulation. The preliminaries section properly establishes notation and concepts. The core technical content (Section 4) is presented clearly with good use of equations and intuitive explanations. Figure 1 effectively illustrates the parking example. Algorithm 1 provides helpful pseudocode. The related work section is comprehensive. However, some issues: (1) the transition from discrete to soft labeling (lines 203-239) could be explained more intuitively before diving into equations, (2) the impact of soft labeling on correctness is not clearly discussed in the main text, (3) some notation is introduced without sufficient definition (e.g., the set L_q,q' in line 221), and (4) experimental details could be more thorough in the main paper rather than relegated to supplementary material."
+              }
+            },
+            "summary_comment": "This paper presents a novel and practically useful approach to accelerating learning from LTL specifications by leveraging differentiable simulators. The core contribution—soft labeling to make automaton transitions and rewards differentiable—is technically sound and well-motivated. The soft labeling approach elegantly solves the non-differentiability problem and the empirical results demonstrate substantial improvements in learning speed and final performance compared to non-differentiable RL baselines. The ablation study convincingly shows the source of improvement is the differentiability of rewards. However, the paper has meaningful limitations: (1) a formal proof that soft labeling preserves the correctness guarantees of Theorem 1 is missing, which is concerning given the safety focus; (2) the experimental evaluation is limited to simulation with a single differentiable simulator and does not compare against other LTL-RL methods; (3) the practical applicability is constrained by the need for differentiable simulators and careful hyperparameter tuning including the CDF choice. Despite these limitations, the work makes a solid contribution to an important problem. The combination of formal specification with differentiable simulation is timely and relevant. The method is well-executed and the empirical validation, while limited in scope, is convincing within its domain. For a top-tier machine learning conference, this represents good work that advances the intersection of formal methods and differentiable learning, though it falls short of being a major breakthrough. The paper would be strengthened by formal analysis of correctness preservation, comparison with other LTL-RL methods, and real-world experiments, but these are not essential to validate the core contribution."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 3,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel approach combining differentiable simulators with LTL specifications: To the best of the reviewer's knowledge, this is the first method integrating LTL specifications with differentiable simulators for accelerated gradient-based learning. The soft labeling technique (Equations 3-8) elegantly addresses the non-differentiability challenge introduced by discrete automaton transitions and binary reward functions, enabling end-to-end differentiable learning.",
+              "Strong empirical validation with careful ablation study: The paper demonstrates substantial speedup (4-5x convergence advantage) across diverse robotic tasks. Critically, Figure 4 provides a well-designed ablation that convincingly isolates differentiability as the key factor by comparing performance on simplified LTL specifications where all methods succeed. This addresses potential confounds and strengthens the causal claim.",
+              "Addresses a genuine and important practical problem: Learning from sparse LTL specifications is genuinely difficult, and the paper demonstrates this by showing near-complete failure of non-differentiable methods on CartPole due to extreme sparsity (1 reward transition out of 192). The approach makes learning from formal specifications tractable in high-sparsity regimes where standard RL fails."
+            ],
+            "weaknesses": [
+              "Correctness preservation under soft labeling lacks formal proof: Theorem 1 applies to discrete rewards with binary indicator functions. The paper does not formally analyze how the soft labeling approximation (probabilistic labels and transitions via sigmoid) preserves the satisfaction probability guarantees. While the author's rebuttal acknowledges this and argues the approximation should work as steepness increases, the submitted paper contains no such theorem or proof.",
+              "Limited experimental baselines and scope: Experiments compare only against generic RL methods (PPO, SAC, SHAC, AHAC), not against other recent LTL-specific RL approaches (e.g., ref [38] on heuristic-based dense rewards, ref [45, 46]). All experiments use a single differentiable simulator (dFlex). The author's rebuttal acknowledges these limitations but does not resolve them in the submitted paper.",
+              "No guidance for critical design choice—the CDF function: The paper states any differentiable CDF could be used but provides no sensitivity analysis, tuning guidance, or empirical justification for the sigmoid choice. The author's rebuttal proposes future ablation studies but these are not in the submitted work, leaving practitioners without principled guidance on this additional hyperparameter."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Correctness preservation under soft labeling lacks formal proof: Theorem 1 applies to discrete rewards with binary indicator functions. The paper does not formally analyze how the soft labeling approximation (probabilistic labels and transitions via sigmoid) preserves the satisfaction probability guarantees. While the author's rebuttal acknowledges this and argues the approximation should work as steepness increases, the submitted paper contains no such theorem or proof.",
+                "severity": "major",
+                "evidence": "Theorem 1 (lines 191-195) provides correctness guarantees: 'lim_{γ→1−} E[G(σ)] = Pr(σ |= □♢B)' with discrete rewards R(s) ∈ {0, 1-β}. The soft labeling approach (lines 203-239) replaces binary rewards with continuous rewards R((s,q)) = (1-β)∑_{q∈B} q_q (Equation 8) where q_q are probabilities. No theorem bounds the approximation error or proves that the optimal policy under soft rewards maximizes satisfaction probability.",
+                "affected_claim": "The abstract (lines 13-15) claims the method achieves 'differentiable rewards and states, effectively mitigating the sparse-reward issue intrinsic to LTL without compromising objective correctness.' The 'without compromising correctness' clause is not formally justified in the submitted paper.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited experimental baselines and scope: Experiments compare only against generic RL methods (PPO, SAC, SHAC, AHAC), not against other recent LTL-specific RL approaches (e.g., ref [38] on heuristic-based dense rewards, ref [45, 46]). All experiments use a single differentiable simulator (dFlex). The author's rebuttal acknowledges these limitations but does not resolve them in the submitted paper.",
+                "severity": "major",
+                "evidence": "Lines 273-281: Baselines are PPO, SAC, SHAC, AHAC only. Reference [38] (Kantaros, IROS 2022) on heuristic-based dense rewards is cited in lines 38, 45, 84, 239 but not included as a baseline. References [45, 46] are similarly cited but not used experimentally. Implementation Details (lines 265-271) state only dFlex was used. Author's rebuttal acknowledges 'we only compare against generic RL baselines' and that 'we tested on a single differentiable simulator' but states implementing other methods would be 'a substantial undertaking.' These limitations remain in the submitted work.",
+                "affected_claim": "The paper claims to demonstrate 'significant improvements in both reward attainment and training time compared to the discrete methods' (abstract, lines 16-17). Without comparison to other LTL-RL methods, it is unclear whether the improvement comes from differentiability specifically or from other factors. The paper compares differentiable RL + differentiable LTL rewards vs. non-differentiable RL + differentiable LTL rewards, which is valid, but does not compare against the leading LTL-specific approaches.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "No guidance for critical design choice—the CDF function: The paper states any differentiable CDF could be used but provides no sensitivity analysis, tuning guidance, or empirical justification for the sigmoid choice. The author's rebuttal proposes future ablation studies but these are not in the submitted work, leaving practitioners without principled guidance on this additional hyperparameter.",
+                "severity": "minor",
+                "evidence": "Lines 209-210: 'Although we use the widely adopted sigmoid function here, any differentiable cumulative distribution function (CDF) h : R 7→ [0, 1] could be applied.' No ablation study comparing different CDFs or sigmoid steepness values is provided. Section 6 (lines 377-378) acknowledges 'the CDF used for probability estimation, which must also be tuned for optimal performance.' Author's rebuttal states 'we propose conducting a systematic ablation study' but this is not in the submission.",
+                "affected_claim": "The method introduces an additional hyperparameter (CDF choice) beyond standard RL hyperparameters. The paper does not justify why sigmoid works well or provide practitioners with tuning strategies.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical framework for soft labeling is sound: Equations 3-8 correctly derive differentiable approximations to discrete automaton transitions and rewards through probabilistic label assignments and sigmoid-based CDFs. The core technical approach is well-reasoned. However, a critical gap remains: the paper does not formally prove that the soft labeling approximation preserves the correctness guarantees of Theorem 1. The author's rebuttal acknowledges this and proposes adding such a theorem, but it is not in the submitted work. This gap is significant for the central correctness claim but does not invalidate the technical soundness of the proposed approximation itself. The experimental methodology is sound with proper ablation studies. The gradient computation and policy learning framework is implemented correctly using PyTorch. The pass is justified because the core technical approach is sound even though the correctness analysis is incomplete."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The integration of differentiable simulators with LTL specifications via soft labeling represents a novel contribution. Prior work addresses LTL-based RL [28-50] and differentiable RL [71-75] separately, but combining them with soft labeling for probabilistic automaton transitions is new. The soft labeling approach itself—using sigmoid-based CDFs to make automaton transitions differentiable—is a clever technical contribution, even if the underlying idea of softening discrete functions is not novel in isolation. The work extends differentiable RL capabilities to the formal specification domain in a way not previously attempted, meeting the novelty bar for a top-tier venue."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper makes a meaningful contribution to an important intersection of formal methods and learning. The ability to leverage gradient information from differentiable simulators to learn from formal specifications addresses a genuine bottleneck: sparse rewards in LTL-based RL. The empirical evidence shows substantial improvements (4-5x speedup), which is practically significant. The ablation study (Figure 4) demonstrates that the improvements stem from differentiability rather than environment-specific factors. However, significance is somewhat limited by: (1) experiments restricted to simulation, (2) applicability contingent on availability of differentiable simulators, (3) no comparison with other LTL-specific acceleration methods. The work is solid and makes a clear contribution, placing it in the 'good but not breakthrough' category for significance. This is sufficient for a selective conference but does not represent a major advance."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental validation is reasonably comprehensive within its scope. Multiple environments are tested (CartPole, Hopper, Cheetah, Ant), standard deviations are reported, and a well-designed ablation study (Figure 4) isolates differentiability as the key factor. The parking example effectively illustrates the challenge of learning from LTL. However, evaluation has limitations: (1) only simulation-based, no real-world validation; (2) single differentiable simulator; (3) baselines limited to generic RL methods, not LTL-specific approaches; (4) no statistical significance testing beyond error bars; (5) no analysis of how performance scales with automaton complexity. For CartPole, the near-universal failure of non-differentiable methods is striking but raises fair questions about hyperparameter fairness, which the author's rebuttal addresses by explaining the extreme sparsity (1/192 transitions yielding reward). The ablation study provides important evidence that differentiability, not environment properties, drives improvements. The pass is justified because the experiments adequately support the main claims within a defined scope, despite limited breadth."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear problem motivation, formal problem statement, and logical flow. Preliminaries establish notation carefully. Section 4 presents the core technical contribution clearly with good equation formatting and intuitive explanations. The parking example (Figure 1) provides helpful intuition. Algorithm 1 offers useful pseudocode. However, presentation could be improved: (1) the transition from discrete to soft labeling could have more intuitive explanation before heavy notation; (2) the impact of soft labeling on correctness is not clearly discussed in main text (acknowledged gap); (3) some notation (e.g., L_{q,q'}) could be introduced more clearly; (4) experimental details are sometimes sparse in main text. These are presentation quality issues that do not block understanding, making this a pass with room for improvement."
+              }
+            },
+            "summary_comment": "This paper presents a novel approach to accelerating learning from LTL specifications by leveraging differentiable simulators and soft labeling to make automaton transitions differentiable. The core contribution is sound and addresses a genuine problem: sparse rewards in LTL-based RL make learning intractable for standard methods. The soft labeling technique (using sigmoid-based CDFs to represent probabilistic automaton states and transitions) is a clever technical solution, and the empirical results demonstrate substantial improvements (4-5x convergence speedup) across robotic tasks. Critically, the ablation study (Figure 4) convincingly shows these improvements stem from differentiability of rewards, not from environment properties.\n\nHowever, the paper has meaningful gaps that prevent it from being a strong accept: (1) **Correctness claim lacks formal proof**: While Theorem 1 guarantees correctness for discrete LTL rewards, the paper does not formally prove that the soft labeling approximation preserves these guarantees. The author acknowledges this in rebuttal but the proof is not in the submitted work—this is a significant gap given the emphasis on correctness in the introduction and abstract. (2) **Limited experimental scope**: All experiments use a single differentiable simulator (dFlex) and compare only against generic RL methods (PPO, SAC, SHAC, AHAC). No comparison with other LTL-specific RL methods like [38] (heuristic-based dense rewards) limits understanding of whether the gains are unique to differentiable simulators or available through other means. (3) **CDF hyperparameter lacks guidance**: The method introduces an additional hyperparameter (choice of CDF for soft labels) with no sensitivity analysis or tuning guidance provided. The author proposes ablation studies in rebuttal, but these are not in the submitted work.\n\nDespite these limitations, the paper makes a solid contribution that merits publication at a top venue. The idea is novel, the technical execution is competent, and the empirical validation within its scope is convincing. The work enables a new capability—gradient-based learning directly from formal specifications—that is relevant to the safety-critical RL community. The acknowledged limitations are not showstoppers for the core contribution, though they prevent this from being a clear strong accept. The ablation study is particularly valuable as it controls for alternative explanations and provides evidence for the claimed mechanism. For a selective conference, this represents good work that advances the field at the intersection of formal methods and differentiable learning."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited experimental scope: experiments restricted to simple simulated environments with a single differentiable simulator (dFlex); no comparison with other recent LTL-RL methods (refs [38, 45, 46]); no real-world experiments\",\n        \"Incomplete analysis of soft labeling approximation: no sensitivity analysis for CDF choice; impact on satisfaction probability and safety constraint violations not thoroughly discussed\",\n        \"Missing formal proof of correctness preservation: Theorem 1 applies to discrete rewards, but the paper does not formally analyze how soft labeling approximation affects the correctness guarantee\",\n        \"Practical limitations: method depends on simulator quality and gradient efficiency; requires additional hyperparameter tuning (CDF choice)\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Soft labeling CDF choice lacks guidance\",\n          \"location\": \"Lines 209-210 and Section 6 (lines 377-378)\",\n          \"explanation\": \"The paper states 'any differentiable CDF h : R 7→ [0, 1] could be applied' but provides no sensitivity analysis or tuning guidance. Section 6 acknowledges CDF as an additional hyperparameter but offers no practical recommendations.\"\n        },\n        {\n          \"concern\": \"Correctness preservation under soft labeling not formally proven\",\n          \"location\": \"Theorem 1 (lines 191-195) vs. soft labeling approach (lines 203-239)\",\n          \"explanation\": \"Theorem 1 provides correctness guarantees for discrete rewards with indicator functions. The transition to probabilistic soft labels in Equations 3-8 lacks formal analysis of how this approximation preserves satisfaction probability guarantees.\"\n        },\n        {\n          \"concern\": \"Experimental baselines limited to generic RL methods\",\n          \"location\": \"Lines 273-281 (Baselines section)\",\n          \"explanation\": \"Only PPO, SAC, SHAC, and AHAC are used as baselines. Recent LTL-specific RL methods [38, 45, 46] are not included for comparison, limiting the evaluation of relative performance against the state-of-the-art in LTL-based RL.\"\n        },\n        {\n          \"concern\": \"Single differentiable simulator backend\",\n          \"location\": \"Lines 265-271 (Implementation Details)\",\n          \"explanation\": \"All experiments use dFlex. No evaluation on other differentiable simulators (Brax, DiffTaichi, etc.) to demonstrate generalizability of the approach.\"\n        },\n        {\n          \"concern\": \"Simulator quality and gradient efficiency impact performance\",\n          \"location\": \"Section 6 (lines 364-366)\",\n          \"explanation\": \"The paper acknowledges 'if a simulator provides poor gradient information or computes gradients slowly, the learning process will be significantly slowed down' but does not analyze this dependency empirically.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Formal correctness guarantee under soft labeling\",\n          \"proposed_change\": \"Add a theorem or lemma that proves: for soft labeling with CDF h, the optimal policy under the differentiable reward approximation converges to satisfy the LTL specification with probability approaching that of the discrete LTL reward as the CDF steepness increases. This would formalize the correctness preservation claim.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"CDF sensitivity analysis\",\n          \"proposed_change\": \"Conduct ablation study varying the sigmoid steepness or CDF shape (e.g., compare sigmoid with different slopes, different CDFs like Gaussian CDF). Report impact on convergence speed and final satisfaction probability to provide guidance for practitioners.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Comparison with other LTL-RL methods\",\n          \"proposed_change\": \"Add experimental comparison with the heuristic-based dense rewards approach from [38] (Kantaros, IROS 2022) and other recent methods from [45, 46]. This would situate the work within the broader LTL-RL literature and validate that differentiability provides advantages beyond existing heuristic approaches.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Evaluation on multiple differentiable simulators\",\n          \"proposed_change\": \"Implement the approach using at least one additional differentiable simulator (e.g., Brax) and report convergence speed and final performance. This would demonstrate that the benefits are not simulator-specific.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Fairness of baseline comparison\",\n          \"proposed_change\": \"For CartPole where non-differentiable methods completely fail, provide additional analysis: (1) report hyperparameter sensitivity for PPO/SAC, (2) use longer training budgets if feasible, (3) include additional non-differentiable LTL-RL baselines to show whether the failure is due to method limitations or hyperparameter mismatch.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the detailed review and the thoughtful identification of both strengths and limitations. We address the reviewer's major concerns below:\\n\\n**On Correctness Preservation Under Soft Labeling:**\\n\\nThe reviewer correctly identifies that while Theorem 1 provides correctness guarantees for discrete LTL rewards, the paper does not formally prove that the soft labeling approximation (Equations 3-8) preserves these guarantees. This is a valid and important concern. The key insight we relied on—that the soft labels approximate the hard labels with arbitrary precision as the sigmoid steepness increases—needs rigorous formalization. We propose adding a formal theorem stating that as the CDF becomes steeper (or through other regularization), the optimal policy under soft labeling converges to maximize the LTL satisfaction probability. This would strengthen our correctness claim significantly.\\n\\n**On CDF Choice and Sensitivity:**\\n\\nThe reviewer notes that the paper treats the CDF choice as arbitrary without guidance. This is a legitimate limitation. While we currently support any differentiable CDF, we provide no tuning strategy. Our empirical work used the sigmoid, which is standard, but we acknowledge this introduces an additional hyperparameter. We propose conducting a systematic ablation study (which is not in the current submission) to analyze how CDF steepness and shape affect both convergence speed and satisfaction probability estimation. This would provide practitioners with concrete guidance.\\n\\n**On Limited Experimental Scope:**\\n\\nThe reviewer points out that we only compare against generic RL baselines (PPO, SAC) and do not include other recent LTL-specific RL methods from references [38, 45, 46]. The reviewer also notes experiments are limited to dFlex. These are fair observations about experimental scope. However, we note that:\\n\\n1. References [38, 45, 46] represent different methodological approaches (heuristic dense rewards, counterfactual replay, sample efficiency via PAC bounds) that solve different aspects of LTL-RL. A direct head-to-head comparison would require implementing and tuning each baseline, which is a substantial undertaking. Our ablation study (Figure 4) does control for specification complexity and isolates differentiability as the key factor.\\n\\n2. Our choice to compare against PPO and SAC (as well as SHAC and AHAC) was deliberate: these are representative model-free and differentiable RL methods. The comparison demonstrates that *when generic RL methods are enhanced with differentiable LTL rewards*, they outperform their standard versions. This validates the core contribution.\\n\\n3. We tested on a single differentiable simulator (dFlex) because it was available and well-integrated with our infrastructure. The approach is simulator-agnostic in principle, and we acknowledge this as a limitation of the empirical validation.\\n\\n**On Practical Dependencies (Simulator Quality, Hyperparameter Tuning):**\\n\\nThe reviewer correctly identifies that the method's performance depends on simulator gradient quality and introduces an additional hyperparameter (CDF). We acknowledge these in Section 6. However, we note:\\n\\n1. The dependence on simulator quality is inherent to any differentiable RL approach, not specific to our method. This is a limitation of the differentiable RL paradigm generally, not of our LTL application.\\n\\n2. The CDF hyperparameter is less critical in practice than the reviewer might suggest: the sigmoid with a fixed shape works well across all our experiments. Fine-tuning the CDF steepness per environment would likely yield marginal improvements. Nevertheless, this is a valid point that deserves more thorough analysis.\\n\\n**Addressing the Reviewer's Concerns Concretely:**\\n\\n1. **Correctness:** We stand by the correctness claim, but acknowledge it needs formal proof (proposed above as future work).\\n\\n2. **CDF Sensitivity:** We recognize this is a gap and propose ablation studies to fill it. (Not in current submission; would require new experiments.)\\n\\n3. **Baselines:** Our ablation study (Figure 4) demonstrates that the performance difference comes from differentiability, not environment properties. However, we acknowledge that direct comparison with [38] would strengthen the paper. This would require implementing that method.\\n\\n4. **Simulator Scope:** We tested on dFlex only, which is a limitation we acknowledge. Future work could extend to other simulators.\\n\\n**Regarding the CartPole Experiment:**\\n\\nThe reviewer notes that non-differentiable methods fail completely on CartPole. This is not due to hyperparameter mismatch—it reflects the genuine challenge of learning from sparse LTL rewards. The CartPole automaton for our specification has only 1 reward-yielding transition out of 192 total, creating extreme sparsity. Non-differentiable methods cannot effectively explore this landscape without guidance. This actually highlights the value of our approach: by providing gradient information, we make learning tractable in high-sparsity settings.\\n\\n**Summary:**\\n\\nWe acknowledge the reviewer's concerns are well-founded and represent important limitations. The paper would be strengthened by: (1) formal analysis of soft labeling's correctness properties, (2) sensitivity analysis for the CDF hyperparameter, (3) comparison with other LTL-RL methods, and (4) evaluation on additional simulators. However, we believe the core contribution—using differentiable simulators to enable gradient-based learning from LTL specifications via soft labeling—is sound and significant, even with these limitations. The empirical results within our scope clearly validate the approach's effectiveness.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 3,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel approach combining differentiable simulators with LTL specifications: To the best of the reviewer's knowledge, this is the first method integrating LTL specifications with differentiable simulators for accelerated gradient-based learning. The soft labeling technique (Equations 3-8) elegantly addresses the non-differentiability challenge introduced by discrete automaton transitions and binary reward functions, enabling end-to-end differentiable learning.",
+              "Strong empirical validation with careful ablation study: The paper demonstrates substantial speedup (4-5x convergence advantage) across diverse robotic tasks. Critically, Figure 4 provides a well-designed ablation that convincingly isolates differentiability as the key factor by comparing performance on simplified LTL specifications where all methods succeed. This addresses potential confounds and strengthens the causal claim.",
+              "Addresses a genuine and important practical problem: Learning from sparse LTL specifications is genuinely difficult, and the paper demonstrates this by showing near-complete failure of non-differentiable methods on CartPole due to extreme sparsity (1 reward transition out of 192). The approach makes learning from formal specifications tractable in high-sparsity regimes where standard RL fails."
+            ],
+            "weaknesses": [
+              "Correctness preservation under soft labeling lacks formal justification: Theorem 1 applies to discrete rewards with binary indicator functions. The paper does not formally prove or provide bounded approximation guarantees for how the soft labeling approximation (probabilistic labels via sigmoid, continuous rewards) preserves satisfaction probability. While Figure 1 shows empirical agreement on the parking task and Figure 4 demonstrates high satisfaction on simplified specs, general theoretical guarantees are absent.",
+              "Limited experimental baselines and scope: Experiments compare only against generic RL methods (PPO, SAC, SHAC, AHAC), not against other LTL-specific RL approaches (refs [38, 45, 46]). The author's rebuttal clarifies these are orthogonal methods, which is reasonable, but no empirical comparison is provided to situate the work within the LTL-RL literature. All experiments use a single differentiable simulator (dFlex); generalizability across simulators remains unvalidated.",
+              "CDF hyperparameter lacks empirical guidance: The paper states any differentiable CDF could work but uses sigmoid without sensitivity analysis or tuning guidance. The author's rebuttal notes sigmoid worked consistently in their experiments, but this is post-hoc observation, not systematic study. Practitioners lack principled guidance on CDF choice and steepness."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Correctness preservation under soft labeling lacks formal justification: Theorem 1 applies to discrete rewards with binary indicator functions. The paper does not formally prove or provide bounded approximation guarantees for how the soft labeling approximation (probabilistic labels via sigmoid, continuous rewards) preserves satisfaction probability. While Figure 1 shows empirical agreement on the parking task and Figure 4 demonstrates high satisfaction on simplified specs, general theoretical guarantees are absent.",
+                "severity": "major",
+                "evidence": "Theorem 1 (lines 191-195) guarantees lim_{γ→1−} E[G(σ)] = Pr(σ |= □♢B) for discrete rewards R(s) ∈ {0, 1-β}. Soft labeling (Equations 3-8) replaces binary rewards with continuous R((s,q)) = (1-β)∑_{q∈B} q_q where q_q are probabilities. No theorem, lemma, or proposition in the paper bounds the approximation error or proves the optimal policy under soft rewards maximizes satisfaction probability. Figure 1 shows empirical agreement for parking on a 1D parameter space, not general correctness guarantee. Figure 4 shows high satisfaction on simplified specs but does not bound approximation error as a function of CDF properties.",
+                "affected_claim": "Abstract (lines 13-15) claims 'without compromising objective correctness.' This is not formally justified, only empirically supported for tested environments.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited experimental baselines and scope: Experiments compare only against generic RL methods (PPO, SAC, SHAC, AHAC), not against other LTL-specific RL approaches (refs [38, 45, 46]). The author's rebuttal clarifies these are orthogonal methods, which is reasonable, but no empirical comparison is provided to situate the work within the LTL-RL literature. All experiments use a single differentiable simulator (dFlex); generalizability across simulators remains unvalidated.",
+                "severity": "major",
+                "evidence": "Lines 273-281 show baselines are PPO, SAC, SHAC, AHAC. References [38, 45, 46] are cited throughout but not tested experimentally. Author's rebuttal explains [38] is 'complementary, not competitive' and claims it would require substantial implementation to compare fairly. However, the paper does not experimentally establish this claim or position itself relative to other acceleration methods. Lines 265-271 state only dFlex was used; no ablation across simulators provided.",
+                "affected_claim": "The claim of 'significant improvements' (abstract, lines 16-17) is relative to generic RL + differentiable LTL rewards, not relative to other LTL-RL acceleration methods. The scope is limited to one simulator.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "CDF hyperparameter lacks empirical guidance: The paper states any differentiable CDF could work but uses sigmoid without sensitivity analysis or tuning guidance. The author's rebuttal notes sigmoid worked consistently in their experiments, but this is post-hoc observation, not systematic study. Practitioners lack principled guidance on CDF choice and steepness.",
+                "severity": "minor",
+                "evidence": "Lines 209-210 state 'any differentiable CDF h : R → [0, 1] could be applied' but no comparison of CDFs is provided. Section 6 (lines 377-378) acknowledges CDF as a hyperparameter. Author's rebuttal states 'we used sigmoid with a fixed configuration without tuning' and 'worked consistently,' but this is empirical observation without systematic ablation.",
+                "affected_claim": "The method introduces an additional hyperparameter without systematic guidance on its setting, making reproducibility and transfer to new domains less straightforward.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical framework for soft labeling is technically sound: Equations 3-8 correctly derive differentiable approximations to discrete automaton transitions and rewards. The core idea—using sigmoid-based CDFs to assign probabilistic labels and smooth automaton transitions—is mathematically correct and well-formed. The rebuttal provides helpful clarification that soft labeling recovers discrete behavior as sigmoid steepness increases, strengthening the intuition. However, a significant gap remains: no formal theorem bounds the approximation error or proves that optimal policies under soft rewards maximize satisfaction probability as claimed. This gap is acknowledged in the rebuttal, which forthrightly states a formal theorem would be needed for complete rigor. For empirical ML work, the strong experimental evidence (Figure 4 shows high satisfaction across tasks; ablation convincingly isolates differentiability) provides practical support. The pass reflects that the core technical approach is sound and well-reasoned, even though theoretical guarantees are incomplete. This represents a limitation in the correctness analysis rather than an error in the method itself."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The integration of differentiable simulators with LTL specifications via soft labeling represents a novel contribution. The rebuttal clarifies that soft labeling enables a new capability distinct from prior work. While prior work addresses LTL-based RL and differentiable RL separately, the specific combination of soft labeling for probabilistic automaton transitions is new. The technical contribution is not deeply novel (softening discrete functions is a known technique), but its application to make LTL automata differentiable is novel. The work establishes a new connection between formal specifications and differentiable learning that has not been previously explored, which meets the novelty threshold for a selective venue."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a meaningful problem: learning from sparse LTL rewards is genuinely difficult, and the rebuttal provides concrete evidence (1 reward transition out of 192 in CartPole) of why this matters. The empirical improvements are substantial (4-5x speedup), which is practically significant. The work enables a new capability—gradient-based learning from formal specifications—relevant to safety-critical RL. The ablation study demonstrates causality, showing improvements come from differentiability rather than environment factors. However, significance is bounded by: (1) simulation-only evaluation, (2) applicability conditional on differentiable simulator availability, (3) lack of comparison with other LTL acceleration methods. The rebuttal's clarification that complementary methods exist is helpful but does not establish whether differentiable simulators provide unique advantages. The contribution is solid and meaningful for the formal methods + learning community but represents incremental advance rather than paradigm shift. This is sufficient for a selective venue without being groundbreaking."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental validation adequately supports the main claims within a defined scope. Multiple environments are tested (CartPole, Hopper, Cheetah, Ant); standard deviations are reported; the ablation study (Figure 4) is well-designed and convincingly isolates differentiability as the causal factor. The rebuttal's explanation of CartPole's extreme sparsity (1/192 reward-yielding transitions) contextualizes why non-differentiable methods fail completely, alleviating concerns about unfair comparison. The parking example effectively illustrates the challenge. However, evaluation has clear limitations: (1) only simulation-based, (2) single simulator backend, (3) baselines limited to generic RL (though rebuttal clarifies other LTL methods are orthogonal), (4) no statistical significance testing beyond error bars, (5) no complexity scaling analysis. The rebuttal forthrightly acknowledges these are implementation limitations rather than claiming the experiments are comprehensive. The pass reflects that experiments adequately validate the main claim (differentiability accelerates learning from LTL) within stated scope, despite limited breadth. The ablation study is particularly valuable for establishing causality."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written with clear motivation, formal problem statement, and logical structure. The soft labeling contribution is presented clearly with good equation formatting and intuitive explanations. Algorithm 1 provides helpful pseudocode. Figure 1 offers useful intuition via the parking example. The rebuttal acknowledges that the transition from discrete to soft labeling could benefit from more intuition before heavy notation. Presentation quality is good overall: notation is mostly well-introduced, the flow is logical, and key concepts are explained. Minor improvements could be made (e.g., clearer introduction of L_{q,q'}, more discussion of soft labeling's impact on correctness in main text), but these do not prevent understanding. The pass reflects that presentation is clear enough to permit reliable assessment and does not impede understanding of the technical contribution."
+              }
+            },
+            "summary_comment": "This paper presents a novel approach to accelerating learning from LTL specifications by leveraging differentiable simulators and soft labeling. The core contribution—using sigmoid-based CDFs to make automaton transitions probabilistic and differentiable—is technically sound and addresses a genuine problem: sparse LTL rewards make standard RL intractable. The empirical results are strong (4-5x speedup across robotic tasks), and the ablation study (Figure 4) convincingly demonstrates that improvements stem from differentiability rather than environment properties. The rebuttal provides helpful clarification that soft labeling recovers discrete behavior as sigmoid steepness increases, strengthening intuition about why the approach should work.\n\nHowever, three substantive limitations persist in the submitted work: (1) **Lack of formal correctness guarantee**: While Theorem 1 justifies discrete LTL rewards, the paper does not prove or bound the approximation error when using soft labels. The rebuttal candidly acknowledges this gap and proposes a formal theorem as future work, but it is not in the current submission. Empirical evidence (Figure 1, Figure 4) supports the approach in tested domains but does not establish general theoretical guarantees. (2) **Limited experimental scope**: Experiments use only generic RL baselines and a single differentiable simulator. The rebuttal clarifies that other LTL-specific methods are orthogonal rather than competitive, which is reasonable, but this positioning is not empirically validated. Generalizability across simulators remains undemonstrated. (3) **CDF hyperparameter lacks systematic guidance**: The paper introduces an additional hyperparameter (CDF choice) without sensitivity analysis. The rebuttal notes sigmoid worked consistently in tested environments, but this is post-hoc observation rather than systematic study.\n\nDespite these limitations, the paper merits acceptance at a top-tier venue. The work is novel, technically competent, and solves a meaningful problem. The rebuttal is notably honest in distinguishing between what is in the submitted paper (strong empirical validation, sound technical approach) and what would strengthen it (formal correctness theorems, broader baselines, simulator generalization). The ablation study is particularly valuable for establishing causality. The contribution meaningfully advances the intersection of formal methods and differentiable learning, enabling a new capability (gradient-based learning from LTL specifications) with substantial practical improvements. For a selective conference, this represents solid work that meets the acceptance threshold, though it falls short of being a clear strong accept due to the theoretical gap on correctness preservation and limited experimental scope relative to the state of LTL-RL methods."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Correctness preservation under soft labeling lacks formal proof: Theorem 1 applies to discrete rewards, but the paper does not formally prove the soft labeling approximation preserves satisfaction probability guarantees\",\n        \"Limited experimental baselines: comparisons only against generic RL methods (PPO, SAC, SHAC, AHAC), not other LTL-specific RL methods [38, 45, 46]; single simulator (dFlex) used for all experiments\",\n        \"CDF hyperparameter lacks guidance: no sensitivity analysis or tuning strategy provided for the sigmoid CDF choice, despite it being introduced as an additional hyperparameter\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Correctness preservation under soft labeling not formally proven\",\n          \"location\": \"Theorem 1 (lines 191-195) vs. soft labeling (lines 203-239) and Equations 3-8\",\n          \"explanation\": \"Theorem 1 guarantees lim_{γ→1−} E[G(σ)] = Pr(σ |= □♢B) for discrete rewards R(s) ∈ {0, 1-β}. The soft labeling replaces these with continuous rewards R((s,q)) = (1-β)∑_{q∈B} q_q where q_q are state probabilities. No theorem bounds the approximation error or proves optimal policy under soft rewards maximizes satisfaction probability.\"\n        },\n        {\n          \"concern\": \"Baselines limited to generic RL methods\",\n          \"location\": \"Lines 273-281 (Baselines) and Implementation Details (lines 265-271)\",\n          \"explanation\": \"Only PPO, SAC, SHAC, AHAC tested. References [38, 45, 46] on LTL-specific RL methods are cited throughout but not included as experimental baselines. All experiments use dFlex only; no evaluation on other differentiable simulators (Brax, DiffTaichi, etc.).\"\n        },\n        {\n          \"concern\": \"CDF choice lacks empirical justification and tuning guidance\",\n          \"location\": \"Lines 209-210 and Section 6 (lines 377-378)\",\n          \"explanation\": \"Paper states 'any differentiable CDF could be applied' but uses sigmoid without justification. Section 6 acknowledges CDF is an additional hyperparameter requiring tuning, but no ablation or sensitivity analysis provided. No guidance on how sigmoid steepness or CDF shape affects learning efficiency or satisfaction probability estimation.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Formal correctness guarantee under soft labeling approximation\",\n          \"proposed_change\": \"Add a theorem (e.g., 'Theorem 1.5: Soft Labeling Correctness Approximation') proving that for soft labeling with CDF h(·), the optimal policy π* under the differentiable reward approximation satisfies: Pr(σ~M^π* |= φ) ≥ E[G(σ)] - ε(h), where ε(h) is a bounded approximation error that decreases as h becomes steeper (or tighter). This would rigorously establish that soft labeling preserves correctness guarantees.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"CDF sensitivity and tuning guidance\",\n          \"proposed_change\": \"Add ablation study (Section 5 or appendix) comparing sigmoid with different steepness parameters and alternative CDFs (Gaussian CDF, Gumbel CDF). Report convergence speed and final satisfaction probability for each variant across at least two environments. Provide practitioners with clear guidance: e.g., 'We recommend sigmoid with steepness parameter α ∈ [5, 10] for most robotic tasks; higher values prioritize boundary precision while lower values smooth the reward landscape.'\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited baseline comparisons do not situate work within LTL-RL literature\",\n          \"proposed_change\": \"Implement and compare against at least one other LTL-RL acceleration method from [38] (heuristic-based dense rewards from Kantaros 2022). This comparison would establish whether differentiable simulators provide unique advantages over other acceleration strategies. If this is infeasible due to implementation burden, acknowledge the limitation more explicitly and frame the contribution as 'orthogonal to and potentially combinable with' existing LTL-RL methods.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Single simulator backend limits generalizability claims\",\n          \"proposed_change\": \"Test the approach on at least one additional differentiable simulator (e.g., Brax or PyBullet with autograd). Report convergence time, final performance, and simulator gradient computation overhead. This would demonstrate that improvements are not dFlex-specific and validate the generalizability of the approach.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We sincerely appreciate this thorough and constructive review. The reviewer has identified three substantive gaps that warrant our direct response. We address each below, distinguishing what is already supported by the submitted paper from what would require future work.\\n\\n**1. Correctness Preservation Under Soft Labeling**\\n\\nThe reviewer correctly identifies the core theoretical gap: Theorem 1 provides correctness guarantees for discrete rewards R(s) ∈ {0, 1−β}, but our soft labeling approach replaces these with continuous probabilistic rewards R((s,q)) = (1−β)∑_{q∈B} q_q. The paper does not formally prove the soft labeling preserves the satisfaction probability guarantee.\\n\\nThis is a valid concern and represents a genuine limitation of the submitted work. However, we can clarify the intuition and strengthen the argument within the existing paper:\\n\\n**Current submission evidence:**\\n- Equations 3-8 define the soft labeling scheme with clear differentiable transitions.\\n- The parking example (Figure 1) empirically demonstrates that the differentiable LTL returns closely match discrete LTL returns, except near boundaries where smoother transitions appear.\\n- The ablation study (Figure 4) shows that on simplified specifications with single-state automata, all methods (including non-differentiable RL) achieve satisfaction probability >0.9. This validates that soft labeling does not fundamentally compromise the objective.\\n\\n**Why soft labeling should preserve correctness (argument):**\\nAs the sigmoid steepness increases, the probabilistic label Pr(a ∈ L(s)) → 1 when g(s) > 0 and → 0 when g(s) < 0, recovering the discrete indicator behavior. By continuity, for sufficiently steep sigmoid, the soft-labeled reward function R((s,q)) should approximate the discrete reward R_discrete((s,q)) arbitrarily well. Optimal policies under soft rewards should therefore approximate optimal policies under discrete rewards.\\n\\n**Proposed formal strengthening (for future work):**\\nWe recognize that a formal theorem bounding the approximation error would significantly strengthen the submission. A theorem statement could be:\\n\\n*Theorem 1.5 (Soft Labeling Approximation):* Under soft labeling with CDF h(·) parameterized by steepness τ, the expected satisfaction probability achieved by an optimal policy π* under soft rewards satisfies: Pr(σ ∼ M^{π*} |= φ) ≥ E_σ[G(σ)] − O(1/τ), where the approximation error vanishes as τ → ∞.\\n\\nThis theorem is not in the current submission, but would address the reviewer's concern. Proving this rigorously would require analysis of how soft label error propagates through the product MDP dynamics, which is non-trivial but feasible.\\n\\n**Our position on this gap:**\\nWe acknowledge that without formal proof, the correctness claim in the abstract (lines 13-15: \\\"without compromising objective correctness\\\") is stronger than what we rigorously justify. However, the empirical evidence (Figure 1 showing soft ≈ discrete returns; Figure 4 showing high satisfaction probabilities; consistent improvements across tasks) provides strong practical support. For a venue prioritizing empirical validation, this is defensible, though we recognize it falls short of the standard for formal methods papers where correctness is paramount.\\n\\n**2. Limited Experimental Baselines and Scope**\\n\\nThe reviewer notes that we compare only against generic RL methods (PPO, SAC, SHAC, AHAC) and not against other LTL-specific RL methods [38, 45, 46]. This is a fair observation about experimental scope.\\n\\n**Current submission evidence supporting our comparison:**\\n- Our comparison is between (differentiable RL + differentiable LTL rewards) vs. (non-differentiable RL + differentiable LTL rewards). This isolates the effect of RL differentiability.\\n- References [38, 45, 46] employ different methodologies: [38] uses heuristic-based dense rewards (fundamentally different from our approach), [45] uses counterfactual experience replay, [46] uses PAC learning bounds. These are orthogonal to our contribution.\\n- Our ablation study (Figure 4) controls for specification complexity and demonstrates that performance gaps arise specifically from differentiability, not environment properties.\\n\\n**Why we did not include [38] as a baseline:**\\nReference [38] (Kantaros, IROS 2022) proposes heuristic-based acceleration of LTL learning. A proper comparison would require: (1) implementing the heuristic reward design from [38], (2) tuning it for our environments, (3) ensuring fair comparison by using identical RL algorithms. This is substantial implementation work that was infeasible within the paper's scope.\\n\\n**However, we can clarify the relationship:**\\nOur soft labeling approach and [38]'s heuristic approach are *complementary, not competitive*. [38] accelerates learning by manually designing dense rewards; we accelerate by providing gradients via differentiable simulators. In principle, one could combine both approaches: using our differentiable rewards as the base and additionally applying heuristics from [38]. Future work could explore this combination.\\n\\n**Our framing in the paper:**\\nLines 84-86 state: \\\"While heuristic-based dense rewards [38] attempt to address this, they risk misguiding exploration and compromising correctness. Our approach avoids these pitfalls by leveraging gradients from differentiable simulators.\\\" This comparison is conceptual, not empirical. We could strengthen this by clarifying that [38] and our approach target the same problem through different mechanisms.\\n\\n**On single simulator (dFlex):**\\nAll experiments use dFlex. This is an implementation limitation we acknowledge. The approach is simulator-agnostic in principle, and testing on additional simulators (Brax, DiffTaichi) would strengthen generalizability claims. However, this would require substantial additional implementation and experimental work not feasible before publication.\\n\\n**3. CDF Hyperparameter Lacks Guidance**\\n\\nThe reviewer notes that we introduce an additional hyperparameter (CDF choice) without providing tuning guidance or sensitivity analysis. This is accurate.\\n\\n**Current submission evidence:**\\n- Line 209-210: We state that \\\"any differentiable CDF h : R → [0, 1] could be applied,\\\" showing the approach is not sigmoid-specific.\\n- Section 6 (lines 377-378) acknowledges CDF as a hyperparameter.\\n- Across all experiments, we used sigmoid with a fixed configuration without tuning, suggesting the choice is not overly sensitive in the tested domains.\\n\\n**Why we did not provide CDF ablation:**\\nConducting a thorough CDF sensitivity study would require testing multiple CDF types (sigmoid, Gaussian, Gumbel CDFs) and multiple steepness parameters across multiple environments. This is a focused research contribution in itself and was not prioritized for the initial submission.\\n\\n**Practical guidance we can offer (based on our experience):**\\nIn our experiments, sigmoid with standard PyTorch sigmoid (no steepness parameter) worked consistently across all tasks. We chose sigmoid because: (1) it is widely used and well-understood, (2) it is efficiently computed, (3) its derivative properties are favorable for gradient-based learning. More sophisticated CDFs or adaptive steepness schedules could be future improvements.\\n\\n**Proposed guidance for practitioners (current paper):**\\nWe could add a brief note to Section 6 or as a remark after Equation 3: \\\"In our experiments, the sigmoid CDF with no tuning achieved consistent performance across tasks ranging from CartPole to Ant. Practitioners may experiment with steeper CDFs to prioritize boundary precision or softer CDFs to emphasize smooth gradients in high-sparsity regimes.\\\"\\n\\n**4. Meta-Response: Distinguishing Current Submission from Future Work**\\n\\nThe reviewer's rebuttal summary appropriately notes that we (the authors) acknowledged limitations in our hypothetical rebuttal but that these acknowledgments do not resolve gaps in the submitted paper. We want to be precise: \\n\\n- **In the paper:** We provide empirical validation of correctness (Figure 1), ablation studies (Figure 4), and consistent results across simulators-within-dFlex. These support the approach.\\n- **Not in the paper:** Formal correctness theorem, CDF sensitivity ablation, comparison with [38].\\n\\nWe do not claim the submitted paper includes these elements. We acknowledge they would strengthen the work and recognize they represent limitations of the current submission.\\n\\n**Conclusion**\\n\\nThe reviewer has identified three real limitations: (1) lack of formal correctness proof, (2) limited baseline diversity, and (3) no CDF tuning guidance. We stand by the core contribution—soft labeling enables differentiable LTL learning with significant practical improvements—and we acknowledge these limitations honestly. The ablation study (Figure 4) and empirical results (Figures 3) provide strong evidence within the scope of what we have evaluated. We recognize that a stronger paper would include formal correctness analysis, broader experimental comparisons, and CDF sensitivity studies, and we appreciate the reviewer's guidance on how to strengthen the work in future iterations.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_e2a12a3e3c21",
+    "conference": "NEURIPS",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/neurips_reject_2025_038_accelerated_learning_with_linear_temporal_logic_using_differentiable_simulation.md",
+    "target_paper_summary": {
+      "paper_id": "paper_e2a12a3e3c21",
+      "title": "Accelerated Learning With Linear Temporal Logic Using Differentiable Simulation",
+      "abstract": "1 To ensure learned controllers comply with safety and reliability requirements for 2 reinforcement learning in real-world settings remains challenging. Traditional 3 safety assurance approaches, such as state avoidance and constrained Markov 4 decision processes, often inadequately capture trajectory requirements or may 5 result in overly conservative behaviors. To address these limitations, recent studies 6 advocate the use of formal specification languages such as linear temporal logic 7 (LTL), enabling the derivation of correct-by-construction learning objectives from 8 the specified requirements. However, the sparse rewards associated with LTL\n9 specifications make learning extremely difficult, whereas dense heuristic-based 10 rewards risk compromising correctness. In this work, we propose the first method, 11 to our knowledge, that integrates LTL with differentiable simulators, facilitating 12 efficient gradient-based learning directly from LTL specifications by coupling with 13 differentiable paradigms. Our approach introduces soft labeling to achieve differ14 entiable rewards and states, effectively mitigating the sparse-reward issue intrinsic 15 to LTL without compromising objective correctness. We validate the efficacy of 16 our method through experiments, demonstrating significant improvements in both 17 reward attainment and training time compared to the discrete methods. 44 rewards make learning extremely difficult, as obtaining a nonzero reward often requires significant 45 exploration. Denser LTL-based rewards provided through heuristics might accelerate learning [38]; 46 however, if not carefully designed, they can compromise the correctness of the objective and misguide 47 exploration depending on the environment, ultimately reducing learning efficiency. In this work, 48 we address the challenges of scalable learning with correct objectives for long-horizon learning 49 tasks. We adopt LTL as the specification language, leveraging the intuitive high level language and 50 the automaton-based memory it provides. Unlike prior methods, our approach harnesses gradients 51 from differentiable simulators to facilitate efficient learning directly from LTL specifications while 52 preserving the correctness of the objectives. Our contributions can be summarized as follows: 53 - We propose, to the best of our knowledge, the first approach that accelerates learning from LTL 54 specifications using differentiable simulators. Our approach effectively mit",
+      "topic": "",
+      "claims": [
+        "we propose the first method, 11 to our knowledge, that integrates LTL with differentiable simulators, facilitating 12 efficient gradient-based learning directly from LTL specifications by coupling with 13 differentiable paradigms.",
+        "We propose, to the best of our knowledge, the first approach that accelerates learning from LTL 54 specifications using differentiable simulators.",
+        "Our approach introduces soft labeling to achieve differ14 entiable rewards and states, effectively mitigating the sparse-reward issue intrinsic 15 to LTL without compromising objective correctness.",
+        "our method through experiments, demonstrating significant improvements in both 17 reward attainment and training time compared to the discrete methods.",
+        "our approach harnesses gradients 51 from differentiable simulators to facilitate efficient learning directly from LTL specifications while 52 preserving the correctness of the objectives."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_b94b76b54",
+        "title": "Advances and Open Problems in Federated Learning",
+        "authors": [
+          "Peter Kairouz",
+          "H. Brendan McMahan",
+          "Brendan Avent",
+          "Aurélien Bellet",
+          "Mehdi Bennis",
+          "Arjun Nitin Bhagoji",
+          "Kallista Bonawitz",
+          "Zachary Charles",
+          "Graham Cormode",
+          "Rachel Cummings",
+          "Rafael G. L. D’Oliveira",
+          "Hubert Eichner",
+          "Salim El Rouayheb",
+          "David Evans",
+          "Joshua Gardner",
+          "Zachary Garrett",
+          "Adrià Gascón",
+          "Badih Ghazi",
+          "Phillip B. Gibbons",
+          "Marco Gruteser",
+          "Zaïd Harchaoui",
+          "Chaoyang He",
+          "Lingxiao He",
+          "Zhouyuan Huo",
+          "Ben Hutchinson",
+          "Justin Hsu",
+          "Martin Jaggi",
+          "Tara Javidi",
+          "Gauri Joshi",
+          "Mikhail Khodak",
+          "Jakub Konečný",
+          "Aleksandra Korolova",
+          "Farinaz Koushanfar",
+          "Sanmi Koyejo",
+          "Tancrède Lepoint",
+          "Yang Liu",
+          "Prateek Mittal",
+          "Mehryar Mohri",
+          "Richard Nock",
+          "Ayfer Özgür",
+          "Rasmus Pagh",
+          "Hang Qi",
+          "Daniel Ramage",
+          "Ramesh Raskar",
+          "Mariana Raykova",
+          "Dawn Song",
+          "Weikang Song",
+          "Sebastian U. Stich",
+          "Ziteng Sun",
+          "Ananda Theertha Suresh",
+          "Florian Tramèr",
+          "Praneeth Vepakomma",
+          "Jianyu Wang",
+          "Li Xiong",
+          "Zheng Xu",
+          "Qiang Yang",
+          "Felix X. Yu",
+          "Han Yu",
+          "Sen Zhao"
+        ],
+        "year": 2020,
+        "publication_date": "2020-12-02",
+        "venue": "Foundations and Trends® in Machine Learning",
+        "abstract": "Federated learning (FL) is a machine learning setting where many clients (e.g., mobile devices or whole organizations) collaboratively train a model under the orchestration of a central server (e.g., service provider), while keeping the training data decentralized. FL embodies the principles of focused data collection and minimization, and can mitigate many of the systemic privacy risks and costs resulting from traditional, centralized machine learning and data science approaches. Motivated by the explosive growth in FL research, this monograph discusses recent advances and presents an extensive collection of open problems and challenges.",
+        "url": "https://doi.org/10.1561/2200000083",
+        "doi": "https://doi.org/10.1561/2200000083",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2995022099"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 4940
+      },
+      {
+        "paper_id": "rw_002_a99b2a88b",
+        "title": "The Theory and Practice of Online Learning",
+        "authors": [],
+        "year": 2008,
+        "publication_date": "2008-12-31",
+        "venue": "Athabasca University Press eBooks",
+        "abstract": "The revised version of the Theory and Practice of Online Learning, edited by Terry Anderson, brings together recent developments in both the practice and our understanding of online learning.Five years have since passed between this new edition and the first version.Five years is certainly a long time in this business as this second edition illustrates.The improvement in versatility and sophistication of the technologies that have been coming into common use has been so significant that a revisit of our knowledge of learning technologies and their application was becoming increasingly necessary.Anderson and the other authors of this text have responded to the need and have done the higher education community a great service by bringing it out in the electronic open access format under a Creative Commons License.Those of us from the other world are beneficiaries of this generosity and intellectual benevolence.Online learning has begun to embed itself as a part of our educational environment, especially in the higher education and training Theory and Practice of Online Learning",
+        "url": "https://doi.org/10.15215/aupress/9781897425084.01",
+        "doi": "https://doi.org/10.15215/aupress/9781897425084.01",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2104357911"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1832
+      },
+      {
+        "paper_id": "rw_003_06461eef1",
+        "title": "Informed Machine Learning - A Taxonomy and Survey of Integrating Prior Knowledge into Learning Systems",
+        "authors": [
+          "Laura von Rueden",
+          "Sebastian Mayer",
+          "Katharina Beckh",
+          "Bogdan Georgiev",
+          "Sven Giesselbach",
+          "Raoul Heese",
+          "Birgit Kirsch",
+          "Michał Walczak",
+          "Julius Pfrommer",
+          "Annika Pick",
+          "Rajkumar Ramamurthy",
+          "Jochen Garcke",
+          "Christian Bauckhage",
+          "Jannis Schuecker"
+        ],
+        "year": 2021,
+        "publication_date": "2021-01-01",
+        "venue": "IEEE Transactions on Knowledge and Data Engineering",
+        "abstract": "Despite its great success, machine learning can have its limits when dealing with insufficient training data. A potential solution is the additional integration of prior knowledge into the training process which leads to the notion of informed machine learning. In this paper, we present a structured overview of various approaches in this field. We provide a definition and propose a concept for informed machine learning which illustrates its building blocks and distinguishes it from conventional machine learning. We introduce a taxonomy that serves as a classification framework for informed machine learning approaches. It considers the source of knowledge, its representation, and its integration into the machine learning pipeline. Based on this taxonomy, we survey related research and describe how different knowledge representations such as algebraic equations, logic rules, or simulation results can be used in learning systems. This evaluation of numerous papers on the basis of our taxonomy uncovers key methods in the field of informed machine learning.",
+        "url": "https://doi.org/10.1109/tkde.2021.3079836",
+        "doi": "https://doi.org/10.1109/tkde.2021.3079836",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3006087551"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 789
+      },
+      {
+        "paper_id": "rw_004_7b694fe61",
+        "title": "An Introduction to Deep Reinforcement Learning",
+        "authors": [
+          "Vincent François-Lavet",
+          "Peter Henderson",
+          "Riashat Islam",
+          "Marc G. Bellemare",
+          "Joëlle Pineau"
+        ],
+        "year": 2018,
+        "publication_date": "2018-12-20",
+        "venue": "Foundations and Trends® in Machine Learning",
+        "abstract": "Deep reinforcement learning is the combination of reinforcement learning (RL) and deep learning. This field of research has been able to solve a wide range of complex decision making tasks that were previously out of reach for a machine. Thus, deep RL opens up many new applications in domains such as healthcare, robotics, smart grids, finance, and many more. This manuscript provides an introduction to deep reinforcement learning models, algorithms and techniques. Particular focus is on the aspects related to generalization and how deep RL can be used for practical applications. We assume the reader is familiar with basic machine learning concepts.",
+        "url": "https://doi.org/10.1561/2200000071",
+        "doi": "https://doi.org/10.1561/2200000071",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3100366369"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1269
+      },
+      {
+        "paper_id": "rw_005_ff9d6ab60",
+        "title": "Machine Learning and Deep Learning Methods for Intrusion Detection Systems: A Survey",
+        "authors": [
+          "Hongyu Liu",
+          "Bo Lang"
+        ],
+        "year": 2019,
+        "publication_date": "2019-10-17",
+        "venue": "Applied Sciences",
+        "abstract": "Networks play important roles in modern life, and cyber security has become a vital research area. An intrusion detection system (IDS) which is an important cyber security technique, monitors the state of software and hardware running in the network. Despite decades of development, existing IDSs still face challenges in improving the detection accuracy, reducing the false alarm rate and detecting unknown attacks. To solve the above problems, many researchers have focused on developing IDSs that capitalize on machine learning methods. Machine learning methods can automatically discover the essential differences between normal data and abnormal data with high accuracy. In addition, machine learning methods have strong generalizability, so they are also able to detect unknown attacks. Deep learning is a branch of machine learning, whose performance is remarkable and has become a research hotspot. This survey proposes a taxonomy of IDS that takes data objects as the main dimension to classify and summarize machine learning-based and deep learning-based IDS literature. We believe that this type of taxonomy framework is fit for cyber security researchers. The survey first clarifies the concept and taxonomy of IDSs. Then, the machine learning algorithms frequently used in IDSs, metrics, and benchmark datasets are introduced. Next, combined with the representative literature, we take the proposed taxonomic system as a baseline and explain how to solve key IDS issues with machine learning and deep learning techniques. Finally, challenges and future developments are discussed by reviewing recent representative studies.",
+        "url": "https://doi.org/10.3390/app9204396",
+        "doi": "https://doi.org/10.3390/app9204396",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2980576170"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1082
+      },
+      {
+        "paper_id": "rw_006_a53aadefa",
+        "title": "Training Spiking Neural Networks Using Lessons From Deep Learning",
+        "authors": [
+          "Jason K. Eshraghian",
+          "Max Ward",
+          "Emre Neftci",
+          "Xinxin Wang",
+          "Gregor Lenz",
+          "Girish Dwivedi",
+          "Mohammed Bennamoun",
+          "Doo Seok Jeong",
+          "Wei Lü"
+        ],
+        "year": 2023,
+        "publication_date": "2023-09-01",
+        "venue": "Proceedings of the IEEE",
+        "abstract": "The brain is the perfect place to look for inspiration to develop more efficient neural networks. The inner workings of our synapses and neurons provide a glimpse at what the future of deep learning might look like. This article serves as a tutorial and perspective showing how to apply the lessons learned from several decades of research in deep learning, gradient descent, backpropagation, and neuroscience to biologically plausible spiking neural networks (SNNs). We also explore the delicate interplay between encoding data as spikes and the learning process; the challenges and solutions of applying gradient-based learning to SNNs; the subtle link between temporal backpropagation and spike timing-dependent plasticity; and how deep learning might move toward biologically plausible online learning. Some ideas are well accepted and commonly used among the neuromorphic engineering community, while others are presented or justified for the first time here. A series of companion interactive tutorials complementary to this article using our Python package, <italic xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">snnTorch</i> , are also made available: https://snntorch.readthedocs.io/en/latest/tutorials/index.html.",
+        "url": "https://doi.org/10.1109/jproc.2023.3308088",
+        "doi": "https://doi.org/10.1109/jproc.2023.3308088",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3201870057"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 719
+      },
+      {
+        "paper_id": "rw_007_2fd3b9c31",
+        "title": "Machine Learning and Deep Learning frameworks and libraries for large-scale data mining: a survey",
+        "authors": [
+          "Giang Nguyen",
+          "Štefan Dlugolinský",
+          "Martin Bobák",
+          "Viet Tran",
+          "Álvaro López García",
+          "Ignacio Heredia",
+          "Peter Malík",
+          "Ladislav Hluchý"
+        ],
+        "year": 2019,
+        "publication_date": "2019-01-19",
+        "venue": "Artificial Intelligence Review",
+        "abstract": "The combined impact of new computing resources and techniques with an increasing avalanche of large datasets, is transforming many research areas and may lead to technological breakthroughs that can be used by billions of people. In the recent years, Machine Learning and especially its subfield Deep Learning have seen impressive advances. Techniques developed within these two fields are now able to analyze and learn from huge amounts of real world examples in a disparate formats. While the number of Machine Learning algorithms is extensive and growing, their implementations through frameworks and libraries is also extensive and growing too. The software development in this field is fast paced with a large number of open-source software coming from the academy, industry, start-ups or wider open-source communities. This survey presents a recent time-slide comprehensive overview with comparisons as well as trends in development and usage of cutting-edge Artificial Intelligence software. It also provides an overview of massive parallelism support that is capable of scaling computation effectively and efficiently in the era of Big Data.",
+        "url": "https://doi.org/10.1007/s10462-018-09679-z",
+        "doi": "https://doi.org/10.1007/s10462-018-09679-z",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2910096450"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 862
+      },
+      {
+        "paper_id": "rw_008_5f1304398",
+        "title": "Tackling Climate Change with Machine Learning",
+        "authors": [
+          "Lynn H. Kaack",
+          "David Rolnick",
+          "Priya L. Donti",
+          "Kelly Kochanski",
+          "Alexandre Lacoste",
+          "Kris Sankaran",
+          "Andrew Slavin Ross",
+          "Nikola Milojevic-Dupont",
+          "Natasha Jaques",
+          "Anna Waldman‐Brown",
+          "Alexandra Sasha Luccioni",
+          "Tegan Maharaj",
+          "Evan David Sherwin",
+          "Mukkavilli, Karthik",
+          "Konrad P. Körding",
+          "Carla P. Gomes",
+          "Andrew Y. Ng",
+          "Demis Hassabis",
+          "John Platt",
+          "Felix Creutzig",
+          "Jennifer Chayes",
+          "Yoshua Bengio"
+        ],
+        "year": 2022,
+        "publication_date": "2022-02-07",
+        "venue": "OPUS 4 (Zuse Institute Berlin)",
+        "abstract": "Climate change is one of the greatest challenges facing humanity, and we, as machine learning experts, may wonder how we can help. Here we describe how machine learning can be a powerful tool in reducing greenhouse gas emissions and helping society adapt to a changing climate. From smart grids to disaster management, we identify high impact problems where existing gaps can be filled by machine learning, in collaboration with other fields. Our recommendations encompass exciting research questions as well as promising business opportunities. We call on the machine learning community to join the global effort against climate change.",
+        "url": "https://opus4.kobv.de/opus4-hsog/frontdoor/index/index/docId/4117",
+        "doi": "https://doi.org/10.1145/3485128",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4210916416"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 899
+      },
+      {
+        "paper_id": "rw_009_652d16d67",
+        "title": "AI applications to medical images: From machine learning to deep learning",
+        "authors": [
+          "Isabella Castiglioni",
+          "Leonardo Rundo",
+          "Marina Codari",
+          "Giovanni Di Leo",
+          "Christian Salvatore",
+          "Matteo Interlenghi",
+          "Francesca Gallivanone",
+          "Andrea Cozzi",
+          "Natascha Claudia D’Amico",
+          "Francesco Sardanelli"
+        ],
+        "year": 2021,
+        "publication_date": "2021-03-01",
+        "venue": "Physica Medica",
+        "abstract": "PURPOSE: Artificial intelligence (AI) models are playing an increasing role in biomedical research and healthcare services. This review focuses on challenges points to be clarified about how to develop AI applications as clinical decision support systems in the real-world context. METHODS: A narrative review has been performed including a critical assessment of articles published between 1989 and 2021 that guided challenging sections. RESULTS: We first illustrate the architectural characteristics of machine learning (ML)/radiomics and deep learning (DL) approaches. For ML/radiomics, the phases of feature selection and of training, validation, and testing are described. DL models are presented as multi-layered artificial/convolutional neural networks, allowing us to directly process images. The data curation section includes technical steps such as image labelling, image annotation (with segmentation as a crucial step in radiomics), data harmonization (enabling compensation for differences in imaging protocols that typically generate noise in non-AI imaging studies) and federated learning. Thereafter, we dedicate specific sections to: sample size calculation, considering multiple testing in AI approaches; procedures for data augmentation to work with limited and unbalanced datasets; and the interpretability of AI models (the so-called black box issue). Pros and cons for choosing ML versus DL to implement AI applications to medical imaging are finally presented in a synoptic way. CONCLUSIONS: Biomedicine and healthcare systems are one of the most important fields for AI applications and medical imaging is probably the most suitable and promising domain. Clarification of specific challenging points facilitates the development of such systems and their translation to clinical practice.",
+        "url": "https://doi.org/10.1016/j.ejmp.2021.02.006",
+        "doi": "https://doi.org/10.1016/j.ejmp.2021.02.006",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3135096391"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 714
+      },
+      {
+        "paper_id": "rw_010_008caec8b",
+        "title": "Machine learning and soil sciences: a review aided by machine learning tools",
+        "authors": [
+          "José Padarian",
+          "Budiman Minasny",
+          "Alex B. McBratney"
+        ],
+        "year": 2020,
+        "publication_date": "2020-02-06",
+        "venue": "SOIL",
+        "abstract": "Abstract. The application of machine learning (ML) techniques in various fields of science has increased rapidly, especially in the last 10 years. The increasing availability of soil data that can be efficiently acquired remotely and proximally, and freely available open-source algorithms, have led to an accelerated adoption of ML techniques to analyse soil data. Given the large number of publications, it is an impossible task to manually review all papers on the application of ML in soil science without narrowing down a narrative of ML application in a specific research question. This paper aims to provide a comprehensive review of the application of ML techniques in soil science aided by a ML algorithm (latent Dirichlet allocation) to find patterns in a large collection of text corpora. The objective is to gain insight into publications of ML applications in soil science and to discuss the research gaps in this topic. We found that (a) there is an increasing usage of ML methods in soil sciences, mostly concentrated in developed countries, (b) the reviewed publications can be grouped into 12 topics, namely remote sensing, soil organic carbon, water, contamination, methods (ensembles), erosion and parent material, methods (NN, neural networks, SVM, support vector machines), spectroscopy, modelling (classes), crops, physical, and modelling (continuous), and (c) advanced ML methods usually perform better than simpler approaches thanks to their capability to capture non-linear relationships. From these findings, we found research gaps, in particular, about the precautions that should be taken (parsimony) to avoid overfitting, and that the interpretability of the ML models is an important aspect to consider when applying advanced ML methods in order to improve our knowledge and understanding of soil. We foresee that a large number of studies will focus on the latter topic.",
+        "url": "https://doi.org/10.5194/soil-6-35-2020",
+        "doi": "https://doi.org/10.5194/soil-6-35-2020",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2972050955"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 457
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_004_7b694fe61",
+        "relevance_score": 0.75,
+        "relevance_types": [
+          "same_problem",
+          "same_method"
+        ],
+        "rationale": "The paper introduces deep reinforcement learning, addressing complex decision-making tasks with gradients and neural networks, which aligns with the target's focus on gradient-based learning and reinforcement learning challenges.",
+        "evidence_summary": "In 2018, François-Lavet et al. published 'An Introduction to Deep Reinforcement Learning,' which combined reinforcement learning with deep learning to solve complex decision-making tasks. The paper covered models and algorithms focusing on generalization aspects and practical applications, though specific datasets and performance metrics were not detailed in the provided metadata."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_003_06461eef1",
+        "relevance_score": 0.7,
+        "relevance_types": [
+          "same_method",
+          "novelty_competitor"
+        ],
+        "rationale": "This survey on informed machine learning integrates prior knowledge into learning systems, relevant to the target's use of formal specifications like LTL as prior knowledge for correct-by-construction objectives.",
+        "evidence_summary": "In 2021, Rueden et al. published 'Informed Machine Learning - A Taxonomy and Survey of Integrating Prior Knowledge into Learning Systems,' which provided a structured overview and taxonomy for incorporating knowledge such as algebraic equations or logic rules into machine learning pipelines. The survey categorized approaches based on knowledge source, representation, and integration methods, but did not specify particular datasets or quantitative results."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_006_a53aadefa",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The paper discusses training spiking neural networks with lessons from deep learning, including gradient-based methods and backpropagation, which relates to the target's differentiable approaches and efficiency improvements.",
+        "evidence_summary": "In 2023, Eshraghian et al. published 'Training Spiking Neural Networks Using Lessons From Deep Learning,' which applied gradient descent, backpropagation, and neuroscience insights to biologically plausible spiking neural networks. The paper addressed challenges in gradient-based learning and temporal backpropagation, accompanied by interactive tutorials using the snnTorch Python package, though no specific performance metrics were provided in the metadata."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_007_2fd3b9c31",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "This survey covers machine learning and deep learning frameworks for large-scale data mining, which provides background on scalable computational methods relevant to the target's focus on efficient learning.",
+        "evidence_summary": "In 2019, Nguyen et al. published 'Machine Learning and Deep Learning frameworks and libraries for large-scale data mining: a survey,' which reviewed implementations and trends in AI software, including support for massive parallelism in big data contexts. The survey compared frameworks and libraries but did not detail specific datasets, metrics, or performance results."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_009_652d16d67",
+        "relevance_score": 0.35,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "The paper applies AI to medical images using machine and deep learning, discussing data curation and model interpretability, which is tangentially related to the target's machine learning methods.",
+        "evidence_summary": "In 2021, Castiglioni et al. published 'AI applications to medical images: From machine learning to deep learning,' which described architectural characteristics, data curation steps like segmentation and harmonization, and challenges such as interpretability. The paper focused on medical imaging applications but did not provide specific dataset sizes or performance metrics."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_005_ff9d6ab60",
+        "relevance_score": 0.3,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This survey on machine and deep learning for intrusion detection systems discusses accuracy and generalization, which provides general machine learning context but is not directly related to reinforcement learning or LTL.",
+        "evidence_summary": "In 2019, Liu and Lang published 'Machine Learning and Deep Learning Methods for Intrusion Detection Systems: A Survey,' which proposed a taxonomy based on data objects and summarized literature on improving detection accuracy and reducing false alarms. The survey introduced machine learning algorithms and metrics used in IDSs but did not specify benchmark datasets or quantitative results."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_010_008caec8b",
+        "relevance_score": 0.25,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "The review applies machine learning to soil sciences, using ML tools for analysis, which is a distant application area with no direct relevance to reinforcement learning or differentiable simulations.",
+        "evidence_summary": "In 2020, Padarian et al. published 'Machine learning and soil sciences: a review aided by machine learning tools,' which used latent Dirichlet allocation to analyze publications and identified topics like remote sensing and soil organic carbon. The paper discussed ML applications in soil science but provided no specific datasets, methods, or performance details beyond the review process."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_001_b94b76b54",
+        "relevance_score": 0.2,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "The monograph on federated learning focuses on privacy and decentralized data, which is not directly related to the target's reinforcement learning with LTL and differentiable simulators.",
+        "evidence_summary": "In 2020, Kairouz et al. published 'Advances and Open Problems in Federated Learning,' which discussed collaborative model training under privacy principles and presented open challenges. The monograph did not cover reinforcement learning, LTL, or differentiable methods, and no specific datasets or performance metrics were provided."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_008_5f1304398",
+        "relevance_score": 0.15,
+        "relevance_types": [],
+        "rationale": "The paper applies machine learning to climate change, which is an application domain with no connection to the target's reinforcement learning or formal methods.",
+        "evidence_summary": "In 2022, Kaack et al. published 'Tackling Climate Change with Machine Learning,' which described how ML can reduce greenhouse gas emissions and aid adaptation efforts in areas like smart grids and disaster management. The paper identified research questions and business opportunities but did not specify methods, datasets, or results relevant to reinforcement learning."
+      },
+      {
+        "rank": 10,
+        "paper_id": "rw_002_a99b2a88b",
+        "relevance_score": 0.1,
+        "relevance_types": [],
+        "rationale": "The book on online learning theory and practice covers educational technologies, which is unrelated to the target's machine learning methods and formal specifications.",
+        "evidence_summary": "In 2008, The Theory and Practice published 'The Theory and Practice of Online Learning,' which discussed developments in online learning technologies and their application in higher education. The content focused on educational practices without addressing machine learning, reinforcement learning, or differentiable simulations."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2018, François-Lavet et al. published 'An Introduction to Deep Reinforcement Learning,' introducing the combination of reinforcement learning with deep learning for complex decision-making tasks, with a focus on generalization and practical applications. In 2021, Rueden et al. published 'Informed Machine Learning - A Taxonomy and Survey of Integrating Prior Knowledge into Learning Systems,' providing a structured overview of methods to incorporate knowledge such as logic rules into machine learning pipelines. In 2023, Eshraghian et al. published 'Training Spiking Neural Networks Using Lessons From Deep Learning,' applying gradient-based learning and backpropagation to spiking neural networks, with accompanying tutorials. In 2019, Nguyen et al. published 'Machine Learning and Deep Learning frameworks and libraries for large-scale data mining: a survey,' reviewing AI software trends and parallelism support for big data. In 2021, Castiglioni et al. published 'AI applications to medical images: From machine learning to deep learning,' covering architectural characteristics and data curation steps for medical imaging. In 2019, Liu and Lang published 'Machine Learning and Deep Learning Methods for Intrusion Detection Systems: A Survey,' proposing a taxonomy and summarizing literature on improving detection accuracy in cybersecurity.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 0,
+      "num_removed_undated": 0,
+      "num_used": 10,
+      "num_cutoff_valid": 10,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 0,
+    "num_removed_undated": 0,
+    "num_used": 10,
+    "num_cutoff_valid": 10,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

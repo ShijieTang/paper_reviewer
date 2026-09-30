@@ -393,7 +393,10 @@ def evaluate_integrity_gate(
             fail("PROMPT_INJECTION")
 
     review_memory = package.get("review_memory")
-    review_memory_disabled = isinstance(review_memory, dict) and review_memory.get("status") == "disabled"
+    # Current related-work-only packages omit this removed subsystem. Older
+    # packages remain admissible only when they explicitly disabled it.
+    review_memory_disabled = "review_memory" not in package or (
+        isinstance(review_memory, dict) and review_memory.get("status") == "disabled")
     checks["review_memory_disabled"] = review_memory_disabled
     if not review_memory_disabled:
         fail("REVIEW_MEMORY_NOT_DISABLED")
@@ -479,7 +482,6 @@ def rag_config(cutoff_date: str) -> RAGConfig:
     return RAGConfig(
         enable_rag=True,
         enable_related_work_rag=True,
-        enable_review_memory_rag=False,
         cutoff_date=cutoff_date,
         allow_undated_evidence=False,
     )

@@ -9,20 +9,13 @@ from threading import Lock
 
 from agents import Reviewer, Author, AIDetector, ConferenceRecommender
 from prompts.reviewer_iter import reviewer_iteration
-from review_schema import WORKFLOW_SCHEMA_VERSION, validate_role_output
+from review_schema import WORKFLOW_SCHEMA_VERSION, parse_json_object, validate_role_output
 
 
 # ── JSON helpers ────────────────────────────────────────────────────────────
 
 def _parse_json(text: str) -> dict:
-    """Strip optional ```json fences then parse JSON."""
-    text = text.strip()
-    text = re.sub(r'^```(?:json)?\s*', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'\s*```$', '', text)
-    parsed = json.loads(text)
-    if not isinstance(parsed, dict):
-        raise ValueError("structured return must be a JSON object")
-    return parsed
+    return parse_json_object(text)
 
 
 def _normalize_review_weaknesses(review: dict) -> dict:
@@ -168,6 +161,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
          run_citation_check: bool = True,
          enable_ai_detector: bool = False,
          enable_rag: bool = False,
+         enable_author_rebuttal: bool = True,
          precomputed_rag_package: dict | None = None,
          rag_config: dict | None = None) -> dict:
     """
@@ -224,7 +218,8 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         return {
             "workflow_schema_version": WORKFLOW_SCHEMA_VERSION,
             "workflow_status": "failed" if required_failed() else "complete",
-            "workflow_config": {"n_iter": n_iter, "reviewer_count": len(reviewer_types)},
+            "workflow_config": {"n_iter": n_iter, "reviewer_count": len(reviewer_types),
+                                "enable_author_rebuttal": enable_author_rebuttal},
             "turn_outcomes": sorted(turn_outcomes, key=lambda item: (
                 item["iteration"], item["role"], item["reviewer_index"] if item["reviewer_index"] is not None else -1)),
             "turn_failures": [item for item in turn_outcomes if item["required"] and item["status"] != "complete"],
@@ -360,20 +355,26 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
     for iteration in range(1, n_iter):
         # Phase B: Author and optional review-style evaluator process previous reviews.
         phase_label = "Author & Review Style Evaluator" if enable_ai_detector else "Author"
+        if not enable_author_rebuttal:
+            phase_label = "Review Style Evaluator" if enable_ai_detector else "No-op"
         emit(f"--- Iteration {iteration + 1} / {n_iter}: {phase_label} Processing ---")
         for i, reviewer in enumerate(reviewers):
-            emit(f"AI Author writing rebuttal to {reviewer.name}...")
-            emit_agent_status(author.name, "running")
-            author.expected_reviewer = reviewer.name
-            author_resps[iteration][i] = call_turn(
-                author, f"[Reviewer: {reviewer.name}]\n\n{reviews[iteration - 1][i]}",
-                "author", iteration + 1, i,
-            )
-            if required_failed():
-                emit_agent_status(author.name, "error")
-                return incomplete_result()
-            emit_agent_status(author.name, "done")
-            emit_message(author.name, author_resps[iteration][i])
+            if enable_author_rebuttal:
+                emit(f"AI Author writing rebuttal to {reviewer.name}...")
+                emit_agent_status(author.name, "running")
+                author.expected_reviewer = reviewer.name
+                author_resps[iteration][i] = call_turn(
+                    author,
+                    f"[Reviewer name — use exactly this in your JSON: {reviewer.name}]\n\n"
+                    f"{reviews[iteration - 1][i]}", "author", iteration + 1, i,
+                )
+                if required_failed():
+                    emit_agent_status(author.name, "error")
+                    return incomplete_result()
+                emit_agent_status(author.name, "done")
+                emit_message(author.name, author_resps[iteration][i])
+            else:
+                author_resps[iteration][i] = "(No rebuttal was submitted for this iteration.)"
             if ai_detect is not None:
                 emit_agent_status(ai_detect.name, "running")
                 aicheck_resps[iteration][i] = call_turn(
@@ -446,55 +447,74 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         }
 
     # ── Parse structured outputs ──────────────────────────────────────────────
-    parsed_reviews = []
-    for raw in final_reviews:
+    def _parse_or_raw(raw):
         if raw is None:
-            continue
+            return None
         try:
-            parsed_reviews.append(_normalize_review_weaknesses(_parse_json(raw)))
+            return _parse_json(raw)
         except Exception:
-            continue
+            return {"raw": raw, "parse_error": True}
+
+    def _parse_review_or_raw(raw):
+        parsed = _parse_or_raw(raw)
+        if isinstance(parsed, dict) and not parsed.get("parse_error"):
+            return _normalize_review_weaknesses(parsed)
+        return parsed
+
+    parsed_reviews = [
+        _parse_review_or_raw(raw) for raw in final_reviews if raw is not None
+    ]
 
     parsed_style_analyses = []
     for iteration, row in enumerate(aicheck_resps, start=1):
         for reviewer_index, raw in enumerate(row):
             if raw is None:
                 continue
-            try:
-                analysis = _parse_json(raw)
-            except Exception:
-                continue
             parsed_style_analyses.append({
                 "iteration": iteration,
                 "stage": "pre_update",
                 "reviewer": reviewers[reviewer_index].name,
-                "analysis": analysis,
+                "analysis": _parse_or_raw(raw),
             })
 
     for reviewer_index, raw in enumerate(final_style_resps):
         if raw is None:
             continue
-        try:
-            analysis = _parse_json(raw)
-        except Exception:
-            continue
         parsed_style_analyses.append({
             "iteration": n_iter,
             "stage": "final_review",
             "reviewer": reviewers[reviewer_index].name,
-            "analysis": analysis,
+            "analysis": _parse_or_raw(raw),
         })
 
-    try:
-        parsed_conf = _parse_json(conf_rec_resp) if conf_rec_resp is not None else None
-    except Exception:
-        parsed_conf = None
+    parsed_conf = _parse_or_raw(conf_rec_resp)
+
+    # Full per-iteration trace. Only the last round feeds "reviewers"; this keeps
+    # the earlier rounds together with the author rebuttal and AI Detector text
+    # that produced them, so an ablation can see what the detector actually said
+    # and how the review moved in response.
+    iterations = [
+        {
+            "iteration": it + 1,
+            "reviewers": [
+                {
+                    "reviewer":             reviewer.name,
+                    "review":               _parse_review_or_raw(reviews[it][i]),
+                    "author_response":      author_resps[it][i],
+                    "ai_detector_response": aicheck_resps[it][i],
+                }
+                for i, reviewer in enumerate(reviewers)
+            ],
+        }
+        for it in range(n_iter)
+    ]
 
     return {
         "reviewers":  parsed_reviews,
         "review_style_analyses": parsed_style_analyses,
         "conference": parsed_conf,
         "citations":  citation_results,
+        "iterations": iterations,
         "rag_package": rag_package,
         "rag_warnings": rag_warnings,
         "cutoff_report": cutoff_report,
@@ -518,6 +538,9 @@ if __name__ == "__main__":
     parser.add_argument("--enable_rag", action="store_true")
     parser.add_argument("--enable_ai_detector", action="store_true",
                         help="Enable conference-review style evaluation during rebuttal iterations.")
+    parser.add_argument("--disable_author_rebuttal", action="store_true",
+                        help="Skip the AI Author rebuttal step in rebuttal iterations "
+                             "(enabled by default).")
     args = parser.parse_args()
 
     with open(args.paper, "r", encoding="utf-8") as f:
@@ -528,6 +551,7 @@ if __name__ == "__main__":
         provider=args.provider, model=args.model, api_key=args.api_key,
         enable_rag=args.enable_rag,
         enable_ai_detector=args.enable_ai_detector,
+        enable_author_rebuttal=not args.disable_author_rebuttal,
     )
 
     lines = []

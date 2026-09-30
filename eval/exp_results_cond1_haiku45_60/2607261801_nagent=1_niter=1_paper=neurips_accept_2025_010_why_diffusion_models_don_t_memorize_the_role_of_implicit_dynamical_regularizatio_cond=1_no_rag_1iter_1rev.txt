@@ -1,0 +1,184 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Clear identification and empirical validation of two distinct timescales (τgen and τmem) in diffusion model training, with convincing demonstration that τmem scales linearly with training set size n while τgen remains constant, creating a widening generalization window",
+        "Rigorous theoretical analysis via random features models using random matrix theory and the replica method, providing analytical tractability and closed-form results (Theorems 3.1 and 3.2) that illuminate the emergence of timescales and generalization-memorization transition",
+        "Comprehensive experimental evaluation combining realistic U-Net architectures on CelebA with systematic variation of dataset size (n from 128 to 32,768) and model capacity (p from 0.26M to 16M parameters), supported by multiple metrics (FID, memorization fraction fmem, train/test loss)",
+        "Novel insight connecting implicit dynamical regularization through spectral bias to prevent memorization, providing a mechanistic explanation distinct from prior work that focused on architectural regularization or finite learning rate effects",
+        "Well-designed experimental methodology with proper statistical reporting (error bars, confidence intervals, bootstrap sampling) and clear demonstration that memorization scaling is not due to mere sample repetition by showing τmem ∝ n even with full-batch updates"
+      ],
+      "weaknesses": [
+        "Limited experimental scope with highest model capacity at p≈16M and dataset size up to n=32,768; does not demonstrate findings on realistic large-scale models (e.g., billions of parameters) or diverse datasets beyond downsampled CelebA faces, limiting generalizability claims",
+        "Significant gap between theoretical model and experiments: random features analysis assumes fixed frozen first layer and is restricted to a single diffusion time t, while practical experiments use learnable U-Net architectures trained with a single model for all diffusion times, making direct theoretical-experimental connection incomplete",
+        "Theory relies on strong assumptions including Gaussian data and specific activation functions; extensions to realistic distributions (natural images, heavy-tailed data) and modern architectures (attention-based, structured) remain unclear, with authors acknowledging this as a limitation",
+        "Main experiments focus on unconditional generation on one dataset; while supplementary material includes conditional generation experiments with toy Gaussian mixture data and classifier-free guidance, more extensive validation on diverse conditional settings is needed"
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited experimental scope with highest model capacity at p≈16M and dataset size up to n=32,768; does not demonstrate findings on realistic large-scale models (e.g., billions of parameters) or diverse datasets beyond downsampled CelebA faces, limiting generalizability claims",
+          "severity": "major",
+          "evidence": "Section 2 experiments cover n ∈ [128, 32768] and p ∈ [0.26M, 16M]; authors acknowledge in Limitations that 'All experiments in Sect. 2 are conducted with unconditional DMs' and 'Our numerical experiments cover a range of p between 1M and 16M. Exploring a wider range is essential to map the full (n, p) phase diagram'",
+          "affected_claim": "Findings generalize to practical large-scale diffusion models used in production (Stable Diffusion, DALL-E are mentioned in introduction)",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Significant gap between theoretical model and experiments: random features analysis assumes fixed frozen first layer and is restricted to a single diffusion time t, while practical experiments use learnable U-Net architectures trained with a single model for all diffusion times, making direct theoretical-experimental connection incomplete",
+          "severity": "major",
+          "evidence": "Section 3 studies RFNN with frozen W matrix (Eq. 7) at fixed diffusion time t; Section 2 uses full U-Net with learnable parameters trained on all diffusion times with time-conditioning. Authors state in Limitations: 'Our theoretical analysis rely on well-controlled data and score models that reproduce the core effects. Extending these analytical frameworks to richer data distributions and to structured architectures would be valuable'",
+          "affected_claim": "Theoretical picture in Figure 1 explains the memorization-generalization transition in realistic diffusion models",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Theory relies on strong assumptions including Gaussian data and specific activation functions; extensions to realistic distributions (natural images, heavy-tailed data) and modern architectures (attention-based, structured) remain unclear",
+          "severity": "major",
+          "evidence": "Section 3 assumes 'the data distribution Px has zero mean, sub-Gaussian tails' and uses tanh activation unless specified. Authors acknowledge in Limitations: 'Extending these analytical frameworks to richer data distributions (such as Gaussian mixtures or data from the hidden manifold model) and to structured architectures would be valuable to further characterize the implicit dynamical regularization. In particular investigating how heavy-tailed data distribution affect the picture described here could be valuable'",
+          "affected_claim": "The theoretical mechanism based on spectral bias and irregular empirical score applies broadly to realistic generative models",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Main experiments focus on unconditional generation on one dataset; while supplementary material includes conditional generation experiments with toy Gaussian mixture data and classifier-free guidance, more extensive validation on diverse conditional settings is needed",
+          "severity": "minor",
+          "evidence": "Section 2 states 'All experiments in Sect. 2 are conducted with unconditional DMs. We additionally verify in SM Sect. B, using a toy Gaussian mixture dataset and classifier-free guidance, that the same scaling of τmem with n holds in the conditional settings. Understanding precisely how the absolute timescales τmem and τgen depend on the conditioning remains an open question'",
+          "affected_claim": "The memorization-generalization transition mechanism is universal across different generation settings",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The central claims are technically sound. Numerical experiments are carefully designed with proper metrics (FID, memorization fraction) and statistical reporting. The key empirical findings (τmem ∝ n, τgen ∝ W^{-1}, existence of generalization window) are convincingly demonstrated. The theoretical analysis is mathematically rigorous: Theorems 3.1 and 3.2 are properly stated with clear assumptions, the replica method derivation is standard practice in statistical physics, and the connection between eigenvalue spectrum and training timescales is correctly established. The claim that memorization scaling is independent of sample repetition is validated by full-batch experiments. Minor concern: theoretical model (RFNN with frozen first layer) does not perfectly mirror experimental setup (learnable U-Net), but this is acknowledged and does not invalidate the core insights."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper makes novel contributions by: (1) systematically characterizing two distinct training timescales and their scaling with n and p, going beyond prior work that studied memorization at infinite training time; (2) connecting the timescale separation to spectral bias of neural networks in a new way—specifically, relating delayed memorization to irregularity of the empirical score at low noise levels; (3) providing a random matrix theory analysis (Theorems 3.1, 3.2) that explains timescale emergence in the high-dimensional limit. While prior work (e.g., [13], [56], [4]) addressed memorization through various mechanisms (architectural regularization, finite learning rate), the emphasis on implicit dynamical regularization emerging from training dynamics and the linear scaling τmem ∝ n appears novel. Related work [12] (Favero et al. 2025) was discovered concurrent to submission, suggesting independent discovery of related insights."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The work addresses a fundamental and practically important question: why do diffusion models avoid memorization despite being overparameterized? The findings are significant for: (1) understanding generative model training dynamics at a mechanistic level; (2) providing practical guidance (early stopping, capacity control) for practitioners to avoid memorization in data-scarce domains; (3) revealing implicit regularization in training dynamics, a phenomenon of broader relevance to deep learning. The theoretical framework connecting spectral bias to memorization dynamics could inspire future work on other generative models (flow matching, stochastic interpolants). The work builds understanding relevant to recent industrial observations of memorization in large diffusion models (Stable Diffusion, DALL-E). Impact is solid but somewhat incremental relative to recent memorization literature."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Experiments are well-designed and convincing: (1) Clear identification of τgen through FID minimization and τmem through memorization fraction fmem with proper justification of thresholds; (2) Systematic variation of n and p to verify claimed scalings (τgen ∝ W^{-1}, τmem ∝ nW^{-1}, n*(p) independent of p for W > 8); (3) Statistical rigor with error bars (2× std dev for FID, 95% CIs for fmem via bootstrap); (4) Demonstration that scaling is not due to sample repetition via full-batch experiments; (5) Comprehensive range of metrics (loss, FID, memorization fraction). Theoretical evaluation provides exact solutions to gradient flow dynamics and asymptotic spectrum via random matrix theory. Limitations: experiments limited to relatively small p and single dataset; conditional generation validation only on toy data; theory assumes simplified setting. These limitations are acknowledged by authors."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written with effective visual communication. Figure 1 provides an excellent summary of the theoretical picture. Figure 2 clearly demonstrates the two timescales and their scaling with n. Figure 3 systematically shows capacity effects. Mathematical notation is consistent and theorems are clearly stated with assumptions. The logical flow progresses from empirical observations (Sect. 2) to theoretical analysis (Sect. 3) to conclusions. The related work section properly positions the contribution relative to prior work. Supplementary material is extensive and well-organized. Minor issues: some notation density in Theorem 3.1 equations (15-19); the replica method derivation is non-rigorous by nature but this is acknowledged as standard practice. Overall, presentation meets standards of a top-tier venue."
+        }
+      },
+      "summary_comment": "This is a well-executed paper that makes meaningful contributions to understanding memorization in diffusion models through both empirical and theoretical lenses. The identification of two distinct training timescales (τgen for generation quality, τmem for memorization onset) with different scalings with respect to dataset size and model capacity is novel and well-demonstrated empirically. The theoretical analysis via random features models, while simplified relative to practical architectures, provides valuable mechanistic insights connecting spectral bias to the memorization-generalization transition. The work is technically sound, clearly presented, and addresses a practically important question in generative modeling. The main limitations are: (1) experiments restricted to moderate model sizes and a single dataset (downsampled CelebA), preventing strong claims about large-scale models; (2) theory-experiment gap due to simplified theoretical model; (3) focus on unconditional generation with limited conditional generation validation. These limitations are appropriately acknowledged and do not invalidate the core contributions. The paper makes sufficient novelty and significance contributions for acceptance at a top-tier venue, providing both theoretical understanding and practical insights for practitioners training diffusion models. The work would benefit from future extensions to larger models and diverse datasets, but the current contribution is solid and well-supported."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Core contribution is about training dynamics and implicit regularization of neural networks, which aligns with ICML's emphasis on optimization and learning theory\",\n      \"The paper provides both theoretical analysis (random matrix theory, spectral properties) and empirical validation, matching ICML's valuation of rigorous methodology\",\n      \"Addresses fundamental ML phenomenon (memorization vs. generalization) with practical implications for model training, fitting ICML's focus on general machine learning principles\",\n      \"Systematic experimental design with careful ablation studies (varying n, p) demonstrates methodological rigor valued by ICML\",\n      \"Theoretical framework using random features and high-dimensional analysis represents the type of principled theory ICML seeks\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Paper is specifically about diffusion models and score-based generative methods, whereas ICML is broader and includes many non-generative ML topics; generative modeling is not emphasized as a core ICML focus compared to ICLR/NeurIPS\",\n      \"Limited to empirical results on single dataset (CelebA) and modest model scales (16M parameters), falling short of ICML's typical scope for ML systems and scalability\",\n      \"Theory-practice gap: random features model with frozen first layer and single diffusion time doesn't reflect practical U-Net training, limiting the impact for practitioners using ICML insights\",\n      \"Reviewer notes this is somewhat incremental relative to recent memorization literature (acknowledged concurrent work [12]), suggesting moderate novelty for ICML's high bar\",\n      \"Lacks systems/infrastructure contributions typical of strong ICML papers; focus is narrow to one class of models rather than general ML principles with broad applicability\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Diffusion models are explicitly listed in NeurIPS's generative models topic area, making this a natural topical fit for the conference\",\n      \"Paper directly addresses 'deep learning' and 'theory' topics central to NeurIPS's scope, combining both empirical and theoretical contributions\",\n      \"Work addresses memorization in state-of-the-art generative models (Stable Diffusion, DALL-E mentioned), aligning with NeurIPS's emphasis on cutting-edge research\",\n      \"Provides practical guidance for practitioners (early stopping, capacity control) in a widely-used model class, fitting NeurIPS's application-driven focus\",\n      \"Breadth of contribution (numerical experiments, theory, mechanistic insights) matches NeurIPS's interdisciplinary character and acceptance of papers spanning multiple aspects\",\n      \"Reviewer explicitly scored 'Accept' with all dimensions rated 4/5, indicating strong fit to NeurIPS evaluation criteria\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited scale and scope of experiments: only 16M parameters and downsampled 32×32 images, far below the large-scale models (billions of parameters) that define modern diffusion model practice—NeurIPS community increasingly focuses on large-scale results\",\n      \"Experiments on single dataset (CelebA) with main results on unconditional generation; while conditional generation on toy data in supplementary material exists, NeurIPS increasingly expects diverse, comprehensive empirical validation\",\n      \"Theory-practice gap acknowledged by reviewer as 'major': random features model with frozen weights doesn't reflect learnable architectures used experimentally, weakening the theoretical contribution's relevance\",\n      \"Theory relies on strong assumptions (Gaussian data, specific activations) that don't hold for realistic vision data; extensions remain unclear, limiting theoretical impact for NeurIPS's theory community\",\n      \"Paper is somewhat incremental relative to concurrent work ([12] Favero et al. 2025 discovered independently), and reviewer notes 'significance is solid but somewhat incremental relative to recent memorization literature'—concerns for a venue that emphasizes novelty\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"ICLR's primary focus on deep learning and representation learning makes this paper on diffusion models (a major deep learning contribution area) a strong topical fit\",\n      \"Paper directly addresses learning dynamics of deep networks in a generative setting, a core ICLR theme ('deep learning', 'generative models' explicitly listed)\",\n      \"Contribution combines empirical deep learning (U-Nets on images) with theoretical analysis of learning dynamics, exactly matching ICLR's valuation of bridging theory and practice in deep learning\",\n      \"Addresses generalization properties of deep models, a fundamental ICLR topic; the implicit regularization mechanism is directly relevant to ICLR's interest in why deep networks generalize\",\n      \"Diffusion models are central to ICLR's scope as a deep learning conference, and memorization is an increasingly important concern for large-scale generative models\",\n      \"Practical contributions to training robust diffusion models align with ICLR's emphasis on applications of deep learning\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Experimental scope limited to 16M parameters and single dataset; ICLR increasingly expects demonstration on realistic scales and diverse datasets to claim relevance to modern deep learning\",\n      \"Theory uses random features model (simplified architecture) while experiments use U-Nets; this disconnect, while acknowledged as 'major' by reviewer, limits the paper's theoretical impact for ICLR's theory-focused track\",\n      \"Theoretical analysis restricted to Gaussian data and specific activations; ICLR's community would expect theory to handle more realistic data distributions and modern architectures (attention-based models widely used in practice)\",\n      \"Main empirical focus is unconditional generation on faces; ICLR increasingly emphasizes diverse applications and modalities (vision, language, multimodal) with comprehensive evaluation\",\n      \"Limited architectural novelty: uses standard U-Net; paper is not a contribution to deep learning methods/architectures but rather an analysis of existing methods, placing it in a narrower category\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary for Authors\n\n**Overall Assessment:** This is a well-executed theoretical and empirical study of memorization dynamics in diffusion models. The paper makes solid contributions by identifying two training timescales (τ_gen and τ_mem) with different scalings and providing theoretical justification via random matrix theory. However, the work faces consistent limitations around **scale** and **theory-practice gaps** that affect its fit across all venues.\n\n### Key Recommendation:\n\n**Primary venue: NeurIPS (fit_score: 8)**\n- Diffusion models are a natural fit for NeurIPS\n- The reviewer explicitly recommended acceptance (4/5 across all dimensions)\n- The work's breadth (theory + experiments + practical guidance) aligns with NeurIPS's interdisciplinary character\n- However, aware that the experimental scope (16M params, one dataset) is modest for a venue increasingly emphasizing large-scale results\n\n**Secondary venue: ICLR (fit_score: 8)**  \n- Equally strong topical fit given ICLR's deep learning focus\n- The implicit regularization story is core ICLR material (generalization via training dynamics)\n- Similar caveats apply about experimental scale and theory-practice gaps\n\n**Tertiary venue: ICML (fit_score: 7)**\n- Weaker topical alignment: while ICML covers general ML, generative models are not emphasized as strongly\n- Broader ML theory audience would appreciate the theoretical contributions more\n- But the narrow focus on one model class (diffusion) and single dataset is less suitable for ICML's breadth\n\n### Strategic Advice:\n\n1. **If targeting NeurIPS:** Emphasize the practical importance of memorization in production models (Stable Diffusion, DALL-E) and frame the implicit regularization discovery as a general phenomenon worth understanding. The current presentation is well-aligned.\n\n2. **Before resubmission to any venue:** Consider addressing the theory-practice gap by either (a) extending theory to learnable architectures, or (b) running experiments on the simplified random features model to validate theory precisely.\n\n3. **For broader impact:** Experiments on larger models (100M+) and diverse datasets would substantially strengthen the contribution and make claims about \"realistic\" diffusion models more credible.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Clear identification and empirical validation of two distinct timescales (τgen and τmem) in diffusion model training, with convincing demonstration that τmem scales linearly with training set size n while τgen remains constant, creating a widening generalization window",
+              "Rigorous theoretical analysis via random features models using random matrix theory and the replica method, providing analytical tractability and closed-form results (Theorems 3.1 and 3.2) that illuminate the emergence of timescales and generalization-memorization transition",
+              "Comprehensive experimental evaluation combining realistic U-Net architectures on CelebA with systematic variation of dataset size (n from 128 to 32,768) and model capacity (p from 0.26M to 16M parameters), supported by multiple metrics (FID, memorization fraction fmem, train/test loss)",
+              "Novel insight connecting implicit dynamical regularization through spectral bias to prevent memorization, providing a mechanistic explanation distinct from prior work that focused on architectural regularization or finite learning rate effects",
+              "Well-designed experimental methodology with proper statistical reporting (error bars, confidence intervals, bootstrap sampling) and clear demonstration that memorization scaling is not due to mere sample repetition by showing τmem ∝ n even with full-batch updates"
+            ],
+            "weaknesses": [
+              "Limited experimental scope with highest model capacity at p≈16M and dataset size up to n=32,768; does not demonstrate findings on realistic large-scale models (e.g., billions of parameters) or diverse datasets beyond downsampled CelebA faces, limiting generalizability claims",
+              "Significant gap between theoretical model and experiments: random features analysis assumes fixed frozen first layer and is restricted to a single diffusion time t, while practical experiments use learnable U-Net architectures trained with a single model for all diffusion times, making direct theoretical-experimental connection incomplete",
+              "Theory relies on strong assumptions including Gaussian data and specific activation functions; extensions to realistic distributions (natural images, heavy-tailed data) and modern architectures (attention-based, structured) remain unclear, with authors acknowledging this as a limitation",
+              "Main experiments focus on unconditional generation on one dataset; while supplementary material includes conditional generation experiments with toy Gaussian mixture data and classifier-free guidance, more extensive validation on diverse conditional settings is needed"
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited experimental scope with highest model capacity at p≈16M and dataset size up to n=32,768; does not demonstrate findings on realistic large-scale models (e.g., billions of parameters) or diverse datasets beyond downsampled CelebA faces, limiting generalizability claims",
+                "severity": "major",
+                "evidence": "Section 2 experiments cover n ∈ [128, 32768] and p ∈ [0.26M, 16M]; authors acknowledge in Limitations that 'All experiments in Sect. 2 are conducted with unconditional DMs' and 'Our numerical experiments cover a range of p between 1M and 16M. Exploring a wider range is essential to map the full (n, p) phase diagram'",
+                "affected_claim": "Findings generalize to practical large-scale diffusion models used in production (Stable Diffusion, DALL-E are mentioned in introduction)",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Significant gap between theoretical model and experiments: random features analysis assumes fixed frozen first layer and is restricted to a single diffusion time t, while practical experiments use learnable U-Net architectures trained with a single model for all diffusion times, making direct theoretical-experimental connection incomplete",
+                "severity": "major",
+                "evidence": "Section 3 studies RFNN with frozen W matrix (Eq. 7) at fixed diffusion time t; Section 2 uses full U-Net with learnable parameters trained on all diffusion times with time-conditioning. Authors state in Limitations: 'Our theoretical analysis rely on well-controlled data and score models that reproduce the core effects. Extending these analytical frameworks to richer data distributions and to structured architectures would be valuable'",
+                "affected_claim": "Theoretical picture in Figure 1 explains the memorization-generalization transition in realistic diffusion models",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Theory relies on strong assumptions including Gaussian data and specific activation functions; extensions to realistic distributions (natural images, heavy-tailed data) and modern architectures (attention-based, structured) remain unclear",
+                "severity": "major",
+                "evidence": "Section 3 assumes 'the data distribution Px has zero mean, sub-Gaussian tails' and uses tanh activation unless specified. Authors acknowledge in Limitations: 'Extending these analytical frameworks to richer data distributions (such as Gaussian mixtures or data from the hidden manifold model) and to structured architectures would be valuable to further characterize the implicit dynamical regularization. In particular investigating how heavy-tailed data distribution affect the picture described here could be valuable'",
+                "affected_claim": "The theoretical mechanism based on spectral bias and irregular empirical score applies broadly to realistic generative models",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Main experiments focus on unconditional generation on one dataset; while supplementary material includes conditional generation experiments with toy Gaussian mixture data and classifier-free guidance, more extensive validation on diverse conditional settings is needed",
+                "severity": "minor",
+                "evidence": "Section 2 states 'All experiments in Sect. 2 are conducted with unconditional DMs. We additionally verify in SM Sect. B, using a toy Gaussian mixture dataset and classifier-free guidance, that the same scaling of τmem with n holds in the conditional settings. Understanding precisely how the absolute timescales τmem and τgen depend on the conditioning remains an open question'",
+                "affected_claim": "The memorization-generalization transition mechanism is universal across different generation settings",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The central claims are technically sound. Numerical experiments are carefully designed with proper metrics (FID, memorization fraction) and statistical reporting. The key empirical findings (τmem ∝ n, τgen ∝ W^{-1}, existence of generalization window) are convincingly demonstrated. The theoretical analysis is mathematically rigorous: Theorems 3.1 and 3.2 are properly stated with clear assumptions, the replica method derivation is standard practice in statistical physics, and the connection between eigenvalue spectrum and training timescales is correctly established. The claim that memorization scaling is independent of sample repetition is validated by full-batch experiments. Minor concern: theoretical model (RFNN with frozen first layer) does not perfectly mirror experimental setup (learnable U-Net), but this is acknowledged and does not invalidate the core insights."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper makes novel contributions by: (1) systematically characterizing two distinct training timescales and their scaling with n and p, going beyond prior work that studied memorization at infinite training time; (2) connecting the timescale separation to spectral bias of neural networks in a new way—specifically, relating delayed memorization to irregularity of the empirical score at low noise levels; (3) providing a random matrix theory analysis (Theorems 3.1, 3.2) that explains timescale emergence in the high-dimensional limit. While prior work (e.g., [13], [56], [4]) addressed memorization through various mechanisms (architectural regularization, finite learning rate), the emphasis on implicit dynamical regularization emerging from training dynamics and the linear scaling τmem ∝ n appears novel. Related work [12] (Favero et al. 2025) was discovered concurrent to submission, suggesting independent discovery of related insights."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a fundamental and practically important question: why do diffusion models avoid memorization despite being overparameterized? The findings are significant for: (1) understanding generative model training dynamics at a mechanistic level; (2) providing practical guidance (early stopping, capacity control) for practitioners to avoid memorization in data-scarce domains; (3) revealing implicit regularization in training dynamics, a phenomenon of broader relevance to deep learning. The theoretical framework connecting spectral bias to memorization dynamics could inspire future work on other generative models (flow matching, stochastic interpolants). The work builds understanding relevant to recent industrial observations of memorization in large diffusion models (Stable Diffusion, DALL-E). Impact is solid but somewhat incremental relative to recent memorization literature."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are well-designed and convincing: (1) Clear identification of τgen through FID minimization and τmem through memorization fraction fmem with proper justification of thresholds; (2) Systematic variation of n and p to verify claimed scalings (τgen ∝ W^{-1}, τmem ∝ nW^{-1}, n*(p) independent of p for W > 8); (3) Statistical rigor with error bars (2× std dev for FID, 95% CIs for fmem via bootstrap); (4) Demonstration that scaling is not due to sample repetition via full-batch experiments; (5) Comprehensive range of metrics (loss, FID, memorization fraction). Theoretical evaluation provides exact solutions to gradient flow dynamics and asymptotic spectrum via random matrix theory. Limitations: experiments limited to relatively small p and single dataset; conditional generation validation only on toy data; theory assumes simplified setting. These limitations are acknowledged by authors."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with effective visual communication. Figure 1 provides an excellent summary of the theoretical picture. Figure 2 clearly demonstrates the two timescales and their scaling with n. Figure 3 systematically shows capacity effects. Mathematical notation is consistent and theorems are clearly stated with assumptions. The logical flow progresses from empirical observations (Sect. 2) to theoretical analysis (Sect. 3) to conclusions. The related work section properly positions the contribution relative to prior work. Supplementary material is extensive and well-organized. Minor issues: some notation density in Theorem 3.1 equations (15-19); the replica method derivation is non-rigorous by nature but this is acknowledged as standard practice. Overall, presentation meets standards of a top-tier venue."
+              }
+            },
+            "summary_comment": "This is a well-executed paper that makes meaningful contributions to understanding memorization in diffusion models through both empirical and theoretical lenses. The identification of two distinct training timescales (τgen for generation quality, τmem for memorization onset) with different scalings with respect to dataset size and model capacity is novel and well-demonstrated empirically. The theoretical analysis via random features models, while simplified relative to practical architectures, provides valuable mechanistic insights connecting spectral bias to the memorization-generalization transition. The work is technically sound, clearly presented, and addresses a practically important question in generative modeling. The main limitations are: (1) experiments restricted to moderate model sizes and a single dataset (downsampled CelebA), preventing strong claims about large-scale models; (2) theory-experiment gap due to simplified theoretical model; (3) focus on unconditional generation with limited conditional generation validation. These limitations are appropriately acknowledged and do not invalidate the core contributions. The paper makes sufficient novelty and significance contributions for acceptance at a top-tier venue, providing both theoretical understanding and practical insights for practitioners training diffusion models. The work would benefit from future extensions to larger models and diverse datasets, but the current contribution is solid and well-supported."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

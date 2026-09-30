@@ -1,0 +1,825 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 2,
+        "significance": 2,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "The paper addresses an important problem (plasticity loss and unbounded weight growth) that affects multiple areas of deep learning. The motivation is well-articulated through discussion of both weight regularization and re-initialization methods.",
+        "Theorem 1 on proportionality of neural networks is a solid theoretical contribution showing that weight rescaling can preserve network behavior when combined with appropriate bias scaling. The mathematical framework is clearly presented.",
+        "The proposed method is simple and computationally efficient, requiring only element-wise scaling operations at each training step without additional gradient computations, which is an advantage over penalty-based regularization methods."
+      ],
+      "weaknesses": [
+        "Theorem 1 establishes hard constraints on weight scaling that are mathematically exact, but the practical algorithm breaks these constraints through soft formulation with λ parameter. The authors acknowledge this fundamental gap but provide no theorem proving proportionality is maintained under soft scaling, leaving the core theoretical foundation unreconciled.",
+        "Theorem 2's boundedness proof assumes gradient-induced Frobenius norm changes are bounded by constant B, but the paper simultaneously argues weight growth follows O(√t), which contradicts a constant bound. No empirical measurement of B is provided across different optimizers, learning rates, or training phases.",
+        "Learning rate decay breaks the method's core theoretical equivalence (α||∇L(w)|| ≈ λ(||w_{t+1}|| - ||w_0||)), forcing an ad-hoc workaround of resetting n_init during decay. This undermines the foundational principle and indicates incompatibility with standard training practices.",
+        "Empirical improvements lack statistical significance. CIFAR-10 shows 0.39% improvement with overlapping standard deviations; CIFAR-100 shows <1% gains; CIFAR-100 CNN-BN shows SWR performs worse than L2 by 0.93%. No significance testing is provided. Only VGG-16 shows substantial 4% improvement but with unusually low variance (0.0025 vs 0.0142 for vanilla), suggesting different experimental conditions.",
+        "Hyperparameter tuning is extensive and lacks principled guidance. λ values range from 1e-4 to 1e+0 across experiments; VGG-16 shows 50x variation in λ_f and 10x in λ_c between different continual learning settings, making the method difficult to apply to new problems.",
+        "Balancedness analysis (Section 3.4, Appendix C) is supported only by a single 3-layer MLP experiment. No ablation study isolates balancedness contribution or compares against explicit balancedness regularization baselines, leaving the causal link between improved balancedness and generalization unestablished."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Theorem 1 establishes hard constraints on weight scaling that are mathematically exact, but the practical algorithm breaks these constraints through soft formulation with λ parameter. The authors acknowledge this fundamental gap but provide no theorem proving proportionality is maintained under soft scaling, leaving the core theoretical foundation unreconciled.",
+          "severity": "major",
+          "evidence": "Theorem 1 (lines 162-197) specifies exact scaling rules: W_l^c ← c_l·W_l and b_l^c ← (∏_{i=1}^l c_i)·b_l guaranteeing f_{θ^c}(x) = C·f_θ(x). Section 3.3 introduces c_l = (λ||W_l^init|| + (1-λ)||W_l||)/||W_l||, which does not follow Theorem 1's exact rules. The paper states 'While this modification breaks hard constraints...the algorithm still prevents unlimited growth' (lines 220-223) without proving the network remains proportional. The author's rebuttal acknowledges 'We have not [provided] a theorem showing proportionality is maintained under soft scaling.' This represents a fundamental disconnect between theory and practice.",
+          "affected_claim": "SWR prevents unbounded weight growth while maintaining network plasticity through proportionality",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Theorem 2's boundedness proof assumes gradient-induced Frobenius norm changes are bounded by constant B, but the paper simultaneously argues weight growth follows O(√t), which contradicts a constant bound. No empirical measurement of B is provided across different optimizers, learning rates, or training phases.",
+          "severity": "major",
+          "evidence": "Theorem 2 (Appendix B, lines 648-650) assumes 'the change of squared Frobenius norm...is bounded by a constant B for all weight matrices.' Appendix C.1 (lines 702-703) states 'the weight Frobenius norm growth follows O(√t)...thereby indicating that the assumption is not unreasonable.' O(√t) growth means B is not constant but scales with t, directly contradicting Theorem 2's assumption. The author's rebuttal confirms: 'we have not empirically validated B across different optimizers...This assumption is central to the boundedness proof but remains unjustified.' No experimental measurement of B values is provided anywhere in the paper.",
+          "affected_claim": "Theorem 2 proves SWR bounds weight magnitudes",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Learning rate decay breaks the method's core theoretical equivalence (α||∇L(w)|| ≈ λ(||w_{t+1}|| - ||w_0||)), forcing an ad-hoc workaround of resetting n_init during decay. This undermines the foundational principle and indicates incompatibility with standard training practices.",
+          "severity": "major",
+          "evidence": "Appendix E (lines 821-840) derives the equivalence α||∇L(w)|| ≈ λ(||w_{t+1}|| - ||w_0||) as the basis for boundedness and states 'When learning rate decay occurs, this equivalence is broken.' The proposed solution is 'reset the initial weight norm to the current norm when decay happens (n_init ← ||w_t||).' The author's rebuttal characterizes this as 'ad-hoc and contradicts the method's foundation.' Table 5 shows SWR+re-init performance degradation on VGG-16 (0.5165 vs L2 0.4080, L2 Init 0.4199). This reveals the method is incompatible with the learning rate decay schedules that 'nearly all practitioners use.'",
+          "affected_claim": "SWR is broadly applicable to standard deep learning setups",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Empirical improvements lack statistical significance. CIFAR-10 shows 0.39% improvement with overlapping standard deviations; CIFAR-100 shows <1% gains; CIFAR-100 CNN-BN shows SWR performs worse than L2 by 0.93%. No significance testing is provided. Only VGG-16 shows substantial 4% improvement but with unusually low variance (0.0025 vs 0.0142 for vanilla), suggesting different experimental conditions.",
+          "severity": "major",
+          "evidence": "Table 1: CIFAR-10 CNN: 0.7158±0.0063 (SWR) vs 0.7119±0.0037 (L2) = 0.39% with overlapping confidence intervals. CIFAR-100 CNN: 0.3914±0.0070 (SWR) vs 0.3882±0.0064 (L2) = 0.82%. CIFAR-100 CNN-BN: 0.4129±0.0105 (SWR) vs 0.4222±0.0043 (L2) = -0.93% (SWR worse). VGG-16: 0.4348±0.0025 (SWR) vs 0.3912±0.0142 (vanilla) = 4% but with 57× lower variance than vanilla (0.0025 vs 0.0142). The author's rebuttal states: 'We have not conducted statistical significance testing (t-tests, confidence intervals)...Given the <1% improvements with overlapping error bars, it is unclear if differences are significant.'",
+          "affected_claim": "SWR improves generalization performance across various learning scenarios",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Hyperparameter tuning is extensive and lacks principled guidance. λ values range from 1e-4 to 1e+0 across experiments; VGG-16 shows 50x variation in λ_f and 10x in λ_c between different continual learning settings, making the method difficult to apply to new problems.",
+          "severity": "major",
+          "evidence": "Tables 2-4 in Appendix D show: MNIST λ=1e-4, CIFAR-10 λ=1e-3, CIFAR-100 full access λ=1e-3, CIFAR-100 limited access λ=1e-1 (100x increase). VGG-16 warm-start: λf=1e-2, λc=1e-1; VGG-16 continual full: λf=1e-2, λc=1e-2; VGG-16 continual limited: λf=1e-4, λc=1e+0 (50x and 10x variation). The author's rebuttal acknowledges: 'we have not provided a principled method to set these hyperparameters, relying instead on grid search...This raises legitimate concerns about reproducibility.'",
+          "affected_claim": "SWR is a practical method that can be easily applied",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Balancedness analysis (Section 3.4, Appendix C) is supported only by a single 3-layer MLP experiment. No ablation study isolates balancedness contribution or compares against explicit balancedness regularization baselines, leaving the causal link between improved balancedness and generalization unestablished.",
+          "severity": "minor",
+          "evidence": "Appendix C.1, Figure 5 shows balancedness (Definition 2: b_t = |r_t - r_0|) and test accuracy for 3-layer MLP on MNIST only. No experiments on CNN, CNN-BN, or VGG-16. No ablation comparing SWR against a method that directly regularizes Definition 2's b_t. Theorem 3 proves SWR improves balancedness, but the connection to generalization is not established. The author's rebuttal states: 'An ablation study comparing SWR against explicit balancedness regularization would be needed to isolate this contribution' and 'We have not demonstrated causality...across diverse architectures.'",
+          "affected_claim": "Balancedness is a key mechanism by which SWR improves performance",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "Multiple fundamental theoretical issues remain unresolved in the submitted paper: (1) The soft formulation with λ breaks Theorem 1's hard constraints but no theorem proves proportionality is maintained—the authors acknowledge this explicitly in the rebuttal; (2) Theorem 2's core assumption (constant B) contradicts the cited O(√t) growth analysis, and no empirical validation of B is provided—authors acknowledge this is 'unjustified'; (3) Learning rate decay breaks the method's theoretical equivalence, forcing an ad-hoc workaround—authors characterize it as 'ad-hoc and contradicts the method's foundation.' These are not presentation issues; they indicate the theoretical framework does not hold under practical conditions."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The proportionality framework (Theorem 1) and the specific per-layer weight rescaling based on growth rate are novel. Prior work on weight rescaling exists (Niehaus et al. 2024, Alabdulmohsin et al. 2021) but the proportionality-aware approach represents sufficient novelty."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "Empirical significance is negligible. CIFAR-10/100 improvements are <1% with overlapping error bars and no significance testing. CIFAR-100 CNN-BN shows SWR performs worse than L2. Only VGG-16 shows 4% improvement but with anomalous variance suggesting different experimental conditions. The authors acknowledge that empirical gains 'are marginal and potentially not significant' and that the method 'may only provide benefits in specific architectural regimes (deeper networks) rather than broadly.' Standard learning rate decay is incompatible with the method, severely limiting practical applicability. These results do not advance the field."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "Critical experimental issues are unresolved: (1) No statistical significance testing despite <1% improvements with overlapping error bars; (2) Extensive hyperparameter search without principled selection or sensitivity analysis raises fair comparison concerns; (3) VGG-16 shows unusual experimental variance requiring investigation; (4) Learning rate decay compatibility issues (Appendix E) indicate standard training practices were not thoroughly evaluated; (5) Balancedness claims supported only by single toy experiment without ablations. The authors acknowledge these issues but do not provide solutions in the submitted paper."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-written with clear mathematical exposition of Theorem 1 and organized experiments. However, critical limitations (learning rate decay incompatibility, hyperparameter sensitivity, balancedness evidence) are either buried in appendices or understated, and the theory-practice gap is not clearly communicated."
+        }
+      },
+      "summary_comment": "The paper proposes Soft Weight Rescaling (SWR) with the novel proportionality framework (Theorem 1). However, it suffers from fundamental theoretical and empirical weaknesses that prevent acceptance at a top-tier venue. The core theoretical contribution—Theorem 1 on proportionality—is solid, but the practical algorithm breaks Theorem 1's hard constraints through soft formulation without proving proportionality is maintained (acknowledged by authors). Theorem 2's boundedness proof assumes a constant B that contradicts the cited O(√t) growth analysis, with no empirical validation (authors confirm this is 'unjustified'). Learning rate decay breaks the method's theoretical equivalence, requiring an ad-hoc workaround (resetting n_init) that authors acknowledge 'contradicts the method's foundation.' On the empirical side, improvements are marginal (<1% on CIFAR-10/100 with overlapping error bars, no significance testing), inconsistent (CIFAR-100 CNN-BN shows SWR worse than L2), and appear limited to VGG-16 (with anomalous variance). Hyperparameter tuning is extensive (λ varies 1e-4 to 1e+0) without principled guidance. Balancedness claims rest on a single MLP toy experiment. The authors' rebuttal demonstrates clear awareness of these issues but confirms they remain unresolved in the submitted paper. The combination of unreconciled theory, negligible empirical gains, and practical incompatibility with standard training practices makes this work unsuitable for publication at a selective venue."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"The paper addresses weight regularization and plasticity loss, which are core topics in ICML's optimization and general machine learning curriculum\",\n      \"The method is simple and computationally efficient (element-wise scaling without additional gradient computations), appealing to ICML's focus on practical machine learning systems\",\n      \"Theorem 1 on proportionality is mathematically rigorous and provides theoretical insight into weight scaling, aligning with ICML's value for theoretical contributions in optimization\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Critical soundness issues undermine the core contribution: Theorem 1's hard constraints are broken by the soft λ-formulation without proof that proportionality is maintained; Reviewer 1 explicitly notes the authors acknowledge this fundamental gap in the rebuttal\",\n      \"Theorem 2's boundedness proof assumes a constant B that contradicts the cited O(√t) growth analysis, creating an unresolved theoretical contradiction; no empirical validation of B is provided across optimizers or learning rates\",\n      \"Learning rate decay—standard practice in deep learning—breaks the method's theoretical equivalence, requiring an ad-hoc workaround (resetting n_init) that the reviewer and authors agree 'contradicts the method's foundation'\",\n      \"Empirical results show negligible improvements (<1% on CIFAR-10/100 with overlapping error bars and no significance testing); ICML values methodologically rigorous evaluation with proper statistical analysis\",\n      \"Extensive hyperparameter search (λ ranging 1e-4 to 1e+0, VGG-16 showing 50-100x variation across settings) without principled guidance undermines reproducibility—critical for ICML's standards\",\n      \"Paper is categorized as 'Others' topic, suggesting it may not fit cleanly within ICML's core machine learning areas\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Plasticity loss and continual learning are prominent NeurIPS topics; the paper directly addresses plasticity recovery across warm-start, continual learning, and standard learning setups\",\n      \"The proportionality framework (Theorem 1) is novel and provides theoretical insight that could interest NeurIPS's interdisciplinary audience\",\n      \"Comprehensive experiments span multiple architectures (MLP, CNN, VGG-16) and datasets (MNIST, CIFAR-10/100, TinyImageNet), showing breadth valued by NeurIPS\",\n      \"NeurIPS welcomes 'in-depth analysis of existing methods that provide new insights in terms of their limitations or behavior' which aligns with balancedness analysis (Section 3.4, Appendix C)\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The same fundamental soundness issues that disqualify from ICML apply: theory-practice gap in proportionality under soft formulation, contradictory assumptions in Theorem 2, incompatibility with learning rate decay\",\n      \"Empirical significance is weak (<1% improvements on standard benchmarks with overlapping error bars; no statistical significance testing); NeurIPS expects either strong theoretical or strong empirical contributions\",\n      \"The 4% improvement on VGG-16 appears to be cherry-picked (anomalously low variance 0.0025 vs 0.0142 for vanilla suggests different experimental conditions), raising concerns about fair comparison that NeurIPS reviewers would scrutinize\",\n      \"Balancedness contribution—claimed as a key advantage—is supported only by a single 3-layer MLP toy experiment with no ablation studies isolating its contribution; NeurIPS demands rigorous evidence for such claims\",\n      \"Hyperparameter sensitivity without principled selection strategy contradicts NeurIPS values for reproducible, principled methods; the extensive grid search without guidance undermines confidence in generalization\",\n      \"Learning rate decay incompatibility is a critical practical limitation not adequately addressed; NeurIPS reviewers would view this as disqualifying for standard learning workflows\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Representation learning and optimization are core ICLR topics; the paper's focus on weight magnitude control and layer balancing relates to learned representations\",\n      \"Plasticity and continual learning are explicit ICLR topics, and the paper demonstrates improvements in warm-start and continual learning scenarios\",\n      \"The proportionality framework (Theorem 1) provides theoretical insights into how networks maintain functional equivalence under weight scaling, relevant to ICLR's representation learning focus\",\n      \"ICLR values infrastructure and practical improvements to training; the computational efficiency of SWR (no additional gradient computation) is a strength\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The same critical soundness issues apply: theory-practice gap where soft formulation breaks Theorem 1's hard constraints without proof of maintained proportionality; Reviewer 1 explicitly confirms authors acknowledge this in rebuttal\",\n      \"Theorem 2's contradictory assumptions (constant B vs O(√t) growth) and lack of empirical validation are major red flags for ICLR's high standards for theoretical rigor\",\n      \"Learning rate decay breaks the method's theoretical foundation, forcing ad-hoc workarounds; this is particularly problematic for ICLR which values principled, general-purpose methods for deep learning\",\n      \"Empirical improvements are marginal and statistically non-significant on standard ICLR benchmarks (CIFAR-10/100, TinyImageNet); ICLR expects clear, significant gains\",\n      \"The balancedness analysis (Appendix C) is supported only by toy experiments and lacks ablation studies; ICLR would demand more rigorous evidence for claimed mechanisms\",\n      \"Extensive hyperparameter tuning without principled guidance or sensitivity analysis contradicts ICLR's emphasis on reproducible, well-understood methods for deep learning\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\nThis paper proposes **Soft Weight Rescaling (SWR)**, a weight regularization method to recover neural network plasticity by scaling weights proportional to their growth rate. While the **proportionality framework (Theorem 1)** is a novel theoretical contribution, the paper suffers from **critical, unresolved soundness issues** that make it unsuitable for any of the three top-tier venues.\n\n### Key Problems:\n\n1. **Theory-Practice Gap**: Theorem 1 proves hard constraints guarantee proportionality, but the practical algorithm (with soft λ-formulation) breaks these constraints. Authors acknowledge no theorem proves proportionality is maintained under soft scaling.\n\n2. **Contradictory Assumptions**: Theorem 2 assumes a constant bound B on weight changes, but the paper cites O(√t) growth. These contradict each other, and B is never empirically validated.\n\n3. **Method Incompatibility**: Learning rate decay—universal in practice—breaks the method's theoretical equivalence, forcing an ad-hoc \"reset\" workaround that the authors acknowledge contradicts the foundation.\n\n4. **Negligible Empirical Gains**: CIFAR-10/100 improvements are <1% with overlapping error bars and no significance testing. Only VGG-16 shows 4%, but with anomalously low variance (0.0025 vs 0.0142), suggesting different experimental conditions.\n\n5. **Reproducibility Issues**: Hyperparameters vary 50-100× across experiments (λ ranges 1e-4 to 1e+0) without principled selection guidance; balancedness claims rely on a single toy experiment.\n\n### Venue Assessment:\n\n- **ICML (4/10)**: Weak fit. Soundness failures and marginal empirical results disqualify; theory doesn't hold under practical conditions.\n- **NeurIPS (5/10)**: Borderline/risky fit. Continual learning focus is relevant, but same soundness issues and weak empirical gains make acceptance unlikely.\n- **ICLR (5/10)**: Borderline/risky fit. Representation/optimization angle is relevant, but learning rate decay incompatibility and theory-practice gap are disqualifying for a deep learning venue.\n\n**Recommendation**: Reject from all three venues. The work requires substantial revision addressing the theory-practice gap, empirical validation of assumptions, and demonstration of statistical significance before resubmission.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 3,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses an important problem (plasticity loss and unbounded weight growth) that affects multiple areas of deep learning. The motivation is well-articulated through discussion of both weight regularization and re-initialization methods.",
+              "Theorem 1 on proportionality of neural networks is a solid theoretical contribution showing that weight rescaling can preserve network behavior when combined with appropriate bias scaling. The mathematical framework is clearly presented.",
+              "The proposed method is simple and computationally efficient, requiring only element-wise scaling operations at each training step without additional gradient computations, which is an advantage over penalty-based regularization methods.",
+              "The paper evaluates SWR across multiple experimental settings (warm-start, continual learning, single-task learning) and multiple model architectures (MLP, CNN, VGG-16), demonstrating broad applicability."
+            ],
+            "weaknesses": [
+              "The soft weight rescaling formulation (with λ parameter) breaks the hard constraints that Theorem 1 establishes. While Theorem 2 proves boundedness under certain assumptions, the practical motivation for the soft formulation and how it relates to the theoretical guarantees is not clearly explained.",
+              "Experimental results are mixed and inconsistent across settings. In many cases (Table 1), SWR only marginally outperforms L2 regularization, and in some continual learning scenarios (Fig. 4), the improvements are minimal. The strongest results come from VGG-16, but this appears to be a limited case rather than a general phenomenon.",
+              "The hyperparameter selection process appears extensive and dataset-specific (different λ values for different settings, split into λf and λc). The paper does not provide principled guidance on hyperparameter selection, making reproducibility and practical application challenging.",
+              "Theorem 2's boundedness proof requires an assumption that 'the change of squared Frobenius norm resulting from a single gradient update is bounded by a constant.' This assumption is not rigorously justified and may not hold in practice, especially early in training or with adaptive optimizers like Adam.",
+              "The balancedness analysis (Section 3.4 and Appendix C) is incomplete. Definition 2 of balancedness is introduced but the connection between the proposed measure and actual model performance or optimization dynamics is not thoroughly established.",
+              "The learning rate decay issue (Appendix E) reveals a significant practical limitation. SWR+re-init is introduced as a workaround, but this requires resetting the initial norm during training, which seems ad-hoc and somewhat contradicts the core approach."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The soft weight rescaling formulation (with λ parameter) breaks the hard constraints that Theorem 1 establishes. While Theorem 2 proves boundedness under certain assumptions, the practical motivation for the soft formulation and how it relates to the theoretical guarantees is not clearly explained.",
+                "severity": "major",
+                "evidence": "In Section 3.3, the authors introduce c_l = (λ × ||W_l^init|| + (1-λ) × ||W_l||) / ||W_l|| and state 'While this modification breaks hard constraints for weight magnitude, the algorithm still prevents unlimited growth of weight.' The justification is vague, and Theorem 2's assumptions are presented in Appendix B without clear connection to why the soft formulation is necessary.",
+                "affected_claim": "That SWR bounds weight magnitude while preserving learning capacity",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Experimental results are mixed and inconsistent across settings. In many cases (Table 1), SWR only marginally outperforms L2 regularization, and in some continual learning scenarios (Fig. 4), the improvements are minimal. The strongest results come from VGG-16, but this appears to be a limited case rather than a general phenomenon.",
+                "severity": "major",
+                "evidence": "Table 1 shows SWR improvement over L2 on CIFAR-10 CNN: 0.7158 vs 0.7119 (0.39% difference). On CIFAR-100 CNN: 0.3914 vs 0.3882 (0.82% difference). VGG-16 shows 4% improvement, but this is exception. In Fig. 4, CNN and CNN-BN show minimal differences between methods. The paper's claim of 'consistently outperformed' is not well-supported.",
+                "affected_claim": "SWR consistently outperforms existing regularization and re-initialization methods",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The hyperparameter selection process appears extensive and dataset-specific (different λ values for different settings, split into λf and λc). The paper does not provide principled guidance on hyperparameter selection, making reproducibility and practical application challenging.",
+                "severity": "major",
+                "evidence": "Tables 2-4 in Appendix D show dramatically different optimal λ values across experiments: λ=1e-4 for MNIST, λ=1e-3 for CIFAR-10, λ=1e-1 for CIFAR-100 limited access. For VGG-16, λf=1e-2, λc=1e-1 in one setting, λf=1e-4, λc=1e+0 in another. No principled selection method is provided beyond grid search.",
+                "affected_claim": "SWR is a practical method that can be easily applied",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Theorem 2's boundedness proof requires an assumption that 'the change of squared Frobenius norm resulting from a single gradient update is bounded by a constant.' This assumption is not rigorously justified and may not hold in practice, especially early in training or with adaptive optimizers like Adam.",
+                "severity": "major",
+                "evidence": "Appendix B, line 648-650: 'If the change of squared Frobenius norm of the weight matrix, resulting from the single gradient update, is bounded by a constant for all weight matrices in the neural network...' No empirical or theoretical justification is provided for when this holds. The authors mention in Appendix C.1 that weight growth follows O(√t), but this growth rate itself means the assumption may not hold consistently.",
+                "affected_claim": "SWR theoretically bounds weight magnitude",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The balancedness analysis (Section 3.4 and Appendix C) is incomplete. Definition 2 of balancedness is introduced but the connection between the proposed measure and actual model performance or optimization dynamics is not thoroughly established.",
+                "severity": "minor",
+                "evidence": "Definition 2 (line 738) defines balance as b_t = |r_t - r_0| where r_t = ||W_t'|| / ||W_t||. Theorem 3 proves SWR improves this metric, but Figure 5 shows only qualitative correlation with test accuracy on a single 3-layer MLP. No experiments show that improved balancedness directly causes improved generalization.",
+                "affected_claim": "Improved balancedness is a key advantage of SWR",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The learning rate decay issue (Appendix E) reveals a significant practical limitation. SWR+re-init is introduced as a workaround, but this requires resetting the initial norm during training, which seems ad-hoc and somewhat contradicts the core approach.",
+                "severity": "major",
+                "evidence": "Appendix E explains: 'When the learning rate decays, the equivalence α||∇L(w)|| ≈ λ(||w_{t+1}|| - ||w_0||) is broken.' The proposed fix is 'reset the initial weight norm to the current norm when decay happens.' This appears to undermine the method's theoretical foundation and suggests the approach may not generalize well to common training practices.",
+                "affected_claim": "SWR is broadly applicable to standard deep learning setups",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While Theorem 1 is sound, Theorem 2's boundedness proof relies on an unjustified assumption about gradient magnitude bounds that may not hold in practice. The soft formulation breaks the theoretical guarantees but the implications are not thoroughly analyzed. The learning rate decay issue (Appendix E) reveals the method has practical limitations not addressed by the theory."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The proportionality framework (Theorem 1) is novel and the specific application of scaling per-layer based on growth rate is a new contribution. However, the core idea of weight rescaling is not entirely new (Niehaus et al. 2024, Alabdulmohsin et al. 2021 are discussed), though the proportionality-aware approach appears novel."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "While the paper addresses an important problem, the empirical improvements are marginal in most settings (Table 1: <1% on CIFAR-10/100) and inconsistent. The strongest results (VGG-16 with 4% improvement) appear limited to specific architectures. The extensive hyperparameter tuning required and learning rate decay issues reduce practical significance. No evidence that this advances the state-of-the-art in a meaningful way for practitioners."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The experimental evaluation has several issues: (1) Inconsistent improvements across settings with many marginal gains; (2) Extensive hyperparameter search without principled selection method, raising questions about fair comparison; (3) Mixed results in continual learning (Figs 3-4); (4) Additional workaround needed for learning rate decay; (5) Statistical significance not assessed given small differences and overlapping standard deviations in many cases."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear mathematical exposition. Theorem 1 and its implications are explained clearly. Experiments are well-organized. However, some issues: the connection between Theorem 1's hard constraints and Theorem 2's soft formulation is unclear; the assumption in Theorem 2 is presented without justification; the learning rate decay workaround is relegated to appendix and seems important."
+              }
+            },
+            "summary_comment": "The paper proposes Soft Weight Rescaling (SWR), a weight regularization method designed to prevent unbounded weight growth and maintain network plasticity. The core theoretical contribution—Theorem 1 on proportional networks and the scaling framework—is solid. However, the work has significant weaknesses that prevent acceptance: (1) The soft formulation breaks the theoretical guarantees without clear justification; (2) Empirical improvements are marginal and inconsistent across most settings (typically <1% on CIFAR-10/100); (3) Extensive hyperparameter tuning is required without principled guidance, raising fairness concerns in comparisons; (4) The method fails with standard learning rate decay schedules, requiring an ad-hoc workaround; (5) Theorem 2's key assumption is unjustified. While the work addresses an important problem and has some novel elements, the marginal empirical gains, practical limitations, and theoretical gaps prevent it from making a sufficiently strong contribution for a top-tier venue."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 2,
+              "significance": 2,
+              "evaluation": 3,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses an important problem (plasticity loss and unbounded weight growth) that affects multiple areas of deep learning. The motivation is well-articulated through discussion of both weight regularization and re-initialization methods.",
+              "Theorem 1 on proportionality of neural networks is a solid theoretical contribution showing that weight rescaling can preserve network behavior when combined with appropriate bias scaling. The mathematical framework is clearly presented.",
+              "The proposed method is simple and computationally efficient, requiring only element-wise scaling operations at each training step without additional gradient computations, which is an advantage over penalty-based regularization methods."
+            ],
+            "weaknesses": [
+              "The soft weight rescaling formulation with λ parameter fundamentally breaks the hard constraints that Theorem 1 establishes. The authors acknowledge this gap but provide only pragmatic rather than rigorous justification. No theoretical framework reconciles the two formulations.",
+              "Theorem 2's boundedness proof relies on an unjustified assumption that gradient-induced weight changes are bounded by a constant B. This assumption is neither empirically validated nor theoretically justified for adaptive optimizers like Adam. The O(√t) weight growth discussed in Appendix C.1 suggests this assumption may not hold uniformly throughout training.",
+              "Learning rate decay breaks the method's core equivalence (Appendix E), requiring an ad-hoc workaround (resetting n_init) that contradicts the method's foundation. This reveals the approach is not compatible with standard training practices.",
+              "Empirical improvements are marginal and inconsistent. Table 1 shows <1% gains on CIFAR-10/100, with the substantial 4% improvement on VGG-16 appearing as an exception rather than evidence of systematic advantage.",
+              "Extensive hyperparameter tuning across experiments without principled selection method (Tables 2-4 show λ values ranging from 1e-4 to 1e+0). Different optimal λ_f and λ_c values across settings raise concerns about reproducibility and fair comparison.",
+              "The balancedness analysis (Section 3.4, Appendix C) provides evidence only from a single 3-layer MLP experiment. No systematic demonstration that improved balancedness per Definition 2 causally improves generalization across diverse architectures."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The soft weight rescaling formulation with λ parameter fundamentally breaks the hard constraints that Theorem 1 establishes. The authors acknowledge this gap but provide only pragmatic rather than rigorous justification. No theoretical framework reconciles the two formulations.",
+                "severity": "major",
+                "evidence": "Section 3.3 (lines 220-227) states: 'While this modification breaks hard constraints for weight magnitude, the algorithm still prevents unlimited growth of weight.' The author's rebuttal acknowledges the soft formulation 'breaks the hard constraints established in Theorem 1' and that the motivation is 'pragmatic' rather than rigorous. No proof extends Theorem 1 to the soft case.",
+                "affected_claim": "SWR theoretically bounds weight magnitude while maintaining plasticity",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Theorem 2's boundedness proof relies on an unjustified assumption that gradient-induced weight changes are bounded by a constant B. This assumption is neither empirically validated nor theoretically justified for adaptive optimizers like Adam. The O(√t) weight growth discussed in Appendix C.1 suggests this assumption may not hold uniformly throughout training.",
+                "severity": "major",
+                "evidence": "Appendix B (lines 648-650) presents: 'If the change of squared Frobenius norm of the weight matrix, resulting from the single gradient update, is bounded by a constant for all weight matrices in the neural network, then SWR...bounds the Frobenius norm.' The author's rebuttal states 'The O(√t) weight growth...suggests this assumption may not hold uniformly throughout training.' No validation is provided in the submitted paper for when B is bounded.",
+                "affected_claim": "Theorem 2 proves SWR bounds weight magnitudes",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Learning rate decay breaks the method's core equivalence (Appendix E), requiring an ad-hoc workaround (resetting n_init) that contradicts the method's foundation. This reveals the approach is not compatible with standard training practices.",
+                "severity": "major",
+                "evidence": "Appendix E (lines 821-840) shows the equivalence α||∇L(w)|| ≈ λ(||w_{t+1}|| - ||w_0||) 'is broken' by learning rate decay. The proposed fix is 'reset the initial weight norm to the current norm when decay happens' (n_init ← ||w_t||). The author's rebuttal acknowledges 'The need to reset n_init during training when learning rate decays appears ad-hoc and contradicts the method's foundation.' Results with SWR+re-init show performance degradation compared to other methods on VGG-16 (Table 5: 0.5165 vs vanilla 0.4126, but L2 0.4080, L2 Init 0.4199).",
+                "affected_claim": "SWR is broadly applicable to standard deep learning setups",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Empirical improvements are marginal and inconsistent. Table 1 shows <1% gains on CIFAR-10/100, with the substantial 4% improvement on VGG-16 appearing as an exception rather than evidence of systematic advantage.",
+                "severity": "major",
+                "evidence": "Table 1: CIFAR-10 CNN: 0.7158 (SWR) vs 0.7119 (L2) = 0.39% improvement. CIFAR-100 CNN: 0.3914 vs 0.3882 = 0.82% improvement. CIFAR-100 CNN-BN: 0.4129 vs 0.4222 = -0.93% (worse than L2). VGG-16 shows 4% (0.4348 vs 0.3912). The author's rebuttal acknowledges 'The results suggest SWR may only provide benefits in specific architectural regimes (deeper networks) rather than broadly.'",
+                "affected_claim": "SWR improves generalization performance across various learning scenarios",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Extensive hyperparameter tuning across experiments without principled selection method (Tables 2-4 show λ values ranging from 1e-4 to 1e+0). Different optimal λ_f and λ_c values across settings raise concerns about reproducibility and fair comparison.",
+                "severity": "major",
+                "evidence": "Tables 2-4 in Appendix D show: MNIST λ=1e-4, CIFAR-10 λ=1e-3, CIFAR-100 limited access λ=1e-1. VGG-16 warm-start: λf=1e-2, λc=1e-1; VGG-16 limited access: λf=1e-4, λc=1e+0. The author's rebuttal states 'Different optimal λ values across settings...either (a) the method is sensitive to hyperparameter choice, or (b) we need a principled way to set λ...Neither is currently addressed.'",
+                "affected_claim": "SWR is a practical method that can be easily applied",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The balancedness analysis (Section 3.4, Appendix C) provides evidence only from a single 3-layer MLP experiment. No systematic demonstration that improved balancedness per Definition 2 causally improves generalization across diverse architectures.",
+                "severity": "minor",
+                "evidence": "Appendix C.1 Figure 5 shows balancedness metric and test accuracy on 3-layer MLP only. No ablation studies isolating balancedness contribution. No comparison with explicit balancedness regularization baselines. The author's rebuttal acknowledges: 'Figure 5 shows a correlation on a single 3-layer MLP, but this is insufficient evidence...We have not demonstrated that improved balancedness...drives performance improvements.'",
+                "affected_claim": "Balancedness is a key mechanism by which SWR improves performance",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "Multiple theoretical vulnerabilities are acknowledged by the authors themselves in the rebuttal: (1) The soft formulation 'breaks the hard constraints' of Theorem 1 without rigorous reconciliation; (2) Theorem 2's core assumption about bounded gradient updates is unvalidated and contradicts the O(√t) growth analysis; (3) Learning rate decay breaks the method's foundational equivalence, revealing the theory does not capture practical training dynamics. These are not minor issues—they undermine the central theoretical contributions."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The proportionality framework (Theorem 1) and the specific application of per-layer weight rescaling based on growth rate are novel contributions. Prior work on weight rescaling (Niehaus et al. 2024, Alabdulmohsin et al. 2021) exists, but the proportionality-aware approach is sufficiently distinct."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "Empirical significance is minimal. Most improvements are <1% and fall within standard deviation ranges. The 4% improvement on VGG-16 is an outlier rather than evidence of broad impact. The author's rebuttal confirms: 'The results suggest SWR may only provide benefits in specific architectural regimes (deeper networks) rather than broadly.' Standard learning rate decay breaks the method, limiting applicability. These results do not advance the state-of-the-art in a meaningful way for practitioners."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Experimental evaluation has unresolved issues: (1) Extensive hyperparameter search (Tables 2-4) without principled selection method or sensitivity analysis makes fair comparison questionable; (2) Marginal differences with overlapping error bars lack statistical significance testing; (3) Learning rate decay compatibility issues (Appendix E) suggest standard setups were not thoroughly evaluated; (4) Balancedness claims supported only by single toy experiment. The author's rebuttal acknowledges these limitations without providing solutions in the submitted paper."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear mathematical exposition of Theorem 1 and experimental organization. However, critical limitations (learning rate decay incompatibility, hyperparameter sensitivity, balancedness evidence) are buried in appendices or understated in main text."
+              }
+            },
+            "summary_comment": "The paper proposes Soft Weight Rescaling (SWR), a weight regularization method with the novel proportionality framework (Theorem 1). However, substantial soundness and significance issues prevent acceptance: (1) The core theoretical gap—the soft formulation breaks Theorem 1's hard constraints without rigorous reconciliation—is acknowledged by authors but unresolved. (2) Theorem 2's foundational assumption (bounded gradient updates) is unvalidated and contradicted by the cited O(√t) growth analysis. (3) Standard learning rate decay breaks the method's theoretical equivalence, revealed only in Appendix E, indicating the approach does not capture practical training dynamics. (4) Empirical improvements are marginal (<1% on CIFAR-10/100) and inconsistent, with the 4% VGG-16 gain appearing architecture-specific rather than general. (5) Extensive hyperparameter tuning without principled selection (λ ranges 1e-4 to 1e+0 across settings) raises reproducibility concerns. The author's rebuttal demonstrates awareness of these issues but does not resolve them within the submitted paper—it merely acknowledges them as limitations. For a top-tier venue, these are material weaknesses that cannot be overlooked. The work would require fundamental revisions addressing the theory-practice gap, validating Theorem 2's assumptions, resolving learning rate decay incompatibility, and demonstrating consistent empirical benefits."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Gap between theoretical guarantees (Theorem 1's hard constraints) and practical soft formulation (with λ parameter); unclear justification for why soft formulation is necessary\",\n        \"Theorem 2's boundedness proof relies on an unjustified assumption that gradient-induced weight changes are bounded—not rigorously established for adaptive optimizers like Adam or early training phases\",\n        \"Marginal and inconsistent empirical improvements across most settings; 4% improvement on VGG-16 appears to be exception rather than systematic advantage\",\n        \"Extensive dataset-specific hyperparameter tuning without principled selection method; raises concerns about fair comparison and practical applicability\",\n        \"Learning rate decay breaks the method's theoretical equivalence (Appendix E), requiring ad-hoc workaround (SWR+re-init) that contradicts core approach\",\n        \"Balancedness analysis lacks empirical evidence that improved balance directly causes performance gains beyond single toy experiment\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Soft formulation breaks hard constraints from Theorem 1\",\n          \"location\": \"Section 3.3, line 220-223\",\n          \"explanation\": \"Authors state 'While this modification breaks hard constraints for weight magnitude, the algorithm still prevents unlimited growth of weight.' The connection between Theorem 1's proportionality framework and Theorem 2's soft formulation is not clearly motivated or analyzed.\"\n        },\n        {\n          \"concern\": \"Theorem 2 assumes bounded gradient updates without justification\",\n          \"location\": \"Appendix B, line 648-650 and proof of Theorem 2\",\n          \"explanation\": \"The proof assumes 'the change of squared Frobenius norm of the weight matrix, resulting from the single gradient update, is bounded by a constant B.' This is presented as given without empirical validation or theoretical justification for when this holds.\"\n        },\n        {\n          \"concern\": \"Marginal empirical improvements in most settings\",\n          \"location\": \"Table 1 (Generalization results)\",\n          \"explanation\": \"CIFAR-10 CNN: 0.7158 vs 0.7119 (L2) = 0.39% gain. CIFAR-100 CNN: 0.3914 vs 0.3882 (L2) = 0.82% gain. Only VGG-16 shows substantial improvement (4%). Most differences fall within standard deviation ranges.\"\n        },\n        {\n          \"concern\": \"Inconsistent hyperparameter values across experiments\",\n          \"location\": \"Tables 2-4 in Appendix D\",\n          \"explanation\": \"λ values range from 1e-4 to 1e+0 depending on dataset/setting. For VGG-16: λf=1e-2, λc=1e-1 in one setting vs λf=1e-4, λc=1e+0 in another. No principled selection method provided.\"\n        },\n        {\n          \"concern\": \"Learning rate decay compatibility issue\",\n          \"location\": \"Appendix E, lines 821-840\",\n          \"explanation\": \"Authors demonstrate that learning rate decay breaks the equivalence α||∇L(w)|| ≈ λ(||w_{t+1}|| - ||w_0||). Proposed workaround is to reset n_init during training, undermining the core method.\"\n        },\n        {\n          \"concern\": \"Balancedness measured on limited experiments\",\n          \"location\": \"Appendix C.1, Figure 5 and Section 3.4\",\n          \"explanation\": \"Balancedness improvement is shown only on a single 3-layer MLP with qualitative correlation to accuracy. No systematic evidence that balancedness metric predicts performance across architectures.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Justify the soft formulation theoretically or provide empirical analysis of why hard constraints must be relaxed\",\n          \"proposed_change\": \"Either (1) extend Theorem 1 to accommodate soft constraints and prove balancedness preservation formally, or (2) provide empirical analysis showing that hard constraints over-regularize and harm optimization\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Validate Theorem 2's boundedness assumption across different optimizers, learning rates, and training phases\",\n          \"proposed_change\": \"Empirically verify that gradient-induced Frobenius norm changes remain bounded (compute actual B values) across: (a) different optimizers (SGD, Adam, etc.); (b) different phases of training; (c) different architectures. Revise or qualify the theorem based on findings.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Provide principled hyperparameter selection method or sensitivity analysis\",\n          \"proposed_change\": \"Either develop a data-driven method to select λ_f and λ_c (e.g., based on initial weight statistics or layer properties), or provide comprehensive sensitivity analysis showing robustness to hyperparameter choices. Report results with a fixed reasonable default.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Address learning rate decay compatibility\",\n          \"proposed_change\": \"Either (1) modify the method to be compatible with standard learning rate schedules without requiring n_init reset, or (2) provide theoretical analysis of why decay breaks the equivalence and propose a principled solution (not ad-hoc re-initialization)\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Strengthen balancedness claims with systematic evidence\",\n          \"proposed_change\": \"Conduct experiments across multiple architectures measuring both balancedness (Definition 2) and performance. Use ablations to isolate the contribution of balancedness improvement to overall gains. Compare against explicit balancedness regularization baselines.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Clarify statistical significance of empirical improvements\",\n          \"proposed_change\": \"Report confidence intervals or perform significance tests for the small differences observed (e.g., <1% on CIFAR-10/100). Explicitly discuss which improvements are within noise margins.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the thorough review and the identification of important gaps in our work. We address the major concerns below:\\n\\n**On the theory-practice gap (Theorems 1 and 2):** You correctly identify that the soft formulation with λ parameter breaks the hard constraints established in Theorem 1. We acknowledge this is a significant theoretical limitation. In the current submission, we motivate the soft formulation pragmatically (lines 220-227) by noting that hard constraints may be too restrictive—forcing weights to remain at initialization prevents sufficient model complexity. However, this deserves rigorous justification. We recognize that Theorem 2's assumption about bounded gradient updates requires validation, particularly for adaptive optimizers. The O(√t) weight growth mentioned in Appendix C.1 suggests this assumption may not hold uniformly throughout training. This is a valid criticism that limits the strength of our theoretical claims.\\n\\n**On empirical improvements being marginal:** You correctly point out that most improvements in Table 1 are <1% (CIFAR-10: 0.39%, CIFAR-100: 0.82%), while VGG-16 shows 4%. We agree this pattern is concerning. The results suggest SWR may only provide benefits in specific architectural regimes (deeper networks) rather than broadly. We should not claim \\\"consistent\\\" improvements given this inconsistency.\\n\\n**On hyperparameter sensitivity:** The extensive grid searches in Tables 2-4 without principled selection is a legitimate concern about reproducibility and fair comparison. Different optimal λ values across settings (ranging from 1e-4 to 1e+0) suggest either: (a) the method is sensitive to hyperparameter choice, or (b) we need a principled way to set λ based on problem characteristics. Neither is currently addressed. This is a significant practical limitation we did not adequately discuss.\\n\\n**On learning rate decay (Appendix E):** This is perhaps the most concerning issue. The need to reset n_init during training when learning rate decays appears ad-hoc and contradicts the method's foundation. The equivalence α||∇L(w)|| ≈ λ(||w_{t+1}|| - ||w_0||) breaking under decay suggests the method may not be robust to standard training practices used in industry. This limitation should have been more prominently discussed in the main paper.\\n\\n**On balancedness analysis:** Figure 5 shows a correlation on a single 3-layer MLP, but this is insufficient evidence that the balancedness mechanism (Theorem 3) drives performance improvements. We have not demonstrated that improved balancedness per Definition 2 causally improves generalization across diverse architectures.\\n\\n**Summary of key weaknesses:** The combination of (1) theoretical gaps between hard and soft formulations, (2) marginal and inconsistent empirical gains, (3) extensive hyperparameter tuning without principled guidance, and (4) incompatibility with learning rate decay are substantial limitations that weaken the paper's contribution. While the proportionality framework (Theorem 1) and the core idea are novel, the practical applicability and empirical validation are insufficient for a strong acceptance.\\n\\nWe recognize these are not minor issues and significantly impact the paper's validity. The work would benefit from either stronger theoretical analysis (justifying the soft formulation and validating assumptions), more consistent empirical improvements, or more pragmatic solutions to the learning rate decay issue. The current version does not adequately address these concerns.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 2,
+              "significance": 2,
+              "evaluation": 3,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses an important problem (plasticity loss and unbounded weight growth) that affects multiple areas of deep learning. The motivation is well-articulated through discussion of both weight regularization and re-initialization methods.",
+              "Theorem 1 on proportionality of neural networks is a solid theoretical contribution showing that weight rescaling can preserve network behavior when combined with appropriate bias scaling. The mathematical framework is clearly presented.",
+              "The proposed method is simple and computationally efficient, requiring only element-wise scaling operations at each training step without additional gradient computations, which is an advantage over penalty-based regularization methods."
+            ],
+            "weaknesses": [
+              "Theorem 1 establishes hard constraints on weight scaling that are mathematically exact, but the practical algorithm breaks these constraints through soft formulation with λ parameter. The authors acknowledge this fundamental gap but provide no theorem proving proportionality is maintained under soft scaling, leaving the core theoretical foundation unreconciled.",
+              "Theorem 2's boundedness proof assumes gradient-induced Frobenius norm changes are bounded by constant B, but the paper simultaneously argues weight growth follows O(√t), which contradicts a constant bound. No empirical measurement of B is provided across different optimizers, learning rates, or training phases.",
+              "Learning rate decay breaks the method's core theoretical equivalence (α||∇L(w)|| ≈ λ(||w_{t+1}|| - ||w_0||)), forcing an ad-hoc workaround of resetting n_init during decay. This undermines the foundational principle and indicates incompatibility with standard training practices.",
+              "Empirical improvements lack statistical significance. CIFAR-10 shows 0.39% improvement with overlapping standard deviations; CIFAR-100 shows <1% gains; CIFAR-100 CNN-BN shows SWR performs worse than L2 by 0.93%. No significance testing is provided. Only VGG-16 shows substantial 4% improvement but with unusually low variance (0.0025 vs 0.0142 for vanilla), suggesting different experimental conditions.",
+              "Hyperparameter tuning is extensive and lacks principled guidance. λ values range from 1e-4 to 1e+0 across experiments; VGG-16 shows 50x variation in λ_f and 10x in λ_c between different continual learning settings, making the method difficult to apply to new problems.",
+              "Balancedness analysis (Section 3.4, Appendix C) is supported only by a single 3-layer MLP experiment. No ablation study isolates balancedness contribution or compares against explicit balancedness regularization baselines, leaving the causal link between improved balancedness and generalization unestablished."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Theorem 1 establishes hard constraints on weight scaling that are mathematically exact, but the practical algorithm breaks these constraints through soft formulation with λ parameter. The authors acknowledge this fundamental gap but provide no theorem proving proportionality is maintained under soft scaling, leaving the core theoretical foundation unreconciled.",
+                "severity": "major",
+                "evidence": "Theorem 1 (lines 162-197) specifies exact scaling rules: W_l^c ← c_l·W_l and b_l^c ← (∏_{i=1}^l c_i)·b_l guaranteeing f_{θ^c}(x) = C·f_θ(x). Section 3.3 introduces c_l = (λ||W_l^init|| + (1-λ)||W_l||)/||W_l||, which does not follow Theorem 1's exact rules. The paper states 'While this modification breaks hard constraints...the algorithm still prevents unlimited growth' (lines 220-223) without proving the network remains proportional. The author's rebuttal acknowledges 'We have not [provided] a theorem showing proportionality is maintained under soft scaling.' This represents a fundamental disconnect between theory and practice.",
+                "affected_claim": "SWR prevents unbounded weight growth while maintaining network plasticity through proportionality",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Theorem 2's boundedness proof assumes gradient-induced Frobenius norm changes are bounded by constant B, but the paper simultaneously argues weight growth follows O(√t), which contradicts a constant bound. No empirical measurement of B is provided across different optimizers, learning rates, or training phases.",
+                "severity": "major",
+                "evidence": "Theorem 2 (Appendix B, lines 648-650) assumes 'the change of squared Frobenius norm...is bounded by a constant B for all weight matrices.' Appendix C.1 (lines 702-703) states 'the weight Frobenius norm growth follows O(√t)...thereby indicating that the assumption is not unreasonable.' O(√t) growth means B is not constant but scales with t, directly contradicting Theorem 2's assumption. The author's rebuttal confirms: 'we have not empirically validated B across different optimizers...This assumption is central to the boundedness proof but remains unjustified.' No experimental measurement of B values is provided anywhere in the paper.",
+                "affected_claim": "Theorem 2 proves SWR bounds weight magnitudes",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Learning rate decay breaks the method's core theoretical equivalence (α||∇L(w)|| ≈ λ(||w_{t+1}|| - ||w_0||)), forcing an ad-hoc workaround of resetting n_init during decay. This undermines the foundational principle and indicates incompatibility with standard training practices.",
+                "severity": "major",
+                "evidence": "Appendix E (lines 821-840) derives the equivalence α||∇L(w)|| ≈ λ(||w_{t+1}|| - ||w_0||) as the basis for boundedness and states 'When learning rate decay occurs, this equivalence is broken.' The proposed solution is 'reset the initial weight norm to the current norm when decay happens (n_init ← ||w_t||).' The author's rebuttal characterizes this as 'ad-hoc and contradicts the method's foundation.' Table 5 shows SWR+re-init performance degradation on VGG-16 (0.5165 vs L2 0.4080, L2 Init 0.4199). This reveals the method is incompatible with the learning rate decay schedules that 'nearly all practitioners use.'",
+                "affected_claim": "SWR is broadly applicable to standard deep learning setups",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Empirical improvements lack statistical significance. CIFAR-10 shows 0.39% improvement with overlapping standard deviations; CIFAR-100 shows <1% gains; CIFAR-100 CNN-BN shows SWR performs worse than L2 by 0.93%. No significance testing is provided. Only VGG-16 shows substantial 4% improvement but with unusually low variance (0.0025 vs 0.0142 for vanilla), suggesting different experimental conditions.",
+                "severity": "major",
+                "evidence": "Table 1: CIFAR-10 CNN: 0.7158±0.0063 (SWR) vs 0.7119±0.0037 (L2) = 0.39% with overlapping confidence intervals. CIFAR-100 CNN: 0.3914±0.0070 (SWR) vs 0.3882±0.0064 (L2) = 0.82%. CIFAR-100 CNN-BN: 0.4129±0.0105 (SWR) vs 0.4222±0.0043 (L2) = -0.93% (SWR worse). VGG-16: 0.4348±0.0025 (SWR) vs 0.3912±0.0142 (vanilla) = 4% but with 57× lower variance than vanilla (0.0025 vs 0.0142). The author's rebuttal states: 'We have not conducted statistical significance testing (t-tests, confidence intervals)...Given the <1% improvements with overlapping error bars, it is unclear if differences are significant.'",
+                "affected_claim": "SWR improves generalization performance across various learning scenarios",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Hyperparameter tuning is extensive and lacks principled guidance. λ values range from 1e-4 to 1e+0 across experiments; VGG-16 shows 50x variation in λ_f and 10x in λ_c between different continual learning settings, making the method difficult to apply to new problems.",
+                "severity": "major",
+                "evidence": "Tables 2-4 in Appendix D show: MNIST λ=1e-4, CIFAR-10 λ=1e-3, CIFAR-100 full access λ=1e-3, CIFAR-100 limited access λ=1e-1 (100x increase). VGG-16 warm-start: λf=1e-2, λc=1e-1; VGG-16 continual full: λf=1e-2, λc=1e-2; VGG-16 continual limited: λf=1e-4, λc=1e+0 (50x and 10x variation). The author's rebuttal acknowledges: 'we have not provided a principled method to set these hyperparameters, relying instead on grid search...This raises legitimate concerns about reproducibility.'",
+                "affected_claim": "SWR is a practical method that can be easily applied",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Balancedness analysis (Section 3.4, Appendix C) is supported only by a single 3-layer MLP experiment. No ablation study isolates balancedness contribution or compares against explicit balancedness regularization baselines, leaving the causal link between improved balancedness and generalization unestablished.",
+                "severity": "minor",
+                "evidence": "Appendix C.1, Figure 5 shows balancedness (Definition 2: b_t = |r_t - r_0|) and test accuracy for 3-layer MLP on MNIST only. No experiments on CNN, CNN-BN, or VGG-16. No ablation comparing SWR against a method that directly regularizes Definition 2's b_t. Theorem 3 proves SWR improves balancedness, but the connection to generalization is not established. The author's rebuttal states: 'An ablation study comparing SWR against explicit balancedness regularization would be needed to isolate this contribution' and 'We have not demonstrated causality...across diverse architectures.'",
+                "affected_claim": "Balancedness is a key mechanism by which SWR improves performance",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "Multiple fundamental theoretical issues remain unresolved in the submitted paper: (1) The soft formulation with λ breaks Theorem 1's hard constraints but no theorem proves proportionality is maintained—the authors acknowledge this explicitly in the rebuttal; (2) Theorem 2's core assumption (constant B) contradicts the cited O(√t) growth analysis, and no empirical validation of B is provided—authors acknowledge this is 'unjustified'; (3) Learning rate decay breaks the method's theoretical equivalence, forcing an ad-hoc workaround—authors characterize it as 'ad-hoc and contradicts the method's foundation.' These are not presentation issues; they indicate the theoretical framework does not hold under practical conditions."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The proportionality framework (Theorem 1) and the specific per-layer weight rescaling based on growth rate are novel. Prior work on weight rescaling exists (Niehaus et al. 2024, Alabdulmohsin et al. 2021) but the proportionality-aware approach represents sufficient novelty."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "Empirical significance is negligible. CIFAR-10/100 improvements are <1% with overlapping error bars and no significance testing. CIFAR-100 CNN-BN shows SWR performs worse than L2. Only VGG-16 shows 4% improvement but with anomalous variance suggesting different experimental conditions. The authors acknowledge that empirical gains 'are marginal and potentially not significant' and that the method 'may only provide benefits in specific architectural regimes (deeper networks) rather than broadly.' Standard learning rate decay is incompatible with the method, severely limiting practical applicability. These results do not advance the field."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Critical experimental issues are unresolved: (1) No statistical significance testing despite <1% improvements with overlapping error bars; (2) Extensive hyperparameter search without principled selection or sensitivity analysis raises fair comparison concerns; (3) VGG-16 shows unusual experimental variance requiring investigation; (4) Learning rate decay compatibility issues (Appendix E) indicate standard training practices were not thoroughly evaluated; (5) Balancedness claims supported only by single toy experiment without ablations. The authors acknowledge these issues but do not provide solutions in the submitted paper."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written with clear mathematical exposition of Theorem 1 and organized experiments. However, critical limitations (learning rate decay incompatibility, hyperparameter sensitivity, balancedness evidence) are either buried in appendices or understated, and the theory-practice gap is not clearly communicated."
+              }
+            },
+            "summary_comment": "The paper proposes Soft Weight Rescaling (SWR) with the novel proportionality framework (Theorem 1). However, it suffers from fundamental theoretical and empirical weaknesses that prevent acceptance at a top-tier venue. The core theoretical contribution—Theorem 1 on proportionality—is solid, but the practical algorithm breaks Theorem 1's hard constraints through soft formulation without proving proportionality is maintained (acknowledged by authors). Theorem 2's boundedness proof assumes a constant B that contradicts the cited O(√t) growth analysis, with no empirical validation (authors confirm this is 'unjustified'). Learning rate decay breaks the method's theoretical equivalence, requiring an ad-hoc workaround (resetting n_init) that authors acknowledge 'contradicts the method's foundation.' On the empirical side, improvements are marginal (<1% on CIFAR-10/100 with overlapping error bars, no significance testing), inconsistent (CIFAR-100 CNN-BN shows SWR worse than L2), and appear limited to VGG-16 (with anomalous variance). Hyperparameter tuning is extensive (λ varies 1e-4 to 1e+0) without principled guidance. Balancedness claims rest on a single MLP toy experiment. The authors' rebuttal demonstrates clear awareness of these issues but confirms they remain unresolved in the submitted paper. The combination of unreconciled theory, negligible empirical gains, and practical incompatibility with standard training practices makes this work unsuitable for publication at a selective venue."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Fundamental gap between Theorem 1's hard constraints and the soft formulation with λ parameter; no rigorous theoretical reconciliation\",\n        \"Theorem 2's boundedness assumption (constant B on gradient-induced weight changes) is unvalidated and potentially contradicted by O(√t) growth analysis\",\n        \"Learning rate decay breaks the method's core equivalence, requiring ad-hoc n_init reset that undermines theoretical foundation\",\n        \"Empirical improvements marginal and inconsistent (<1% on CIFAR-10/100; 4% on VGG-16 appears architecture-specific)\",\n        \"Extensive hyperparameter tuning without principled selection method; λ ranges from 1e-4 to 1e+0 across settings\",\n        \"Balancedness analysis supported only by single 3-layer MLP toy experiment; no causal evidence across architectures\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Soft formulation breaks hard constraints from Theorem 1 without rigorous reconciliation\",\n          \"location\": \"Section 3.3, lines 220-227 and Theorem 1 (lines 162-197)\",\n          \"explanation\": \"Theorem 1 establishes that proportional networks with scaled parameters θ^c must satisfy f_{θ^c}(x) = C·f_θ(x) through exact scaling rules: W_l^c ← c_l·W_l and b_l^c ← (∏_{i=1}^l c_i)·b_l. In Section 3.3, the soft formulation c_l = (λ·||W_l^init|| + (1-λ)·||W_l||)/||W_l|| breaks these exact rules. Authors state 'While this modification breaks hard constraints for weight magnitude, the algorithm still prevents unlimited growth' but provide no theorem showing proportionality is maintained under soft scaling.\"\n        },\n        {\n          \"concern\": \"Theorem 2's core assumption about bounded gradient updates is unvalidated\",\n          \"location\": \"Appendix B, lines 648-650 (Theorem 2 statement) and Appendix C.1, lines 702-703\",\n          \"explanation\": \"Theorem 2 assumes: 'If the change of squared Frobenius norm...is bounded by a constant B for all weight matrices...then SWR bounds the Frobenius norm.' Appendix C.1 states: 'By following the assumptions of Theorem 2, it can be easily shown that the weight Frobenius norm growth follows O(√t)...thereby indicating that the assumption is not unreasonable.' This is circular: O(√t) growth contradicts a constant bound B. No empirical validation of B values is provided across optimizers or training phases.\"\n        },\n        {\n          \"concern\": \"Learning rate decay breaks core theoretical equivalence\",\n          \"location\": \"Appendix E, lines 821-840 and Theorem 2 proof logic\",\n          \"explanation\": \"Appendix E derives: 'α||∇_wL(w)|| ≈ λ(||w_{t+1}|| - ||w_0||)' as the basis for boundedness. Under learning rate decay, this equivalence breaks because the left side (gradient magnitude scaled by α) decreases while the right side (difference from initialization) remains tied to initialization. The proposed fix 'reset n_init ← ||w_t||' during decay undermines the method's theoretical foundation that weights are regularized relative to initialization.\"\n        },\n        {\n          \"concern\": \"Empirical improvements marginal on CIFAR-10/100, substantial only on VGG-16\",\n          \"location\": \"Table 1 (Generalization results), lines 430-440\",\n          \"explanation\": \"CIFAR-10 CNN: 0.7158 (SWR) vs 0.7119 (L2) = 0.39% improvement; standard deviations 0.0063 (SWR) and 0.0037 (L2) suggest overlap. CIFAR-100 CNN: 0.3914 (SWR) vs 0.3882 (L2) = 0.82%; CIFAR-100 CNN-BN: 0.4129 (SWR) vs 0.4222 (L2) = -0.93% (SWR worse). VGG-16: 0.4348 (SWR) vs 0.3912 (vanilla) = 4% but only 0.0025 std dev vs 0.0142 for vanilla, suggesting different experimental conditions.\"\n        },\n        {\n          \"concern\": \"Hyperparameter values show no principled pattern across settings\",\n          \"location\": \"Tables 2-4 in Appendix D, lines 756-795\",\n          \"explanation\": \"Table 2 (warm-start): MNIST λ=1e-4; CIFAR-10 λ=1e-3; CIFAR-100 λ=1e-3. Table 3 (continual learning): Same datasets show MNIST λ=1e-4 (full) vs λ=1e-4 (limited); CIFAR-100 CNN λ=1e-3 (full) vs λ=1e-1 (limited)—100x change. VGG-16 warm-start λf=1e-2, λc=1e-1; VGG-16 continual λf=1e-2, λc=1e-2 (full) vs λf=1e-4, λc=1e+0 (limited)—massive variation. No guidance provided on selecting λ for new problems.\"\n        },\n        {\n          \"concern\": \"Balancedness analysis limited to single toy experiment\",\n          \"location\": \"Appendix C.1, Figure 5 and Definition 2 (lines 738-750)\",\n          \"explanation\": \"Figure 5 shows balancedness (Definition 2: b_t = |r_t - r_0| where r_t = ||W_t'||/||W_t||) and test accuracy for 3-layer MLP on MNIST only. No ablation study isolates balancedness contribution. No comparison with explicit balancedness regularization baselines. Theorem 3 proves balancedness is improved, but causal link to generalization is not established across CNN, CNN-BN, VGG-16.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Reconcile theoretical gap between hard constraints (Theorem 1) and soft formulation\",\n          \"proposed_change\": \"Provide one of: (A) An extended theorem proving proportionality is maintained under soft scaling with λ ∈ (0,1), or (B) Rigorous analysis showing hard constraints are fundamentally incompatible with plasticity and deriving optimal soft relaxation. Currently, the connection between 'prevents unlimited growth' and Theorem 1's proportionality is not established.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Validate Theorem 2's boundedness assumption empirically and theoretically\",\n          \"proposed_change\": \"Conduct analysis showing: (1) Actual B values (maximum gradient-induced weight norm changes) measured across training for different optimizers (SGD, Adam) and learning rates; (2) Show whether O(√t) growth is compatible with constant B; (3) If incompatible, either revise Theorem 2 with time-dependent bound B(t), or weaken the theorem's guarantees and quantify actual bounds. This analysis should be added to Appendix B or main text.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Resolve learning rate decay incompatibility without ad-hoc workarounds\",\n          \"proposed_change\": \"Either: (A) Modify the method so the equivalence α||∇L(w)|| ≈ λ(||w_{t+1}|| - ||w_0||) holds under learning rate changes (e.g., by tracking effective learning rate), or (B) Provide theoretical analysis explaining when/why decay breaks the method and propose a principled solution based on decay rate. The current SWR+re-init (resetting n_init) is too ad-hoc. If decay remains incompatible, clearly document this limitation in main paper (not appendix).\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Establish statistical significance of empirical improvements\",\n          \"proposed_change\": \"For each benchmark in Table 1, conduct paired t-tests or report 95% confidence intervals to assess whether differences are significant. For CIFAR-10/100 with <1% improvements and overlapping error bars, explicitly state if differences are not statistically significant. Report effect sizes and number of random seeds.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Provide principled hyperparameter selection method or extensive sensitivity analysis\",\n          \"proposed_change\": \"Either: (A) Develop a method to set λ_f and λ_c based on initialization statistics or layer properties (e.g., initial weight distribution, network depth), or (B) Conduct comprehensive sensitivity analysis showing how performance varies with λ across a range for each dataset. Report results with a single reasonable default λ applied uniformly and discuss trade-offs.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Strengthen balancedness claims with systematic evidence\",\n          \"proposed_change\": \"Conduct ablation studies: (1) Compare SWR with explicit balancedness regularization (penalizing Definition 2's b_t directly) to isolate balancedness contribution; (2) Measure balancedness improvement and performance across all architectures (MLP, CNN, CNN-BN, VGG-16); (3) Test on datasets where balancedness should theoretically matter more (non-stationary environments in continual learning). Quantify the relationship between balancedness improvement and generalization gain.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the detailed review, which systematically identifies critical vulnerabilities in our work. We address each major concern:\\n\\n**On the theory-practice gap (Theorems 1 & 2):**\\nYou correctly identify that the soft formulation with λ breaks Theorem 1's hard constraints without rigorous reconciliation. Theorem 1 proves that exact scaling (W_l^c ← c_l·W_l and b_l^c ← (∏c_i)·b_l) maintains proportionality. However, our SWR uses c_l = (λ||W_l^init|| + (1-λ)||W_l||)/||W_l||, which does not satisfy Theorem 1's exact rules. We acknowledge this is a fundamental gap in the current submission.\\n\\nRegarding Theorem 2, you correctly point out that assuming gradient-induced Frobenius norm changes are bounded by a constant B is problematic. We mention in Appendix C.1 that weight growth follows O(√t), but this suggests B is not constant—it grows with time. This is a circular and unconvincing argument. We have not empirically validated B across different optimizers (SGD, Adam), learning rates, or training phases. This assumption is central to the boundedness proof but remains unjustified in the submitted paper.\\n\\n**On learning rate decay:**\\nAppendix E reveals that the core equivalence α||∇_wL(w)|| ≈ λ(||w_{t+1}|| - ||w_0||) breaks under learning rate decay. The proposed fix—resetting n_init ← ||w_t|| during decay—is indeed ad-hoc and contradicts the foundational principle that weights should be regularized relative to initialization. You are correct that this indicates the method does not capture practical training dynamics with standard schedules (which nearly all practitioners use). This limitation should have been prominently discussed in the main paper rather than buried in Appendix E.\\n\\n**On marginal empirical improvements:**\\nTable 1 shows:\\n- CIFAR-10 CNN: 0.7158 vs 0.7119 (L2) = 0.39% with overlapping standard deviations\\n- CIFAR-100 CNN: 0.3914 vs 0.3882 (L2) = 0.82%\\n- CIFAR-100 CNN-BN: 0.4129 vs 0.4222 (L2) = SWR performs worse by 0.93%\\n- VGG-16: 0.4348 with 0.0025 std (unusual) vs vanilla 0.3912 with 0.0142 std (suggests different experimental conditions)\\n\\nWe have not conducted statistical significance testing (t-tests, confidence intervals). Given the <1% improvements with overlapping error bars, it is unclear if differences are significant. The 4% VGG-16 improvement appears to be an outlier driven by specific architectural properties rather than evidence of broad advantages.\\n\\n**On hyperparameter sensitivity:**\\nTables 2-4 show dramatic variation: λ ranges from 1e-4 to 1e+0 depending on dataset and setting. For VGG-16, λ_f varies from 1e-4 to 1e-2 (50x) and λ_c from 1e-1 to 1e+0 (10x) between warm-start and limited-access continual learning. We have not provided a principled method to set these hyperparameters, relying instead on grid search. This raises legitimate concerns about reproducibility and whether the method can be easily applied to new problems.\\n\\n**On balancedness:**\\nFigure 5 shows balancedness improvement (Definition 2) and accuracy on a single 3-layer MLP. We have not demonstrated causality—that improved balancedness drives performance gains—across diverse architectures (CNN, CNN-BN, VGG-16). An ablation study comparing SWR against explicit balancedness regularization would be needed to isolate this contribution.\\n\\n**Summary:**\\nThe review identifies genuine soundness issues: (1) Theorem 1-2 gap is unreconciled; (2) Theorem 2's core assumption is unvalidated; (3) Learning rate decay breaks the theory; (4) empirical gains are marginal and potentially not significant; (5) hyperparameter tuning is extensive without principled guidance. These are not minor presentation issues—they strike at the heart of the work's contribution. The rebuttal acknowledges these limitations but cannot resolve them within the submitted paper. Addressing these issues would require substantial theoretical development (extending Theorem 1 to soft constraints, validating Theorem 2 assumptions, or reformulating under learning rate decay) and extensive new experiments (statistical testing, ablations, sensitivity analysis). We recognize that in its current form, the paper does not provide sufficient theoretical rigor or empirical validation for a strong contribution.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_a27148757bfc",
+    "conference": "ICLR",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/iclr_reject_2025_014_recovering_plasticity_of_neural_networks_via_soft_weight_rescaling.md",
+    "target_paper_summary": {
+      "paper_id": "paper_a27148757bfc",
+      "title": "Recovering Plasticity Of Neural Networks Via Soft Weight Rescaling",
+      "abstract": "Recent studies have shown that as training progresses, neural networks gradually lose their capacity to learn new information, a phenomenon known as plasticity loss. An unbounded weight growth is one of the main causes of plasticity loss. Furthermore, it harms generalization capability and disrupts optimization dynamics. Re-initializing the network can be a solution, but it results in the loss of learned information, leading to performance drops. In this paper, we propose Soft Weight Rescaling (SWR), a novel approach that prevents unbounded weight growth without losing information. SWR recovers the plasticity of the network by simply scaling down the weight at each step of the learning process. We theoretically prove that SWR bounds weight magnitude and balances weight magnitude between layers. Our experiment shows that SWR improves performance on warm-start learning, continual learning, and single-task learning setups on standard image classification benchmarks.",
+      "topic": "",
+      "claims": [
+        "we propose Soft Weight Rescaling (SWR), a novel approach that prevents unbounded weight growth without losing information."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_cca4a8197",
+        "title": "Hardware implementation of memristor-based artificial neural networks",
+        "authors": [
+          "Fernando Aguirre",
+          "Abu Sebastian",
+          "Manuel Le Gallo",
+          "Wenhao Song",
+          "Tong Wang",
+          "J. Joshua Yang",
+          "Wei Lü",
+          "Meng‐Fan Chang",
+          "Daniele Ielmini",
+          "Yuchao Yang",
+          "Adnan Mehonić",
+          "Anthony J. Kenyon",
+          "Marco A. Villena",
+          "J.B. Roldán",
+          "Yuting Wu",
+          "Hung-Hsi Hsu",
+          "Nagarajan Raghavan",
+          "J. Suñé",
+          "E. Miranda",
+          "Ahmed M. Eltawil",
+          "Gianluca Setti",
+          "Kamilya Smagulova",
+          "K. Saláma",
+          "Olga Krestinskaya",
+          "Xiaobing Yan",
+          "Kah‐Wee Ang",
+          "Samarth Jain",
+          "Sifan Li",
+          "Osamah Alharbi",
+          "Sebastián Pazos",
+          "Mario Lanza"
+        ],
+        "year": 2024,
+        "publication_date": "2024-03-04",
+        "venue": "Nature Communications",
+        "abstract": "Artificial Intelligence (AI) is currently experiencing a bloom driven by deep learning (DL) techniques, which rely on networks of connected simple computing units operating in parallel. The low communication bandwidth between memory and processing units in conventional von Neumann machines does not support the requirements of emerging applications that rely extensively on large sets of data. More recent computing paradigms, such as high parallelization and near-memory computing, help alleviate the data communication bottleneck to some extent, but paradigm- shifting concepts are required. Memristors, a novel beyond-complementary metal-oxide-semiconductor (CMOS) technology, are a promising choice for memory devices due to their unique intrinsic device-level properties, enabling both storing and computing with a small, massively-parallel footprint at low power. Theoretically, this directly translates to a major boost in energy efficiency and computational throughput, but various practical challenges remain. In this work we review the latest efforts for achieving hardware-based memristive artificial neural networks (ANNs), describing with detail the working principia of each block and the different design alternatives with their own advantages and disadvantages, as well as the tools required for accurate estimation of performance metrics. Ultimately, we aim to provide a comprehensive protocol of the materials and methods involved in memristive neural networks to those aiming to start working in this field and the experts looking for a holistic approach.",
+        "url": "https://doi.org/10.1038/s41467-024-45670-9",
+        "doi": "https://doi.org/10.1038/s41467-024-45670-9",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4392367648"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 427
+      },
+      {
+        "paper_id": "rw_002_b383c9041",
+        "title": "Self-organized criticality as a fundamental property of neural systems",
+        "authors": [
+          "Janina Hesse",
+          "Thilo Groß"
+        ],
+        "year": 2014,
+        "publication_date": "2014-09-23",
+        "venue": "Frontiers in Systems Neuroscience",
+        "abstract": "The neural criticality hypothesis states that the brain may be poised in a critical state at a boundary between different types of dynamics. Theoretical and experimental studies show that critical systems often exhibit optimal computational properties, suggesting the possibility that criticality has been evolutionarily selected as a useful trait for our nervous system. Evidence for criticality has been found in cell cultures, brain slices, and anesthetized animals. Yet, inconsistent results were reported for recordings in awake animals and humans, and current results point to open questions about the exact nature and mechanism of criticality, as well as its functional role. Therefore, the criticality hypothesis has remained a controversial proposition. Here, we provide an account of the mathematical and physical foundations of criticality. In the light of this conceptual framework, we then review and discuss recent experimental studies with the aim of identifying important next steps to be taken and connections to other fields that should be explored.",
+        "url": "https://doi.org/10.3389/fnsys.2014.00166",
+        "doi": "https://doi.org/10.3389/fnsys.2014.00166",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W1967604241"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 464
+      },
+      {
+        "paper_id": "rw_003_194ec0c86",
+        "title": "Signal propagation in complex networks",
+        "authors": [
+          "Peng Ji",
+          "Jiachen Ye",
+          "Yu Mu",
+          "Wei Lin",
+          "Yang Tian",
+          "Chittaranjan Hens",
+          "Matjaž Perc",
+          "Yang Tang",
+          "Jie Sun",
+          "Jürgen Kurths"
+        ],
+        "year": 2023,
+        "publication_date": "2023-04-05",
+        "venue": "Physics Reports",
+        "abstract": "",
+        "url": "https://doi.org/10.1016/j.physrep.2023.03.005",
+        "doi": "https://doi.org/10.1016/j.physrep.2023.03.005",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4362640737"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 343
+      },
+      {
+        "paper_id": "rw_005_aae85f077",
+        "title": "Towards a theory of cortical columns: From spiking neurons to interacting neural populations of finite size",
+        "authors": [
+          "Tilo Schwalger",
+          "Moritz Deger",
+          "Wulfram Gerstner"
+        ],
+        "year": 2017,
+        "publication_date": "2017-04-19",
+        "venue": "PLoS Computational Biology",
+        "abstract": "Neural population equations such as neural mass or field models are widely used to study brain activity on a large scale. However, the relation of these models to the properties of single neurons is unclear. Here we derive an equation for several interacting populations at the mesoscopic scale starting from a microscopic model of randomly connected generalized integrate-and-fire neuron models. Each population consists of 50-2000 neurons of the same type but different populations account for different neuron types. The stochastic population equations that we find reveal how spike-history effects in single-neuron dynamics such as refractoriness and adaptation interact with finite-size fluctuations on the population level. Efficient integration of the stochastic mesoscopic equations reproduces the statistical behavior of the population activities obtained from microscopic simulations of a full spiking neural network model. The theory describes nonlinear emergent dynamics such as finite-size-induced stochastic transitions in multistable networks and synchronization in balanced networks of excitatory and inhibitory neurons. The mesoscopic equations are employed to rapidly integrate a model of a cortical microcircuit consisting of eight neuron types, which allows us to predict spontaneous population activities as well as evoked responses to thalamic input. Our theory establishes a general framework for modeling finite-size neural population dynamics based on single cell and synapse parameters and offers an efficient approach to analyzing cortical circuits and computations.",
+        "url": "https://doi.org/10.1371/journal.pcbi.1005507",
+        "doi": "https://doi.org/10.1371/journal.pcbi.1005507",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2547783202"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 169
+      },
+      {
+        "paper_id": "rw_006_ad691ad2b",
+        "title": "Applications of Neural Networks in Biomedical Data Analysis",
+        "authors": [
+          "Romano Weiss",
+          "Sanaz Karimijafarbigloo",
+          "Dirk Roggenbuck",
+          "Stefan Rödiger"
+        ],
+        "year": 2022,
+        "publication_date": "2022-06-21",
+        "venue": "Biomedicines",
+        "abstract": "Neural networks for deep-learning applications, also called artificial neural networks, are important tools in science and industry. While their widespread use was limited because of inadequate hardware in the past, their popularity increased dramatically starting in the early 2000s when it became possible to train increasingly large and complex networks. Today, deep learning is widely used in biomedicine from image analysis to diagnostics. This also includes special topics, such as forensics. In this review, we discuss the latest networks and how they work, with a focus on the analysis of biomedical data, particularly biomarkers in bioimage data. We provide a summary on numerous technical aspects, such as activation functions and frameworks. We also present a data analysis of publications about neural networks to provide a quantitative insight into the use of network types and the number of journals per year to determine the usage in different scientific fields.",
+        "url": "https://doi.org/10.3390/biomedicines10071469",
+        "doi": "https://doi.org/10.3390/biomedicines10071469",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4283263600"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 38
+      },
+      {
+        "paper_id": "rw_007_e824fff29",
+        "title": "Physics-Informed neural network solver for numerical analysis in geoengineering",
+        "authors": [
+          "Xiaoxuan Chen",
+          "Pin Zhang",
+          "Zhen‐Yu Yin"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-02",
+        "venue": "Georisk Assessment and Management of Risk for Engineered Systems and Geohazards",
+        "abstract": "Engineering-scale problems generally can be described by partial differential equations (PDEs) or ordinary differential equations (ODEs). Analytical, semi-analytical and numerical analysis are commonly used for deriving the solutions of such PDEs/ODEs. Recently, a novel physics-informed neural network (PINN) solver has emerged as a promising alternative to solve PDEs/ODEs. PINN resembles a mesh-free method which leverages the strong non-linear ability of the deep learning algorithms (e.g. neural networks) to automatically search for the correct spatial-temporal responses constrained by embedded PDEs/ODEs. This study comprehensively reviews the current state of PINN including its principles for the forward and inverse problems, baseline algorithms for PINN, enhanced PINN variants combined with special sampling strategies and loss functions. PINN shows an easier modelling process and superior feasibility for inverse problems compared to conventional numerical methods. Meanwhile, the limitations and challenges of applications of current PINN solvers to constitutive modelling and multi-scale/phase problems are also discussed in terms of convergence ability and computational costs. PINN has exhibited its huge potential in geoengineering and brings a revolutionary way for numerous domain problems.",
+        "url": "https://doi.org/10.1080/17499518.2024.2315301",
+        "doi": "https://doi.org/10.1080/17499518.2024.2315301",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4391967541"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 36
+      },
+      {
+        "paper_id": "rw_008_1b1b5892b",
+        "title": "Detection and identification of European woodpeckers with deep convolutional neural networks",
+        "authors": [
+          "Juliette Florentin",
+          "Thierry Dutoit",
+          "Olivier Verlinden"
+        ],
+        "year": 2019,
+        "publication_date": "2019-11-11",
+        "venue": "Ecological Informatics",
+        "abstract": "",
+        "url": "https://doi.org/10.1016/j.ecoinf.2019.101023",
+        "doi": "https://doi.org/10.1016/j.ecoinf.2019.101023",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2987685943"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 42
+      },
+      {
+        "paper_id": "rw_009_1ce7ee64c",
+        "title": "Extraction of Network Topology From Multi-Electrode Recordings: Is there a Small-World Effect?",
+        "authors": [
+          "Felipe Gerhard",
+          "Gordon Pipa",
+          "Bruss Lima",
+          "Sergio Neuenschwander",
+          "Wulfram Gerstner"
+        ],
+        "year": 2011,
+        "publication_date": "2011-01-01",
+        "venue": "Frontiers in Computational Neuroscience",
+        "abstract": "The simultaneous recording of the activity of many neurons poses challenges for multivariate data analysis. Here, we propose a general scheme of reconstruction of the functional network from spike train recordings. Effective, causal interactions are estimated by fitting generalized linear models on the neural responses, incorporating effects of the neurons' self-history, of input from other neurons in the recorded network and of modulation by an external stimulus. The coupling terms arising from synaptic input can be transformed by thresholding into a binary connectivity matrix which is directed. Each link between two neurons represents a causal influence from one neuron to the other, given the observation of all other neurons from the population. The resulting graph is analyzed with respect to small-world and scale-free properties using quantitative measures for directed networks. Such graph-theoretic analyses have been performed on many complex dynamic networks, including the connectivity structure between different brain areas. Only few studies have attempted to look at the structure of cortical neural networks on the level of individual neurons. Here, using multi-electrode recordings from the visual system of the awake monkey, we find that cortical networks lack scale-free behavior, but show a small, but significant small-world structure. Assuming a simple distance-dependent probabilistic wiring between neurons, we find that this connectivity structure can account for all of the networks' observed small-world ness. Moreover, for multi-electrode recordings the sampling of neurons is not uniform across the population. We show that the small-world-ness obtained by such a localized sub-sampling overestimates the strength of the true small-world structure of the network. This bias is likely to be present in all previous experiments based on multi-electrode recordings.",
+        "url": "https://doi.org/10.3389/fncom.2011.00004",
+        "doi": "https://doi.org/10.3389/fncom.2011.00004",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2105728001"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 111
+      },
+      {
+        "paper_id": "rw_010_5ed38219e",
+        "title": "Attractor Metabolic Networks",
+        "authors": [
+          "Ildefonso M. De la Fuente",
+          "Jesús M. Cortés",
+          "David A. Pelta",
+          "J. Veguillas"
+        ],
+        "year": 2013,
+        "publication_date": "2013-03-15",
+        "venue": "PLoS ONE",
+        "abstract": "BACKGROUND: The experimental observations and numerical studies with dissipative metabolic networks have shown that cellular enzymatic activity self-organizes spontaneously leading to the emergence of a Systemic Metabolic Structure in the cell, characterized by a set of different enzymatic reactions always locked into active states (metabolic core) while the rest of the catalytic processes are only intermittently active. This global metabolic structure was verified for Escherichia coli, Helicobacter pylori and Saccharomyces cerevisiae, and it seems to be a common key feature to all cellular organisms. In concordance with these observations, the cell can be considered a complex metabolic network which mainly integrates a large ensemble of self-organized multienzymatic complexes interconnected by substrate fluxes and regulatory signals, where multiple autonomous oscillatory and quasi-stationary catalytic patterns simultaneously emerge. The network adjusts the internal metabolic activities to the external change by means of flux plasticity and structural plasticity. METHODOLOGY/PRINCIPAL FINDINGS: In order to research the systemic mechanisms involved in the regulation of the cellular enzymatic activity we have studied different catalytic activities of a dissipative metabolic network under different external stimuli. The emergent biochemical data have been analysed using statistical mechanic tools, studying some macroscopic properties such as the global information and the energy of the system. We have also obtained an equivalent Hopfield network using a Boltzmann machine. Our main result shows that the dissipative metabolic network can behave as an attractor metabolic network. CONCLUSIONS/SIGNIFICANCE: We have found that the systemic enzymatic activities are governed by attractors with capacity to store functional metabolic patterns which can be correctly recovered from specific input stimuli. The network attractors regulate the catalytic patterns, modify the efficiency in the connection between the multienzymatic complexes, and stably retain these modifications. Here for the first time, we have introduced the general concept of attractor metabolic network, in which this dynamic behavior is observed.",
+        "url": "https://doi.org/10.1371/journal.pone.0058284",
+        "doi": "https://doi.org/10.1371/journal.pone.0058284",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2107333957"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 39
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_005_aae85f077",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Addresses neural network dynamics and optimization constraints through stochastic population equations, relevant to plasticity and weight management",
+        "evidence_summary": "In 2017, Schwalger et al. published 'Towards a theory of cortical columns: From spiking neurons to interacting neural populations of finite size,' which derived stochastic population equations for interacting neural populations starting from integrate-and-fire neuron models. The study described how spike-history effects like refractoriness and adaptation interact with finite-size fluctuations, and demonstrated nonlinear emergent dynamics including finite-size-induced stochastic transitions and synchronization in balanced networks."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_009_1ce7ee64c",
+        "relevance_score": 0.62,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Analyzes functional network reconstruction from neural recordings with generalized linear models, addressing connectivity and dynamics relevant to network plasticity",
+        "evidence_summary": "In 2011, Gerhard et al. published 'Extraction of Network Topology From Multi-Electrode Recordings: Is there a Small-World Effect?,' which proposed a scheme for reconstructing functional networks from spike train recordings using generalized linear models. The approach incorporated effects of neurons' self-history, input from other neurons, and external stimulus modulation, and found that cortical networks showed small-world structure but lacked scale-free behavior."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_002_b383c9041",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Discusses neural criticality hypothesis and optimal computational properties of critical systems, relevant to neural network dynamics and plasticity",
+        "evidence_summary": "In 2014, Hesse and Gro published 'Self-organized criticality as a fundamental property of neural systems,' which reviewed the criticality hypothesis stating that the brain may be poised in a critical state between different dynamics. The paper discussed theoretical and experimental evidence showing critical systems often exhibit optimal computational properties, though noting inconsistent results in awake animals and humans and remaining controversies about mechanisms and functional roles."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_010_5ed38219e",
+        "relevance_score": 0.48,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Studies metabolic networks and self-organized enzymatic activity patterns, providing background on network dynamics and plasticity mechanisms",
+        "evidence_summary": "In 2013, Fuente et al. published 'Attractor Metabolic Networks,' which studied catalytic activities of dissipative metabolic networks under different external stimuli. The research analyzed emergent biochemical data using statistical mechanics tools and obtained an equivalent Hopfield network using a Boltzmann machine to study regulation mechanisms of cellular enzymatic activity."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_006_ad691ad2b",
+        "relevance_score": 0.42,
+        "relevance_types": [
+          "benchmark_baseline"
+        ],
+        "rationale": "Provides background on neural network applications in biomedical data analysis, including technical aspects relevant to network optimization",
+        "evidence_summary": "In 2022, Weiss et al. published 'Applications of Neural Networks in Biomedical Data Analysis,' which reviewed latest neural networks and their working principles with focus on biomedical data analysis. The paper provided a summary of technical aspects including activation functions and frameworks, and presented data analysis of publications about neural networks to quantify usage across scientific fields."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_007_e824fff29",
+        "relevance_score": 0.38,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Discusses physics-informed neural network solvers for differential equations, providing background on alternative neural network optimization approaches",
+        "evidence_summary": "In 2024, Chen et al. published 'Physics-Informed neural network solver for numerical analysis in geoengineering,' which reviewed physics-informed neural network (PINN) solvers for partial differential equations. The study described PINN as a mesh-free method leveraging deep learning algorithms to automatically search for spatial-temporal responses constrained by embedded equations, and discussed limitations including convergence ability and computational costs."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_001_cca4a8197",
+        "relevance_score": 0.35,
+        "relevance_types": [
+          "same_constraints"
+        ],
+        "rationale": "Discusses hardware implementation challenges for neural networks, including communication bandwidth constraints relevant to optimization efficiency",
+        "evidence_summary": "In 2024, Aguirre et al. published 'Hardware implementation of memristor-based artificial neural networks,' which reviewed efforts for achieving hardware-based memristive artificial neural networks. The paper described memristors as promising beyond-CMOS technology enabling both storing and computing with small footprint at low power, but noted various practical challenges remain despite theoretical benefits for energy efficiency and computational throughput."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_003_194ec0c86",
+        "relevance_score": 0.32,
+        "relevance_types": [
+          "same_problem"
+        ],
+        "rationale": "Addresses signal propagation in complex networks, providing general background on network dynamics",
+        "evidence_summary": "In 2023, Ji et al. published 'Signal propagation in complex networks,' though the provided metadata does not include specific details about methods, results, or applications beyond the title and basic publication information."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_008_1b1b5892b",
+        "relevance_score": 0.28,
+        "relevance_types": [
+          "benchmark_baseline"
+        ],
+        "rationale": "Uses deep convolutional neural networks for detection tasks, providing background on neural network applications",
+        "evidence_summary": "In 2019, Florentin et al. published 'Detection and identification of European woodpeckers with deep convolutional neural networks,' though the provided metadata does not include specific details about methods, datasets, or performance results beyond the title and basic publication information."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2017, Schwalger et al. published 'Towards a theory of cortical columns: From spiking neurons to interacting neural populations of finite size,' which derived stochastic population equations for interacting neural populations starting from integrate-and-fire neuron models, demonstrating nonlinear emergent dynamics including finite-size-induced stochastic transitions. In 2011, Gerhard et al. published 'Extraction of Network Topology From Multi-Electrode Recordings: Is there a Small-World Effect?,' which proposed reconstructing functional networks from spike train recordings using generalized linear models incorporating self-history and external stimuli, finding small-world structure in cortical networks. In 2014, Hesse and Gro published 'Self-organized criticality as a fundamental property of neural systems,' which reviewed the criticality hypothesis and evidence for optimal computational properties in critical systems, while noting inconsistencies in awake recordings. In 2013, Fuente et al. published 'Attractor Metabolic Networks,' which studied catalytic activities in dissipative metabolic networks using statistical mechanics tools and equivalent Hopfield networks. In 2022, Weiss et al. published 'Applications of Neural Networks in Biomedical Data Analysis,' which reviewed neural network technical aspects and provided quantitative analysis of publication trends across scientific fields. In 2024, Chen et al. published 'Physics-Informed neural network solver for numerical analysis in geoengineering,' which reviewed PINN solvers for differential equations and discussed limitations in convergence and computational costs.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

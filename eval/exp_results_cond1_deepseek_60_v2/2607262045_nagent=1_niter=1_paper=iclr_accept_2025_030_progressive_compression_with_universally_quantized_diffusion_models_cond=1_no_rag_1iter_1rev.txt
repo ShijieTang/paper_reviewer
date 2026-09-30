@@ -1,0 +1,186 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 4,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 2,
+        "clarity": 4
+      },
+      "strengths": [
+        "The paper introduces a new, clever adaptation of diffusion models (Universally Quantized Diffusion Model, UQDM) that replaces Gaussian noise channels with uniform ones to enable computationally tractable progressive compression via universal quantization.",
+        "Provides a theoretical insight showing that the UQDM's forward process converges to the VDM's Gaussian process as the number of steps increases (Corollary A.1.1), connecting the new model to established theory.",
+        "Achieves promising first empirical results on image compression, demonstrating progressive coding with a single model and competitive rate-distortion-realism trade-offs across a range of bitrates, comparing favorably against several classic and recent progressive neural codecs."
+      ],
+      "weaknesses": [
+        "The empirical evaluation is preliminary and lacks depth, particularly the absence of direct runtime comparisons with REC-based methods that would justify the main claim of tractability.",
+        "The justification for key design choices (e.g., setting q(z_T|x) as Gaussian to avoid REC, setting b(t), c(t), Δ(t) by matching VDM moments) is heuristic and partially undermines the stated advantage of avoiding intractable Gaussian channel simulation."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The empirical evaluation is preliminary and lacks depth, particularly the absence of direct runtime comparisons with REC-based methods that would justify the main claim of tractability.",
+          "severity": "major",
+          "evidence": "The paper states that 'the overall computation complexity is now dominated by the evaluation of the denoising network' but does not compare wall-clock time or computational requirements against the intractable REC methods (like MRC) that the UQDM is designed to supplant. While Appendix C.2 mentions 'less than 1 second' for a CIFAR image, the runtime for the learned variance variant is ~5 minutes due to serial CDF table building, making the practicality claim less convincing without a proper implementation.",
+          "affected_claim": "The central claim that UQDM provides a 'computationally tractable' method compared to the 'generally exponential runtime' of REC for Gaussian diffusion models.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The justification for key design choices (e.g., setting q(z_T|x) as Gaussian to avoid REC, setting b(t), c(t), Δ(t) by matching VDM moments) is heuristic and partially undermines the stated advantage of avoiding intractable Gaussian channel simulation.",
+          "severity": "minor",
+          "evidence": "Section 3.3 states: 'we will instead draw the same z_T ∼ p(z_T) = N(0, I) on both the encoder and decoder side, with the help of a shared pseudo-random seed.' This avoids the expensive transmission of the initial Gaussian sample but sidesteps the underlying coding challenge. The design of the forward process parameters is described as being 'based closely on the Gaussian case' (Sec 3.1) with choices made by 'matching the moments.' This is a reasonable practical start but its theoretical optimality for compression is not established.",
+          "affected_claim": "The claim that UQDM provides a fully coherent and optimized paradigm for lossless compression via the NELBO, as some components (like the initial step) are handled by a trick rather than a coding scheme.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The central claim—that UQDM enables a tractable progressive codec where Gaussian diffusion with REC does not—is only partially supported. While the theoretical analysis of uniform noise channels and convergence is sound, the practical coding scheme circumvents the initial Gaussian REC problem with a shared random seed. The empirical evidence, while promising, is too preliminary to robustly validate the soundness of the performance claims against other codecs across a large dataset with proper statistical reporting."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The core idea of modifying a diffusion model's forward process to use uniform noise for enabling efficient channel simulation via universal quantization is novel and distinct from prior work on diffusion-based compression (e.g., Theis et al., 2022; Yang & Mandt, 2023)."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "While a practical, progressive, unconditional diffusion-based codec would be significant, the demonstrated results are only modestly competitive with existing neural codecs (like CTC) and sometimes worse than BPG on distortion at low rates. The gap to idealized VDM performance (Fig. 2, 3) is still substantial, and the computational benefit over REC is not conclusively proven. The work presents a promising first step, but its impact on the field is currently limited."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "Evaluation is insufficient for a top-tier conference. Experiments are limited in scale (CIFAR10, 64x64 ImageNet). Comparisons with key baselines like Gaussian diffusion with REC are mostly theoretical/hypothetical. There are no ablation studies on critical model choices (e.g., the effect of T on final performance in natural images). The results in Figures 2, 3, 4 lack quantitative error bars or statistical significance tests. The paper acknowledges shortcomings (e.g., model not achieving 'perfect realism')."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written, logically structured, and easy to follow. The background, methodology, and algorithms are well explained. Appendices provide important theoretical derivations and experimental details."
+        }
+      },
+      "summary_comment": "This paper presents an intriguing idea—UQDM, a diffusion model tailored for progressive compression via universal quantization—with solid theoretical grounding and promising initial results. The novelty is strong and the presentation is clear. However, the evaluation is not yet at the level of rigor expected for a top-tier ML conference: empirical validation is preliminary, lacking robust comparisons and analysis of computational efficiency. Furthermore, a key design choice (shared random seed for initial step) weakens the core technical argument about tractability. While this is a good research direction, the work requires more extensive experimentation and a more complete technical solution before it can be accepted."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "ICML": {
+      "fit_score": 6,
+      "why_it_fits": [
+        "Topic Fit: The paper's focus on developing a new diffusion model variant (UQDM) for data compression aligns with ICML's coverage of 'deep learning (architectures, generative models)' and 'machine learning systems (improved implementation and scalability)'. The theoretical connection between likelihood modeling and compression touches on 'probabilistic methods'.",
+        "Contribution Fit: The work presents a novel algorithmic contribution (UQDM) with theoretical analysis (convergence properties), which matches ICML's emphasis on methodological innovation and theoretical foundations.",
+        "Presentation Fit: The paper is well-structured with clear algorithms, theoretical derivations in appendices, and connection to established diffusion literature, meeting ICML's standards for technical writing."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor/Evaluation Fit: Reviewer 1 strongly criticizes the empirical evaluation as 'preliminary', 'lacking depth', and 'insufficient for a top-tier conference'. ICML expects rigorous experimental validation, but the paper lacks runtime comparisons with REC methods, statistical significance reporting, and comprehensive ablation studies.",
+        "Reviewer Risk: The reviewer's 'fail' on soundness, significance, and evaluation gates indicates high risk. They specifically note the central tractability claim is only partially supported and key design choices are heuristic, which would likely receive similar criticism from ICML reviewers.",
+        "Contribution Mismatch: While novel, the work might be viewed more as a compression/engineering contribution than core ML advancement. The practical coding aspect (shared random seed trick) may be perceived as an implementation detail rather than fundamental ML innovation."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "Topic Fit: Excellent fit to NeurIPS's 'AI/ML for creatives' (image compression) and 'Deep learning' (diffusion models) tracks. The cross-cutting nature of diffusion models for compression also aligns with NeurIPS's interdisciplinary scope.",
+        "Novelty Fit: Reviewer 1 acknowledges strong novelty ('The core idea... is novel'), which matches NeurIPS's appreciation for innovative ideas even with preliminary results. The connection between diffusion models and practical compression is timely.",
+        "Significance Potential: The goal of practical progressive neural codecs has clear real-world impact potential, fitting NeurIPS's interest in applications with societal relevance (efficient data transmission)."
+      ],
+      "why_it_does_not_fit": [
+        "Rigor Fit: Similar to ICML concerns, NeurIPS expects solid empirical validation. The reviewer's criticisms about limited datasets (CIFAR10, 64x64 ImageNet), lack of runtime comparisons, and incomplete evaluation pose significant risks.",
+        "Reviewer Risk: The 'fail' on evaluation and significance gates suggests NeurIPS reviewers might question whether the contribution is substantial enough. The gap to idealized VDM performance and modest improvements over existing neural codecs could limit perceived impact.",
+        "Competition Risk: NeurIPS receives many strong diffusion model submissions; this work's preliminary empirical results might not stand out compared to more thoroughly evaluated methods in this competitive area."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "Topic Fit: Excellent alignment with ICLR's focus on 'deep learning' and 'unsupervised, self-supervised, semi-supervised, and supervised representation learning'. Diffusion models are core to ICLR, and this work presents a novel architectural variant specifically for compression.",
+        "Novelty/Contribution Fit: The modification of diffusion models' forward/reverse processes represents an architectural innovation fitting ICLR's emphasis on deep learning models. The theoretical analysis of convergence properties appeals to ICLR's appreciation for theoretical grounding.",
+        "Presentation Fit: The clear exposition of model architecture, algorithms, and appendices with proofs matches ICLR's standards. The connection to VDM and DDIM shows good awareness of relevant literature.",
+        "Reviewer Feedback Leverage: ICLR often accepts papers with strong conceptual novelty even when empirical results are preliminary, if the idea is promising and well-presented. The reviewer's positive assessment of novelty and presentation aligns with this culture."
+      ],
+      "why_it_does_not_fit": [
+        "Application Focus Risk: While ICLR accepts applied work, the paper's primary emphasis is on compression applications rather than fundamental advances in representation learning or generative modeling. Some reviewers might prefer more general architectural contributions.",
+        "Evaluation Concerns Remain: Even at ICLR, the experimental limitations noted by Reviewer 1 (small datasets, lack of key comparisons) could be criticized. The 5-minute compression time for learned variance variant suggests practical deployment challenges.",
+        "Scope Boundary: The paper sits at the intersection of deep learning and data compression systems; pure deep learning reviewers might find the compression-specific aspects (universal quantization, entropy coding) outside their expertise or interest."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 4,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 2,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper introduces a new, clever adaptation of diffusion models (Universally Quantized Diffusion Model, UQDM) that replaces Gaussian noise channels with uniform ones to enable computationally tractable progressive compression via universal quantization.",
+              "Provides a theoretical insight showing that the UQDM's forward process converges to the VDM's Gaussian process as the number of steps increases (Corollary A.1.1), connecting the new model to established theory.",
+              "Achieves promising first empirical results on image compression, demonstrating progressive coding with a single model and competitive rate-distortion-realism trade-offs across a range of bitrates, comparing favorably against several classic and recent progressive neural codecs."
+            ],
+            "weaknesses": [
+              "The empirical evaluation is preliminary and lacks depth, particularly the absence of direct runtime comparisons with REC-based methods that would justify the main claim of tractability.",
+              "The justification for key design choices (e.g., setting q(z_T|x) as Gaussian to avoid REC, setting b(t), c(t), Δ(t) by matching VDM moments) is heuristic and partially undermines the stated advantage of avoiding intractable Gaussian channel simulation."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The empirical evaluation is preliminary and lacks depth, particularly the absence of direct runtime comparisons with REC-based methods that would justify the main claim of tractability.",
+                "severity": "major",
+                "evidence": "The paper states that 'the overall computation complexity is now dominated by the evaluation of the denoising network' but does not compare wall-clock time or computational requirements against the intractable REC methods (like MRC) that the UQDM is designed to supplant. While Appendix C.2 mentions 'less than 1 second' for a CIFAR image, the runtime for the learned variance variant is ~5 minutes due to serial CDF table building, making the practicality claim less convincing without a proper implementation.",
+                "affected_claim": "The central claim that UQDM provides a 'computationally tractable' method compared to the 'generally exponential runtime' of REC for Gaussian diffusion models.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The justification for key design choices (e.g., setting q(z_T|x) as Gaussian to avoid REC, setting b(t), c(t), Δ(t) by matching VDM moments) is heuristic and partially undermines the stated advantage of avoiding intractable Gaussian channel simulation.",
+                "severity": "minor",
+                "evidence": "Section 3.3 states: 'we will instead draw the same z_T ∼ p(z_T) = N(0, I) on both the encoder and decoder side, with the help of a shared pseudo-random seed.' This avoids the expensive transmission of the initial Gaussian sample but sidesteps the underlying coding challenge. The design of the forward process parameters is described as being 'based closely on the Gaussian case' (Sec 3.1) with choices made by 'matching the moments.' This is a reasonable practical start but its theoretical optimality for compression is not established.",
+                "affected_claim": "The claim that UQDM provides a fully coherent and optimized paradigm for lossless compression via the NELBO, as some components (like the initial step) are handled by a trick rather than a coding scheme.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The central claim—that UQDM enables a tractable progressive codec where Gaussian diffusion with REC does not—is only partially supported. While the theoretical analysis of uniform noise channels and convergence is sound, the practical coding scheme circumvents the initial Gaussian REC problem with a shared random seed. The empirical evidence, while promising, is too preliminary to robustly validate the soundness of the performance claims against other codecs across a large dataset with proper statistical reporting."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The core idea of modifying a diffusion model's forward process to use uniform noise for enabling efficient channel simulation via universal quantization is novel and distinct from prior work on diffusion-based compression (e.g., Theis et al., 2022; Yang & Mandt, 2023)."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "While a practical, progressive, unconditional diffusion-based codec would be significant, the demonstrated results are only modestly competitive with existing neural codecs (like CTC) and sometimes worse than BPG on distortion at low rates. The gap to idealized VDM performance (Fig. 2, 3) is still substantial, and the computational benefit over REC is not conclusively proven. The work presents a promising first step, but its impact on the field is currently limited."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Evaluation is insufficient for a top-tier conference. Experiments are limited in scale (CIFAR10, 64x64 ImageNet). Comparisons with key baselines like Gaussian diffusion with REC are mostly theoretical/hypothetical. There are no ablation studies on critical model choices (e.g., the effect of T on final performance in natural images). The results in Figures 2, 3, 4 lack quantitative error bars or statistical significance tests. The paper acknowledges shortcomings (e.g., model not achieving 'perfect realism')."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written, logically structured, and easy to follow. The background, methodology, and algorithms are well explained. Appendices provide important theoretical derivations and experimental details."
+              }
+            },
+            "summary_comment": "This paper presents an intriguing idea—UQDM, a diffusion model tailored for progressive compression via universal quantization—with solid theoretical grounding and promising initial results. The novelty is strong and the presentation is clear. However, the evaluation is not yet at the level of rigor expected for a top-tier ML conference: empirical validation is preliminary, lacking robust comparisons and analysis of computational efficiency. Furthermore, a key design choice (shared random seed for initial step) weakens the core technical argument about tractability. While this is a good research direction, the work requires more extensive experimentation and a more complete technical solution before it can be accepted."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

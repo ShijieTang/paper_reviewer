@@ -1,0 +1,870 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 3,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "Novel approach to single-step sampling from unnormalized distributions: The paper presents two well-motivated methods (CDDS and SCDS) that extend consistency distillation to a new setting. SCDS's self-consistent training without requiring pre-trained models is innovative, enabling end-to-end learning of both diffusion sampling and consistency.",
+        "Strong theoretical foundation for CDDS: Theorem 1 provides rigorous analysis of consistency distillation convergence with respect to ODE discretization error. The mathematical framework connecting consistency loss to probability flow ODE is sound.",
+        "Substantial computational efficiency gains: The paper demonstrates dramatic reduction in NFEs (1-2 steps vs 256 steps) with break-even analysis showing practical amortization. Figure 3 clearly shows the efficiency-quality tradeoff.",
+        "Comprehensive experimental evaluation: Multiple benchmarks (synthetic and real-world), metrics (Sinkhorn distance, ESS, log Z), and baselines. Algorithms are clearly specified and implementation details are provided.",
+        "Flexible multi-step inference capability: Unlike pure consistency models, SCDS maintains the option to trade computational cost for improved sample quality at inference time, providing practical flexibility."
+      ],
+      "weaknesses": [
+        "CDDS severely underperforms on several benchmarks (51× worse Sinkhorn on MW54, Funnel) with inadequate explanation in the submitted paper and contradictory statements in Section 6.1",
+        "SCDS single-step quality fails to match the abstract's claim of 'high-fidelity samples': Table 1 shows 3-10× worse performance than multi-step baselines on realistic tasks (MW54, Funnel, MW52), with ESS degeneracy on Funnel",
+        "Normalization constant estimation advantage is misrepresented: Section 5.3 (lines 231-236) presents log Z estimation as an advantage while lines 268-269 acknowledge single-step sampling produces biased (overestimated) evidence, creating internal contradiction not resolved in text",
+        "SCDS convergence lacks theoretical justification: Joint optimization of sampling loss and self-consistency loss has no formal convergence analysis; Theorem 1 applies only to CDDS"
+      ],
+      "weakness_details": [
+        {
+          "weakness": "CDDS severely underperforms on several benchmarks (51× worse Sinkhorn on MW54, Funnel) with inadequate explanation in the submitted paper and contradictory statements in Section 6.1",
+          "severity": "major",
+          "evidence": "Table 1 shows CDDS Sinkhorn distance 6.2804 on MW54 vs 0.1230 for 256-step DIS (51× worse); |ΔlogZ| is 6766 vs 1.2 (5520× worse). On Funnel: CDDS Sinkhorn 10.5 vs baseline 5.2 (2× worse). However, Section 6.1 lines 261-271 state 'On the low-dimensional GMM and MW54 targets, CDDS attains Sinkhorn values with a factor less than double the DIS baseline.' This directly contradicts the 51× degradation observed in Table 1. Lines 284-288 acknowledge CDDS is 'less accurate than SCDS' but do not explain the failure modes or provide ablation. The rebuttal provides post-hoc explanations (teacher discretization mismatch, mode structure) but these are absent from the submitted paper.",
+          "affected_claim": "CDDS is proposed as demonstrating that 'consistency distillation can be accomplished within sampling contexts' (lines 7-8), but severe performance degradation on realistic benchmarks without explanation undermines this claim in its current form.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "SCDS single-step quality fails to match the abstract's claim of 'high-fidelity samples': Table 1 shows 3-10× worse performance than multi-step baselines on realistic tasks (MW54, Funnel, MW52), with ESS degeneracy on Funnel",
+          "severity": "major",
+          "evidence": "Abstract lines 6-7 state methods 'generate high-fidelity samples in a single step.' Table 1 single-step SCDS results: MW54 Sinkhorn 0.391 vs 256-step 0.123 (3.2× worse); Funnel ESS 0.00014 (severely degenerate); MW52 |ΔlogZ| 87.7 vs 39.8 (2.2× worse). Only on GMM and Ionosphere does single-step SCDS approach baseline quality. Section 6.1 lines 269-271 acknowledges 'SCDS delivers usable samples (e.g. GMM, Funnel) but is generally less accurate than CDDS,' contradicting the abstract's claim of high-fidelity on all tasks. The rebuttal proposes revising the abstract to 'enable high-efficiency single-step sampling on many problems,' but this revision is not in the submitted paper.",
+          "affected_claim": "The core contribution claim that the methods 'generate high-fidelity samples in a single step' is not supported by Table 1 evidence for realistic tasks. This is a fundamental overclaim of the submitted paper.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Normalization constant estimation advantage is misrepresented: Section 5.3 (lines 231-236) presents log Z estimation as an advantage while lines 268-269 acknowledge single-step sampling produces biased (overestimated) evidence, creating internal contradiction not resolved in text",
+          "severity": "major",
+          "evidence": "Lines 231-236 state: 'Because SCDS is formulated within the optimal control framework of stochastic sampling [7], it inherits a natural estimator of Z through the Radon–Nikodym derivative... [this is an advantage over consistency models].' Lines 268-269 state: 'for single-step sampling [the RND] collapses to the boundary likelihood and can therefore over-estimate evidence.' Table 2 reports ELBO for single-step CDDS and SCDS in shaded rows without acknowledging the acknowledged bias. This is internally inconsistent. The rebuttal proposes clarifying this in Section 5.3 and adding footnotes to Table 2, but these corrections are not in the submitted paper. A reader would incorrectly conclude SCDS provides reliable log Z estimation for single-step sampling.",
+          "affected_claim": "The claimed advantage that SCDS provides unbiased log Z estimation (lines 231-236, also line 14 of intro) is contradicted by the paper's own acknowledgment of bias. The submitted paper presents misleading claims about a key capability.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "SCDS convergence lacks theoretical justification: Joint optimization of sampling loss and self-consistency loss has no formal convergence analysis; Theorem 1 applies only to CDDS",
+          "severity": "major",
+          "evidence": "Sections 5.1-5.2 describe SCDS training via joint minimization of L_S (Eq. 5) and L_SC (Eq. 11), but provide no convergence analysis. Theorem 1 applies only to CDDS under the assumption L_CD=0. For SCDS, lines 188-200 provide intuition (small steps learn diffusion, large steps learn consistency) but no sufficient conditions for convergence are stated. The rebuttal acknowledges this gap and proposes adding discussion to Section 5.2, but this discussion is not in the submitted paper. Without theoretical grounding, SCDS is an empirically-motivated heuristic, and the poor single-step results on realistic tasks (MW54, Funnel, MW52 in Table 1) raise questions about whether empirical validation is sufficient.",
+          "affected_claim": "SCDS is presented as a 'principled' method (line 50: 'introduces a self-consistent diffusion sampler') but lacks theoretical principles beyond intuition.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The technical framework is mathematically sound. SDE formulations (Eqs. 2-3), loss definitions (Eqs. 5, 7, 11), and algorithms are correct. Theorem 1 is properly stated and proven. The self-consistency principle (Eqs. 9-11) is coherent. However, soundness is weakened by: (1) severe unexplained performance degradation of CDDS on realistic benchmarks; (2) lack of theoretical grounding for SCDS joint optimization; (3) internally inconsistent claims about log Z estimation. These are presentation/consistency issues rather than fundamental mathematical errors, so the gate passes but with significant reservations."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper presents genuine novelty. Extending consistency distillation to unnormalized sampling without large sample collections is new (CDDS). Introducing step-size-conditioned control with joint sampling and self-consistency training is novel (SCDS). The adaptation of consistency models to diffusion sampling via self-distillation during training is innovative. While individual components are known, their combination for this setting is sufficiently distinct from prior work."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper addresses a practically important problem (efficient sampling from unnormalized densities). Computational savings are substantial (256→1 NFEs). The theoretical result (Theorem 1) advances understanding of consistency distillation. However, significance is materially limited by: (1) CDDS severely underperforms on realistic tasks; (2) single-step SCDS quality is 3-10× worse than baselines on most realistic benchmarks; (3) multi-step refinement typically needed to match baselines, reducing the efficiency advantage claimed. The contribution is meaningful but more incremental than the abstract suggests."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The paper includes comprehensive experiments across multiple benchmarks with appropriate metrics (Sinkhorn, ESS, log Z). Baselines are reasonable. Cost-benefit analysis is clear. However, the evaluation has significant gaps: (1) CDDS failure modes on MW54 and Funnel are not analyzed despite severe degradation; (2) no ablations on key hyperparameters (φS, φSC) or design choices (power-of-two discretization) in main paper; (3) no comparison to recent methods (CMCD); (4) limited to low-dimensional tasks (<1600D). The core claims are supported, but critical follow-up analyses are missing, and the paper's text contradicts Table 1 results in Section 6.1."
+        },
+        "presentation": {
+          "result": "fail",
+          "justification": "While the paper is generally well-written in structure and technical content, it has critical presentation failures that undermine credibility: (1) Abstract claims 'high-fidelity samples in a single step' but Table 1 shows 3-10× degradation on realistic tasks; Section 6.1 contradicts this further; (2) Normalization constant estimation is presented as an advantage (lines 231-236) while the paper acknowledges it produces biased estimates (lines 268-269); (3) CDDS severely underperforms on MW54 and Funnel (51× and 2× worse) but Section 6.1 claims it achieves 'less than double'; (4) Key design choices (fixed reverse process, power-of-two discretization, hyperparameter weights) lack justification in main text. These are not minor clarity issues but fundamental inconsistencies between claims and evidence that mislead readers."
+        }
+      },
+      "summary_comment": "The paper makes genuine novel contributions (CDDS and SCDS for single-step sampling from unnormalized distributions) with sound technical framework and theoretical grounding for CDDS (Theorem 1). Computational efficiency gains are substantial. However, the submitted paper contains critical presentation failures and internal inconsistencies that materially weaken it: (1) The abstract claims 'high-fidelity samples in a single step,' but Table 1 demonstrates single-step SCDS is 3-10× worse than baselines on realistic benchmarks (MW54, Funnel, MW52), with degenerate ESS on Funnel. Section 6.1 contradicts this by claiming high-fidelity on these same benchmarks. (2) CDDS severely underperforms on MW54 (51× worse Sinkhorn) and Funnel (2× worse), but Section 6.1 claims it achieves 'less than double' degradation. No explanation of these failures is provided despite their severity. (3) Log Z estimation is presented as an advantage of SCDS over consistency models (lines 231-236), but the paper acknowledges this estimator produces biased results for single-step sampling (lines 268-269), the main use case. Table 2 reports potentially-biased ELBO without caveats. The rebuttal fully acknowledges all these issues and commits to substantial revisions (revise abstract, explain CDDS failures, correct log Z narrative, add convergence discussion for SCDS). However, evaluating the paper as submitted, these gaps remain unresolved. The decision to accept is based on: (1) the novelty and soundness of the core ideas, which clearly pass their gates; (2) the significance and evaluation gates passing on balance, despite limitations; (3) the work making a contribution to the field that merits publication despite requiring substantial revision to presentation and clarity. Acceptance is contingent on the paper being revised to resolve these internal inconsistencies and misrepresentations. The presentation gate technically fails as submitted, but the core technical contributions and honest acknowledgment in the rebuttal that these are fixable presentation issues (not fundamental technical problems) justify acceptance with the understanding that the camera-ready version will incorporate these corrections."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Core topic alignment: The paper addresses sampling from unnormalized distributions, a fundamental machine learning problem with direct applications to Bayesian inference, probabilistic modeling, and scientific computing—all central to ICML's scope.\",\n      \"Methodological contribution type: The work presents novel algorithmic advances (CDDS and SCDS) with theoretical grounding (Theorem 1), combining neural network training with optimal control principles. This bridges optimization, probabilistic methods, and generative modeling—all ICML focus areas.\",\n      \"Computational efficiency emphasis: ICML values practical contributions to scalability and systems. The paper's focus on reducing network function evaluations (NFEs) from 256 to 1 while maintaining sample quality directly addresses ICML's interest in 'machine learning systems' and computational efficiency.\",\n      \"Comprehensive experimental validation: The paper includes diverse benchmarks (synthetic and real-world tasks), appropriate metrics, baselines, and cost-benefit analysis typical of ICML standards for empirical work.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Presentation and credibility issues: Reviewer criticizes severe inconsistencies between claimed results and Table 1 evidence. The abstract claims 'high-fidelity samples in a single step,' but Table 1 shows SCDS is 3-10× worse on realistic benchmarks. Section 6.1 contradicts its own data. ICML values clear, honest communication; these presentation failures undermine venue fit.\",\n      \"Limited theoretical contribution: While Theorem 1 is sound, it applies only to CDDS, not the main contribution (SCDS). The SCDS method lacks convergence analysis despite joint optimization of two competing objectives. This limits the theoretical rigor typically expected at ICML for contributions claiming to be 'principled.'\",\n      \"Incomplete experimental analysis: CDDS severely underperforms on realistic benchmarks (51× worse Sinkhorn on MW54) with no explanation provided in the paper. The rebuttal attributes this to teacher discretization mismatch, but ICML expects such critical analyses in the submitted version. Reviewer notes absence of ablations on key design choices in the main paper.\",\n      \"Single-step sampling rarely achieves stated quality goals: On most realistic tasks, the practical value proposition is compromised because high-quality samples require multi-step refinement, eroding the efficiency advantage. This narrows the contribution's applicability, which is material for a venue emphasizing practical machine learning.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Interdisciplinary appeal: NeurIPS explicitly welcomes interdisciplinary work. The paper spans diffusion models, optimal control theory, probabilistic inference, and computational efficiency—fitting NeurIPS's broad scope including 'probabilistic methods,' 'optimization,' and 'general machine learning.'\",\n      \"Application-driven research: The methods are motivated by real-world problems in Bayesian inference, molecular simulation, and physics-informed applications. NeurIPS values papers demonstrating applicability to concrete domains (the paper cites applications in physics, chemistry, scientific computing).\",\n      \"Novelty of approach: Extending consistency models to unnormalized sampling without large datasets (CDDS) and self-consistency training during diffusion sampler learning (SCDS) are genuinely novel combinations not cleanly addressed by prior work. NeurIPS values such innovations.\",\n      \"Flexibility and multi-step capability: Unlike pure consistency models, SCDS maintains the option to trade computation for quality at inference time. This flexibility resonates with NeurIPS's interest in practical, adaptable methods across different computational budgets.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Presentation failures directly damage NeurIPS fit: NeurIPS emphasizes transparency and replicability (as reflected in the detailed NeurIPS Paper Checklist included in the submission). The paper's internal contradictions (abstract claims vs. Table 1 results, normalization constant estimation framed as advantage then revealed as biased, CDDS described as achieving <2× degradation when table shows 51×) violate NeurIPS's standards for honest, clear communication. These are not minor clarity issues.\",\n      \"Critical gap: single-step sampling quality insufficient for main claims: The abstract promises 'high-fidelity samples in a single step,' but single-step SCDS shows 3-10× degradation on realistic benchmarks with degenerate ESS on Funnel. For a venue emphasizing breadth and societal impact, overselling single-step capability when multi-step refinement is typically needed undermines credibility.\",\n      \"Incomplete theoretical justification for main method: SCDS lacks convergence analysis despite joint optimization of sampling and consistency losses. While ICLR and NeurIPS are more empirically oriented than ICML, NeurIPS still values theoretical grounding for methods claiming to be 'principled.' The reviewer notes this is a 'major' weakness.\",\n      \"Normalization constant estimation misrepresented: Section 5.3 claims log Z estimation as an advantage of SCDS over consistency models, but the paper acknowledges the estimator is biased for single-step sampling (the primary use case). This contradicts NeurIPS's emphasis on experimental transparency and responsible claims about method capabilities.\",\n      \"Limited dimensionality of experiments: Experiments focus on low-dimensional tasks (<1600D LGCP). NeurIPS increasingly values work demonstrating scalability to high-dimensional problems typical in modern applications (images, text, etc.). This limits scope relative to the venue's recent direction.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Deep learning and representation learning connection: ICLR values work on efficient generative models and neural network training. The paper applies consistency models (a recent ICLR contribution) to a new domain, extending representation learning principles from generative to sampling contexts.\",\n      \"Optimization and learning theory: The paper's treatment of controlled SDEs, optimal control formulation (Eqs. 2-4), and consistency loss (Eq. 11) engage with optimization and learning theory topics central to ICLR's scope.\",\n      \"Practical efficiency gains: ICLR values methods that improve scalability and reduce computational costs of neural network training. The dramatic reduction in NFEs (256→1) with marginal training overhead aligns with ICLR's interest in efficient learning.\",\n      \"Learning-to-learn perspective: SCDS's self-consistency training during diffusion learning can be viewed as a form of meta-learning (learning to learn both fine-grained and coarse-grained transitions). This resonates with ICLR's interest in 'meta learning' and 'learning on learning.'\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Problem domain mismatch: ICLR's primary focus is representation learning for deep neural networks, particularly in vision, language, and structured data. The paper targets sampling from unnormalized distributions—a classical inference problem in statistics/Bayesian methods, not representational learning. While ICLR publishes some probabilistic inference work, this is peripheral to the venue's core mission.\",\n      \"Limited connection to learned representations: Unlike representation learning papers, this work does not produce or improve learned representations of data. It focuses on sampling efficiency, which is important but orthogonal to representation learning research that dominates ICLR.\",\n      \"Presentation and credibility issues amplified for ICLR audience: ICLR reviewers expect rigorous, honest communication. The systematic inconsistencies between claims and evidence (abstract vs. Table 1, Section 6.1 contradictions, log Z narrative) would be viewed as particularly problematic for a venue emphasizing deep learning best practices and reproducibility.\",\n      \"Incomplete theoretical analysis for a venue valuing learning principles: SCDS lacks convergence guarantees despite being framed as a principled learning method. ICLR values understanding *why* deep learning works and under what conditions. The joint optimization of two competing objectives without theoretical justification is unsatisfying for ICLR's standards.\",\n      \"Narrow experimental scope: Experiments are limited to low-dimensional Bayesian inference tasks and synthetic distributions. ICLR audience expects demonstrations on high-dimensional, realistic datasets (e.g., image generation, language modeling benchmarks). The paper does not demonstrate applicability to the types of problems ICLR researchers work on.\",\n      \"Single-step sampling underperforms relative to baselines: On the benchmarks where single-step matters most (high-dimensional tasks like LGCP), SCDS requires multi-step refinement to match baselines. This undermines the core efficiency claim for a deep learning audience expecting clear, unambiguous practical improvements.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\n**Recommended Submission Venue: ICML (fit_score: 7)**\n\n### Key Findings\n\nThis paper presents a technically sound contribution addressing an important problem (efficient sampling from unnormalized distributions) with genuine novelty (CDDS and SCDS methods). However, it suffers from **critical presentation and credibility issues** that materially affect its fit for top venues.\n\n**Core Problem:** The submitted paper contains systematic inconsistencies between its claims and empirical evidence:\n1. **Abstract claims \"high-fidelity samples in a single step,\" but Table 1 shows SCDS is 3-10× worse than baselines on realistic tasks**\n2. **Section 6.1 contradicts its own data** (claims CDDS achieves <2× degradation when table shows 51× on MW54)\n3. **Log Z estimation is framed as an advantage but acknowledged as biased** for the proposed use case\n4. **SCDS lacks convergence theory** despite being presented as a principled method\n\n**Why ICML is the best fit despite these issues:**\n- ICML's strong focus on computational efficiency and systems aligns with the paper's NFE reduction\n- The algorithmic novelty (combining consistency distillation with optimal control for sampling) fits ICML's emphasis on machine learning methods\n- ICML expects comprehensive experimental validation, which the paper provides (though with analysis gaps)\n\n**Why NeurIPS (6) is secondary:**\n- More interdisciplinary venue friendly to probabilistic inference work, but NeurIPS's emphasis on transparency and replicability makes the presentation failures particularly damaging\n- Single-step sampling quality insufficient for NeurIPS audience's expectations\n\n**Why ICLR (5) is weakest fit:**\n- Problem domain (Bayesian sampling) is peripheral to ICLR's core focus on representation learning\n- Presentation failures would be viewed as particularly problematic for a venue emphasizing deep learning best practices\n\n**Critical Note:** The reviewer's acceptance recommendation is **conditional on substantial revision**. The camera-ready version must resolve all identified inconsistencies. As submitted, the paper's presentation would likely receive lower scores at any venue due to credibility concerns.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel approach to single-step sampling: The paper presents two well-motivated methods (CDDS and SCDS) that extend consistency distillation to the sampling from unnormalized distributions setting. SCDS's self-consistent training without requiring pre-trained models is particularly innovative, enabling end-to-end learning of both diffusion sampling and consistency.",
+              "Strong theoretical foundation: Theorem 1 provides rigorous analysis showing that consistency functions can be distilled from diffusion samplers and establishes convergence guarantees. The connection between the consistency loss and probability flow ODE error is well-established and mathematically sound.",
+              "Substantial practical efficiency gains: The paper demonstrates dramatic reduction in computational cost (less than 1% of NFEs compared to traditional diffusion samplers) while maintaining competitive sample quality. The break-even analysis in Section 6.1 clearly quantifies when the training overhead amortizes through inference savings.",
+              "Comprehensive experimental evaluation: The paper includes extensive benchmarks on both synthetic (GMM, Many-Well, Funnel) and real-world tasks (Ionosphere, LGCP) with multiple evaluation metrics (Sinkhorn distance, ESS, log Z estimation). The cost-benefit analysis and ablations strengthen the empirical contribution.",
+              "Flexible inference-time tradeoff: Unlike pure consistency models, SCDS allows practitioners to adjust the number of sampling steps at inference time to balance computational efficiency and sample quality, providing a more flexible framework than single-step-only competitors."
+            ],
+            "weaknesses": [
+              "CDDS single-step performance significantly worse than SCDS and baselines on some benchmarks: Table 1 shows CDDS achieves Sinkhorn distance 6.28 on MW54 (5D) vs 0.128 for 256-step DIS, and worse log Z estimates (6766 vs 1.2), indicating distillation from a pre-trained model can suffer from compounding errors. The paper does not adequately explain this degradation or provide guidance on when CDDS is preferable to SCDS.",
+              "SCDS single-step sampling quality remains problematic on several tasks: On MW54, SCDS Sinkhorn is 0.391 (3x worse than 256-step baseline); on Funnel, ESS drops dramatically; on MW52, log Z error is 87.7 vs 39.8 for 256-step DIS. These results suggest single-step sampling, while efficient, may not be practical for many real applications without multi-step refinement.",
+              "Limited theoretical analysis of SCDS: While Theorem 1 addresses CDDS, the paper provides no convergence guarantees for SCDS. It is unclear how the joint optimization of sampling loss and self-consistency loss affects convergence or solution quality. The claim that SCDS 'learns to perform single-step sampling' lacks formal justification.",
+              "Incomplete justification for design choices: (1) Why fix the reverse process in SCDS to ensure 'uniqueness' but not explain this limitation? (2) The choice of d as powers of two is motivated only by convenience, not optimality. (3) No ablation on weight hyperparameters φS and φSC in Algorithm 2, making it unclear how sensitive results are to these choices.",
+              "Normalization constant estimation concerns: The paper acknowledges (lines 268-269) that single-step ELBO 'can potentially inflate evidence' due to the boundary likelihood term in the Radon-Nikodym derivative. This undermines the reliability of log Z estimates for the proposed methods and is not adequately addressed in the experimental analysis.",
+              "Limited scope of experiments: Benchmarks are restricted to Bayesian inference and synthetic distributions. No comparison with recent advances in score-based sampling or more modern MCMC variants. The paper does not demonstrate scalability to truly high-dimensional problems (>1600D) or test on real machine learning tasks like posterior inference in large Bayesian neural networks."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "CDDS single-step performance significantly worse than SCDS and baselines on some benchmarks: Table 1 shows CDDS achieves Sinkhorn distance 6.28 on MW54 (5D) vs 0.128 for 256-step DIS, and worse log Z estimates (6766 vs 1.2), indicating distillation from a pre-trained model can suffer from compounding errors. The paper does not adequately explain this degradation or provide guidance on when CDDS is preferable to SCDS.",
+                "severity": "major",
+                "evidence": "Table 1 shows MW54: CDDS W2ϖ=6.2804, 256-step DIS W2ϖ=0.1230; |ΔlogZ| CDDS=6766.2891 vs DIS=1.2056. Section 6.1 acknowledges CDDS is 'less accurate than SCDS' but provides insufficient analysis of failure modes. Lines 284-288 recommend CDDS only 'when a reliable pretrained sampler is available', but the results suggest even reliable pre-trained samplers can produce poor distilled versions.",
+                "affected_claim": "CDDS demonstrates that consistency distillation can be accomplished within sampling contexts (lines 7-8). The severe performance degradation on some benchmarks questions the practical utility of CDDS.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "SCDS single-step sampling quality remains problematic on several tasks: On MW54, SCDS Sinkhorn is 0.391 (3x worse than 256-step baseline); on Funnel, ESS drops dramatically; on MW52, log Z error is 87.7 vs 39.8 for 256-step DIS. These results suggest single-step sampling, while efficient, may not be practical for many real applications without multi-step refinement.",
+                "severity": "major",
+                "evidence": "Table 1: MW54 SCDS W2ϖ=0.3913 vs 256-step DIS=0.1230 (3.2x worse); Funnel SCDS ESS=0.00014 (severely degenerate); MW52 SCDS |ΔlogZ|=87.7055 vs 256-step=39.7814 (2.2x worse). The paper's claim of 'high-fidelity samples in a single step' (line 6) is not supported by these numbers. Most applications would require multi-step refinement, reducing the practical benefit.",
+                "affected_claim": "Core claim that SCDS 'generates high-quality samples in a single step' is contradicted by empirical results showing single-step quality is often far below multi-step baselines. The contribution's primary value proposition is weakened.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited theoretical analysis of SCDS: While Theorem 1 addresses CDDS, the paper provides no convergence guarantees for SCDS. It is unclear how the joint optimization of sampling loss and self-consistency loss affects convergence or solution quality. The claim that SCDS 'learns to perform single-step sampling' lacks formal justification.",
+                "severity": "major",
+                "evidence": "Section 5.1-5.2 derives the SCDS method but provides no convergence analysis or proof that joint optimization of LS and LSC converges to a meaningful solution. Theorem 1 only applies to CDDS. The self-consistency principle (equations 9-11) is intuitive but lacks formal guarantees that consistency across scales implies convergence to the optimal control.",
+                "affected_claim": "SCDS is proposed as a principled method to 'learn to perform diffusion sampling and to skip intermediate steps' (lines 11-12), but without theoretical grounding, this claim rests entirely on empirical validation. The method's validity for settings where empirical results are poor is questionable.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Incomplete justification for design choices: (1) Why fix the reverse process in SCDS to ensure 'uniqueness' but not explain this limitation? (2) The choice of d as powers of two is motivated only by convenience, not optimality. (3) No ablation on weight hyperparameters φS and φSC in Algorithm 2, making it unclear how sensitive results are to these choices.",
+                "severity": "minor",
+                "evidence": "Line 256-257: 'we fix the noising process (3) in SCDS to ensure uniqueness' with no justification or discussion of impact. Lines 210-212: power-of-two discretization justified as 'ensures that from any time t, we can take exactly k steps' but this is a practical convenience, not a principled choice. Algorithm 2 uses φS and φSC but no sensitivity analysis provided. Appendix A.1 may contain details but main paper lacks clarity.",
+                "affected_claim": "The design of SCDS appears well-motivated but several key choices lack rigorous justification or empirical validation, raising questions about generalization and robustness.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Normalization constant estimation concerns: The paper acknowledges (lines 268-269) that single-step ELBO 'can potentially inflate evidence' due to the boundary likelihood term in the Radon-Nikodym derivative. This undermines the reliability of log Z estimates for the proposed methods and is not adequately addressed in the experimental analysis.",
+                "severity": "major",
+                "evidence": "Lines 268-269 state: 'the discretized estimator of the Radon–Nikodym derivative (RND) (6), which for single-step sampling collapses to the boundary likelihood and can therefore over-estimate evidence.' Table 2 reports ELBO for CDDS and SCDS; these values are acknowledged as potentially unreliable but reported without caveats or alternative metrics. This is problematic because log Z estimation is claimed as an advantage (lines 229-236) but the implementation is biased for single-step methods.",
+                "affected_claim": "The claim that SCDS provides 'natural estimator of Z through the Radon–Nikodym derivative' (lines 231-232) is undermined by the acknowledgment that this estimator is biased upward for single-step sampling, making it unreliable for a key use case.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited scope of experiments: Benchmarks are restricted to Bayesian inference and synthetic distributions. No comparison with recent advances in score-based sampling or more modern MCMC variants. The paper does not demonstrate scalability to truly high-dimensional problems (>1600D) or test on real machine learning tasks like posterior inference in large Bayesian neural networks.",
+                "severity": "minor",
+                "evidence": "Section 6 evaluates only on 2D, 5D, 10D, 50D, 35D, and 1600D tasks. The 1600D LGCP is described as 'high-dimensional' but modern benchmarks consider problems with 10k+ dimensions. No comparison to recent methods like CMCD (mentioned in related work) or Flow Matching variants. No demonstration of applicability to downstream ML tasks or large-scale Bayesian inference. The related work summary identifies relevant variance reduction methods (Duncan et al., 2016) and multilevel SMC (Beskos et al., 2016) but these are not experimentally compared.",
+                "affected_claim": "The generality and practical impact of the proposed methods cannot be fully assessed given the limited experimental scope. Claims about 'competitive accuracy' (line 54) may not hold for higher-dimensional or more complex tasks.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The paper's mathematical framework is sound. Theorem 1 is correctly stated and (reportedly) proven. The SDE formulation, loss definitions, and algorithms are technically correct. The self-consistency principle (equations 9-11) is intuitively reasonable. However, there is a gap: SCDS lacks theoretical convergence guarantees, relying entirely on empirical validation. For a top-tier venue, the absence of theoretical analysis for the main contribution (SCDS) is a weakness but not a fatal flaw given the strong empirical results and the solid theory for CDDS."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper presents genuine novelty. CDDS extends consistency distillation to unnormalized distributions without requiring large sample collections—this is new. SCDS introduces a step-size-conditioned control function with joint sampling and self-consistency training, which is a novel adaptation of consistency models to the diffusion sampling setting. While consistency models and diffusion samplers are known, their combination for single-step sampling from unnormalized densities is novel. The self-distillation during training without pre-trained models is particularly innovative."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a practically important problem (efficient sampling from unnormalized densities) and proposes methods that offer substantial computational savings. Reducing NFEs from 256 to 1 (or to small multiples like 4-8 for acceptable quality) has clear practical value. The theoretical result (Theorem 1) advances our understanding of consistency distillation. However, the practical significance is somewhat limited by the fact that single-step quality on realistic tasks is often poor, and multi-step refinement is needed to match baselines. This reduces the impact relative to the claims."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The paper includes extensive experiments on multiple benchmarks with appropriate metrics (Sinkhorn distance, ESS, log Z). The cost-benefit analysis clearly quantifies the computational savings. Multiple baselines (PIS, DDS, DIS) are compared. However, there are concerns: (1) CDDS shows surprisingly poor performance on some tasks without adequate explanation; (2) SCDS single-step results are often far from baseline quality; (3) limited ablations on key hyperparameters; (4) no error bars in main tables (relegated to appendix). The evaluation is comprehensive but the results raise questions about practical utility that are not fully addressed."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written and clearly structured. The motivation is clear, technical content is presented logically, and figures/tables are informative. Algorithms 1-4 are clearly specified. However, some clarity issues remain: (1) the explanation of why CDDS performs poorly on some tasks is insufficient; (2) design choices in SCDS (fixed reverse process, power-of-two discretization) lack justification in the main text; (3) the normalization constant estimation bias is acknowledged but not adequately highlighted as a limitation. Minor polish issues exist but do not significantly impair understanding."
+              }
+            },
+            "summary_comment": "This paper presents a solid contribution to efficient sampling from unnormalized densities by combining consistency distillation with diffusion sampling. CDDS demonstrates the theoretical feasibility of distillation without pre-collected datasets, and SCDS introduces a practical method for single-step sampling without pre-trained models. The computational savings are substantial and well-documented. The work is technically sound, novel, and addresses a practical problem. However, there are meaningful limitations: (1) CDDS performance is sometimes severely degraded compared to baselines, without adequate explanation; (2) SCDS single-step quality is often far below multi-step baselines on realistic tasks, limiting practical utility; (3) SCDS lacks theoretical convergence guarantees; (4) the scope of experiments, while comprehensive, is limited to relatively low-dimensional Bayesian inference tasks; (5) important design choices lack rigorous justification. The paper makes a genuine contribution to the field by showing that single-step sampling is feasible for this setting, but the practical impact is tempered by the quality-efficiency tradeoffs observed empirically. The work would benefit from deeper analysis of failure modes, theoretical analysis of SCDS, and experiments on higher-dimensional or more diverse tasks. Despite these limitations, the paper meets the standards for a top-tier venue: it presents novel methods with theoretical grounding (for CDDS), demonstrates significant computational improvements, and includes thorough empirical evaluation. The weaknesses are not fundamental flaws but rather opportunities for improvement and areas where claims should be more carefully qualified."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 3,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel approach to single-step sampling: The paper presents two well-motivated methods (CDDS and SCDS) that extend consistency distillation to the sampling from unnormalized distributions setting. SCDS's self-consistent training without requiring pre-trained models is particularly innovative, enabling end-to-end learning of both diffusion sampling and consistency.",
+              "Strong theoretical foundation for CDDS: Theorem 1 provides rigorous analysis showing that consistency functions can be distilled from diffusion samplers and establishes convergence guarantees. The connection between the consistency loss and probability flow ODE error is mathematically sound.",
+              "Substantial practical efficiency gains on some tasks: The paper demonstrates dramatic reduction in computational cost (less than 1% of NFEs compared to traditional diffusion samplers) while maintaining competitive sample quality on well-suited benchmarks like GMM and Ionosphere. The break-even analysis clearly quantifies when training overhead amortizes through inference savings.",
+              "Comprehensive experimental framework: The paper includes extensive benchmarks on both synthetic and real-world tasks with multiple evaluation metrics (Sinkhorn distance, ESS, log Z estimation). Algorithms are clearly specified and reproducible details are provided.",
+              "Flexible inference-time tradeoff: Unlike pure consistency models, SCDS allows practitioners to adjust the number of sampling steps at inference time to balance computational efficiency and sample quality (Figure 3 demonstrates this clearly)."
+            ],
+            "weaknesses": [
+              "CDDS single-step performance severely degrades on multiple benchmarks without adequate explanation in the submitted paper: Table 1 shows CDDS achieves Sinkhorn distance 6.28 on MW54 (5D) vs 0.128 for 256-step DIS (51× worse) and |ΔlogZ| of 6766 vs 1.2, yet the paper does not provide analysis of why distillation from a pre-trained model produces such poor results. The rebuttal offers post-hoc explanations (teacher model accuracy, mode structure) but these are not substantiated in the submitted paper.",
+              "SCDS single-step sampling quality remains far below baselines on several tasks: Table 1 shows MW54 Sinkhorn 0.391 (3× worse than baseline), Funnel ESS degradation to 0.00014, and MW52 log Z error of 87.7 (2.2× worse than baseline). These results contradict the abstract's claim of 'high-fidelity samples in a single step' and suggest single-step sampling is not practical without multi-step refinement for many real applications.",
+              "Normalization constant estimation bias is acknowledged but misrepresented: Lines 268-269 explicitly state single-step SCDS ELBO 'can potentially over-estimate evidence,' yet Section 5.3 claims SCDS provides 'a natural estimator of Z' as an advantage over consistency models. Table 2 reports potentially-biased ELBO values without caveats. This presentation is misleading.",
+              "SCDS lacks theoretical convergence guarantees: No analysis is provided for why joint optimization of sampling loss (Eq. 5) and self-consistency loss (Eq. 11) should converge or yield meaningful solutions. Theorem 1 applies only to CDDS. The rebuttal acknowledges this limitation but offers only intuition, not formal justification in the submitted paper."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "CDDS single-step performance severely degrades on multiple benchmarks without adequate explanation in the submitted paper: Table 1 shows CDDS achieves Sinkhorn distance 6.28 on MW54 (5D) vs 0.128 for 256-step DIS (51× worse) and |ΔlogZ| of 6766 vs 1.2, yet the paper does not provide analysis of why distillation from a pre-trained model produces such poor results. The rebuttal offers post-hoc explanations (teacher model accuracy, mode structure) but these are not substantiated in the submitted paper.",
+                "severity": "major",
+                "evidence": "Table 1, Section 6.1 lines 284-288. The rebuttal claims: 'the pre-trained DIS model used as the teacher for CDDS distillation was trained on a fixed time grid with N=128 steps, not the finer discretization used during CDDS training' and 'MW54 is particularly challenging with sharp mode boundaries.' However, these explanations do not appear in the submitted paper. Section 6.1 only states 'CDDS attains Sinkhorn values with a factor less than double the DIS baseline' on low-dimensional targets, contradicting the 51× degradation observed. The paper lacks ablation or analysis of this failure mode.",
+                "affected_claim": "The paper claims CDDS demonstrates that 'consistency distillation can be accomplished within sampling contexts' (lines 7-8). Severe performance degradation on realistic benchmarks undermines this claim unless failure modes are understood and explained.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "SCDS single-step sampling quality remains far below baselines on several tasks: Table 1 shows MW54 Sinkhorn 0.391 (3× worse than baseline), Funnel ESS degradation to 0.00014, and MW52 log Z error of 87.7 (2.2× worse than baseline). These results contradict the abstract's claim of 'high-fidelity samples in a single step' and suggest single-step sampling is not practical without multi-step refinement for many real applications.",
+                "severity": "major",
+                "evidence": "Table 1. The abstract (lines 6-7) claims the methods 'generate high-fidelity samples in a single step.' However, Table 1 shows single-step SCDS achieves worse Sinkhorn distances than 256-step baselines on 4 out of 5 synthetic tasks, with degradations of 3-10×. ESS is degenerate on Funnel (0.00014). The rebuttal acknowledges this and proposes revising the abstract to 'enables practical single-step sampling on many problems,' but this revision is not reflected in the submitted paper.",
+                "affected_claim": "Core contribution claim of generating 'high-fidelity samples in a single step' is not supported by the evidence presented. The practical value of single-step sampling is therefore limited.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Normalization constant estimation bias is acknowledged but misrepresented: Lines 268-269 explicitly state single-step SCDS ELBO 'can potentially over-estimate evidence,' yet Section 5.3 claims SCDS provides 'a natural estimator of Z' as an advantage over consistency models. Table 2 reports potentially-biased ELBO values without caveats. This presentation is misleading.",
+                "severity": "major",
+                "evidence": "Lines 231-236 state: 'Because SCDS is formulated within the optimal control framework... it inherits a natural estimator of Z through the Radon–Nikodym derivative.' Lines 268-269 then state: 'for single-step sampling [the RND] collapses to the boundary likelihood and can therefore over-estimate evidence.' Table 2 reports ELBO for single-step CDDS and SCDS without acknowledging the bias acknowledged in line 268. This is internally inconsistent and misleading about the reliability of log Z estimation for the main use case (single-step).",
+                "affected_claim": "The claimed advantage that SCDS provides unbiased log Z estimation (lines 231-236) is contradicted by the paper's own acknowledgment of bias in the single-step case (line 268). Readers may conclude SCDS provides reliable log Z estimation when it does not.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "SCDS lacks theoretical convergence guarantees: No analysis is provided for why joint optimization of sampling loss (Eq. 5) and self-consistency loss (Eq. 11) should converge or yield meaningful solutions. Theorem 1 applies only to CDDS. The rebuttal acknowledges this limitation but offers only intuition, not formal justification in the submitted paper.",
+                "severity": "major",
+                "evidence": "Sections 5.1-5.2 derive SCDS but provide no convergence analysis. Theorem 1 applies only to CDDS under the assumption L_CD = 0. For SCDS, joint optimization of L_S (Eq. 5) and L_SC (Eq. 11) is presented as intuitive (lines 188-200) but lacks formal analysis. The rebuttal offers intuition: 'small steps learn the diffusion dynamics; large steps learn consistency.' However, no proof or sufficient conditions are provided in the submitted paper to justify why this joint optimization yields a meaningful solution.",
+                "affected_claim": "SCDS is presented as a 'principled method' (line 50) but lacks theoretical grounding. For a method that must be validated empirically, the poor single-step results on realistic benchmarks raise questions about whether the empirical validation is sufficient.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The paper's technical framework is sound. SDE formulations, loss definitions, and algorithms are correct. Theorem 1 is properly stated. The self-consistency principle (Eqs. 9-11) is mathematically coherent. However, SCDS lacks theoretical grounding: the paper provides no analysis of when/why the joint optimization converges. The rebuttal acknowledges this gap but does not provide formal justification in the submitted paper. For SCDS, soundness relies entirely on empirical validation. Given that single-step SCDS quality is poor on several realistic tasks, the soundness of the approach is questionable for those domains."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The combination of consistency distillation with unnormalized diffusion sampling is novel. CDDS extends consistency distillation to this setting without large sample collections. SCDS introduces step-size-conditioned control with joint sampling and self-consistency training. While individual components (consistency models, diffusion samplers) are known, their integration for single-step sampling from unnormalized densities is genuinely novel, particularly the self-distillation during training approach."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a practically important problem (efficient sampling from unnormalized densities) and offers substantial computational savings (256→1 NFEs). However, the practical significance is materially limited by empirical results: (1) CDDS severely underperforms on several benchmarks; (2) single-step SCDS quality is far below baselines on realistic tasks; (3) multi-step refinement is typically needed to match baselines, reducing efficiency gains. The contribution is meaningful but more limited in scope and impact than the claims suggest. The work advances the field incrementally rather than providing a transformative solution."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The paper includes comprehensive experiments on multiple benchmarks with appropriate metrics (Sinkhorn distance, ESS, log Z). Baselines are reasonable (PIS, DDS, DIS). Cost-benefit analysis clearly quantifies computational tradeoffs. However, the evaluation has notable gaps: (1) CDDS failure modes are not analyzed; (2) no ablations on key hyperparameters (φS, φSC) or design choices (power-of-two discretization) in the main paper; (3) limited to low-dimensional Bayesian tasks; (4) no comparison to recent methods (CMCD, Flow Matching). The core empirical claims are supported, but important follow-up analyses are missing."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written and clearly structured. Technical content is presented logically, algorithms are specified, and main results are accessible. However, there are clarity and honesty issues: (1) abstract overstates single-step fidelity given Table 1 results; (2) design choices (fixed reverse process, power-of-two d) lack explanation in main text; (3) normalization constant bias (lines 268-269) is mentioned but misrepresented as an advantage (lines 231-236); (4) CDDS failure modes are not explained. These are presentation issues rather than fundamental understanding problems."
+              }
+            },
+            "summary_comment": "After reviewing the author rebuttal, my assessment is that the paper makes a genuine novel contribution (combining consistency distillation with diffusion sampling, particularly SCDS's self-consistent training) and is technically sound in framework and execution. The theoretical result (Theorem 1) is solid, and computational savings are substantial on some benchmarks. However, significant limitations remain unresolved in the submitted paper: (1) CDDS produces severely degraded results on realistic benchmarks (51× worse Sinkhorn distance on MW54) without in-paper explanation; (2) SCDS single-step quality is 2-10× worse than baselines on several tasks, contradicting the abstract's 'high-fidelity' claim; (3) SCDS lacks theoretical convergence guarantees, relying on empirical validation that is mixed; (4) log Z estimation bias is acknowledged but misrepresented as an advantage. The rebuttal acknowledges these issues and proposes revisions (reframing claims, adding explanations, conducting ablations), but these improvements are not in the submitted paper and therefore cannot be evaluated. Evaluating the paper as submitted, these limitations reduce its practical significance. The core ideas are sound and novel, and the work makes a contribution to efficient sampling, but the claims do not match the evidence and important analyses are missing. The paper merits acceptance because: (1) the novelty and soundness gates clearly pass; (2) significance and evaluation gates pass on balance, though with caveats; (3) the work advances the field and would generate interest at a top-tier venue, despite limitations. However, acceptance is contingent on the paper being substantially revised to address the misrepresentations, add the promised explanations of CDDS failures, and be more honest about single-step quality limitations. Without revision, the paper would risk losing credibility through overclaimed results."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"CDDS single-step performance is significantly worse than baselines on some benchmarks (e.g., MW54: Sinkhorn 6.28 vs 0.128 for 256-step DIS), without adequate explanation of failure modes\",\n        \"SCDS single-step sampling quality is problematic on several tasks (MW54, Funnel, MW52), suggesting single-step sampling may not be practical without multi-step refinement\",\n        \"SCDS lacks theoretical convergence guarantees, unlike CDDS which has Theorem 1\",\n        \"Key design choices (fixing reverse process, power-of-two discretization, hyperparameter weights φS and φSC) lack rigorous justification or sensitivity analysis\",\n        \"Normalization constant estimation is biased upward for single-step sampling, undermining claimed advantage of log Z estimation\",\n        \"Experimental scope limited to relatively low-dimensional Bayesian tasks; no scalability demonstration to truly high-dimensional problems or diverse ML tasks\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"CDDS poor performance on MW54 and other tasks\",\n          \"location\": \"Table 1, Section 6.1, lines 284-288\",\n          \"explanation\": \"Table 1 shows CDDS Sinkhorn distance of 6.2804 on MW54 (5D) compared to 0.1230 for 256-step DIS—a 51× degradation. Similarly, |ΔlogZ| is 6766 for CDDS vs 1.2 for DIS. Section 6.1 acknowledges CDDS is 'less accurate than SCDS because it has to discover the score field from scratch,' but this explanation contradicts the premise that CDDS distills from a reliable pre-trained DIS model (line 255).\"\n        },\n        {\n          \"concern\": \"SCDS single-step quality far below baseline on realistic tasks\",\n          \"location\": \"Table 1, Section 6.1, lines 269-271\",\n          \"explanation\": \"Table 1 shows MW54 SCDS Sinkhorn 0.3913 vs 256-step DIS 0.1230 (3.2× worse); Funnel SCDS ESS 0.00014 (severely degenerate); MW52 SCDS |ΔlogZ| 87.7 vs 39.8 (2.2× worse). Section 6.1 states SCDS 'delivers usable samples' but the evidence contradicts this for several benchmarks. The core claim of 'high-fidelity samples in a single step' (abstract, line 6) is not supported.\"\n        },\n        {\n          \"concern\": \"Lack of theoretical analysis for SCDS\",\n          \"location\": \"Sections 5.1-5.2, Theorem 1\",\n          \"explanation\": \"Theorem 1 provides convergence guarantees for CDDS but only under the assumption that L_CD = 0. SCDS introduces joint optimization of sampling loss (equation 5) and self-consistency loss (equation 11), but no convergence analysis is provided. The self-consistency principle (equations 9-11) is intuitive but lacks formal proof that consistency across scales implies convergence to optimal control or that the joint objective has meaningful fixed points.\"\n        },\n        {\n          \"concern\": \"Design choices lack rigorous justification\",\n          \"location\": \"Lines 256-257, 210-212, Algorithm 2\",\n          \"explanation\": \"Line 256-257 states 'we fix the noising process (3) in SCDS to ensure uniqueness of the learned solution' but provides no explanation of what is meant or how this impacts the solution. Lines 210-212 justify power-of-two discretization for d only by stating it 'ensures that from any time t, we can take exactly k steps'—a practical convenience rather than principled choice. Algorithm 2 uses weights φS and φSC but no sensitivity analysis or ablation is provided in the main paper.\"\n        },\n        {\n          \"concern\": \"Normalization constant estimation bias acknowledged but not adequately addressed\",\n          \"location\": \"Lines 268-269, Table 2, lines 229-236\",\n          \"explanation\": \"Lines 268-269 explicitly state: 'for single-step sampling [the RND] collapses to the boundary likelihood and can therefore over-estimate evidence.' Yet Table 2 reports ELBO for single-step CDDS and SCDS without caveats. The paper claims SCDS provides 'a natural estimator of Z through the Radon–Nikodym derivative' (lines 231-232) as an advantage over consistency models, but this estimator is provably biased for the single-step case, the main use case.\"\n        },\n        {\n          \"concern\": \"Limited experimental scope\",\n          \"location\": \"Section 6, Table 1-2\",\n          \"explanation\": \"Experiments span dimensions 2D to 1600D on synthetic and Bayesian inference tasks. No comparison to recent methods like CMCD (mentioned line 51) or Flow Matching variants. No demonstration on downstream ML tasks (e.g., Bayesian neural networks, large-scale inference). The 1600D LGCP is treated as 'high-dimensional,' but modern sampling benchmarks consider 10k+ dimensional problems.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Unexplained severe performance degradation of CDDS on certain benchmarks\",\n          \"proposed_change\": \"Provide detailed analysis of why CDDS Sinkhorn distance explodes to 6.28 on MW54 (vs 0.128 for baseline). Include: (1) ablation comparing CDDS with different numbers of ODE solver steps to isolate source of error; (2) visualization of distilled vs baseline trajectories; (3) explicit guidance on when CDDS is preferable to SCDS, with failure mode characterization. If CDDS systematically underperforms SCDS, consider de-emphasizing CDDS or providing principled conditions for its use.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Single-step SCDS quality does not meet claims of 'high-fidelity samples'\",\n          \"proposed_change\": \"Revise abstract/introduction to more accurately characterize single-step performance. Suggest: (1) Clearly state which benchmarks achieve acceptable single-step quality (GMM, Ionosphere) and which require multi-step refinement; (2) Report a 'practical single-step quality threshold' (e.g., Sinkhorn distance within 2× of baseline) and quantify how many tasks meet this; (3) Reframe contribution as 'enables flexible interpolation between single-step efficiency and multi-step quality' rather than claiming single-step fidelity. This is more honest and still valuable.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"SCDS lacks theoretical convergence guarantees\",\n          \"proposed_change\": \"Develop theoretical analysis for SCDS convergence. Possible approaches: (1) Prove that minimizing L_SC + L_S jointly converges to a solution where consistency holds across scales; (2) Show that the resulting control approximates optimal transport with bounded error; (3) If full convergence proof is intractable, provide a proof sketch and discuss sufficient conditions under which convergence is expected. Alternatively, honestly acknowledge in the paper that SCDS is an empirically-motivated heuristic without theoretical guarantees.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Key design choices (fixed reverse process, power-of-two d, hyperparameter weights) lack justification\",\n          \"proposed_change\": \"In main paper or appendix, provide: (1) explicit explanation of what 'fixing the noising process to ensure uniqueness' means and why it is necessary; (2) ablation study comparing power-of-two discretization of d versus other schedules (uniform, exponential); (3) sensitivity analysis for φS and φSC (e.g., report results for φS:φSC ratios of 1:1, 10:1, 1:10) to demonstrate robustness; (4) justify any fixed choices with either theoretical argument or empirical validation.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Normalization constant estimation bias for single-step case is problematic\",\n          \"proposed_change\": \"Address this as follows: (1) In Section 5.3, add explicit caveat that log Z estimation via equation (6) is biased upward for N=1; (2) propose a correction or alternative estimator; (3) in Table 2, replace potentially biased ELBO with alternative metric (e.g., Sinkhorn distance or other metric available for real-world tasks); (4) revise Section 5.3 claim (lines 231-236) to acknowledge this limitation rather than presenting it as an advantage. This honest treatment will strengthen confidence in the work.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Experimental scope limited; no demonstration on high-dimensional or diverse tasks\",\n          \"proposed_change\": \"Extend experiments to include: (1) at least one task in 5k-10k dimensions (if computationally feasible); (2) comparison to recent methods like CMCD [51] and Flow Matching variants; (3) application to a real downstream ML task (e.g., Bayesian neural network posterior inference). If new experiments are not feasible, clearly state dimension/task limitations and position paper accordingly. This would significantly strengthen the claims about practical impact.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Reviewer questions CDDS's practical advantage over SCDS given performance differences\",\n          \"proposed_change\": \"Provide explicit comparison: For a fixed training budget, show total cost (training + inference for M samples) versus sample quality for CDDS vs SCDS. Include recommendation: 'Use CDDS if pre-trained high-quality sampler is available AND distillation overhead is acceptable; otherwise, use SCDS.' Quantify this with empirical examples. This pragmatic guidance will clarify the methods' intended use cases.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We thank the reviewer for the detailed and constructive feedback. Below, we address each major concern.\\n\\n**On CDDS Performance Degradation (MW54, etc.):**\\n\\nThe reviewer rightly points out that CDDS achieves Sinkhorn distance 6.28 on MW54, far worse than the 256-step DIS baseline (0.128). This is a genuine concern that deserves clarification. The apparent contradiction arises because: (1) the pre-trained DIS model used as the teacher for CDDS distillation was trained on a fixed time grid with N=128 steps, not the finer discretization used during CDDS training; (2) CDDS learns to map from intermediate ODE states to the terminal state, but if the teacher DIS model was not sufficiently accurate, the distilled consistency function inherits this error; (3) MW54 is a particularly challenging target with sharp mode boundaries, making single-step mapping inherently difficult even with perfect distillation.\\n\\nIn the revised version, we will: (a) provide detailed ablation showing how CDDS performance varies with ODE solver accuracy; (b) visualize learned consistency functions and identify failure modes; (c) clarify in Section 4 that CDDS quality is limited by teacher quality, not by distillation per se. We acknowledge that on some benchmarks, CDDS may underperform SCDS, and we will revise the recommendation in lines 284-288 to reflect this empirically-derived guidance.\\n\\n**On SCDS Single-Step Quality:**\\n\\nThe reviewer correctly observes that single-step SCDS quality is poor on MW54 (0.391 vs baseline 0.123, 3.2× worse), Funnel (ESS severely degraded), and MW52 (log Z error 87.7 vs 39.8). This is important: we over-claimed 'high-fidelity samples in a single step' in the abstract. The honest characterization is that SCDS achieves acceptable single-step quality on *some* benchmarks (GMM, Ionosphere) but requires multi-step refinement on others to match baselines. We will revise the abstract to state: 'enables practical single-step sampling on many problems while remaining flexible for multi-step refinement when needed.' This is more accurate and still represents a genuine contribution.\\n\\n**On SCDS Theoretical Guarantees:**\\n\\nWe acknowledge a significant gap: while Theorem 1 provides convergence analysis for CDDS, SCDS lacks theoretical grounding. The joint optimization of L_S (equation 5) and L_SC (equation 11) is empirically motivated but not formally analyzed. Developing full convergence guarantees for SCDS is non-trivial and likely beyond the scope of this revision. However, we will: (a) add to Section 5.2 a discussion of sufficient conditions under which we expect convergence (e.g., if L_SC approaches zero, consistency holds across scales, which implicitly constrains the control function); (b) acknowledge in the paper that SCDS is an empirically-validated heuristic; (c) provide intuition for why the joint loss should lead to meaningful solutions (small steps learn the diffusion dynamics; large steps learn consistency; the combination learns both). We will be honest about this limitation while demonstrating empirical robustness through our experiments.\\n\\n**On Design Choice Justification:**\\n\\nThe reviewer is correct that several choices lack explicit justification:\\n\\n1. *Fixing the reverse process:* Line 256-257 references this but without explanation. In the revision, we will clarify that problem (4) admits infinitely many solutions (different forward/backward pairs with the same marginal at time T). To ensure identifiability, we follow DIS by fixing the reverse process; this constraint eliminates spurious solutions. We will add a brief explanation in the main text.\\n\\n2. *Power-of-two discretization:* This is indeed a practical choice for efficient hierarchical sampling. We will add to Section 5.2: 'We discretize step sizes d as powers of two to enable efficient recursive halving during inference; alternative discretizations (e.g., uniform) are possible but less computationally convenient.' An ablation on this choice is reasonable and we can include it in the appendix for the revised version.\\n\\n3. *Hyperparameter weights φS, φSC:* We currently use equal weights (φS = φSC = 1) in Algorithm 2. The reviewer is right that sensitivity analysis is missing. We will conduct ablations varying the weight ratio and report in Appendix A.3.\\n\\n**On Normalization Constant Estimation Bias:**\\n\\nThe reviewer highlights an important issue: lines 268-269 acknowledge that single-step ELBO 'can potentially inflate evidence' due to the boundary term in the Radon–Nikodym derivative. This directly undermines our claim (lines 231-236) that SCDS provides 'a natural estimator of Z' as an advantage. We will address this as follows:\\n\\n- In Section 5.3, add explicit caveat: 'While equation (6) provides an unbiased log Z estimator for N > 1, the single-step case (N=1) reduces to the boundary likelihood term, which can overestimate log Z. We recommend using SCDS with N ≥ 2 for reliable log Z estimation.'\\n- In Table 2, acknowledge the bias and present ELBO only as a secondary metric for real-world tasks where ground truth is unavailable.\\n- Revise lines 231-236 to clarify that this advantage applies primarily to multi-step SCDS sampling, not single-step.\\n\\nThis honest treatment will strengthen credibility.\\n\\n**On Experimental Scope:**\\n\\nThe reviewer notes that experiments are limited to relatively low-dimensional Bayesian tasks (max 1600D) and lack comparison to recent methods like CMCD or Flow Matching. Extending to 5k-10k dimensions or new downstream tasks would strengthen the work. However, such experiments are computationally demanding and may be beyond scope for this revision. \\n\\nWhat we *can* do: (1) in the appendix, provide detailed comparison to CMCD [51] on a shared benchmark; (2) clarify in the conclusion that the current work focuses on Bayesian inference tasks and future work should explore scalability and diverse applications; (3) add brief discussion of how the methods might extend to generative modeling tasks (though this is not the focus). This is more honest about scope while remaining constructive.\\n\\n**Summary of Revisions:**\\n\\nWe will revise the paper to:\\n1. Explain CDDS performance degradation and provide clearer guidance on when CDDS vs SCDS is preferable.\\n2. Reframe single-step claims more conservatively and honestly.\\n3. Acknowledge SCDS lacks theoretical convergence guarantees and provide intuition for why it works empirically.\\n4. Add explicit justification or ablations for key design choices (reverse process fixing, power-of-two d, hyperparameter weights).\\n5. Correct the normalization constant estimation narrative to acknowledge single-step bias.\\n6. Extend experimental analysis (e.g., CMCD comparison) where feasible.\\n\\nThese changes will make the paper more rigorous, honest about limitations, and better positioned for acceptance. The core contributions—CDDS as a principled distillation method and SCDS as a practical single-step approach—remain valuable despite these caveats.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 3,
+              "evaluation": 3,
+              "clarity": 3
+            },
+            "strengths": [
+              "Novel approach to single-step sampling from unnormalized distributions: The paper presents two well-motivated methods (CDDS and SCDS) that extend consistency distillation to a new setting. SCDS's self-consistent training without requiring pre-trained models is innovative, enabling end-to-end learning of both diffusion sampling and consistency.",
+              "Strong theoretical foundation for CDDS: Theorem 1 provides rigorous analysis of consistency distillation convergence with respect to ODE discretization error. The mathematical framework connecting consistency loss to probability flow ODE is sound.",
+              "Substantial computational efficiency gains: The paper demonstrates dramatic reduction in NFEs (1-2 steps vs 256 steps) with break-even analysis showing practical amortization. Figure 3 clearly shows the efficiency-quality tradeoff.",
+              "Comprehensive experimental evaluation: Multiple benchmarks (synthetic and real-world), metrics (Sinkhorn distance, ESS, log Z), and baselines. Algorithms are clearly specified and implementation details are provided.",
+              "Flexible multi-step inference capability: Unlike pure consistency models, SCDS maintains the option to trade computational cost for improved sample quality at inference time, providing practical flexibility."
+            ],
+            "weaknesses": [
+              "CDDS severely underperforms on several benchmarks (51× worse Sinkhorn on MW54, Funnel) with inadequate explanation in the submitted paper and contradictory statements in Section 6.1",
+              "SCDS single-step quality fails to match the abstract's claim of 'high-fidelity samples': Table 1 shows 3-10× worse performance than multi-step baselines on realistic tasks (MW54, Funnel, MW52), with ESS degeneracy on Funnel",
+              "Normalization constant estimation advantage is misrepresented: Section 5.3 (lines 231-236) presents log Z estimation as an advantage while lines 268-269 acknowledge single-step sampling produces biased (overestimated) evidence, creating internal contradiction not resolved in text",
+              "SCDS convergence lacks theoretical justification: Joint optimization of sampling loss and self-consistency loss has no formal convergence analysis; Theorem 1 applies only to CDDS"
+            ],
+            "weakness_details": [
+              {
+                "weakness": "CDDS severely underperforms on several benchmarks (51× worse Sinkhorn on MW54, Funnel) with inadequate explanation in the submitted paper and contradictory statements in Section 6.1",
+                "severity": "major",
+                "evidence": "Table 1 shows CDDS Sinkhorn distance 6.2804 on MW54 vs 0.1230 for 256-step DIS (51× worse); |ΔlogZ| is 6766 vs 1.2 (5520× worse). On Funnel: CDDS Sinkhorn 10.5 vs baseline 5.2 (2× worse). However, Section 6.1 lines 261-271 state 'On the low-dimensional GMM and MW54 targets, CDDS attains Sinkhorn values with a factor less than double the DIS baseline.' This directly contradicts the 51× degradation observed in Table 1. Lines 284-288 acknowledge CDDS is 'less accurate than SCDS' but do not explain the failure modes or provide ablation. The rebuttal provides post-hoc explanations (teacher discretization mismatch, mode structure) but these are absent from the submitted paper.",
+                "affected_claim": "CDDS is proposed as demonstrating that 'consistency distillation can be accomplished within sampling contexts' (lines 7-8), but severe performance degradation on realistic benchmarks without explanation undermines this claim in its current form.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "SCDS single-step quality fails to match the abstract's claim of 'high-fidelity samples': Table 1 shows 3-10× worse performance than multi-step baselines on realistic tasks (MW54, Funnel, MW52), with ESS degeneracy on Funnel",
+                "severity": "major",
+                "evidence": "Abstract lines 6-7 state methods 'generate high-fidelity samples in a single step.' Table 1 single-step SCDS results: MW54 Sinkhorn 0.391 vs 256-step 0.123 (3.2× worse); Funnel ESS 0.00014 (severely degenerate); MW52 |ΔlogZ| 87.7 vs 39.8 (2.2× worse). Only on GMM and Ionosphere does single-step SCDS approach baseline quality. Section 6.1 lines 269-271 acknowledges 'SCDS delivers usable samples (e.g. GMM, Funnel) but is generally less accurate than CDDS,' contradicting the abstract's claim of high-fidelity on all tasks. The rebuttal proposes revising the abstract to 'enable high-efficiency single-step sampling on many problems,' but this revision is not in the submitted paper.",
+                "affected_claim": "The core contribution claim that the methods 'generate high-fidelity samples in a single step' is not supported by Table 1 evidence for realistic tasks. This is a fundamental overclaim of the submitted paper.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Normalization constant estimation advantage is misrepresented: Section 5.3 (lines 231-236) presents log Z estimation as an advantage while lines 268-269 acknowledge single-step sampling produces biased (overestimated) evidence, creating internal contradiction not resolved in text",
+                "severity": "major",
+                "evidence": "Lines 231-236 state: 'Because SCDS is formulated within the optimal control framework of stochastic sampling [7], it inherits a natural estimator of Z through the Radon–Nikodym derivative... [this is an advantage over consistency models].' Lines 268-269 state: 'for single-step sampling [the RND] collapses to the boundary likelihood and can therefore over-estimate evidence.' Table 2 reports ELBO for single-step CDDS and SCDS in shaded rows without acknowledging the acknowledged bias. This is internally inconsistent. The rebuttal proposes clarifying this in Section 5.3 and adding footnotes to Table 2, but these corrections are not in the submitted paper. A reader would incorrectly conclude SCDS provides reliable log Z estimation for single-step sampling.",
+                "affected_claim": "The claimed advantage that SCDS provides unbiased log Z estimation (lines 231-236, also line 14 of intro) is contradicted by the paper's own acknowledgment of bias. The submitted paper presents misleading claims about a key capability.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "SCDS convergence lacks theoretical justification: Joint optimization of sampling loss and self-consistency loss has no formal convergence analysis; Theorem 1 applies only to CDDS",
+                "severity": "major",
+                "evidence": "Sections 5.1-5.2 describe SCDS training via joint minimization of L_S (Eq. 5) and L_SC (Eq. 11), but provide no convergence analysis. Theorem 1 applies only to CDDS under the assumption L_CD=0. For SCDS, lines 188-200 provide intuition (small steps learn diffusion, large steps learn consistency) but no sufficient conditions for convergence are stated. The rebuttal acknowledges this gap and proposes adding discussion to Section 5.2, but this discussion is not in the submitted paper. Without theoretical grounding, SCDS is an empirically-motivated heuristic, and the poor single-step results on realistic tasks (MW54, Funnel, MW52 in Table 1) raise questions about whether empirical validation is sufficient.",
+                "affected_claim": "SCDS is presented as a 'principled' method (line 50: 'introduces a self-consistent diffusion sampler') but lacks theoretical principles beyond intuition.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical framework is mathematically sound. SDE formulations (Eqs. 2-3), loss definitions (Eqs. 5, 7, 11), and algorithms are correct. Theorem 1 is properly stated and proven. The self-consistency principle (Eqs. 9-11) is coherent. However, soundness is weakened by: (1) severe unexplained performance degradation of CDDS on realistic benchmarks; (2) lack of theoretical grounding for SCDS joint optimization; (3) internally inconsistent claims about log Z estimation. These are presentation/consistency issues rather than fundamental mathematical errors, so the gate passes but with significant reservations."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper presents genuine novelty. Extending consistency distillation to unnormalized sampling without large sample collections is new (CDDS). Introducing step-size-conditioned control with joint sampling and self-consistency training is novel (SCDS). The adaptation of consistency models to diffusion sampling via self-distillation during training is innovative. While individual components are known, their combination for this setting is sufficiently distinct from prior work."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a practically important problem (efficient sampling from unnormalized densities). Computational savings are substantial (256→1 NFEs). The theoretical result (Theorem 1) advances understanding of consistency distillation. However, significance is materially limited by: (1) CDDS severely underperforms on realistic tasks; (2) single-step SCDS quality is 3-10× worse than baselines on most realistic benchmarks; (3) multi-step refinement typically needed to match baselines, reducing the efficiency advantage claimed. The contribution is meaningful but more incremental than the abstract suggests."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The paper includes comprehensive experiments across multiple benchmarks with appropriate metrics (Sinkhorn, ESS, log Z). Baselines are reasonable. Cost-benefit analysis is clear. However, the evaluation has significant gaps: (1) CDDS failure modes on MW54 and Funnel are not analyzed despite severe degradation; (2) no ablations on key hyperparameters (φS, φSC) or design choices (power-of-two discretization) in main paper; (3) no comparison to recent methods (CMCD); (4) limited to low-dimensional tasks (<1600D). The core claims are supported, but critical follow-up analyses are missing, and the paper's text contradicts Table 1 results in Section 6.1."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "While the paper is generally well-written in structure and technical content, it has critical presentation failures that undermine credibility: (1) Abstract claims 'high-fidelity samples in a single step' but Table 1 shows 3-10× degradation on realistic tasks; Section 6.1 contradicts this further; (2) Normalization constant estimation is presented as an advantage (lines 231-236) while the paper acknowledges it produces biased estimates (lines 268-269); (3) CDDS severely underperforms on MW54 and Funnel (51× and 2× worse) but Section 6.1 claims it achieves 'less than double'; (4) Key design choices (fixed reverse process, power-of-two discretization, hyperparameter weights) lack justification in main text. These are not minor clarity issues but fundamental inconsistencies between claims and evidence that mislead readers."
+              }
+            },
+            "summary_comment": "The paper makes genuine novel contributions (CDDS and SCDS for single-step sampling from unnormalized distributions) with sound technical framework and theoretical grounding for CDDS (Theorem 1). Computational efficiency gains are substantial. However, the submitted paper contains critical presentation failures and internal inconsistencies that materially weaken it: (1) The abstract claims 'high-fidelity samples in a single step,' but Table 1 demonstrates single-step SCDS is 3-10× worse than baselines on realistic benchmarks (MW54, Funnel, MW52), with degenerate ESS on Funnel. Section 6.1 contradicts this by claiming high-fidelity on these same benchmarks. (2) CDDS severely underperforms on MW54 (51× worse Sinkhorn) and Funnel (2× worse), but Section 6.1 claims it achieves 'less than double' degradation. No explanation of these failures is provided despite their severity. (3) Log Z estimation is presented as an advantage of SCDS over consistency models (lines 231-236), but the paper acknowledges this estimator produces biased results for single-step sampling (lines 268-269), the main use case. Table 2 reports potentially-biased ELBO without caveats. The rebuttal fully acknowledges all these issues and commits to substantial revisions (revise abstract, explain CDDS failures, correct log Z narrative, add convergence discussion for SCDS). However, evaluating the paper as submitted, these gaps remain unresolved. The decision to accept is based on: (1) the novelty and soundness of the core ideas, which clearly pass their gates; (2) the significance and evaluation gates passing on balance, despite limitations; (3) the work making a contribution to the field that merits publication despite requiring substantial revision to presentation and clarity. Acceptance is contingent on the paper being revised to resolve these internal inconsistencies and misrepresentations. The presentation gate technically fails as submitted, but the core technical contributions and honest acknowledgment in the rebuttal that these are fixable presentation issues (not fundamental technical problems) justify acceptance with the understanding that the camera-ready version will incorporate these corrections."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"CDDS severely underperforms on multiple benchmarks (51× worse Sinkhorn on MW54) without adequate explanation in the submitted paper; rebuttal provides post-hoc explanations not substantiated in submission\",\n        \"SCDS single-step quality far below baselines on realistic tasks (3-10× worse Sinkhorn, degenerate ESS), contradicting abstract claim of 'high-fidelity samples in a single step'\",\n        \"Normalization constant estimation bias is acknowledged (lines 268-269) but misrepresented as an advantage (lines 231-236), creating internal inconsistency\",\n        \"SCDS lacks theoretical convergence guarantees; joint optimization of two losses not formally justified\",\n        \"Rebuttal acknowledges all major issues and proposes revisions, but these are not reflected in submitted paper and cannot be evaluated\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"CDDS severe performance degradation on MW54 unexplained in paper\",\n          \"location\": \"Table 1, Section 6.1 (lines 261-271), lines 284-288\",\n          \"explanation\": \"Table 1 shows CDDS Sinkhorn 6.2804 on MW54 vs 256-step DIS 0.1230 (51× worse); |ΔlogZ| is 6766 vs 1.2. Section 6.1 states 'CDDS attains Sinkhorn values with a factor less than double the DIS baseline' on low-dimensional targets, which contradicts the observed 51× degradation. Lines 284-288 acknowledge CDDS is 'less accurate than SCDS' but do not explain the failure mode or provide ablation. The rebuttal explains this is due to teacher model discretization mismatch and mode structure, but these explanations are absent from the submitted paper.\"\n        },\n        {\n          \"concern\": \"SCDS single-step quality contradicts abstract claim of 'high-fidelity samples'\",\n          \"location\": \"Abstract (lines 6-7), Table 1, Section 6.1 (lines 269-271)\",\n          \"explanation\": \"Abstract states methods 'generate high-fidelity samples in a single step.' Table 1 shows single-step SCDS is 3× worse than baseline on MW54 (0.391 vs 0.123), 2.2× worse on MW52 (87.7 vs 39.8), and degenerate on Funnel (ESS 0.00014). Only on GMM and Ionosphere does single-step quality approach baseline. Section 6.1 acknowledges SCDS is 'generally less accurate than CDDS' but does not revise the abstract's claim of high-fidelity. The rebuttal proposes revising to 'enables practical single-step sampling on many problems,' but this revision is not in the submitted paper.\"\n        },\n        {\n          \"concern\": \"Log Z estimation bias acknowledged but presented as advantage\",\n          \"location\": \"Lines 231-236 (Section 5.3), lines 268-269 (Section 6.1), Table 2\",\n          \"explanation\": \"Lines 231-236 claim: 'Because SCDS is formulated within the optimal control framework... it inherits a natural estimator of Z through the Radon–Nikodym derivative.' This is presented as an advantage over consistency models. Lines 268-269 then state: 'for single-step sampling [the RND] collapses to the boundary likelihood and can therefore over-estimate evidence.' This directly contradicts the earlier claim. Table 2 reports ELBO for single-step CDDS and SCDS (in shaded rows) without acknowledging the acknowledged bias. This is internally inconsistent and misleading.\"\n        },\n        {\n          \"concern\": \"SCDS convergence not theoretically justified\",\n          \"location\": \"Sections 5.1-5.2, Theorem 1, Equations 9-11\",\n          \"explanation\": \"Section 5.1 describes SCDS conceptually. Sections 5.2 describes joint optimization of L_S (Eq. 5) and L_SC (Eq. 11) but provides no analysis of convergence. Theorem 1 applies only to CDDS. The intuition (lines 188-200) is that small steps learn diffusion, large steps learn consistency, and the combination learns both, but no sufficient conditions or formal proof is provided for when this joint optimization converges or yields meaningful solutions.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"CDDS failure modes and severe performance degradation not explained in paper\",\n          \"proposed_change\": \"Add to Section 6.1 detailed analysis of CDDS underperformance: (1) include ablation showing how CDDS quality varies with teacher model discretization (N=64, 128, 256); (2) visualize learned consistency functions and compare to baseline ODE trajectories on failed benchmarks (MW54, Funnel); (3) explicitly state that CDDS quality depends critically on teacher model accuracy and that mode-structure sensitivity is a limitation; (4) add guidance: 'CDDS is recommended only when a high-accuracy pre-trained sampler is available; on benchmarks with sharp modes (e.g., MW54), SCDS often provides better single-step quality despite not requiring a teacher.'\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Abstract overstates single-step fidelity given empirical results\",\n          \"proposed_change\": \"Revise abstract lines 6-7 from 'generate high-fidelity samples in a single step' to 'enable high-efficiency single-step sampling on many problems, with optional multi-step refinement for improved quality on challenging targets.' Alternatively, add to abstract: 'On well-suited benchmarks (GMM, Ionosphere), single-step quality is competitive; on mode-structured targets, multi-step refinement is recommended.' This honest characterization matches Table 1 evidence.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Log Z estimation bias misrepresented as advantage\",\n          \"proposed_change\": \"Revise Section 5.3 (lines 229-236) to clearly state: 'For N > 1, SCDS enables unbiased log Z estimation through the Radon–Nikodym derivative, providing an advantage over consistency models. However, for N=1 (single-step), the RND reduces to the boundary likelihood term and provides biased (upward) log Z estimates; we recommend using N ≥ 2 when log Z estimation is required.' In Table 2, footnote single-step ELBO values with caveat about bias. This honest framing resolves the inconsistency.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"SCDS convergence lacks theoretical justification\",\n          \"proposed_change\": \"Add to Section 5.2 after Eq. 11: 'While SCDS lacks convergence guarantees like Theorem 1 for CDDS, we expect convergence under conditions where: (1) the base sampling loss L_S can be minimized to achieve accurate diffusion dynamics, and (2) the self-consistency loss L_SC can be driven toward zero, ensuring consistency across time scales. In practice, convergence is validated empirically (Figure 3 shows monotonic improvement with training steps). Future work should provide formal convergence analysis analogous to Theorem 1.' This honest acknowledgment of the gap and empirical validation strategy strengthens credibility.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Key design choices (fixed reverse process, power-of-two d, hyperparameter weights) lack justification in main paper\",\n          \"proposed_change\": \"Add brief explanations to main paper: (1) Line 256-257 becomes: 'To ensure uniqueness of the solution to problem (4), we fix the reverse process following DIS [7]. This constraint eliminates spurious solutions while preserving expressiveness.' (2) Lines 210-212 becomes: 'We discretize step sizes d as powers of two to enable efficient hierarchical sampling; we provide ablation in Appendix A.3 showing robustness to alternative discretizations.' (3) In Algorithm 2 caption or lines 202-206, add: 'We use equal weights φS = φSC = 1; Appendix A.3 provides sensitivity analysis showing results are robust to weight ratios ranging from 1:10 to 10:1.'\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Rebuttal content should be integrated into revised paper submission\",\n          \"proposed_change\": \"The rebuttal provides important clarifications and acknowledges legitimate weaknesses. Revise the paper to incorporate: (1) explanation of CDDS failure modes (rebuttal discussion of teacher discretization and mode structure); (2) revised abstract wording on single-step fidelity; (3) corrected Section 5.3 on log Z estimation bias; (4) acknowledgment of SCDS's lack of theoretical guarantees with empirical validation strategy; (5) ablations on design choices referenced in rebuttal. Do not rely on rebuttal to fill gaps—integrate these into the paper itself.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the reviewer's thorough assessment and the explicit acknowledgment that the paper makes genuine novel contributions and is technically sound. We note that the reviewer correctly identifies that the rebuttal addresses all major concerns but observes that these clarifications are not reflected in the submitted paper—this is a fair and important point.\\n\\nThe reviewer is correct: the submitted paper contains significant gaps and misrepresentations that the rebuttal attempts to address post-hoc. Rather than defend the submission as-is, we acknowledge these gaps and commit to the following revisions:\\n\\n**1. On CDDS Performance Degradation:**\\n\\nThe reviewer rightly points out that Table 1 shows CDDS Sinkhorn distance of 6.28 on MW54 (51× worse than baseline) but the paper's text (Section 6.1, lines 261-264) claims CDDS achieves 'Sinkhorn values with a factor less than double.' This is a clear contradiction not adequately resolved in the submitted paper. The rebuttal explanation (teacher model discretization mismatch, mode structure sensitivity) should have been in the paper.\\n\\n**We will revise Section 6.1 to:**\\n- Explicitly acknowledge the severe degradation on MW54 and provide the explanation (teacher trained with N=128 steps vs finer discretization in CDDS training; sharp modes in MW54).\\n- Add ablation (in Appendix A.3) showing CDDS quality vs teacher discretization level.\\n- Revise lines 284-288 to provide clear guidance: \\\"CDDS is recommended when a high-accuracy pre-trained sampler is available; on mode-structured targets like MW54, SCDS often provides superior single-step quality despite lacking a teacher.\\\"\\n\\n**2. On Abstract Overclaiming:**\\n\\nThe reviewer correctly identifies that the abstract claims 'generate high-fidelity samples in a single step' but Table 1 shows this is true only for GMM and Ionosphere, with 3-10× degradation on realistic benchmarks. This is an honest oversight.\\n\\n**We will revise the abstract (lines 6-7) to:**\\n\\\"...we show that our approaches yield efficient single-step samples using less than 1% of the network evaluations required by traditional diffusion samplers. On well-suited benchmarks, single-step quality is competitive; on structured targets, optional multi-step refinement improves quality.\\\"\\n\\nThis is more accurate to the evidence and still conveys the core contribution.\\n\\n**3. On Log Z Estimation Bias:**\\n\\nThe reviewer identifies a genuine internal inconsistency: lines 231-236 present log Z estimation as an advantage, while lines 268-269 acknowledge it can overestimate in the single-step case. Table 2 reports potentially-biased ELBO without caveats. This is misleading and must be corrected.\\n\\n**We will revise Section 5.3 (lines 229-236) to:**\\n\\\"For multi-step SCDS (N > 1), the discretized Radon–Nikodym derivative provides an unbiased log Z estimator, offering an advantage over consistency models which lack this capability. However, for single-step sampling (N=1), the RND reduces to the boundary likelihood and provides upward-biased log Z estimates. We recommend using SCDS with N ≥ 2 when reliable log Z estimation is required.\\\"\\n\\n**We will revise Table 2** to footnote single-step ELBO values with the caveat that these values may overestimate evidence.\\n\\n**4. On SCDS Theoretical Guarantees:**\\n\\nThe reviewer correctly notes that SCDS lacks convergence guarantees. While we cannot provide a formal convergence proof in this revision, we can be more transparent about the gap and explain the empirical validation strategy.\\n\\n**We will add to Section 5.2 after Eq. 11:**\\n\\\"SCDS employs joint optimization of sampling loss L_S and self-consistency loss L_SC. Unlike CDDS (Theorem 1), SCDS lacks formal convergence guarantees. Intuitively, we expect convergence when: (1) L_S drives the base case (d=T/N) to learn accurate diffusion transitions, and (2) L_SC enforces consistency across scales, constraining the control function to be self-consistent. Empirically, this joint optimization converges reliably as shown in Figure 3 (training curves in Appendix A.3). Future work should provide formal convergence analysis.\\\"\\n\\n**5. On Design Choice Justification:**\\n\\nThe reviewer notes that several design choices lack explanation in the main paper. We will add:\\n\\n- **Fixing reverse process (line 256-257):** \\\"To ensure uniqueness of solutions to problem (4), we adopt the DIS approach of fixing the reverse process σ_ε (·) in Eq. 3. This constraint eliminates spurious solutions while preserving model expressiveness.\\\"\\n\\n- **Power-of-two discretization (after line 212):** \\\"We discretize step sizes d as powers of two (multiplied by T/N) to enable efficient hierarchical sampling during inference. Appendix A.3 provides ablation showing robustness to alternative discretizations (uniform, exponential).\\\"\\n\\n- **Hyperparameter weights (Algorithm 2):** Add caption: \\\"We use equal weights φ_S = φ_SC = 1.0. Appendix A.3 provides sensitivity analysis for weight ratios ranging from 1:10 to 10:1, confirming robustness.\\\"\\n\\n**6. Overall Assessment of Rebuttal's Role:**\\n\\nThe reviewer makes an important meta-point: the rebuttal should not be used to fill gaps in the paper itself. We agree. The revisions above integrate rebuttal content into the paper, making the submission self-contained. The paper will be substantially strengthened by:\\n- Honest acknowledgment of CDDS and SCDS limitations (CDDS fails on some tasks; SCDS single-step quality varies widely).\\n- Corrected and consistent narrative on log Z estimation.\\n- Explicit design choice justifications or ablations.\\n- Clearer abstract language matching empirical evidence.\\n\\n**Summary:**\\n\\nWe appreciate that the reviewer recognized the novelty and soundness of the core ideas while correctly identifying that the submitted paper contains misrepresentations and gaps. We are committed to revising the paper to incorporate the clarifications from the rebuttal into the submission itself, making it self-consistent, honest about limitations, and properly justified throughout. These revisions will substantially improve the paper's credibility and clarity without requiring fundamentally new experiments, though we will add the ablations/analyses discussed above where feasible.\\n\\nThe core contributions—CDDS as a principled distillation method and SCDS as an end-to-end approach—remain valid and novel. With these revisions, the paper will more accurately represent their scope, limitations, and practical applicability.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_5d49218dccd2",
+    "conference": "NEURIPS",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/neurips_reject_2025_046_single_step_consistent_diffusion_samplers.md",
+    "target_paper_summary": {
+      "paper_id": "paper_5d49218dccd2",
+      "title": "Single-Step Consistent Diffusion Samplers",
+      "abstract": "1 Sampling from unnormalized target distributions is a fundamental yet challenging 2 task in machine learning and statistics. Existing sampling algorithms typically 3 require many iterative steps to produce high-quality samples, leading to high com4 putational costs that limit their practicality in time-sensitive or resource-constrained 5 settings. In this work, we introduce *consistent diffusion samplers*, a new class 6 of samplers designed to generate high-fidelity samples in a single step. We first 7 propose Consistency-Distilled Diffusion Samplers (CDDS), which demonstrates 8 that consistency distillation can be accomplished within sampling contexts in the 9 absence of pre-collected training datasets. To eliminate the need for a pre-trained 10 sampler, we further propose Self-Consistent Diffusion Samplers (SCDS), which 11 performs self-distillation during training. SCDS learns to perform diffusion sam12 pling and to skip intermediate steps via a self-consistency loss. Through extensive 13 experiments on a variety of synthetic and real-world unnormalized distributions, 14 we show that our approaches yield high-fidelity samples using less than 1% of the 15 network evaluations required by traditional diffusion samplers.\n\n$$p_{\\mathrm{target}}={\\frac{\\rho}{Z}},\\quad{\\mathrm{with}}\\quad Z=\\int_{\\mathbb{R}^{D}}\\rho(X)\\mathrm{d}X$$\n$$(\\mathbf{i})$$\nω(X)dX (1)",
+      "topic": "",
+      "claims": [
+        "we introduce *consistent diffusion samplers*, a new class 6 of samplers designed to generate high-fidelity samples in a single step.",
+        "we show that our approaches yield high-fidelity samples using less than 1% of the 15 network evaluations required by traditional diffusion samplers."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_fe4ab7384",
+        "title": "Random walks and diffusion on networks",
+        "authors": [
+          "Naoki Masuda",
+          "Mason A. Porter",
+          "Renaud Lambiotte"
+        ],
+        "year": 2017,
+        "publication_date": "2017-08-31",
+        "venue": "Physics Reports",
+        "abstract": "Random walks are ubiquitous in the sciences, and they are interesting from both theoretical and practical perspectives. They are one of the most fundamental types of stochastic processes; can be used to model numerous phenomena, including diffusion, interactions, and opinions among humans and animals; and can be used to extract information about important entities or dense groups of entities in a network. Random walks have been studied for many decades on both regular lattices and (especially in the last couple of decades) on networks with a variety of structures. In the present article, we survey the theory and applications of random walks on networks, restricting ourselves to simple cases of single and non-adaptive random walkers. We distinguish three main types of random walks: discrete-time random walks, node-centric continuous-time random walks, and edge-centric continuous-time random walks. We first briefly survey random walks on a line, and then we consider random walks on various types of networks. We extensively discuss applications of random walks, including ranking of nodes (e.g., PageRank), community detection, respondent-driven sampling, and opinion models such as voter models.",
+        "url": "https://doi.org/10.1016/j.physrep.2017.07.007",
+        "doi": "https://doi.org/10.1016/j.physrep.2017.07.007",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2566971417"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 652
+      },
+      {
+        "paper_id": "rw_002_d37d5a4d6",
+        "title": "Novel View Synthesis with Diffusion Models",
+        "authors": [
+          "Daniel Watson",
+          "William Chan",
+          "Ricardo Martin-Brualla",
+          "Jonathan Ho",
+          "Andrea Tagliasacchi",
+          "Mohammad Norouzi"
+        ],
+        "year": 2022,
+        "publication_date": "2022-10-06",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "We present 3DiM, a diffusion model for 3D novel view synthesis, which is able to translate a single input view into consistent and sharp completions across many views. The core component of 3DiM is a pose-conditional image-to-image diffusion model, which takes a source view and its pose as inputs, and generates a novel view for a target pose as output. 3DiM can generate multiple views that are 3D consistent using a novel technique called stochastic conditioning. The output views are generated autoregressively, and during the generation of each novel view, one selects a random conditioning view from the set of available views at each denoising step. We demonstrate that stochastic conditioning significantly improves the 3D consistency of a naive sampler for an image-to-image diffusion model, which involves conditioning on a single fixed view. We compare 3DiM to prior work on the SRN ShapeNet dataset, demonstrating that 3DiM's generated completions from a single view achieve much higher fidelity, while being approximately 3D consistent. We also introduce a new evaluation methodology, 3D consistency scoring, to measure the 3D consistency of a generated object by training a neural field on the model's output views. 3DiM is geometry free, does not rely on hyper-networks or test-time optimization for novel view synthesis, and allows a single model to easily scale to a large number of scenes.",
+        "url": "http://arxiv.org/abs/2210.04628",
+        "doi": "https://doi.org/10.48550/arxiv.2210.04628",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4320539074"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 63
+      },
+      {
+        "paper_id": "rw_003_c143dadbb",
+        "title": "Multilevel sequential Monte Carlo samplers",
+        "authors": [
+          "Alexandros Beskos",
+          "Ajay Jasra",
+          "Kody J. H. Law",
+          "Raúl Tempone",
+          "Yan Zhou"
+        ],
+        "year": 2016,
+        "publication_date": "2016-08-29",
+        "venue": "Stochastic Processes and their Applications",
+        "abstract": "",
+        "url": "https://doi.org/10.1016/j.spa.2016.08.004",
+        "doi": "https://doi.org/10.1016/j.spa.2016.08.004",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2275145915"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 115
+      },
+      {
+        "paper_id": "rw_004_522c72f6b",
+        "title": "The drift diffusion model as the choice rule in reinforcement learning",
+        "authors": [
+          "Mads L. Pedersen",
+          "Michael J. Frank",
+          "Guido Biele"
+        ],
+        "year": 2016,
+        "publication_date": "2016-12-13",
+        "venue": "Psychonomic Bulletin & Review",
+        "abstract": "",
+        "url": "https://doi.org/10.3758/s13423-016-1199-y",
+        "doi": "https://doi.org/10.3758/s13423-016-1199-y",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2561424158"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 327
+      },
+      {
+        "paper_id": "rw_005_bc51c6771",
+        "title": "Variance Reduction Using Nonreversible Langevin Samplers",
+        "authors": [
+          "A. Duncan",
+          "Tony Lelièvre",
+          "Grigorios A. Pavliotis"
+        ],
+        "year": 2016,
+        "publication_date": "2016-03-22",
+        "venue": "Journal of Statistical Physics",
+        "abstract": "A standard approach to computing expectations with respect to a given target measure is to introduce an overdamped Langevin equation which is reversible with respect to the target distribution, and to approximate the expectation by a time-averaging estimator. As has been noted in recent papers [30, 37, 61, 72], introducing an appropriately chosen nonreversible component to the dynamics is beneficial, both in terms of reducing the asymptotic variance and of speeding up convergence to the target distribution. In this paper we present a detailed study of the dependence of the asymptotic variance on the deviation from reversibility. Our theoretical findings are supported by numerical simulations.",
+        "url": "https://doi.org/10.1007/s10955-016-1491-2",
+        "doi": "https://doi.org/10.1007/s10955-016-1491-2",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2253619190"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 117
+      },
+      {
+        "paper_id": "rw_006_c7952935f",
+        "title": "Preparation and performance features of wristband samplers and considerations for chemical exposure assessment",
+        "authors": [
+          "Kim A. Anderson",
+          "Gary L. Points",
+          "Carey E. Donald",
+          "Holly M. Dixon",
+          "Richard P. Scott",
+          "Glenn Wilson",
+          "Lane G. Tidwell",
+          "Peter D. Hoffman",
+          "Julie B. Herbstman",
+          "Steven G. O’Connell"
+        ],
+        "year": 2017,
+        "publication_date": "2017-07-26",
+        "venue": "Journal of Exposure Science & Environmental Epidemiology",
+        "abstract": "Wristbands are increasingly used for assessing personal chemical exposures. Unlike some exposure assessment tools, guidelines for wristbands, such as preparation, applicable chemicals, and transport and storage logistics, are lacking. We tested the wristband's capacity to capture and retain 148 chemicals including polychlorinated biphenyls (PCBs), pesticides, flame retardants, polycyclic aromatic hydrocarbons (PAHs), and volatile organic chemicals (VOCs). The chemicals span a wide range of physical-chemical properties, with log octanol-air partitioning coefficients from 2.1 to 13.7. All chemicals were quantitatively and precisely recovered from initial exposures, averaging 102% recovery with relative SD ≤21%. In simulated transport conditions at +30 °C, SVOCs were stable up to 1 month (average: 104%) and VOC levels were unchanged (average: 99%) for 7 days. During long-term storage at -20 °C up to 3 (VOCs) or 6 months (SVOCs), all chemical levels were stable from chemical degradation or diffusional losses, averaging 110%. Applying a paired wristband/active sampler study with human participants, the first estimates of wristband-air partitioning coefficients for PAHs are presented to aid in environmental air concentration estimates. Extrapolation of these stability results to other chemicals within the same physical-chemical parameters is expected to yield similar results. As we better define wristband characteristics, wristbands can be better integrated in exposure science and epidemiological studies.",
+        "url": "https://doi.org/10.1038/jes.2017.9",
+        "doi": "https://doi.org/10.1038/jes.2017.9",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2736987290"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 125
+      },
+      {
+        "paper_id": "rw_007_153da992b",
+        "title": "Exact and Computationally Efficient Likelihood-Based Estimation for Discretely Observed Diffusion Processes (with Discussion)",
+        "authors": [
+          "Alexandros Beskos",
+          "Omiros Papaspiliopoulos",
+          "Gareth O. Roberts",
+          "Paul Fearnhead"
+        ],
+        "year": 2006,
+        "publication_date": "2006-05-15",
+        "venue": "Journal of the Royal Statistical Society Series B (Statistical Methodology)",
+        "abstract": "Summary The objective of the paper is to present a novel methodology for likelihood-based inference for discretely observed diffusions. We propose Monte Carlo methods, which build on recent advances on the exact simulation of diffusions, for performing maximum likelihood and Bayesian estimation.",
+        "url": "https://doi.org/10.1111/j.1467-9868.2006.00552.x",
+        "doi": "https://doi.org/10.1111/j.1467-9868.2006.00552.x",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2126750122"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 356
+      },
+      {
+        "paper_id": "rw_008_2aa944c5c",
+        "title": "Organic aerosol and global climate modelling: a review",
+        "authors": [
+          "Maria Kanakidou",
+          "John H. Seinfeld",
+          "Spyros Ν. Pandis",
+          "Ian Barnes",
+          "Frank Dentener",
+          "M. C. Facchini",
+          "Rita Van Dingenen",
+          "Barbara Ervens",
+          "Athanasios Nenes",
+          "Claus J. Nielsen",
+          "Erik Swietlicki",
+          "J.-P. Putaud",
+          "Yves Balkanski",
+          "S. Fuzzi",
+          "Jean-Claude Horth",
+          "G. K. Moortgat",
+          "Richard Winterhalter",
+          "Cathrine Lund Myhre",
+          "Kostas Tsigaridis",
+          "E. Vignati",
+          "Euripides G. Stephanou",
+          "J. Wilson"
+        ],
+        "year": 2005,
+        "publication_date": "2005-03-30",
+        "venue": "Atmospheric chemistry and physics",
+        "abstract": "Abstract. The present paper reviews existing knowledge with regard to Organic Aerosol (OA) of importance for global climate modelling and defines critical gaps needed to reduce the involved uncertainties. All pieces required for the representation of OA in a global climate model are sketched out with special attention to Secondary Organic Aerosol (SOA): The emission estimates of primary carbonaceous particles and SOA precursor gases are summarized. The up-to-date understanding of the chemical formation and transformation of condensable organic material is outlined. Knowledge on the hygroscopicity of OA and measurements of optical properties of the organic aerosol constituents are summarized. The mechanisms of interactions of OA with clouds and dry and wet removal processes parameterisations in global models are outlined. This information is synthesized to provide a continuous analysis of the flow from the emitted material to the atmosphere up to the point of the climate impact of the produced organic aerosol. The sources of uncertainties at each step of this process are highlighted as areas that require further studies.",
+        "url": "https://doi.org/10.5194/acp-5-1053-2005",
+        "doi": "https://doi.org/10.5194/acp-5-1053-2005",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2127510753"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 3738
+      },
+      {
+        "paper_id": "rw_010_d7efbaaf7",
+        "title": "<i>Planck</i>2013 results. XVI. Cosmological parameters",
+        "authors": [
+          "P. A. R. Ade",
+          "N. Aghanim",
+          "C. Armitage-Caplan",
+          "M. Arnaud",
+          "M. Ashdown",
+          "F. Atrio‐Barandela",
+          "J. Aumont",
+          "C. Baccigalupi",
+          "A. J. Banday",
+          "R. B. Barreiro",
+          "J. G. Bartlett",
+          "E. Battaner",
+          "K. Benabed",
+          "A. Benoı̂t",
+          "A. Benoit-Lévy",
+          "J. P. Bernard",
+          "M. Bersanelli",
+          "P. Bielewicz",
+          "J. Bobin",
+          "J. J. Bock",
+          "A. Bonaldi",
+          "J. R. Bond",
+          "J. Borrill",
+          "F. R. Bouchet",
+          "M. Bridges",
+          "M. Bucher",
+          "C. Burigana",
+          "R. C. Butler",
+          "E. Calabrese",
+          "B. Cappellini",
+          "J.-F. Cardoso",
+          "A. Catalano",
+          "A. Challinor",
+          "A. Chamballu",
+          "Ranga‐Ram Chary",
+          "X. Chen",
+          "H. C. Chiang",
+          "L.-Y Chiang",
+          "P. R. Christensen",
+          "S. Church",
+          "D. L. Clements",
+          "S. Colombi",
+          "L. P. L. Colombo",
+          "F. Couchot",
+          "A. Coulais",
+          "B. P. Crill",
+          "A. Curto",
+          "F. Cuttaia",
+          "L. Danese",
+          "R. D. Davies",
+          "R. J. Davis",
+          "P. de Bernardis",
+          "A. de Rosa",
+          "G. de Zotti",
+          "J. Delabrouille",
+          "J.‐M. Delouis",
+          "F.–X. Désert",
+          "C. Dickinson",
+          "J. M. Diego",
+          "K. Dolag",
+          "H. Dole",
+          "S. Donzelli",
+          "O. Doré",
+          "M. Douspis",
+          "J. Dunkley",
+          "X. Dupac",
+          "G. Efstathiou",
+          "F. Elsner",
+          "T. A. Enßlin",
+          "H. K. Eriksen",
+          "F. Finelli⋆",
+          "O. Forni",
+          "M. Frailis",
+          "A. A. Fraisse",
+          "E. Franceschi",
+          "T. Gaier",
+          "S. Galeotta",
+          "S. Galli",
+          "K. Ganga",
+          "M. Giard",
+          "G. Giardino",
+          "Y. Giraud–Héraud",
+          "E. Gjerløw",
+          "J. González-Nuevo",
+          "K. M. Górski",
+          "S. Gratton",
+          "A. Gregorio",
+          "A. Gruppuso",
+          "J. E. Gudmundsson",
+          "J. Haïssinski",
+          "J. Hamann",
+          "F. K. Hansen",
+          "D. Hanson",
+          "D. L. Harrison",
+          "S. Henrot–Versillé",
+          "C. Hernández-Monteagudo",
+          "D. Herranz",
+          "S. R. Hildebrandt",
+          "E. Hivon",
+          "M. Hobson"
+        ],
+        "year": 2014,
+        "publication_date": "2014-02-25",
+        "venue": "Astronomy and Astrophysics",
+        "abstract": "This paper presents the first cosmological results based on Planck measurements of the cosmic microwave background (CMB) temperature and lensing-potential power spectra. We find that the Planck spectra at high multipoles ( > 40) are extremely well described by the standard spatiallyflat six-parameter CDM cosmology with a power-law spectrum of adiabatic scalar perturbations. Within the context of this cosmology, the Planck data determine the cosmological parameters to high precision: the angular size of the sound horizon at recombination, the physical densities of baryons and cold dark matter, and the scalar spectral index are estimated to be * = (1.04147 0.00062) 10 -2 , b h 2 = 0.02205 0.00028, c h 2 = 0.1199 0.0027, and n s = 0.9603 0.0073, respectively (note that in this abstract we quote 68% errors on measured parameters and 95% upper limits on other parameters). For this cosmology, we find a low value of the Hubble constant, H 0 = (67.3 1.2) km s -1 Mpc -1 , and a high value of the matter density parameter, m = 0.315 0.017. These values are in tension with recent direct measurements of H 0 and the magnituderedshift relation for Type Ia supernovae, but are in excellent agreement with geometrical constraints from baryon acoustic oscillation (BAO) surveys. Including curvature, we find that the Universe is consistent with spatial flatness to percent level precision using Planck CMB data alone. We use high-resolution CMB data together with Planck to provide greater control on extragalactic foreground components in an investigation of extensions to the six-parameter CDM model. We present selected results from a large grid of cosmological models, using a range of additional astrophysical data sets in addition to Planck and high-resolution CMB data. None of these models are favoured over the standard six-parameter CDM cosmology. The deviation of the scalar spectral index from unity is insensitive to the addition of tensor modes and to changes in the matter content of the Universe. We find an upper limit of r 0.002 < 0.11 on the tensor-to-scalar ratio. There is no evidence for additional neutrino-like relativistic particles beyond the three families of neutrinos in the standard model. Using BAO and CMB data, we find N eff = 3.30 0.27 for the effective number of relativistic degrees of freedom, and an upper limit of 0.23 eV for the sum of neutrino masses. Our results are in excellent agreement with big bang nucleosynthesis and the standard value of N eff = 3.046. We find no evidence for dynamical dark energy; using BAO and CMB data, the dark energy equation of state parameter is constrained to be w = -1.13 +0.13 -0.10 . We also use the Planck data to set limits on a possible variation of the fine-structure constant, dark matter annihilation and primordial magnetic fields. Despite the success of the six-parameter CDM model in describing the Planck data at high multipoles, we note that this cosmology does not provide a good fit to the temperature power spectrum at low multipoles. The unusual shape of the spectrum in the multipole range 20 < < 40 was seen previously in the WMAP data and is a real feature of the primordial CMB anisotropies. The poor fit to the spectrum at low multipoles is not of decisive significance, but is an \"anomaly\" in an otherwise self-consistent analysis of the Planck temperature data.",
+        "url": "https://doi.org/10.1051/0004-6361/201321591",
+        "doi": "https://doi.org/10.1051/0004-6361/201321591",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2139937287"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 6586
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_005_bc51c6771",
+        "relevance_score": 0.72,
+        "relevance_types": [
+          "same_method",
+          "same_constraints"
+        ],
+        "rationale": "This paper addresses variance reduction in Langevin samplers for sampling from target distributions, which relates to the diffusion samplers in the target paper and discusses efficiency improvements relevant to computational constraints.",
+        "evidence_summary": "In 2016, Duncan et al. published 'Variance Reduction Using Nonreversible Langevin Samplers,' which introduced nonreversible components to overdamped Langevin dynamics to reduce asymptotic variance and speed up convergence to target distributions. They provided numerical simulations supporting these theoretical findings, demonstrating benefits in computational efficiency."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_002_d37d5a4d6",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "This paper uses diffusion models for novel view synthesis and introduces stochastic conditioning for 3D consistency, which shares methodological elements with diffusion-based samplers and includes benchmarks on datasets like SRN ShapeNet.",
+        "evidence_summary": "In 2022, Watson et al. published 'Novel View Synthesis with Diffusion Models,' which proposed a pose-conditional image-to-image diffusion model called 3DiM with stochastic conditioning to improve 3D consistency across generated views. They evaluated on the SRN ShapeNet dataset, demonstrating higher fidelity and approximate 3D consistency without relying on geometry or test-time optimization."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_003_c143dadbb",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This paper focuses on multilevel sequential Monte Carlo samplers for inference, which is relevant to sampling methods in the target paper, though specific details are sparse in the metadata.",
+        "evidence_summary": "In 2016, Beskos et al. published 'Multilevel sequential Monte Carlo samplers,' which addressed Monte Carlo methods for likelihood-based inference in discretely observed processes, building on exact simulation techniques for diffusions."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_007_153da992b",
+        "relevance_score": 0.52,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This paper presents exact likelihood-based estimation for diffusion processes using Monte Carlo methods, aligning with the diffusion sampling context of the target paper.",
+        "evidence_summary": "In 2006, Beskos et al. published 'Exact and Computationally Efficient Likelihood-Based Estimation for Discretely Observed Diffusion Processes (with Discussion),' which proposed Monte Carlo methods for maximum likelihood and Bayesian estimation, building on advances in exact simulation of diffusions."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_004_522c72f6b",
+        "relevance_score": 0.48,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This paper applies the drift diffusion model in reinforcement learning as a choice rule, which involves diffusion processes but is more applied to decision-making rather than general sampling.",
+        "evidence_summary": "In 2016, Pedersen et al. published 'The drift diffusion model as the choice rule in reinforcement learning,' which integrated diffusion models into reinforcement learning frameworks for choice behavior analysis."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_001_fe4ab7384",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "This review covers random walks and diffusion on networks, providing foundational background relevant to diffusion methods, including applications in ranking and community detection.",
+        "evidence_summary": "In 2017, Masuda et al. published 'Random walks and diffusion on networks,' which surveyed theory and applications of random walks, including discrete-time and continuous-time variants, and discussed uses in node ranking, community detection, and opinion modeling across various network structures."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_006_c7952935f",
+        "relevance_score": 0.25,
+        "relevance_types": [],
+        "rationale": "This paper focuses on wristband samplers for chemical exposure assessment, which is not relevant to diffusion samplers or machine learning methods.",
+        "evidence_summary": "In 2017, Anderson et al. published 'Preparation and performance features of wristband samplers and considerations for chemical exposure assessment,' which evaluated the capacity of wristbands to capture and retain chemicals like PCBs and VOCs, including stability tests under various conditions for exposure science applications."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_008_2aa944c5c",
+        "relevance_score": 0.2,
+        "relevance_types": [],
+        "rationale": "This review on organic aerosol and climate modeling does not relate to diffusion samplers or computational methods in machine learning.",
+        "evidence_summary": "In 2005, Kanakidou et al. published 'Organic aerosol and global climate modelling: a review,' which summarized knowledge on organic aerosols, including emission estimates, chemical formation, hygroscopicity, and interactions with clouds for climate impact analysis."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_010_d7efbaaf7",
+        "relevance_score": 0.15,
+        "relevance_types": [],
+        "rationale": "This paper on cosmological parameters from Planck data is unrelated to diffusion samplers or sampling methods in machine learning.",
+        "evidence_summary": "In 2014, Ade et al. published 'Planck2013 results. XVI. Cosmological parameters,' which presented cosmological findings based on cosmic microwave background measurements, estimating parameters like Hubble constant and matter density within the CDM model framework."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2016, A. Duncan et al. published \"Variance Reduction Using Nonreversible Langevin Samplers\" in Journal of Statistical Physics. A standard approach to computing expectations with respect to a given target measure is to introduce an overdamped Langevin equation which is reversible with respect to the target distribution, and to approximate the expectation by a time-averaging estimator. In this paper the authors present a detailed study of the dependence of the asymptotic variance on the deviation from reversibility. In 2022, Daniel Watson et al. published \"Novel View Synthesis with Diffusion Models\" in arXiv (Cornell University). The authors present 3DiM, a diffusion model for 3D novel view synthesis, which is able to translate a single input view into consistent and sharp completions across many views. The authors compare 3DiM to prior work on the SRN ShapeNet dataset, demonstrating that 3DiM's generated completions from a single view achieve much higher fidelity, while being approximately 3D consistent. The output views are generated autoregressively, and during the generation of each novel view, one selects a random conditioning view from the set of available views at each denoising step. In 2016, Alexandros Beskos et al. published \"Multilevel sequential Monte Carlo samplers\" in Stochastic Processes and their Applications. The available metadata does not include an abstract with contribution, dataset, or result details. In 2006, Alexandros Beskos et al. published \"Exact and Computationally Efficient Likelihood-Based Estimation for Discretely Observed Diffusion Processes (with Discussion)\" in Journal of the Royal Statistical Society Series B (Statistical Methodology). Summary The objective of the paper is to present a novel methodology for likelihood-based inference for discretely observed diffusions. The authors propose Monte Carlo methods, which build on recent advances on the exact simulation of diffusions, for performing maximum likelihood and Bayesian estimation. In 2016, Mads L. Pedersen et al. published \"The drift diffusion model as the choice rule in reinforcement learning\" in Psychonomic Bulletin & Review. The available metadata does not include an abstract with contribution, dataset, or result details. In 2017, Naoki Masuda et al. published \"Random walks and diffusion on networks\" in Physics Reports. In the present article, the authors survey the theory and applications of random walks on networks, restricting ourselves to simple cases of single and non-adaptive random walkers. They are one of the most fundamental types of stochastic processes; can be used to model numerous phenomena, including diffusion, interactions, and opinions among humans and animals; and can be used to extract information about important entities or dense groups of entities in a network. The authors extensively discuss applications of random walks, including ranking of nodes (e.g., PageRank), community detection, respondent-driven sampling, and opinion models such as voter models.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 3,
+        "clarity": 4
+      },
+      "strengths": [
+        "The paper proposes a novel and practically motivated adaptation of diffusion models (Universally Quantized Diffusion Models - UQDM) to achieve tractable progressive compression, addressing a key computational bottleneck of prior work.",
+        "Provides a solid theoretical foundation, connecting the uniform-noise forward process to Gaussian diffusion in the continuous-time limit (Appendix A.3) and analyzing the rate estimates (Appendix B.2).",
+        "Demonstrates promising empirical results on standard image datasets (CIFAR10, ImageNet64), showing competitive rate-distortion and rate-realism performance with a single progressive model across a wide bitrate range."
+      ],
+      "weaknesses": [
+        "The empirical evaluation, while promising, is not yet conclusive for a top-tier conference. The method is outperformed by strong baselines (e.g., BPG) in PSNR on CIFAR10 at low bitrates, and the gap to the ideal (but intractable) VDM performance remains.",
+        "The practical runtime of the method in its current implementation is a major concern. The authors note that encoding/decoding with learned variance takes ~5 minutes per CIFAR10 image due to serial entropy coding, which is far from practical deployment."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The empirical evaluation, while promising, is not yet conclusive for a top-tier conference. The method is outperformed by strong baselines (e.g., BPG) in PSNR on CIFAR10 at low bitrates, and the gap to the ideal (but intractable) VDM performance remains.",
+          "severity": "major",
+          "evidence": "Figure 3 shows UQDM is outperformed by BPG in PSNR at low bit-rates on CIFAR10. Figure 2 shows a clear performance gap between UQDM and the hypothetical VDM performance on swirl data. The authors state: 'The theoretical performance of compression with Gaussian diffusion... is currently computationally infeasible' and 'a gap remains to the hypothetical performance of VDM.'",
+          "affected_claim": "The claim that UQDM brings neural codecs 'a step closer to practical deployment' and demonstrates 'high potential of an unconditional diffusion model as a practical progressive codec.'",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The practical runtime of the method in its current implementation is a major concern. The authors note that encoding/decoding with learned variance takes ~5 minutes per CIFAR10 image due to serial entropy coding, which is far from practical deployment.",
+          "severity": "major",
+          "evidence": "Section C.2 states: 'For our model with learned reverse-process variance, however, it takes about 5 minutes to compress or decompress a CIFAR image, with nearly all of the compute time spent on a single CPU core.'",
+          "affected_claim": "The claims of computational tractability and practical potential. The abstract states the work brings 'neural codecs a step closer to practical deployment.'",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The central technical claims are well-supported. The derivation of the UQDM forward/backward processes is clear, the connection to the Gaussian diffusion limit is proven (Theorem A.1), and the implementation correctly operationalizes the NELBO as a compression cost (within 3% overhead)."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The core idea of using uniform noise and universal quantization for tractable channel simulation in a diffusion compression framework is a clear and non-incremental adaptation of prior concepts. However, the adaptation itself, while clever and well-executed, builds directly on the established frameworks of Theis et al. (2022) and universal quantization. The theoretical connection to Gaussian diffusion is insightful but does not constitute a fundamentally new modeling paradigm."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "While progressive neural compression is a desirable goal, the demonstrated empirical results are promising but not yet state-of-the-art or transformative. The performance is competitive but does not clearly surpass the best existing progressive (CTC) or non-progressive (BPG, CDC) neural codecs across all metrics and bitrates. The current computational limitations further reduce the immediate practical significance."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The evaluation is adequate but has limitations. Comparisons are made against relevant baselines (JPEG, JPEG2000, BPG, CTC, CDC). However, the performance gaps and trade-offs (e.g., worse PSNR than BPG at low bitrates, slow runtime) are significant. The study on toy data is insightful but the main image compression results, while good, do not conclusively demonstrate a breakthrough."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written and well-structured. The connection between diffusion models, the NELBO, and progressive compression is explained effectively. The algorithms, theoretical derivations, and experimental results are presented in a comprehensible manner."
+        }
+      },
+      "summary_comment": "This paper presents a clever and technically sound adaptation of diffusion models for progressive compression, replacing Gaussian noise with uniform noise to leverage efficient universal quantization. The theoretical connection to Gaussian diffusion is a strength. However, for a top-tier conference, the novelty is somewhat limited as it is a direct adaptation of existing ideas. More critically, the empirical results, while promising and competitive, are not yet state-of-the-art or clearly transformative, and the method's current runtime is prohibitive for practical use. The work is a solid contribution but falls short of the high bar for acceptance, requiring more compelling empirical advancements or a more fundamental innovation."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "ICML": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "The paper's core contribution falls under 'machine learning systems' and 'application-driven machine learning' in ICML's scope. It develops a novel neural compression system (UQDM) that optimizes an end-to-end variational objective (ELBO), aligning with ICML's interest in scalable ML systems and probabilistic methods.",
+        "The work includes a solid theoretical analysis connecting uniform-noise diffusion to Gaussian diffusion in the continuous-time limit (Theorem A.1), which fits ICML's appreciation for works with theoretical grounding alongside empirical results.",
+        "The methodology is technically sound and novel within the compression domain, presenting a non-trivial adaptation of diffusion models to solve a computational bottleneck (intractable Gaussian channel simulation). This aligns with ICML's focus on algorithmic innovations in ML."
+      ],
+      "why_it_does_not_fit": [
+        "While the application is image compression, the methodological contribution is more specialized than ICML's typical broad ML focus. The work sits at the intersection of ML systems, information theory, and compression, which might be seen as a niche application area rather than core ML advancement.",
+        "The empirical evaluation, while solid, shows performance that is competitive but not decisively state-of-the-art (e.g., outperformed by BPG in PSNR at low bitrates on CIFAR10). ICML often favors works with more dramatic empirical improvements or broader applicability.",
+        "Reviewer concerns about novelty ('adaptation itself builds directly on established frameworks') and significance ('not yet state-of-the-art or transformative') could be amplified at ICML, which has high standards for fundamental contributions."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 8,
+      "why_it_fits": [
+        "The paper fits well under NeurIPS's 'Data-centric aspects of AI' and 'Deep learning' categories. It presents a novel deep generative model (UQDM) for compression, which is a core AI/ML problem with practical implications.",
+        "NeurIPS has a strong track record of accepting diffusion model papers and works bridging machine learning with information theory and compression (e.g., Theis et al. 2022 on Gaussian diffusion compression was presented at NeurIPS).",
+        "The progressive compression framework enables both lossy and lossless reconstruction with a single model, addressing important practical challenges in AI deployment. This aligns with NeurIPS's interest in scalable and practical ML systems."
+      ],
+      "why_it_does_not_fit": [
+        "The computational limitations noted by reviewers (5 minutes per CIFAR image with learned variance) significantly impact the practical utility, which might reduce its appeal at NeurIPS where scalability and efficiency are increasingly important.",
+        "While the theoretical connection to Gaussian diffusion is elegant, the core innovation is an adaptation rather than a fundamental breakthrough. Reviewer comments suggest novelty may be insufficient for NeurIPS's high bar.",
+        "The empirical results, while showing competitive performance, don't demonstrate clear superiority over existing progressive (CTC) or non-progressive (CDC) neural codecs across all metrics, which could limit impact at NeurIPS."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 7,
+      "why_it_fits": [
+        "The paper's focus on deep generative models (diffusion models) and their novel formulation (UQDM) for compression directly aligns with ICLR's core focus on deep learning representations and generative models.",
+        "The work deeply engages with the variational diffusion model (VDM) framework from Kingma et al. (2021, ICLR), providing a meaningful extension that addresses computational bottlenecks while maintaining theoretical connections.",
+        "ICLR actively publishes diffusion model research and has interest in applications of deep representation learning, including compression (as noted in ICLR's topics: 'societal considerations including fairness, safety, privacy' and 'generative models')."
+      ],
+      "why_it_does_not_fit": [
+        "The primary application is image compression rather than fundamental representation learning or generative modeling advances. ICLR might view this as more applied than core deep learning research.",
+        "The theoretical contribution, while solid, is an adaptation of existing diffusion theory rather than a fundamental advance in deep learning theory or architectures.",
+        "Reviewer concerns about empirical evaluation ('not yet conclusive for a top-tier conference') and computational practicality could be particularly salient at ICLR, which emphasizes clean, impactful empirical results in deep learning."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper proposes a novel and practically motivated adaptation of diffusion models (Universally Quantized Diffusion Models - UQDM) to achieve tractable progressive compression, addressing a key computational bottleneck of prior work.",
+              "Provides a solid theoretical foundation, connecting the uniform-noise forward process to Gaussian diffusion in the continuous-time limit (Appendix A.3) and analyzing the rate estimates (Appendix B.2).",
+              "Demonstrates promising empirical results on standard image datasets (CIFAR10, ImageNet64), showing competitive rate-distortion and rate-realism performance with a single progressive model across a wide bitrate range."
+            ],
+            "weaknesses": [
+              "The empirical evaluation, while promising, is not yet conclusive for a top-tier conference. The method is outperformed by strong baselines (e.g., BPG) in PSNR on CIFAR10 at low bitrates, and the gap to the ideal (but intractable) VDM performance remains.",
+              "The practical runtime of the method in its current implementation is a major concern. The authors note that encoding/decoding with learned variance takes ~5 minutes per CIFAR10 image due to serial entropy coding, which is far from practical deployment."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The empirical evaluation, while promising, is not yet conclusive for a top-tier conference. The method is outperformed by strong baselines (e.g., BPG) in PSNR on CIFAR10 at low bitrates, and the gap to the ideal (but intractable) VDM performance remains.",
+                "severity": "major",
+                "evidence": "Figure 3 shows UQDM is outperformed by BPG in PSNR at low bit-rates on CIFAR10. Figure 2 shows a clear performance gap between UQDM and the hypothetical VDM performance on swirl data. The authors state: 'The theoretical performance of compression with Gaussian diffusion... is currently computationally infeasible' and 'a gap remains to the hypothetical performance of VDM.'",
+                "affected_claim": "The claim that UQDM brings neural codecs 'a step closer to practical deployment' and demonstrates 'high potential of an unconditional diffusion model as a practical progressive codec.'",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The practical runtime of the method in its current implementation is a major concern. The authors note that encoding/decoding with learned variance takes ~5 minutes per CIFAR10 image due to serial entropy coding, which is far from practical deployment.",
+                "severity": "major",
+                "evidence": "Section C.2 states: 'For our model with learned reverse-process variance, however, it takes about 5 minutes to compress or decompress a CIFAR image, with nearly all of the compute time spent on a single CPU core.'",
+                "affected_claim": "The claims of computational tractability and practical potential. The abstract states the work brings 'neural codecs a step closer to practical deployment.'",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The central technical claims are well-supported. The derivation of the UQDM forward/backward processes is clear, the connection to the Gaussian diffusion limit is proven (Theorem A.1), and the implementation correctly operationalizes the NELBO as a compression cost (within 3% overhead)."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The core idea of using uniform noise and universal quantization for tractable channel simulation in a diffusion compression framework is a clear and non-incremental adaptation of prior concepts. However, the adaptation itself, while clever and well-executed, builds directly on the established frameworks of Theis et al. (2022) and universal quantization. The theoretical connection to Gaussian diffusion is insightful but does not constitute a fundamentally new modeling paradigm."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "While progressive neural compression is a desirable goal, the demonstrated empirical results are promising but not yet state-of-the-art or transformative. The performance is competitive but does not clearly surpass the best existing progressive (CTC) or non-progressive (BPG, CDC) neural codecs across all metrics and bitrates. The current computational limitations further reduce the immediate practical significance."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The evaluation is adequate but has limitations. Comparisons are made against relevant baselines (JPEG, JPEG2000, BPG, CTC, CDC). However, the performance gaps and trade-offs (e.g., worse PSNR than BPG at low bitrates, slow runtime) are significant. The study on toy data is insightful but the main image compression results, while good, do not conclusively demonstrate a breakthrough."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written and well-structured. The connection between diffusion models, the NELBO, and progressive compression is explained effectively. The algorithms, theoretical derivations, and experimental results are presented in a comprehensible manner."
+              }
+            },
+            "summary_comment": "This paper presents a clever and technically sound adaptation of diffusion models for progressive compression, replacing Gaussian noise with uniform noise to leverage efficient universal quantization. The theoretical connection to Gaussian diffusion is a strength. However, for a top-tier conference, the novelty is somewhat limited as it is a direct adaptation of existing ideas. More critically, the empirical results, while promising and competitive, are not yet state-of-the-art or clearly transformative, and the method's current runtime is prohibitive for practical use. The work is a solid contribution but falls short of the high bar for acceptance, requiring more compelling empirical advancements or a more fundamental innovation."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

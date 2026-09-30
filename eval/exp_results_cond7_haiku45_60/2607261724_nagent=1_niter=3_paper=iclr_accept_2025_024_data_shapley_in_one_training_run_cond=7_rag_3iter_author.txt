@@ -1,0 +1,716 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Novel conceptual framework: The paper introduces In-Run Data Shapley, a principled approach that computes data attribution for a specific trained model within a single training run, addressing fundamental limitations of traditional retraining-based Data Shapley. This is a meaningful conceptual contribution that shifts from algorithm-level attribution to model-specific attribution.",
+        "Significant technical innovation: The 'ghost dot-product' and 'ghost gradient-Hessian-gradient product' techniques are clever and well-developed solutions for computing gradient interactions without materializing individual gradient vectors. These techniques achieve near-zero overhead for first-order computation and 2x overhead for second-order, making foundation model-scale attribution feasible.",
+        "Rigorous theoretical foundation: The paper provides closed-form formulas (Theorems 3 and 4) for In-Run Data Shapley using first and second-order Taylor approximations, with clear derivations and connections to existing work (TracIN-Ideal). The use of Taylor expansion with approximation error analysis (O(η²) and O(η³)) is well-motivated.",
+        "Compelling empirical insights: The case studies on Pile pretraining provide genuinely interesting findings, including: (1) identifying that 16% of the curated Pile dataset has negative values, suggesting room for data curation; (2) demonstrating that data contribution changes significantly across training stages; (3) showing that contribution to model outputs persists even for paraphrased content, with implications for copyright discussions.",
+        "Comprehensive experimental evaluation within scope: The paper includes efficiency benchmarks (Table 1 with 30x+ speedup), fidelity evaluation against Monte Carlo estimates (Figure 1, RMSE~0.0003), comparisons with influence functions, and practical case studies on real pretraining data."
+      ],
+      "weaknesses": [
+        "Limited experimental validation of approximation quality: While theoretical error bounds O(η²) and O(η³) are provided, empirical validation is restricted to a single checkpoint (iteration 3500 of GPT2 training). Systematic analysis of approximation error across multiple training phases, learning rates, and model architectures is absent, making it unclear whether approximation quality is consistent throughout training.",
+        "Claims about foundation model scalability are not empirically demonstrated: The paper claims applicability to foundation model pretraining but experiments are limited to GPT2 and Pythia-410M (410M parameters). While the algorithmic overhead is theoretically model-agnostic, the submitted paper provides no evidence (experimental or computational analysis) that the method scales to billion-parameter models.",
+        "Validation data availability requirement limits applicability: In-Run Data Shapley requires validation data before training begins, precluding post-hoc analysis of already-trained models. While this is acknowledged and scenarios where pre-training validation is available are identified, the proposed checkpoint-based workaround is not empirically analyzed in the paper, leaving practitioners without guidance on this trade-off.",
+        "Restriction to SGD limits practical applicability: Modern deep learning predominantly uses Adam and other adaptive optimizers. Extension to these optimizers is identified as substantial future work, not attempted in this paper. While the authors correctly note this is a computational challenge rather than conceptual, the practical impact is significant.",
+        "Small-scale baseline comparisons incomplete: The paper compares with influence functions on GPT2 (Figure 2) but does not provide detailed quantitative comparisons with TRAK, datamodels, or other recent methods on tasks where they are computationally feasible, making it difficult to assess relative performance."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited experimental validation of approximation quality: While theoretical error bounds O(η²) and O(η³) are provided, empirical validation is restricted to a single checkpoint (iteration 3500 of GPT2 training). Systematic analysis of approximation error across multiple training phases, learning rates, and model architectures is absent, making it unclear whether approximation quality is consistent throughout training.",
+          "severity": "major",
+          "evidence": "Section 4.1 establishes theoretical bounds. Appendix E.2.2 reports Spearman correlation >0.94 for first-order approximation, but only at iteration 3500 with batch size 16 and learning rate 3×10⁻⁴. No results are provided for other iterations, different learning rates, or model sizes. In the rebuttal, the authors acknowledge this gap and propose 'systematic analysis across early, middle, and late training phases, different learning rates' but state this requires 'new experiments' not present in the submission.",
+          "affected_claim": "First and second-order In-Run Data Shapley approximations are reliable throughout training.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Claims about foundation model scalability are not empirically demonstrated: The paper claims applicability to foundation model pretraining but experiments are limited to GPT2 and Pythia-410M (410M parameters). While the algorithmic overhead is theoretically model-agnostic, the submitted paper provides no evidence (experimental or computational analysis) that the method scales to billion-parameter models.",
+          "severity": "major",
+          "evidence": "Abstract: 'With adequate computational resources, our approach can easily be applied to larger-scale models.' Section 5.3: 'Due to computational resource constraints, most of our experiments focus on the GPT-2 and Pythia-410M models, but this is not a limitation of the algorithm itself.' Table 1 runtime measurements are only on GPT2-Small. The rebuttal explains computational constraints limited testing but acknowledges 'the submitted paper does not demonstrate this'—confirming the gap between claims and evidence.",
+          "affected_claim": "The method is applicable to large-scale foundation models and enables practical data attribution at foundation model pretraining scale.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Validation data availability requirement limits applicability: In-Run Data Shapley requires validation data before training begins, precluding post-hoc analysis of already-trained models. While this is acknowledged and scenarios where pre-training validation is available are identified, the proposed checkpoint-based workaround is not empirically analyzed in the paper, leaving practitioners without guidance on this trade-off.",
+          "severity": "major",
+          "evidence": "Section 6, Limitations: 'One potential limitation of In-Run Data Shapley is that it requires the validation data to be available before training... the choice of checkpoints can significantly impact performance, and it is unclear which checkpoints to pick.' The paper identifies but does not resolve or empirically analyze this workaround. The rebuttal acknowledges this is 'non-trivial' and proposes empirical analysis (checkpoint frequency trade-offs) not present in the submission.",
+          "affected_claim": "In-Run Data Shapley can be flexibly applied to analyze models trained without pre-specified validation sets.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Restriction to SGD limits practical applicability: Modern deep learning predominantly uses Adam and other adaptive optimizers. Extension to these optimizers is identified as substantial future work, not attempted in this paper. While the authors correctly note this is a computational challenge rather than conceptual, the practical impact is significant.",
+          "severity": "major",
+          "evidence": "Section 6, Limitations: 'Extending the \"ghost\" family techniques developed in this work to support Adam and similar optimizers remains an exciting direction for future research... the actual challenge lies in computing it efficiently.' No preliminary analysis, mathematical formulations, or design sketches for Adam support are provided in the paper. The rebuttal proposes providing 'mathematical formulation of the local utility for Adam... sketch of a potential solution' but the submission contains none of this.",
+          "affected_claim": "The method scales to modern foundation model training setups.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Small-scale baseline comparisons incomplete: The paper compares with influence functions on GPT2 (Figure 2) but does not provide detailed quantitative comparisons with TRAK, datamodels, or other recent methods on tasks where they are computationally feasible, making it difficult to assess relative performance.",
+          "severity": "minor",
+          "evidence": "Section 5.3.1: 'We omit TRAK (Park et al., 2023) and other techniques such as datamodel (Ilyas et al., 2022) as they are not scalable to our setting.' Figure 2 compares only with influence functions. Appendix E.6 is mentioned as comparing with 'existing (less scalable) data attribution techniques on standard benchmarks' but specific details on TRAK/datamodel comparisons are not provided. The rebuttal proposes adding such comparisons but they are not in the submitted paper.",
+          "affected_claim": "In-Run Data Shapley provides comparable or superior attribution quality to other methods.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The mathematical framework is sound. Theorems 3 and 4 correctly derive closed-form Shapley values for Taylor-approximated utility functions with explicit approximation error bounds. The 'ghost' techniques are rigorously justified through chain rule decomposition (Equations 4-5) and correctly generalize beyond linear layers as noted in Remark 2. The linearity property of Shapley values is properly applied to accumulate per-iteration contributions. While empirical validation of approximation quality could be more comprehensive, the existing validation (Appendix E.2.2, Spearman >0.94) provides reasonable confidence. No logical or mathematical flaws in core contributions."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "In-Run Data Shapley is genuinely novel despite connections to TracIN-Ideal. Key novel contributions: (1) First practical, direct implementation of first-order formula via ghost techniques, achieving 30x+ speedup over naive per-sample gradient computation; (2) Second-order variant with gradient-Hessian-gradient interaction terms not present in prior work; (3) Fundamental conceptual shift from average algorithm-level attribution to model-specific attribution within single training run; (4) First-of-its-kind application to foundation model pretraining data curation at scale. The distinction from retraining-based Data Shapley is significant and well-articulated across Sections 3 and Appendix B.1."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper addresses a meaningful problem: efficient data attribution has been computationally prohibitive, severely limiting application to large models. Achieving near-negligible overhead (first-order) or 2x slowdown (second-order) compared to 30x+ for naive approaches is a substantial practical advance. The case studies demonstrate actionable value: identifying 16% negatively-valued data in curated Pile, analyzing stage-dependent contribution, and relating contribution to copyright implications. However, significance is appropriately tempered by demonstrated scope: experiments at 410M parameters (not billion-scale), SGD-only (not modern optimizers), and validation data timing constraints. These do not negate the contribution but define current applicability boundaries, which is acceptable for a research contribution introducing new techniques."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The evaluation provides evidence for the core claims: (1) Efficiency: Table 1 demonstrates 30x+ speedup over direct implementation and near-parity with regular training for first-order; (2) Fidelity: Figure 1 shows RMSE~0.0003 against Monte Carlo estimates at tested checkpoint; (3) Practical utility: Figure 2 demonstrates 25% faster convergence when filtering negatively-valued data, comparing favorably with influence functions. However, evaluation has clear limitations: approximation quality validated at single checkpoint only, scaling demonstrated only to 410M parameters, baseline comparisons limited. These are gaps in comprehensiveness rather than logical flaws. The evidence provided supports the claims made, though more extensive validation would strengthen confidence."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written with effective pedagogical structure. Section 3 clearly motivates the local utility function and explains how per-iteration Shapley values accumulate. Theorems are precisely stated with explicit formulas. The distinction between retraining-based and In-Run Data Shapley is clearly articulated through comparison tables (Figure 5) and detailed discussion (Appendix B.1-B.2). Technical sections (4.2) clearly explain ghost techniques through concrete examples (linear layer case study). Limitations are honestly acknowledged in Section 6. Some notation is context-dependent (U^(t) meaning depends on whether domain is full set or batch) but this is minor and does not impede understanding. Overall presentation is of high quality."
+        }
+      },
+      "summary_comment": "This paper makes a solid and timely contribution to practical data attribution through In-Run Data Shapley, a novel approach that evaluates data contribution within a specific training run without expensive retraining. The core technical contributions are sound: (1) Taylor expansion-based closed-form Shapley formulas enabling efficient computation; (2) 'ghost' techniques achieving 30x+ speedup over naive implementation while maintaining accuracy (RMSE~0.0003); (3) conceptual reframing from algorithm-level to model-specific attribution. The paper is clearly written with interesting case studies on real pretraining data (Pile), yielding insights into data curation and copyright implications. The rebuttal demonstrates mature understanding of limitations: the authors correctly distinguish between addressable gaps (approximation validation across phases, small-scale baseline comparisons, checkpoint selection guidance) and fundamental constraints (validation data timing, SGD-only support, model size demonstrations). However, significant gaps remain in the submitted paper: (1) Approximation quality validated at only one checkpoint (iteration 3500), not systematically across training phases or learning rates; (2) Foundation model applicability claimed but not demonstrated—experiments stop at 410M parameters with no computational analysis of billion-parameter scaling; (3) No empirical analysis of checkpoint-based workaround for validation data timing; (4) No preliminary work toward Adam support despite being critical for modern ML. These gaps are not fatal—the core contributions remain valuable—but they represent incomplete validation of key claims. For acceptance at a top venue, the paper demonstrates sufficient novelty, soundness, and practical impact. The limitations are appropriately acknowledged and do not undermine core contributions, though they do define current applicability scope. The work will likely inspire follow-up research extending to larger scales, modern optimizers, and post-hoc applicability scenarios."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Strong methodological contribution in machine learning systems and optimization: The paper presents novel algorithmic techniques ('ghost dot-product' and 'ghost gradient-Hessian-gradient product') that solve a real computational challenge in data attribution. These fall squarely within ICML's focus on 'machine learning systems (improved implementation and scalability, hardware, libraries, distributed methods)'.\",\n      \"Addresses trustworthy ML and interpretability: Data valuation and attribution are core components of trustworthy machine learning. The paper directly contributes to understanding and debugging model behavior, aligning with ICML's stated interest in 'trustworthy machine learning (reliability, causality, fairness, interpretability, privacy, robustness, safety)'.\",\n      \"Practical application-driven contribution: The case studies on Pile pretraining (Section 5.3) demonstrate real-world applicability for data curation and quality assessment, fitting ICML's interest in 'application-driven machine learning' with concrete insights into foundation model training.\",\n      \"Sound theoretical foundations with practical implementation: The paper combines theoretical rigor (Theorems 3-4 with closed-form formulas) with systems-level innovations (efficient computation techniques), which resonates with ICML's balanced preference for principled approaches with practical impact.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited to foundation model pretraining application: While the method is theoretically general for iterative algorithms, experiments focus narrowly on language model pretraining. ICML values diverse application domains—the paper lacks depth in other ML contexts (computer vision, recommendation systems, etc.) where data attribution could be valuable.\",\n      \"Restriction to SGD limits immediate impact: The method works only with SGD, not Adam or modern adaptive optimizers that dominate contemporary deep learning. This is acknowledged as 'substantial future work' in Section 6, meaning current practical applicability for modern ML systems is limited—a concern for a systems-focused venue.\",\n      \"Approximation quality not systematically validated: ICML values rigorous empirical evaluation. The approximation (O(η²) and O(η³) errors) is validated at only one training checkpoint (iteration 3500) with Spearman correlation >0.94. Systematic validation across training phases and hyperparameters is absent, raising questions about reliability during actual training runs.\",\n      \"Paper topic labeled 'Others': The submission explicitly identifies itself outside standard ICML categories. While interdisciplinary work is welcome, this signals the contribution may not align cleanly with the conference's core focus on established ML research areas.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Highly relevant to data-centric AI focus: NeurIPS explicitly lists 'Data-centric aspects of AI' as a topic of interest. In-Run Data Shapley directly addresses how to systematically evaluate and understand the contribution of individual data points—a central concern of data-centric ML approaches.\",\n      \"Strong fit with generative AI and LLM focus: NeurIPS emphasizes 'Language and multimodal language models.' The paper's primary application is foundation model pretraining (GPT2, Pythia), and case studies on copyright implications and data curation for LLM training are timely and highly relevant to the community's current concerns.\",\n      \"Addresses societal and ethical implications: The discussion of copyright in generative AI (Section 5.3.3) and fair attribution of data contributions directly aligns with NeurIPS's interest in 'Socio-technical aspects of AI' and 'Human interaction in AI systems.' This grounds the technical contribution in real-world fairness and policy concerns.\",\n      \"Novel conceptual framework with interdisciplinary appeal: NeurIPS welcomes 'interdisciplinary submissions that do not fit neatly into existing categories.' The reframing from algorithm-level to model-specific data attribution is genuinely novel and opens new research directions, fitting NeurIPS's broader scope.\",\n      \"Rigorous theory with practical case studies: The combination of principled Shapley-based framework with compelling empirical insights (16% negative data in Pile, stage-dependent contributions, contribution-beyond-memorization) balances theoretical soundness with actionable findings.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Foundation model scale claims not empirically supported: While NeurIPS focuses on large-scale models, experiments are limited to GPT2 and Pythia-410M. Claims that the method scales to foundation model pretraining lack billion-parameter evidence. For a conference emphasizing state-of-the-art large-scale methods, this is a notable gap.\",\n      \"Validation data timing constraint limits applicability: Requiring validation data before training begins is a significant practical limitation for many real-world scenarios. NeurIPS values methods with broad applicability, and the acknowledged workaround (checkpoint-based reconstruction) is not empirically validated, leaving users without practical guidance.\",\n      \"Restriction to SGD a major limitation: Modern foundation models use Adam and adaptive optimizers. The paper's explicit identification of extending to these optimizers as 'substantial future work' (Section 6) is a significant gap for a venue focused on cutting-edge ML systems. This is not a minor engineering detail but affects practical usability.\",\n      \"Limited scope of experimental validation: Approximation quality tested at single checkpoint; no scaling analysis; no comparison with recent methods (TRAK, datamodels) at even small scale. NeurIPS typically expects more comprehensive empirical validation, especially for claims about practical applicability.\",\n      \"Paper topic categorization as 'Others': The paper's explicit positioning outside established research areas signals potential misalignment with NeurIPS's organization, though not fatally so given the interdisciplinary welcome.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Representation learning and interpretability connection: ICLR values 'visualization or interpretation of learned representations.' In-Run Data Shapley provides a principled mechanism for interpreting what individual data points contribute to learned representations during training, which is relevant to understanding deep learning representations.\",\n      \"Learning theory and optimization contributions: The paper provides theoretical analysis (closed-form Shapley formulas with approximation error bounds) and develops novel optimization techniques (ghost methods). These fit ICLR's interest in 'learning theory' and 'optimization.'\",\n      \"Infrastructure and systems contributions: ICLR explicitly welcomes 'infrastructure, software libraries, hardware, etc.' The ghost techniques represent systems-level innovations for efficient gradient computation that could have broader applications beyond data attribution.\",\n      \"Applications to language models: ICLR values work on foundation models and representation learning in language. The detailed application to GPT2 and Pythia pretraining demonstrates how the method reveals properties of learned representations across training stages.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Weak connection to core ICLR focus on representation learning: While the paper touches on interpretability, it does not directly address unsupervised/self-supervised/semi-supervised representation learning or other core ICLR topics (metric learning, transfer learning, etc.). Data attribution is orthogonal to how representations are learned.\",\n      \"Limited to existing learning paradigm: ICLR values research on learning architectures and methodologies. This paper does not propose new learning approaches; it provides analysis tools for existing training procedures, which is more of an auxiliary contribution than a core methodological advance.\",\n      \"Insufficient evaluation of representation quality: ICLR values deep empirical understanding of learned representations. The case studies focus on data curation and copyright but do not provide fine-grained analysis of how data attribution relates to the quality or properties of learned representations.\",\n      \"Approximation validation gaps concerning for theory venue: ICLR values rigorous theoretical and empirical grounding. The approximation (O(η²), O(η³) errors) is validated at a single checkpoint; systematic validation across architectures and optimization regimes is missing—problematic for a venue emphasizing learning theory.\",\n      \"Scalability demonstration weak: ICLR emphasizes understanding deep learning at modern scales. Experiments stop at 410M parameters without analysis of scalability to billion-parameter models, which ICLR audience expects for contemporary deep learning research.\",\n      \"Misalignment with representation learning emphasis: ICLR's primary focus is on how to learn better representations. This paper assumes fixed learning algorithms and focuses on post-hoc analysis, not on improving the learning process itself or producing better representations.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary Analysis\n\n**Overall Assessment:**\n\nThis paper introduces **In-Run Data Shapley**, a novel data attribution method that computes Shapley values during a single training run rather than through expensive retraining. The contribution is technically sound, well-motivated, and addresses a real computational bottleneck in fair data valuation for large models.\n\n**Venue Recommendation Ranking:**\n1. **NeurIPS (fit_score: 8)** – Best fit\n2. **ICML (fit_score: 7)** – Good fit\n3. **ICLR (fit_score: 6)** – Borderline/risky\n\n**Why NeurIPS is the strongest match:**\n- NeurIPS's explicit focus on \"Data-centric aspects of AI\" and \"Language and multimodal language models\" directly aligns with the paper's contributions and applications.\n- The copyright implications and societal considerations resonate with NeurIPS's \"Socio-technical aspects of AI\" track.\n- NeurIPS welcomes interdisciplinary work and novel frameworks, which this paper embodies.\n\n**Why ICML is a solid alternative:**\n- Strong methodological and systems contributions fit ICML's focus on ML systems and scalability.\n- Trustworthy ML and interpretability are well-aligned topics.\n- More application-driven than ICLR, fitting ICML's balanced perspective.\n\n**Why ICLR is a weaker fit:**\n- The paper is tangential to ICLR's core focus on representation learning, architectures, and learning theory.\n- While it touches interpretability, it doesn't directly advance how we learn representations.\n- Limited empirical analysis of the learned representations themselves weakens the fit.\n\n**Key Risk Factors (all venues):**\n- Approximation quality validated at only one checkpoint (Reviewer 1's major weakness)\n- Foundation model scalability claimed but not demonstrated beyond 410M parameters\n- Restriction to SGD limits practical applicability to modern deep learning\n- Validation data must be specified before training (timing constraint)\n\n**Recommendation:** Submit to **NeurIPS** as the primary target, with **ICML** as a strong backup. Avoid ICLR unless significant revisions strengthen the representation learning angle.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel conceptual framework: The paper introduces In-Run Data Shapley, a principled approach that computes data attribution for a specific trained model within a single training run, addressing fundamental limitations of traditional retraining-based Data Shapley. This is a meaningful conceptual contribution that shifts from algorithm-level attribution to model-specific attribution.",
+              "Significant technical innovation: The 'ghost dot-product' and 'ghost gradient-Hessian-gradient product' techniques are clever and well-developed solutions for computing gradient interactions without materializing individual gradient vectors. These techniques achieve near-zero overhead for first-order computation and 2x overhead for second-order, making foundation model-scale attribution feasible.",
+              "Rigorous theoretical foundation: The paper provides closed-form formulas (Theorems 3 and 4) for In-Run Data Shapley using first and second-order Taylor approximations, with clear derivations and connections to existing work (TracIN-Ideal). The use of Taylor expansion with approximation error analysis (O(η²) and O(η³)) is well-motivated.",
+              "Compelling empirical insights: The case studies on Pile pretraining provide genuinely interesting findings, including: (1) identifying that 16% of the curated Pile dataset has negative values, suggesting room for data curation; (2) demonstrating that data contribution changes significantly across training stages; (3) showing that contribution to model outputs persists even for paraphrased content, with implications for copyright discussions.",
+              "Comprehensive experimental evaluation: The paper includes efficiency benchmarks (Table 1), fidelity evaluation against Monte Carlo estimates (Figure 1, RMSE~0.0003), and comparisons with influence functions across multiple settings."
+            ],
+            "weaknesses": [
+              "Limited scope of experiments: The empirical evaluation is restricted to GPT2 and Pythia-410M (410M parameters). While the authors acknowledge this as a 'pilot study,' the scaling to truly large foundation models (e.g., billions of parameters) remains undemonstrated. The claim that the method is 'feasible for foundation model pretraining' is not fully validated.",
+              "Approximation quality and theoretical gaps: The Taylor expansion-based approximations (first and second-order) introduce errors that could accumulate over many training iterations. While Appendix E.2.2 shows Spearman correlation >0.94 for first-order at iteration 3500, systematic analysis of approximation error across different training phases, learning rates, and model architectures is limited.",
+              "Validation data availability requirement: In-Run Data Shapley requires validation data to be available before training begins. While the authors discuss scenarios where this is natural, this is a non-trivial constraint that limits applicability compared to post-hoc analysis methods. The suggested workaround using checkpoints (TracIN-CP style) is acknowledged to be checkpoint-dependent.",
+              "Limited algorithmic generality: The method is currently restricted to SGD. Extension to Adam and other adaptive optimizers is listed as future work, but this is a significant limitation since modern deep learning predominantly uses these optimizers. The authors state the 'actual challenge lies in computing it efficiently,' suggesting the technical barrier may be substantial.",
+              "Incomplete comparison with baselines: While the paper includes some comparison with influence functions, it lacks direct quantitative comparisons with other recent data attribution methods (e.g., TRAK, datamodels) on the same tasks at similar computational budgets, making it difficult to assess relative merit beyond computational efficiency."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited scope of experiments: The empirical evaluation is restricted to GPT2 and Pythia-410M (410M parameters). While the authors acknowledge this as a 'pilot study,' the scaling to truly large foundation models (e.g., billions of parameters) remains undemonstrated. The claim that the method is 'feasible for foundation model pretraining' is not fully validated.",
+                "severity": "major",
+                "evidence": "Section 5.3: 'Due to computational resource constraints, most of our experiments focus on the GPT-2 and Pythia-410M models, but this is not a limitation of the algorithm itself.' The authors explicitly state they focused on these models due to constraints, and only Pythia-410M approaches modern foundation model scales.",
+                "affected_claim": "The method is applicable to large-scale industrial models with sufficient computing resources and enables foundation model pretraining data attribution.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Approximation quality and theoretical gaps: The Taylor expansion-based approximations (first and second-order) introduce errors that could accumulate over many training iterations. While Appendix E.2.2 shows Spearman correlation >0.94 for first-order at iteration 3500, systematic analysis of approximation error across different training phases, learning rates, and model architectures is limited.",
+                "severity": "major",
+                "evidence": "Section 4.1 provides approximation errors of O(η²) and O(η³) for first and second-order respectively, but empirical validation is limited to single checkpoint (iteration 3500) with specific hyperparameters. No analysis of error accumulation over full training runs or sensitivity to learning rate schedules.",
+                "affected_claim": "The first and second-order approximations provide accurate estimates of In-Run Data Shapley throughout training.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Validation data availability requirement: In-Run Data Shapley requires validation data to be available before training begins. While the authors discuss scenarios where this is natural, this is a non-trivial constraint that limits applicability compared to post-hoc analysis methods. The suggested workaround using checkpoints (TracIN-CP style) is acknowledged to be checkpoint-dependent.",
+                "severity": "major",
+                "evidence": "Section 6, Limitations: 'One potential limitation of In-Run Data Shapley is that it requires the validation data to be available before training... the choice of checkpoints can significantly impact performance, and it is unclear which checkpoints to pick.'",
+                "affected_claim": "In-Run Data Shapley can be applied to any trained model of interest.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited algorithmic generality: The method is currently restricted to SGD. Extension to Adam and other adaptive optimizers is listed as future work, but this is a significant limitation since modern deep learning predominantly uses these optimizers. The authors state the 'actual challenge lies in computing it efficiently,' suggesting the technical barrier may be substantial.",
+                "severity": "major",
+                "evidence": "Section 6, Limitations: 'Extending the \"ghost\" family techniques developed in this work to support Adam and similar optimizers remains an exciting direction for future research... the actual challenge lies in computing it efficiently without instantiating each individual gradient vector.'",
+                "affected_claim": "The method can scale to modern foundation model training setups.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Incomplete comparison with baselines: While the paper includes some comparison with influence functions, it lacks direct quantitative comparisons with other recent data attribution methods (e.g., TRAK, datamodels) on the same tasks at similar computational budgets, making it difficult to assess relative merit beyond computational efficiency.",
+                "severity": "minor",
+                "evidence": "Section 5.3.1: 'We omit TRAK (Park et al., 2023) and other techniques such as datamodel (Ilyas et al., 2022) as they are not scalable to our setting.' While justified by scalability, this limits understanding of whether In-Run Data Shapley provides better attribution quality when methods are comparable.",
+                "affected_claim": "In-Run Data Shapley provides superior or comparable data attribution compared to existing methods.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical framework is sound. Theorems 3 and 4 correctly derive closed-form Shapley values for Taylor-approximated utility functions. The 'ghost' techniques are well-motivated and correctly implemented. The linearity property of Shapley values is properly leveraged. Approximation errors are characterized (O(η²), O(η³)), though empirical validation could be more comprehensive. No fundamental logical flaws detected in the core contributions."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "In-Run Data Shapley represents a genuinely novel contribution. While first-order In-Run Data Shapley coincides with TracIN-Ideal (Pruthi et al., 2020), the paper (1) provides the first practical implementation making it computationally feasible through ghost techniques, (2) introduces second-order variant, (3) shifts the conceptual frame from algorithm-level to model-specific attribution, and (4) is the first to apply this at foundation model scale. The distinction from retraining-based Data Shapley is meaningful and well-articulated."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a practically important problem: data attribution at foundation model scale has been computationally prohibitive. Reducing overhead from >30x to near-zero (first-order) or 2x (second-order) is a substantial contribution. The case studies provide actionable insights (data curation, copyright implications, stage-dependent contribution). However, significance is somewhat limited by restrictions to SGD and validation data availability, and experiments limited to models up to 410M parameters."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The evaluation covers efficiency (Table 1, demonstrating 30x+ speedup), fidelity (Figure 1, RMSE~0.0003 against Monte Carlo estimates), and practical applications (case studies). The data curation experiment (Figure 2) compares with influence functions. However, evaluation has gaps: approximation error analysis is limited to one checkpoint; no large-scale experiments; limited baseline comparisons (TRAK/datamodels omitted due to scalability); no systematic study of error accumulation across full training runs."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with well-structured sections. Technical contributions are explained intuitively (e.g., local vs. global utility). Theorems are stated precisely. The distinction between retraining-based and In-Run Data Shapley is clearly articulated. Extensive appendices provide additional details. Some notation is occasionally overloaded (e.g., U^(t) meaning depends on context) but this is acknowledged. Figures and tables are informative."
+              }
+            },
+            "summary_comment": "This paper makes a solid contribution to scalable data attribution by proposing In-Run Data Shapley, which computes attribution scores for a specific trained model within a single training run rather than requiring expensive retraining. The core innovation—using Taylor expansion to derive closed-form Shapley formulas combined with 'ghost' techniques to efficiently compute gradient interactions—is technically sound and well-executed. The paper is clearly written and addresses a practically important problem. The case studies provide interesting insights into pretraining data dynamics. However, the work has notable limitations: (1) experiments are limited to models up to 410M parameters, not truly 'foundation scale'; (2) the method requires validation data before training and works only with SGD, not modern optimizers like Adam; (3) approximation error analysis is incomplete, with limited validation across different training phases. These limitations are acknowledged by the authors but are substantial enough to moderate the significance claim. The paper makes a meaningful contribution to an important problem and would benefit the community, but the constraints and limited scale of validation prevent it from being a strong accept. Overall, this represents solid technical work that advances the field of efficient data attribution, suitable for publication at a top venue, though with the understanding that follow-up work is needed to fully realize the vision of practical foundation model-scale data attribution."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel conceptual framework: The paper introduces In-Run Data Shapley, a principled approach that computes data attribution for a specific trained model within a single training run, addressing fundamental limitations of traditional retraining-based Data Shapley. This is a meaningful conceptual contribution that shifts from algorithm-level attribution to model-specific attribution.",
+              "Significant technical innovation: The 'ghost dot-product' and 'ghost gradient-Hessian-gradient product' techniques are clever and well-developed solutions for computing gradient interactions without materializing individual gradient vectors. These techniques achieve near-zero overhead for first-order computation and 2x overhead for second-order, making foundation model-scale attribution feasible.",
+              "Rigorous theoretical foundation: The paper provides closed-form formulas (Theorems 3 and 4) for In-Run Data Shapley using first and second-order Taylor approximations, with clear derivations and connections to existing work (TracIN-Ideal). The use of Taylor expansion with approximation error analysis (O(η²) and O(η³)) is well-motivated.",
+              "Compelling empirical insights: The case studies on Pile pretraining provide genuinely interesting findings, including: (1) identifying that 16% of the curated Pile dataset has negative values, suggesting room for data curation; (2) demonstrating that data contribution changes significantly across training stages; (3) showing that contribution to model outputs persists even for paraphrased content, with implications for copyright discussions.",
+              "Comprehensive experimental evaluation: The paper includes efficiency benchmarks (Table 1), fidelity evaluation against Monte Carlo estimates (Figure 1, RMSE~0.0003), and comparisons with influence functions across multiple settings."
+            ],
+            "weaknesses": [
+              "Limited scope of experiments: The empirical evaluation is restricted to GPT2 and Pythia-410M (410M parameters). While the authors acknowledge this as a 'pilot study,' the scaling to truly large foundation models (e.g., billions of parameters) remains undemonstrated. The claim that the method is 'feasible for foundation model pretraining' is not fully validated at scale.",
+              "Approximation quality analysis is incomplete: The Taylor expansion-based approximations introduce errors characterized as O(η²) and O(η³), but empirical validation is limited to a single checkpoint (iteration 3500). Systematic analysis of how approximation errors evolve across different training phases, learning rates, and model sizes is absent from the submitted paper.",
+              "Validation data availability requirement: In-Run Data Shapley requires validation data to be available before training begins. While the authors discuss scenarios where this is natural, this is a non-trivial constraint that limits applicability compared to post-hoc analysis methods. The checkpoint-based workaround is acknowledged to be checkpoint-dependent with unclear selection criteria.",
+              "Limited algorithmic generality: The method is currently restricted to SGD. Extension to Adam and other adaptive optimizers is listed as future work, but this is a significant practical limitation since modern deep learning predominantly uses these optimizers. The authors clarify this is a computational challenge, not conceptual, but the barrier remains substantial.",
+              "Incomplete comparison with related methods: While the paper includes some comparison with influence functions, it lacks direct quantitative comparisons with other recent data attribution methods on tasks where they are computationally feasible, making it difficult to assess whether In-Run Data Shapley provides superior or merely comparable attribution quality."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited scope of experiments: The empirical evaluation is restricted to GPT2 and Pythia-410M (410M parameters). While the authors acknowledge this as a 'pilot study,' the scaling to truly large foundation models (e.g., billions of parameters) remains undemonstrated. The claim that the method is 'feasible for foundation model pretraining' is not fully validated at scale.",
+                "severity": "major",
+                "evidence": "Section 5.3: 'Due to computational resource constraints, most of our experiments focus on the GPT-2 and Pythia-410M models, but this is not a limitation of the algorithm itself.' The author rebuttal clarifies that the algorithmic overhead O(η²) is model-agnostic and computational constraints were the limiting factor. However, the submitted paper contains no experiments on truly large-scale models, and Table 1 runtime measurements are only on GPT2.",
+                "affected_claim": "The method is applicable to large-scale industrial foundation models and enables practical data attribution at foundation model pretraining scale.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Approximation quality analysis is incomplete: The Taylor expansion-based approximations introduce errors characterized as O(η²) and O(η³), but empirical validation is limited to a single checkpoint (iteration 3500). Systematic analysis of how approximation errors evolve across different training phases, learning rates, and model sizes is absent from the submitted paper.",
+                "severity": "major",
+                "evidence": "Section 4.1 states approximation errors are O(η²) and O(η³). Appendix E.2.2 provides empirical validation showing Spearman correlation >0.94 for first-order at iteration 3500 with specific hyperparameters (batch size 16, learning rate 3×10⁻⁴). The rebuttal acknowledges this limitation and promises additional analysis, but the submitted paper provides no systematic study across training phases, different learning rates, or model architectures.",
+                "affected_claim": "First and second-order In-Run Data Shapley provide consistently accurate estimates of the Shapley value throughout training.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Validation data availability requirement: In-Run Data Shapley requires validation data to be available before training begins. While the authors discuss scenarios where this is natural, this is a non-trivial constraint that limits applicability compared to post-hoc analysis methods. The checkpoint-based workaround is acknowledged to be checkpoint-dependent with unclear selection criteria.",
+                "severity": "major",
+                "evidence": "Section 6, Limitations: 'One potential limitation of In-Run Data Shapley is that it requires the validation data to be available before training... the choice of checkpoints can significantly impact performance, and it is unclear which checkpoints to pick.' The rebuttal acknowledges this is genuine and proposes better analysis of the trade-off, but no such analysis is present in the submitted paper.",
+                "affected_claim": "In-Run Data Shapley can be flexibly applied to any trained model, including scenarios where validation data arrives post-hoc.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited algorithmic generality: The method is currently restricted to SGD. Extension to Adam and other adaptive optimizers is listed as future work, but this is a significant practical limitation since modern deep learning predominantly uses these optimizers. The authors clarify this is a computational challenge, not conceptual, but the barrier remains substantial.",
+                "severity": "major",
+                "evidence": "Section 6, Limitations: 'Extending the \"ghost\" family techniques developed in this work to support Adam and similar optimizers remains an exciting direction for future research... the actual challenge lies in computing it efficiently without instantiating each individual gradient vector.' The rebuttal confirms the technical challenge is substantial and promises exploration but provides no preliminary findings in the submitted paper.",
+                "affected_claim": "The method scales to modern foundation model training setups that predominantly use adaptive optimizers.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Incomplete comparison with related methods: While the paper includes some comparison with influence functions, it lacks direct quantitative comparisons with other recent data attribution methods on tasks where they are computationally feasible, making it difficult to assess whether In-Run Data Shapley provides superior or merely comparable attribution quality.",
+                "severity": "minor",
+                "evidence": "Section 5.3.1: 'We omit TRAK (Park et al., 2023) and other techniques such as datamodel (Ilyas et al., 2022) as they are not scalable to our setting.' Figure 2 compares only with influence functions. The rebuttal acknowledges that comparisons are possible for small-scale settings and proposes exploring this, but no such comparisons are included in the submitted paper.",
+                "affected_claim": "In-Run Data Shapley provides superior or comparable data attribution quality compared to existing methods.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical framework is sound. Theorems 3 and 4 correctly derive closed-form Shapley values for Taylor-approximated utility functions. The 'ghost' techniques are well-motivated, correctly implemented, and clearly explained. The linearity property of Shapley values is properly leveraged to combine per-iteration contributions. Approximation errors are characterized with appropriate bounds. The rebuttal clarifies that approximation errors are theoretical bounds; while empirical validation could be more comprehensive, the existing analysis in Appendix E.2.2 demonstrates good empirical performance (Spearman >0.94). No fundamental logical flaws in core contributions."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "In-Run Data Shapley represents a genuinely novel contribution. While the rebuttal acknowledges that first-order In-Run Data Shapley coincides with TracIN-Ideal (Pruthi et al., 2020), the paper makes several distinct contributions: (1) provides the first practical, direct implementation via ghost techniques, making TracIN-Ideal computationally feasible (30x+ speedup over naive approach); (2) introduces second-order variant with interaction terms; (3) fundamentally shifts conceptual framing from algorithm-level to model-specific attribution within a single training run; (4) demonstrates first-of-its-kind application at scale on foundation model pretraining. The distinction from retraining-based Data Shapley is meaningful and well-articulated."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a practically important problem: data attribution at scale has been computationally prohibitive, limiting its application to large models. Reducing overhead from 30x+ to near-negligible (first-order) or 2x (second-order) is a substantial contribution enabling new applications. The case studies provide actionable insights for data curation and copyright discussions in generative AI. However, significance is moderated by: (1) experiments limited to 410M parameters, not demonstrating large-scale applicability; (2) restriction to SGD, not modern optimizers; (3) validation data availability requirement. These are real constraints but do not negate the core contribution—they simply define the current applicability boundary."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The evaluation covers efficiency (Table 1, demonstrating 30x+ speedup over direct implementation), fidelity (Figure 1, RMSE~0.0003 against Monte Carlo estimates), and practical applications (case studies showing data curation benefits). The data curation experiment (Figure 2) compares with influence functions, showing faster convergence. Gaps remain: approximation error validation limited to one checkpoint; no large-scale experiments; limited baseline comparisons (small-scale comparisons with TRAK/datamodels not provided). However, the submitted paper provides sufficient evidence to support the core claims of efficiency and applicability within stated constraints. The empirical validation, while not exhaustive, is adequate for the claims made."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with well-structured sections. Technical contributions are explained intuitively (e.g., local vs. global utility, ghost techniques). Theorems are stated precisely with clear interpretation. The distinction between retraining-based and In-Run Data Shapley is clearly articulated. Extensive appendices (Appendix B.1 provides detailed discussion of limitations and trade-offs). Limitations are honestly acknowledged in Section 6. Some notation is contextually dependent (U^(t)) but is acknowledged and manageable. Figures and tables effectively communicate results."
+              }
+            },
+            "summary_comment": "This paper makes a solid and timely contribution to scalable data attribution by proposing In-Run Data Shapley, which evaluates data contribution within a specific training run rather than requiring expensive retraining. The core technical innovation—Taylor expansion enabling closed-form Shapley formulas combined with 'ghost' techniques for efficient gradient interaction computation—is sound, well-executed, and overcomes practical barriers identified in prior work (TracIN-Ideal). The paper is clearly written and addresses genuine practical needs in understanding and curating training data for large models. The case studies provide interesting insights into pretraining dynamics and have implications for copyright discussions. The rebuttal clarifies important points: the algorithmic overhead is model-agnostic, and computational constraints rather than algorithmic limitations restrict current experiments; the approximation errors are theoretically bounded and empirically validated (though more comprehensive analysis would strengthen claims); SGD restriction is a computational challenge for modern optimizers, not a conceptual limitation. However, several material constraints limit full realization of the stated vision: experiments demonstrate feasibility only up to 410M parameters, not truly large foundation models; approximation quality is validated at single checkpoint, not across full training trajectory; validation data requirement and SGD-only support are genuine practical limitations. These do not invalidate the core contributions but define the current scope of applicability. The work represents a meaningful advance in efficient data attribution with solid technical execution and honest treatment of limitations, suitable for publication at a top venue. The restrictions noted (model size, optimizer, validation data timing) are acknowledged and do not materially undermine the paper's core contributions, though they identify important directions for future work."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited scope of experiments: evaluation restricted to GPT2 and Pythia-410M, not truly large-scale foundation models\",\n        \"Approximation quality concerns: Taylor expansion errors analyzed only at single checkpoint (iteration 3500), not systematically across training\",\n        \"Validation data availability requirement: method requires validation set before training begins, limiting applicability\",\n        \"Limited algorithmic generality: currently restricted to SGD, not modern optimizers like Adam\",\n        \"Incomplete baseline comparisons: TRAK and datamodels omitted due to scalability constraints\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Approximation error analysis is limited\",\n          \"location\": \"Section 4.1 and Appendix E.2.2\",\n          \"explanation\": \"The paper characterizes approximation errors as O(η²) and O(η³) for first and second-order respectively. Appendix E.2.2 provides empirical validation showing Spearman correlation >0.94 for first-order approximation, but this is demonstrated only at iteration 3500 with specific hyperparameters (batch size 16, learning rate 3×10⁻⁴). The paper does not systematically analyze how approximation errors accumulate across the full training trajectory or vary with different learning rate schedules.\"\n        },\n        {\n          \"concern\": \"Experiments limited to smaller models\",\n          \"location\": \"Section 5.3 and Limitations (Section 6)\",\n          \"explanation\": \"The paper explicitly states: 'Due to computational resource constraints, most of our experiments focus on the GPT-2 and Pythia-410M models.' While GPT2 is relatively small and Pythia-410M approaches modern scales, these are not at the scale of current large foundation models (billions of parameters). The authors acknowledge this as a 'pilot study' and state the limitation is not of the algorithm itself, but this is still a gap between claimed applicability and demonstrated capability.\"\n        },\n        {\n          \"concern\": \"Validation data must be available before training\",\n          \"location\": \"Section 6, Limitations\",\n          \"explanation\": \"The paper clearly states: 'One potential limitation of In-Run Data Shapley is that it requires the validation data to be available before training, as the data attribution scores are computed during the training process.' The suggested workaround using model checkpoints is acknowledged to be checkpoint-dependent with unclear selection criteria.\"\n        },\n        {\n          \"concern\": \"Method restricted to SGD\",\n          \"location\": \"Section 6, Limitations\",\n          \"explanation\": \"The paper states: 'Extending the \\\"ghost\\\" family techniques developed in this work to support Adam and similar optimizers remains an exciting direction for future research... the actual challenge lies in computing it efficiently without instantiating each individual gradient vector.' This indicates the technical barrier to supporting modern optimizers may be substantial.\"\n        },\n        {\n          \"concern\": \"Limited baseline comparisons\",\n          \"location\": \"Section 5.3.1\",\n          \"explanation\": \"The paper states: 'We omit TRAK (Park et al., 2023) and other techniques such as datamodel (Ilyas et al., 2022) as they are not scalable to our setting.' While the scalability argument is valid, this prevents direct quantitative comparison of attribution quality between methods at comparable computational budgets.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Approximation error analysis is limited to single checkpoint\",\n          \"proposed_change\": \"Provide systematic empirical analysis of Taylor approximation errors across multiple training phases (early, middle, late), different learning rates, and different model architectures. This could include: (1) computing error at multiple checkpoints throughout training (not just iteration 3500); (2) studying how approximation error correlates with learning rate magnitude and schedule; (3) analyzing error stability across different model sizes and architectures.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Experiments not demonstrated on truly large foundation models\",\n          \"proposed_change\": \"Extend experiments to larger models (e.g., 1B-7B parameters) if computational resources permit, or provide a detailed scaling analysis discussing computational and memory requirements for progressively larger models. This would strengthen the claim about foundation model applicability.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Method cannot work with Adam optimizer\",\n          \"proposed_change\": \"Develop and implement extensions to support at least one modern adaptive optimizer (e.g., Adam with momentum). If this requires substantial new techniques, provide a detailed technical outline of the approach, even if implementation is deferred to future work.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited baseline comparisons\",\n          \"proposed_change\": \"For small-scale experiments where TRAK and datamodels are feasible, provide direct quantitative comparisons on the same tasks and under the same computational budget constraints. This would demonstrate whether In-Run Data Shapley provides better or comparable attribution quality.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Validation data availability requirement not addressed\",\n          \"proposed_change\": \"Develop and evaluate the checkpoint-based workaround mentioned in Section 6. Provide concrete guidance on checkpoint selection (e.g., frequency, criteria) and empirical analysis of how checkpoint choice affects final results. Alternatively, explore whether In-Run Data Shapley can be approximated from a small set of saved intermediate models.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the detailed and constructive feedback from Reviewer 1. The reviewer has correctly identified several limitations of our work that we acknowledge and discuss below.\\n\\n**On Experiment Scale and Approximation Quality:**\\n\\nThe reviewer raises a valid concern about our experiments being limited to GPT2 and Pythia-410M. We agree that truly validating the method on models with billions of parameters would strengthen the claims. However, we wish to clarify two points:\\n\\n1. The computational feasibility of our method is not limited by the algorithm itself, but by available compute during submission. The ghost techniques scale well theoretically: first-order In-Run Data Shapley adds only ~1 backpropagation per iteration, making it feasible for any model size. The runtime comparison in Table 1 on GPT2 demonstrates the efficiency gain (70.5 vs 76.2 tokens/sec for regular training)—this overhead is additive and doesn't grow with model scale.\\n\\n2. Regarding approximation error analysis, the reviewer correctly notes that we provide validation primarily at iteration 3500. While we demonstrated Spearman correlation >0.94 at this single point, we recognize the need for more comprehensive analysis. The O(η²) and O(η³) error bounds are theoretical; empirical validation across different training phases, learning rates, and architectures would strengthen this section. We plan to add such analysis in a revision.\\n\\n**On Validation Data Availability:**\\n\\nThe requirement that validation data be available before training is a genuine limitation we acknowledge in Section 6. However, we note that this is not uncommon in practice: benchmark datasets are fixed before training (ImageNet, GLUE, etc.), and in many regulatory scenarios, validation protocols are predetermined. For post-hoc analysis, the checkpoint-based approach (similar to TracIN-CP) is feasible but does introduce checkpoint-selection bias—an important trade-off we should elaborate on.\\n\\n**On SGD vs. Modern Optimizers:**\\n\\nThe restriction to SGD is a significant limitation. However, we want to emphasize that extending In-Run Data Shapley to Adam is a computational challenge, not a conceptual one. The local utility function and Shapley value framework remain valid; the challenge is computing gradient interactions efficiently without explicit per-sample gradients. We believe this is solvable but requires careful technical work. We have added this to our limitations discussion (Section 6), and we believe it represents important future work rather than a fundamental flaw.\\n\\n**On Baseline Comparisons:**\\n\\nThe reviewer notes that we omit comparisons with TRAK and datamodels. We stand by this decision given scalability constraints, but the reviewer is right that this limits assessment of attribution quality versus these methods. For small-scale settings (Figure 2 and Appendix E.6), we do compare with influence functions. A more comprehensive small-scale comparison would be valuable, and we are exploring this for revised work.\\n\\n**Clarification on Conceptual Contribution:**\\n\\nWhile the first-order formula coincides with TracIN-Ideal, we believe there are important distinctions (detailed in Appendix A.3): (1) we provide the first efficient, direct implementation of this formula without approximation; (2) we develop the second-order extension; (3) most importantly, we shift the conceptual framing to model-specific attribution within a single training run, which is fundamentally different from retraining-based methods and opens new applications. The ghost techniques are novel technical contributions that overcome practical barriers identified in prior work.\\n\\n**Constructive Path Forward:**\\n\\nWe are committed to addressing these limitations:\\n- We will provide more comprehensive approximation error analysis across training phases\\n- We will explore extensions to modern optimizers and report preliminary findings\\n- We will conduct additional baseline comparisons on small-scale benchmarks\\n- We will provide better guidance on the checkpoint selection trade-off\\n\\nThese revisions will strengthen the paper without requiring new algorithmic innovations, though truly extending to Adam remains important future work.\"\n    }\n  ]\n}\n```\n\n---\n\n## Summary\n\n**Reviewer 1 (Neutral)** provides a balanced assessment, identifying genuine limitations alongside solid strengths. Here's my strategic response:\n\n### Key Points Addressed:\n\n1. **Experiment Scale**: Acknowledged but contextualized. The O(η²) overhead is model-agnostic; the computational bottleneck was access to larger compute, not algorithmic limitations. Proposed: empirical validation on larger models where feasible.\n\n2. **Approximation Error**: Valid concern. The paper provides bounds but limited empirical validation at single checkpoint. Proposed: systematic analysis across training phases and learning rates (requires new experiments but is tractable).\n\n3. **Validation Data Requirement**: Legitimate limitation acknowledged in paper. Proposed: better analysis of checkpoint-selection trade-off and guidance for practitioners.\n\n4. **SGD-only Limitation**: Honest about technical challenges in extending to Adam. This is a computational problem, not conceptual, and should not disqualify publication but should remain in limitations.\n\n5. **Missing Baselines**: Fair criticism. For small-scale experiments, comparisons are possible and valuable. For large-scale, scalability justifies omission.\n\n### Tone:\n- **Respectful** of reviewer's valid concerns\n- **Clear** about what is algorithm limitation vs. resource limitation\n- **Honest** about gaps and what future work requires\n- **Constructive** with concrete plans to strengthen claims\n\nThis approach maximizes acceptance probability by showing the authors understand legitimate limitations while defending the core contributions' novelty and soundness.",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel conceptual framework: The paper introduces In-Run Data Shapley, a principled approach that computes data attribution for a specific trained model within a single training run, addressing fundamental limitations of traditional retraining-based Data Shapley. This is a meaningful conceptual contribution that shifts from algorithm-level attribution to model-specific attribution.",
+              "Significant technical innovation: The 'ghost dot-product' and 'ghost gradient-Hessian-gradient product' techniques are clever and well-developed solutions for computing gradient interactions without materializing individual gradient vectors. These techniques achieve near-zero overhead for first-order computation and 2x overhead for second-order, making foundation model-scale attribution feasible.",
+              "Rigorous theoretical foundation: The paper provides closed-form formulas (Theorems 3 and 4) for In-Run Data Shapley using first and second-order Taylor approximations, with clear derivations and connections to existing work (TracIN-Ideal). The use of Taylor expansion with approximation error analysis (O(η²) and O(η³)) is well-motivated.",
+              "Compelling empirical insights: The case studies on Pile pretraining provide genuinely interesting findings, including: (1) identifying that 16% of the curated Pile dataset has negative values, suggesting room for data curation; (2) demonstrating that data contribution changes significantly across training stages; (3) showing that contribution to model outputs persists even for paraphrased content, with implications for copyright discussions.",
+              "Comprehensive experimental evaluation within scope: The paper includes efficiency benchmarks (Table 1 with 30x+ speedup), fidelity evaluation against Monte Carlo estimates (Figure 1, RMSE~0.0003), comparisons with influence functions, and practical case studies on real pretraining data."
+            ],
+            "weaknesses": [
+              "Limited experimental validation of approximation quality: While theoretical error bounds O(η²) and O(η³) are provided, empirical validation is restricted to a single checkpoint (iteration 3500 of GPT2 training). Systematic analysis of approximation error across multiple training phases, learning rates, and model architectures is absent, making it unclear whether approximation quality is consistent throughout training.",
+              "Claims about foundation model scalability are not empirically demonstrated: The paper claims applicability to foundation model pretraining but experiments are limited to GPT2 and Pythia-410M (410M parameters). While the algorithmic overhead is theoretically model-agnostic, the submitted paper provides no evidence (experimental or computational analysis) that the method scales to billion-parameter models.",
+              "Validation data availability requirement limits applicability: In-Run Data Shapley requires validation data before training begins, precluding post-hoc analysis of already-trained models. While this is acknowledged and scenarios where pre-training validation is available are identified, the proposed checkpoint-based workaround is not empirically analyzed in the paper, leaving practitioners without guidance on this trade-off.",
+              "Restriction to SGD limits practical applicability: Modern deep learning predominantly uses Adam and other adaptive optimizers. Extension to these optimizers is identified as substantial future work, not attempted in this paper. While the authors correctly note this is a computational challenge rather than conceptual, the practical impact is significant.",
+              "Small-scale baseline comparisons incomplete: The paper compares with influence functions on GPT2 (Figure 2) but does not provide detailed quantitative comparisons with TRAK, datamodels, or other recent methods on tasks where they are computationally feasible, making it difficult to assess relative performance."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited experimental validation of approximation quality: While theoretical error bounds O(η²) and O(η³) are provided, empirical validation is restricted to a single checkpoint (iteration 3500 of GPT2 training). Systematic analysis of approximation error across multiple training phases, learning rates, and model architectures is absent, making it unclear whether approximation quality is consistent throughout training.",
+                "severity": "major",
+                "evidence": "Section 4.1 establishes theoretical bounds. Appendix E.2.2 reports Spearman correlation >0.94 for first-order approximation, but only at iteration 3500 with batch size 16 and learning rate 3×10⁻⁴. No results are provided for other iterations, different learning rates, or model sizes. In the rebuttal, the authors acknowledge this gap and propose 'systematic analysis across early, middle, and late training phases, different learning rates' but state this requires 'new experiments' not present in the submission.",
+                "affected_claim": "First and second-order In-Run Data Shapley approximations are reliable throughout training.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Claims about foundation model scalability are not empirically demonstrated: The paper claims applicability to foundation model pretraining but experiments are limited to GPT2 and Pythia-410M (410M parameters). While the algorithmic overhead is theoretically model-agnostic, the submitted paper provides no evidence (experimental or computational analysis) that the method scales to billion-parameter models.",
+                "severity": "major",
+                "evidence": "Abstract: 'With adequate computational resources, our approach can easily be applied to larger-scale models.' Section 5.3: 'Due to computational resource constraints, most of our experiments focus on the GPT-2 and Pythia-410M models, but this is not a limitation of the algorithm itself.' Table 1 runtime measurements are only on GPT2-Small. The rebuttal explains computational constraints limited testing but acknowledges 'the submitted paper does not demonstrate this'—confirming the gap between claims and evidence.",
+                "affected_claim": "The method is applicable to large-scale foundation models and enables practical data attribution at foundation model pretraining scale.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Validation data availability requirement limits applicability: In-Run Data Shapley requires validation data before training begins, precluding post-hoc analysis of already-trained models. While this is acknowledged and scenarios where pre-training validation is available are identified, the proposed checkpoint-based workaround is not empirically analyzed in the paper, leaving practitioners without guidance on this trade-off.",
+                "severity": "major",
+                "evidence": "Section 6, Limitations: 'One potential limitation of In-Run Data Shapley is that it requires the validation data to be available before training... the choice of checkpoints can significantly impact performance, and it is unclear which checkpoints to pick.' The paper identifies but does not resolve or empirically analyze this workaround. The rebuttal acknowledges this is 'non-trivial' and proposes empirical analysis (checkpoint frequency trade-offs) not present in the submission.",
+                "affected_claim": "In-Run Data Shapley can be flexibly applied to analyze models trained without pre-specified validation sets.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Restriction to SGD limits practical applicability: Modern deep learning predominantly uses Adam and other adaptive optimizers. Extension to these optimizers is identified as substantial future work, not attempted in this paper. While the authors correctly note this is a computational challenge rather than conceptual, the practical impact is significant.",
+                "severity": "major",
+                "evidence": "Section 6, Limitations: 'Extending the \"ghost\" family techniques developed in this work to support Adam and similar optimizers remains an exciting direction for future research... the actual challenge lies in computing it efficiently.' No preliminary analysis, mathematical formulations, or design sketches for Adam support are provided in the paper. The rebuttal proposes providing 'mathematical formulation of the local utility for Adam... sketch of a potential solution' but the submission contains none of this.",
+                "affected_claim": "The method scales to modern foundation model training setups.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Small-scale baseline comparisons incomplete: The paper compares with influence functions on GPT2 (Figure 2) but does not provide detailed quantitative comparisons with TRAK, datamodels, or other recent methods on tasks where they are computationally feasible, making it difficult to assess relative performance.",
+                "severity": "minor",
+                "evidence": "Section 5.3.1: 'We omit TRAK (Park et al., 2023) and other techniques such as datamodel (Ilyas et al., 2022) as they are not scalable to our setting.' Figure 2 compares only with influence functions. Appendix E.6 is mentioned as comparing with 'existing (less scalable) data attribution techniques on standard benchmarks' but specific details on TRAK/datamodel comparisons are not provided. The rebuttal proposes adding such comparisons but they are not in the submitted paper.",
+                "affected_claim": "In-Run Data Shapley provides comparable or superior attribution quality to other methods.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical framework is sound. Theorems 3 and 4 correctly derive closed-form Shapley values for Taylor-approximated utility functions with explicit approximation error bounds. The 'ghost' techniques are rigorously justified through chain rule decomposition (Equations 4-5) and correctly generalize beyond linear layers as noted in Remark 2. The linearity property of Shapley values is properly applied to accumulate per-iteration contributions. While empirical validation of approximation quality could be more comprehensive, the existing validation (Appendix E.2.2, Spearman >0.94) provides reasonable confidence. No logical or mathematical flaws in core contributions."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "In-Run Data Shapley is genuinely novel despite connections to TracIN-Ideal. Key novel contributions: (1) First practical, direct implementation of first-order formula via ghost techniques, achieving 30x+ speedup over naive per-sample gradient computation; (2) Second-order variant with gradient-Hessian-gradient interaction terms not present in prior work; (3) Fundamental conceptual shift from average algorithm-level attribution to model-specific attribution within single training run; (4) First-of-its-kind application to foundation model pretraining data curation at scale. The distinction from retraining-based Data Shapley is significant and well-articulated across Sections 3 and Appendix B.1."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a meaningful problem: efficient data attribution has been computationally prohibitive, severely limiting application to large models. Achieving near-negligible overhead (first-order) or 2x slowdown (second-order) compared to 30x+ for naive approaches is a substantial practical advance. The case studies demonstrate actionable value: identifying 16% negatively-valued data in curated Pile, analyzing stage-dependent contribution, and relating contribution to copyright implications. However, significance is appropriately tempered by demonstrated scope: experiments at 410M parameters (not billion-scale), SGD-only (not modern optimizers), and validation data timing constraints. These do not negate the contribution but define current applicability boundaries, which is acceptable for a research contribution introducing new techniques."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The evaluation provides evidence for the core claims: (1) Efficiency: Table 1 demonstrates 30x+ speedup over direct implementation and near-parity with regular training for first-order; (2) Fidelity: Figure 1 shows RMSE~0.0003 against Monte Carlo estimates at tested checkpoint; (3) Practical utility: Figure 2 demonstrates 25% faster convergence when filtering negatively-valued data, comparing favorably with influence functions. However, evaluation has clear limitations: approximation quality validated at single checkpoint only, scaling demonstrated only to 410M parameters, baseline comparisons limited. These are gaps in comprehensiveness rather than logical flaws. The evidence provided supports the claims made, though more extensive validation would strengthen confidence."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with effective pedagogical structure. Section 3 clearly motivates the local utility function and explains how per-iteration Shapley values accumulate. Theorems are precisely stated with explicit formulas. The distinction between retraining-based and In-Run Data Shapley is clearly articulated through comparison tables (Figure 5) and detailed discussion (Appendix B.1-B.2). Technical sections (4.2) clearly explain ghost techniques through concrete examples (linear layer case study). Limitations are honestly acknowledged in Section 6. Some notation is context-dependent (U^(t) meaning depends on whether domain is full set or batch) but this is minor and does not impede understanding. Overall presentation is of high quality."
+              }
+            },
+            "summary_comment": "This paper makes a solid and timely contribution to practical data attribution through In-Run Data Shapley, a novel approach that evaluates data contribution within a specific training run without expensive retraining. The core technical contributions are sound: (1) Taylor expansion-based closed-form Shapley formulas enabling efficient computation; (2) 'ghost' techniques achieving 30x+ speedup over naive implementation while maintaining accuracy (RMSE~0.0003); (3) conceptual reframing from algorithm-level to model-specific attribution. The paper is clearly written with interesting case studies on real pretraining data (Pile), yielding insights into data curation and copyright implications. The rebuttal demonstrates mature understanding of limitations: the authors correctly distinguish between addressable gaps (approximation validation across phases, small-scale baseline comparisons, checkpoint selection guidance) and fundamental constraints (validation data timing, SGD-only support, model size demonstrations). However, significant gaps remain in the submitted paper: (1) Approximation quality validated at only one checkpoint (iteration 3500), not systematically across training phases or learning rates; (2) Foundation model applicability claimed but not demonstrated—experiments stop at 410M parameters with no computational analysis of billion-parameter scaling; (3) No empirical analysis of checkpoint-based workaround for validation data timing; (4) No preliminary work toward Adam support despite being critical for modern ML. These gaps are not fatal—the core contributions remain valuable—but they represent incomplete validation of key claims. For acceptance at a top venue, the paper demonstrates sufficient novelty, soundness, and practical impact. The limitations are appropriately acknowledged and do not undermine core contributions, though they do define current applicability scope. The work will likely inspire follow-up research extending to larger scales, modern optimizers, and post-hoc applicability scenarios."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited scope of experiments: evaluation restricted to GPT2 and Pythia-410M despite claims about foundation model applicability\",\n        \"Approximation quality analysis incomplete: Taylor expansion errors validated only at single checkpoint (iteration 3500), not systematically across training phases\",\n        \"Validation data availability requirement: method requires pre-training validation set, limiting post-hoc applicability\",\n        \"Limited algorithmic generality: SGD-only support; Adam extension remains substantial future work\",\n        \"Incomplete baseline comparisons: lack of quantitative comparisons with other methods on computationally feasible tasks\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Experiments limited to models ≤410M parameters\",\n          \"location\": \"Section 5.3 and Table 1\",\n          \"explanation\": \"The paper explicitly states 'Due to computational resource constraints, most of our experiments focus on the GPT-2 and Pythia-410M models.' Runtime evaluation in Table 1 is conducted only on GPT2-Small on a single 80GB A100 GPU. While the paper claims applicability to foundation models, no experiments on models with billions of parameters are presented. The abstract states 'With adequate computational resources, our approach can easily be applied to larger-scale models,' but this remains undemonstrated in the submission.\"\n        },\n        {\n          \"concern\": \"Approximation error analysis limited to single checkpoint\",\n          \"location\": \"Section 4.1 and Appendix E.2.2\",\n          \"explanation\": \"The paper provides theoretical error bounds of O(η²) and O(η³) for first and second-order approximations respectively. Empirical validation in Appendix E.2.2 shows Spearman correlation >0.94 for first-order approximation, but this is reported for a single iteration (3500th) with specific hyperparameters (batch size 16, learning rate 3×10⁻⁴). No systematic analysis of error evolution across early, middle, and late training phases, or sensitivity to different learning rates and model architectures, is provided in the submitted paper.\"\n        },\n        {\n          \"concern\": \"Validation data must be available before training\",\n          \"location\": \"Section 6, Limitations\",\n          \"explanation\": \"The paper states: 'One potential limitation of In-Run Data Shapley is that it requires the validation data to be available before training, as the data attribution scores are computed during the training process.' The suggested checkpoint-based workaround is acknowledged as problematic: 'the choice of checkpoints can significantly impact performance, and it is unclear which checkpoints to pick.' The submitted paper provides no empirical analysis or guidance for checkpoint selection.\"\n        },\n        {\n          \"concern\": \"Method restricted to SGD\",\n          \"location\": \"Section 6, Limitations\",\n          \"explanation\": \"The paper states: 'Extending the \\\"ghost\\\" family techniques developed in this work to support Adam and similar optimizers remains an exciting direction for future research... the actual challenge lies in computing it efficiently without instantiating each individual gradient vector.' The submitted paper contains no preliminary results, design sketches, or partial solutions for this extension.\"\n        },\n        {\n          \"concern\": \"Limited baseline comparisons in submitted paper\",\n          \"location\": \"Section 5.3.1 and Appendix E.6\",\n          \"explanation\": \"Section 5.3.1 states: 'We omit TRAK (Park et al., 2023) and other techniques such as datamodel (Ilyas et al., 2022) as they are not scalable to our setting.' Figure 2 compares In-Run Data Shapley only with influence functions. Appendix E.6 mentions comparison with 'existing (less scalable) data attribution techniques on standard benchmarks' but specifics are sparse. No direct quantitative comparison with TRAK or datamodels on small-scale tasks where they are feasible is provided.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Approximation error analysis limited to single checkpoint\",\n          \"proposed_change\": \"Add empirical analysis of approximation errors across multiple checkpoints spanning the full training run. For GPT2 experiments: (1) report Spearman correlation and RMSE at 5-10 evenly spaced checkpoints (e.g., iterations 0, 1000, 3500, 7000, 10000); (2) study sensitivity to learning rate by comparing approximation quality under different η values; (3) include error analysis for both first- and second-order approximations. This would strengthen claims about consistency of the approximation throughout training.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Experiments not at truly large foundation model scale\",\n          \"proposed_change\": \"If computational resources become available, extend experiments to at least one model in the 1B-10B parameter range. Alternatively, provide: (1) detailed computational complexity analysis (memory and FLOPs) for progressively larger models to make scaling properties explicit; (2) GPU memory profiling for first- and second-order methods at different model sizes; (3) estimation of wall-clock time needed for data attribution on models like GPT-3 scale. This would provide concrete grounding for the claim of foundation model applicability.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Method cannot work with Adam optimizer\",\n          \"proposed_change\": \"Develop preliminary technical approach for extending ghost techniques to Adam. At minimum, provide in the paper: (1) mathematical formulation of the local utility function for Adam updates; (2) analysis of why standard ghost techniques fail for adaptive optimizers; (3) sketch of a potential solution (even if not fully implemented); (4) estimates of additional computational overhead this would introduce. If full implementation is infeasible, a detailed technical roadmap would strengthen the contribution and show the barrier is well-understood.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Incomplete baseline comparisons on feasible tasks\",\n          \"proposed_change\": \"On GPT2 or other small models where TRAK, datamodels, and influence functions are computationally tractable: (1) provide side-by-side comparison of attribution quality on standard benchmarks (e.g., mislabeled data detection, data poisoning detection); (2) compare computational cost (wall-clock time, peak memory) at equivalent approximation quality levels; (3) analyze agreement between methods—do they identify the same high/low-value data points? Include results in main paper or detailed appendix.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Validation data availability requirement not addressed with concrete solutions\",\n          \"proposed_change\": \"Provide empirical analysis of the checkpoint-based workaround: (1) train a model while saving checkpoints at different frequencies (e.g., every 100, 500, 1000 iterations); (2) compute In-Run Data Shapley using different checkpoint subsets and compare resulting Shapley values; (3) propose and test systematic checkpoint selection strategies (e.g., exponential spacing, validation-loss-based selection); (4) quantify the trade-off between computational cost and Shapley value accuracy as a function of checkpoint frequency.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We thank Reviewer 1 for the thorough and fair assessment. The reviewer has correctly identified genuine limitations and important gaps between our claimed scope and demonstrated capability in the submitted paper. We appreciate the balanced tone and acknowledge that these concerns are legitimate. Below we address each:\\n\\n**1. Experiment Scale and Foundation Model Claims:**\\n\\nThe reviewer correctly notes that experiments are limited to GPT2 and Pythia-410M. We acknowledge this gap. In the rebuttal, we clarified that the algorithmic overhead is model-agnostic (first-order requires one backpropagation regardless of model size), making computational constraints the limiting factor rather than algorithmic limitations. However, the reviewer is right to point out that *the submitted paper does not demonstrate this*—we make claims about foundation model applicability without experimental evidence at large scales.\\n\\nTo strengthen this claim, we can:\\n- Provide detailed computational complexity analysis (memory and FLOPs) showing scaling properties are favorable\\n- If resources permit, run experiments on progressively larger models\\n- Otherwise, explicitly narrow the scope: position this as \\\"scaling to moderately-sized models (410M parameters) and providing a foundation for larger models with adequate compute,\\\" rather than claiming proven foundation model applicability\\n\\n**2. Approximation Error Analysis:**\\n\\nThe reviewer correctly identifies a significant gap. Figure 1 and Appendix E.2.2 show approximation quality at iteration 3500 with specific hyperparameters, but this is insufficient. We need systematic analysis across:\\n- Multiple training phases (early, mid, late) to check if approximation quality degrades\\n- Different learning rates (the approximation error depends on η)\\n- Both first and second-order to understand which is more robust\\n\\nThis is a tractable addition that would substantially strengthen the paper. We can compute exact Shapley values (via Monte Carlo with many samples) at ~5-10 checkpoints throughout training and report correlation/RMSE, demonstrating consistency.\\n\\n**3. Validation Data Availability Requirement:**\\n\\nThe reviewer identifies this as a genuine constraint. We agree—it's non-trivial, though we'd like to clarify its scope:\\n\\n- **When it's not a problem**: Benchmark datasets, ML competitions, regulatory compliance scenarios where validation sets are predetermined\\n- **When it's a problem**: Post-hoc analysis of already-trained models\\n\\nFor the latter, the checkpoint-based workaround (TracIN-CP style) is feasible but has unclear trade-offs. We should empirically analyze this: train with checkpoints at different frequencies, compute In-Run Data Shapley retroactively, and quantify accuracy loss as a function of checkpoint spacing. This analysis, while not solving the problem completely, would provide practitioners with concrete guidance.\\n\\n**4. SGD-Only Limitation:**\\n\\nThe reviewer acknowledges this is substantial but notes it's a computational challenge, not conceptual. We agree. Modern deep learning predominantly uses Adam; this is a real practical limitation. However:\\n\\n- The theoretical framework extends to any optimizer (the utility function and Shapley value definition are optimizer-agnostic)\\n- The technical barrier is specific to efficient gradient interaction computation\\n- Preliminary exploration (even if incomplete) would demonstrate we understand the problem\\n\\nWe can provide in the paper: (1) mathematical formulation of the local utility for Adam; (2) analysis of why ghost techniques don't immediately generalize; (3) a technical sketch of potential solutions with estimated overhead. Even partial progress would improve confidence.\\n\\n**5. Incomplete Baseline Comparisons:**\\n\\nThe reviewer notes that while scalability justifies omitting comparisons on large-scale tasks, we should compare on smaller tasks where methods are feasible. This is fair. On GPT2:\\n- TRAK, datamodels, and influence functions are computationally tractable\\n- We could provide attribution quality comparisons (e.g., mislabeled data detection rate, Spearman correlation with ground-truth importance)\\n- We could compare computational costs at equivalent accuracy levels\\n\\nAppendix E.6 mentions comparisons with \\\"existing (less scalable) data attribution techniques on standard benchmarks,\\\" but details are sparse. Expanding this section would strengthen the evaluation.\\n\\n**Summary of Proposed Revisions:**\\n\\nThe reviewer's concerns are well-founded and each is addressable:\\n\\n1. **Approximation error**: Add validation at multiple checkpoints ✓ (feasible)\\n2. **Experiment scale**: Provide detailed scaling analysis or narrow claims ✓ (feasible)\\n3. **Validation data timing**: Empirically analyze checkpoint-based workaround ✓ (feasible)\\n4. **Adam support**: Provide technical roadmap/sketch ✓ (feasible)\\n5. **Baseline comparisons**: Add results for small-scale tasks ✓ (feasible)\\n\\nCritically, we want to distinguish between:\\n- **Limitations of the current submission** (e.g., no approximation analysis across training, no Adam extension)—these are addressable\\n- **Fundamental constraints** (e.g., validation data requirement, SGD-only for now)—these define current applicability scope but don't invalidate the core contributions\\n\\nWe believe the paper makes a genuine contribution despite these constraints. The ghost techniques, the conceptual shift to model-specific attribution, and the first demonstration at pretraining scale are valuable. However, the reviewer is right that we should be more careful about scope claims and provide more comprehensive empirical validation of core claims (approximation quality, computational efficiency). We commit to addressing these gaps in a revised submission.\"\n    }\n  ]\n}\n```\n\n---\n\n## Key Strategic Choices in This Response\n\n### 1. **Distinguish Between Addressable Gaps and Fundamental Constraints**\n\nThe response carefully separates:\n- **Gaps in the submitted paper** (approximation analysis, baseline comparisons, Adam exploration) → these are criticisms of thoroughness, not soundness\n- **Fundamental constraints** (validation data timing, SGD-only) → these define applicability scope but don't invalidate contributions\n\nThis framing prevents the reviewer from thinking we've oversold the work, while showing we can address the most impactful concerns.\n\n### 2. **Concede Where Right; Defend Where Appropriate**\n\n- Concede: \"The reviewer is right to point out that *the submitted paper does not demonstrate this*\" (on foundation model claims)\n- Defend: \"However, the algorithmic overhead is model-agnostic... computational constraints were the limiting factor\" (explain *why* we couldn't test larger models)\n\n### 3. **Provide Concrete, Implementable Revisions**\n\nEach proposed revision is:\n- **Specific** (e.g., \"report Spearman correlation at 5-10 checkpoints\")\n- **Feasible** (no new algorithmic work required for items 1, 4, 5)\n- **Clearly labeled** with `requires_new_experiment_or_analysis: true` where appropriate\n\n### 4. **Strengthen Confidence in Core Claims**\n\nRather than defending weak claims, we propose making empirical claims *more robust*:\n- From: \"Method is accurate throughout training\" → To: \"Method is accurate at checkpoints X, Y, Z with error bounds\"\n- From: \"Applicable to foundation models\" → To: \"Scaling analysis shows computational properties are favorable; demonstrated at 410M; larger-scale experiments pending resources\"\n\n### 5. **Address the \"So What?\" Question**\n\nWe acknowledge that even with these revisions, certain constraints remain:\n- \"For post-hoc analysis... the checkpoint-based workaround is feasible but has unclear trade-offs\"\n- \"The technical barrier is specific to efficient gradient interaction computation [for Adam]\"\n\nThis honesty prevents the reviewer from dismissing the work as incomplete; instead, we show we understand the trade-offs and are managing scope responsibly.\n\n---\n\n## Why This Approach Maximizes Acceptance\n\n1. **Shows Reviewers We Listened** – We don't dismiss concerns; we validate them and propose concrete fixes\n2. **Manages Expectations** – By distinguishing addressable gaps from inherent constraints, we show maturity\n3. **Demonstrates Feasibility** – Proposed revisions are mostly empirical validation, not new theory, so reviewers have confidence they're achievable\n4. **Maintains Contribution** – The core value (ghost techniques, model-specific attribution, efficiency gains) is separate from these limitations",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_d9bb429f78e8",
+    "conference": "ICLR",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/iclr_accept_2025_024_data_shapley_in_one_training_run.md",
+    "target_paper_summary": {
+      "paper_id": "paper_d9bb429f78e8",
+      "title": "Data Shapley In One Training Run",
+      "abstract": "Data Shapley offers a principled framework for attributing the contribution of data within machine learning contexts. However, the traditional notion of Data Shapley requires re-training models on various data subsets, which becomes computationally infeasible for large-scale models. Additionally, this retraining-based definition cannot evaluate the contribution of data for a specific model training run, which may often be of interest in practice. This paper introduces a novel concept, *In-Run Data Shapley*, which eliminates the need for model retraining and is specifically designed for assessing data contribution for a particular model of interest. In-Run Data Shapley calculates the Shapley value for each gradient update iteration and accumulates these values throughout the training process. We present several techniques that allow the efficient scaling of In-Run Data Shapley to the size of foundation models. In its most optimized implementation, our method adds negligible runtime overhead compared to standard model training. This dramatic efficiency improvement makes it possible to perform data attribution for the foundation model pretraining stage. We present several case studies that offer fresh insights into pretraining data's contribution and discuss their implications for copyright in generative AI and pretraining data curation.",
+      "topic": "",
+      "claims": [
+        "We present several techniques that allow the efficient scaling of In-Run Data Shapley to the size of foundation models.",
+        "We present several case studies that offer fresh insights into pretraining data's contribution and discuss their implications for copyright in generative AI and pretraining data curation.",
+        "our method adds negligible runtime overhead compared to standard model training."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_03dfe8370",
+        "title": "Data Shapley in One Training Run",
+        "authors": [
+          "Jiachen T. Wang",
+          "Prateek Mittal",
+          "Dawn Song",
+          "Ruoxi Jia"
+        ],
+        "year": 2024,
+        "publication_date": "2024-06-16",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Data Shapley provides a principled framework for attributing data's contribution within machine learning contexts. However, existing approaches require re-training models on different data subsets, which is computationally intensive, foreclosing their application to large-scale models. Furthermore, they produce the same attribution score for any models produced by running the learning algorithm, meaning they cannot perform targeted attribution towards a specific model obtained from a single run of the algorithm. This paper introduces In-Run Data Shapley, which addresses these limitations by offering scalable data attribution for a target model of interest. In its most efficient implementation, our technique incurs negligible additional runtime compared to standard model training. This dramatic efficiency improvement makes it possible to perform data attribution for the foundation model pretraining stage for the first time. We present several case studies that offer fresh insights into pretraining data's contribution and discuss their implications for copyright in generative AI and pretraining data curation.",
+        "url": "http://arxiv.org/abs/2406.11011",
+        "doi": "https://doi.org/10.48550/arxiv.2406.11011",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4399794768"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1
+      },
+      {
+        "paper_id": "rw_002_b09a8278d",
+        "title": "Explaining a series of models by propagating Shapley values",
+        "authors": [
+          "Hugh Chen",
+          "Scott Lundberg",
+          "Su‐In Lee"
+        ],
+        "year": 2022,
+        "publication_date": "2022-08-03",
+        "venue": "Nature Communications",
+        "abstract": "Local feature attribution methods are increasingly used to explain complex machine learning models. However, current methods are limited because they are extremely expensive to compute or are not capable of explaining a distributed series of models where each model is owned by a separate institution. The latter is particularly important because it often arises in finance where explanations are mandated. Here, we present Generalized DeepSHAP (G-DeepSHAP), a tractable method to propagate local feature attributions through complex series of models based on a connection to the Shapley value. We evaluate G-DeepSHAP across biological, health, and financial datasets to show that it provides equally salient explanations an order of magnitude faster than existing model-agnostic attribution techniques and demonstrate its use in an important distributed series of models setting.",
+        "url": "https://doi.org/10.1038/s41467-022-31384-3",
+        "doi": "https://doi.org/10.1038/s41467-022-31384-3",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3207298831"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 249
+      },
+      {
+        "paper_id": "rw_003_a7d3e9ff0",
+        "title": "CatBoost for big data: an interdisciplinary review",
+        "authors": [
+          "John Hancock",
+          "Taghi M. Khoshgoftaar"
+        ],
+        "year": 2020,
+        "publication_date": "2020-11-04",
+        "venue": "Journal Of Big Data",
+        "abstract": "Gradient Boosted Decision Trees (GBDT's) are a powerful tool for classification and regression tasks in Big Data. Researchers should be familiar with the strengths and weaknesses of current implementations of GBDT's in order to use them effectively and make successful contributions. CatBoost is a member of the family of GBDT machine learning ensemble techniques. Since its debut in late 2018, researchers have successfully used CatBoost for machine learning studies involving Big Data. We take this opportunity to review recent research on CatBoost as it relates to Big Data, and learn best practices from studies that cast CatBoost in a positive light, as well as studies where CatBoost does not outshine other techniques, since we can learn lessons from both types of scenarios. Furthermore, as a Decision Tree based algorithm, CatBoost is well-suited to machine learning tasks involving categorical, heterogeneous data. Recent work across multiple disciplines illustrates CatBoost's effectiveness and shortcomings in classification and regression tasks. Another important issue we expose in literature on CatBoost is its sensitivity to hyper-parameters and the importance of hyper-parameter tuning. One contribution we make is to take an interdisciplinary approach to cover studies related to CatBoost in a single work. This provides researchers an in-depth understanding to help clarify proper application of CatBoost in solving problems. To the best of our knowledge, this is the first survey that studies all works related to CatBoost in a single publication.",
+        "url": "https://doi.org/10.1186/s40537-020-00369-8",
+        "doi": "https://doi.org/10.1186/s40537-020-00369-8",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3094948551"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1712
+      },
+      {
+        "paper_id": "rw_006_d146f1118",
+        "title": "Counterfactual Shapley Additive Explanations",
+        "authors": [
+          "Emanuele Albini",
+          "Jason Long",
+          "Danial Dervovic",
+          "Daniele Magazzeni"
+        ],
+        "year": 2022,
+        "publication_date": "2022-06-20",
+        "venue": "2022 ACM Conference on Fairness, Accountability, and Transparency",
+        "abstract": "Feature attributions are a common paradigm for model explanations due to their simplicity in assigning a single numeric score for each input feature to a model. In the actionable recourse setting, wherein the goal of the explanations is to improve outcomes for model consumers, it is often unclear how feature attributions should be correctly used. With this work, we aim to strengthen and clarify the link between actionable recourse and feature attributions. Concretely, we propose a variant of SHAP, Counterfactual SHAP (CF-SHAP), that incorporates counterfactual information to produce a background dataset for use within the marginal (a.k.a. interventional) Shapley value framework. We motivate the need within the actionable recourse setting for careful consideration of background datasets when using Shapley values for feature attributions with numerous synthetic examples. Moreover, we demonstrate the efficacy of CF-SHAP by proposing and justifying a quantitative score for feature attributions, counterfactual-ability, showing that as measured by this metric, CF-SHAP is superior to existing methods when evaluated on public datasets using tree ensembles.",
+        "url": "https://doi.org/10.1145/3531146.3533168",
+        "doi": "https://doi.org/10.1145/3531146.3533168",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3211208090"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 62
+      },
+      {
+        "paper_id": "rw_008_124131e3c",
+        "title": "Process Variable Importance Analysis by Use of Random Forests in a Shapley Regression Framework",
+        "authors": [
+          "Chris Aldrich"
+        ],
+        "year": 2020,
+        "publication_date": "2020-05-08",
+        "venue": "Minerals",
+        "abstract": "Linear regression is often used as a diagnostic tool to understand the relative contributions of operational variables to some key performance indicator or response variable. However, owing to the nature of plant operations, predictor variables tend to be correlated, often highly so, and this can lead to significant complications in assessing the importance of these variables. Shapley regression is seen as the only axiomatic approach to deal with this problem but has almost exclusively been used with linear models to date. In this paper, the approach is extended to random forests, and the results are compared with some of the empirical variable importance measures widely used with these models, i.e., permutation and Gini variable importance measures. Four case studies are considered, of which two are based on simulated data and two on real world data from the mineral process industries. These case studies suggest that the random forest Shapley variable importance measure may be a more reliable indicator of the influence of predictor variables than the other measures that were considered. Moreover, the results obtained with the Gini variable importance measure was as reliable or better than that obtained with the permutation measure of the random forest.",
+        "url": "https://doi.org/10.3390/min10050420",
+        "doi": "https://doi.org/10.3390/min10050420",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3022396332"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 84
+      },
+      {
+        "paper_id": "rw_009_f64604081",
+        "title": "Explainable Artificial Intelligence (XAI): Concepts, taxonomies, opportunities and challenges toward responsible AI",
+        "authors": [
+          "Alejandro Barredo Arrieta",
+          "Natalia Díaz-Rodríguez",
+          "Javier Del Ser",
+          "Adrien Bennetot",
+          "Siham Tabik",
+          "Alberto Barbado",
+          "Salvador García",
+          "Sergio Gil-López",
+          "Daniel Molina",
+          "Richard Benjamins",
+          "Raja Chatila",
+          "Francisco Herrera"
+        ],
+        "year": 2019,
+        "publication_date": "2019-12-26",
+        "venue": "Information Fusion",
+        "abstract": "",
+        "url": "https://doi.org/10.1016/j.inffus.2019.12.012",
+        "doi": "https://doi.org/10.1016/j.inffus.2019.12.012",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2981731882"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 9278
+      },
+      {
+        "paper_id": "rw_010_5f5bf4290",
+        "title": "The future of digital health with federated learning",
+        "authors": [
+          "Nicola Rieke",
+          "Jonny Hancox",
+          "Wenqi Li",
+          "Fausto Milletarì",
+          "Holger R. Roth",
+          "Shadi Albarqouni",
+          "Spyridon Bakas",
+          "Mathieu N. Galtier",
+          "Bennett A. Landman",
+          "Klaus Maier-Hein",
+          "Sébastien Ourselin",
+          "Micah Sheller",
+          "Ronald M. Summers",
+          "Andrew Trask",
+          "Daguang Xu",
+          "Maximilian Baust",
+          "M. Jorge Cardoso"
+        ],
+        "year": 2020,
+        "publication_date": "2020-09-14",
+        "venue": "npj Digital Medicine",
+        "abstract": "Data-driven machine learning (ML) has emerged as a promising approach for building accurate and robust statistical models from medical data, which is collected in huge volumes by modern healthcare systems. Existing medical data is not fully exploited by ML primarily because it sits in data silos and privacy concerns restrict access to this data. However, without access to sufficient data, ML will be prevented from reaching its full potential and, ultimately, from making the transition from research to clinical practice. This paper considers key factors contributing to this issue, explores how federated learning (FL) may provide a solution for the future of digital health and highlights the challenges and considerations that need to be addressed.",
+        "url": "https://doi.org/10.1038/s41746-020-00323-1",
+        "doi": "https://doi.org/10.1038/s41746-020-00323-1",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3012501605"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 2673
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_001_03dfe8370",
+        "relevance_score": 1.0,
+        "relevance_types": [
+          "same_problem",
+          "same_method",
+          "same_constraints",
+          "novelty_competitor"
+        ],
+        "rationale": "This is the exact same paper as the target, matching the title 'Data Shapley in One Training Run' and addressing the same problem, method, and constraints.",
+        "evidence_summary": "In 2024, Wang et al. published 'Data Shapley in One Training Run,' which introduced In-Run Data Shapley for scalable data attribution targeting a specific model from a single training run, eliminating the need for model retraining. The technique incurs negligible additional runtime compared to standard training, enabling data attribution for foundation model pretraining. The authors presented case studies on pretraining data contribution and implications for copyright in generative AI and data curation."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_002_b09a8278d",
+        "relevance_score": 0.75,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This paper presents a Shapley value propagation method for explaining series of models, sharing the Shapley-based attribution approach but differing in problem setting and scalability focus.",
+        "evidence_summary": "In 2022, Chen et al. published 'Explaining a series of models by propagating Shapley values,' which proposed Generalized DeepSHAP (G-DeepSHAP) to propagate local feature attributions through complex series of models. The method was evaluated on biological, health, and financial datasets and provided explanations an order of magnitude faster than existing model-agnostic attribution techniques. It demonstrated utility in distributed model settings where explanations are mandated, such as in finance."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_006_d146f1118",
+        "relevance_score": 0.7,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This work introduces a Shapley variant for actionable recourse, sharing the theme of Shapley-based feature attribution but differing in problem context and method adaptation.",
+        "evidence_summary": "In 2022, Albini et al. published 'Counterfactual Shapley Additive Explanations,' which proposed CF-SHAP, a variant incorporating counterfactual information for feature attributions within the marginal Shapley value framework. The paper introduced a quantitative score, counterfactual-ability, and demonstrated CF-SHAP's superiority over existing methods on public datasets using tree ensembles for actionable recourse settings."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_008_124131e3c",
+        "relevance_score": 0.5,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This paper applies Shapley regression with random forests for variable importance, sharing the use of Shapley values but differing in application domain and method integration.",
+        "evidence_summary": "In 2020, Aldrich published 'Process Variable Importance Analysis by Use of Random Forests in a Shapley Regression Framework,' which extended Shapley regression to random forests for assessing variable importance in the presence of correlated predictors. The method was evaluated on two simulated and two real-world mineral process industry datasets and showed the Shapley variable importance measure was more reliable than permutation or Gini measures."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_009_f64604081",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "background"
+        ],
+        "rationale": "This survey covers XAI concepts including Shapley values, providing general background on explainability but lacking specific method details or constraints relevant to the target.",
+        "evidence_summary": "In 2019, Arrieta et al. published 'Explainable Artificial Intelligence (XAI): Concepts, taxonomies, opportunities and challenges toward responsible AI,' which reviewed concepts and taxonomies in explainable AI. The work addressed opportunities and challenges for responsible AI but did not specify datasets, methods, or empirical results."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_010_5f5bf4290",
+        "relevance_score": 0.3,
+        "relevance_types": [
+          "background"
+        ],
+        "rationale": "This paper discusses federated learning for digital health, sharing a broad ML context but having no direct relevance to Shapley values or data attribution.",
+        "evidence_summary": "In 2020, Rieke et al. published 'The future of digital health with federated learning,' which explored how federated learning could address data silos and privacy concerns in healthcare. The paper highlighted challenges and considerations for applying machine learning to medical data but did not mention specific methods, datasets, or performance results."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_003_a7d3e9ff0",
+        "relevance_score": 0.2,
+        "relevance_types": [
+          "background"
+        ],
+        "rationale": "This review covers CatBoost for big data, sharing a machine learning context but having no connection to Shapley values or data attribution methods.",
+        "evidence_summary": "In 2020, Hancock and Khoshgoftaar published 'CatBoost for big data: an interdisciplinary review,' which reviewed CatBoost's effectiveness and shortcomings in classification and regression tasks involving categorical, heterogeneous data. The paper noted sensitivity to hyper-parameters and the importance of tuning but did not specify datasets, metrics, or comparative results."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Jiachen T. Wang et al. published \"Data Shapley in One Training Run\" in arXiv (Cornell University). The authors present several case studies that offer fresh insights into pretraining data's contribution and discuss their implications for copyright in generative AI and pretraining data curation. Furthermore, they produce the same attribution score for any models produced by running the learning algorithm, meaning they cannot perform targeted attribution towards a specific model obtained from a single run of the algorithm. However, existing approaches require re-training models on different data subsets, which is computationally intensive, foreclosing their application to large-scale models. In 2022, Hugh Chen et al. published \"Explaining a series of models by propagating Shapley values\" in Nature Communications. Here, the authors present Generalized DeepSHAP (G-DeepSHAP), a tractable method to propagate local feature attributions through complex series of models based on a connection to the Shapley value. The authors evaluate G-DeepSHAP across biological, health, and financial datasets to show that it provides equally salient explanations an order of magnitude faster than existing model-agnostic attribution techniques and demonstrate its use in an important distributed series of models setting. However, current methods are limited because they are extremely expensive to compute or are not capable of explaining a distributed series of models where each model is owned by a separate institution. In 2022, Emanuele Albini et al. published \"Counterfactual Shapley Additive Explanations\" in 2022 ACM Conference on Fairness, Accountability, and Transparency. Concretely, the authors propose a variant of SHAP, Counterfactual SHAP (CF-SHAP), that incorporates counterfactual information to produce a background dataset for use within the marginal (a.k.a. interventional) Shapley value framework. Feature attributions are a common paradigm for model explanations due to their simplicity in assigning a single numeric score for each input feature to a model. Moreover, the authors demonstrate the efficacy of CF-SHAP by proposing and justifying a quantitative score for feature attributions, counterfactual-ability, showing that as measured by this metric, CF-SHAP is superior to existing methods when evaluated on public datasets using tree ensembles. In 2020, Chris Aldrich published \"Process Variable Importance Analysis by Use of Random Forests in a Shapley Regression Framework\" in Minerals. Linear regression is often used as a diagnostic tool to understand the relative contributions of operational variables to some key performance indicator or response variable. Four case studies are considered, of which two are based on simulated data and two on real world data from the mineral process industries. Shapley regression is seen as the only axiomatic approach to deal with this problem but has almost exclusively been used with linear models to date. In 2019, Alejandro Barredo Arrieta et al. published \"Explainable Artificial Intelligence (XAI): Concepts, taxonomies, opportunities and challenges toward responsible AI\" in Information Fusion. The available metadata does not include an abstract with contribution, dataset, or result details. In 2020, Nicola Rieke et al. published \"The future of digital health with federated learning\" in npj Digital Medicine. Existing medical data is not fully exploited by ML primarily because it sits in data silos and privacy concerns restrict access to this data. Data-driven machine learning (ML) has emerged as a promising approach for building accurate and robust statistical models from medical data, which is collected in huge volumes by modern healthcare systems. This paper considers key factors contributing to this issue, explores how federated learning (FL) may provide a solution for the future of digital health and highlights the challenges and considerations that need to be addressed.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 3,
+      "num_removed_undated": 0,
+      "num_used": 7,
+      "num_cutoff_valid": 7,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 3,
+    "num_removed_undated": 0,
+    "num_used": 7,
+    "num_cutoff_valid": 7,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

@@ -1,0 +1,248 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 3,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "The paper addresses a relevant and practical problem in federated class-incremental learning (FCIL) by tackling class imbalance in data replay, which is an important challenge in this domain.",
+        "The proposed method combines two complementary modules (GDR and TTS) with clear motivation: using SVD-based privacy-preserving feature aggregation for balanced sampling and temperature scaling for handling class imbalance across tasks.",
+        "Comprehensive experimental evaluation across three datasets (CIFAR-10, CIFAR-100, TinyImageNet) with multiple heterogeneity levels and detailed ablation studies demonstrating the contribution of each component.",
+        "The paper includes practical considerations such as visualization of attention maps, sensitivity analysis of hyperparameters, and per-class distribution analysis showing balanced sampling.",
+        "Strong empirical results showing 2%-15% improvement over baselines in most settings and relatively lower sensitivity to buffer size compared to Re-Fed."
+      ],
+      "weaknesses": [
+        "The technical novelty is limited as the paper primarily combines existing techniques (SVD for data encryption, leverage scores for sampling, temperature scaling for loss adjustment) without significant algorithmic innovation.",
+        "The privacy preservation claims are not rigorously justified - the paper claims privacy-preserving reconstruction but lacks formal privacy analysis (e.g., differential privacy guarantees) and the encrypted features could potentially leak information through leverage scores and SVD operations.",
+        "The method introduces significant communication and computational overhead (feature extraction, ISVD, SVD, leverage score computation) that is not thoroughly analyzed; while Appendix A.1.7 provides some numbers, the scalability to larger feature dimensions and client numbers remains unclear.",
+        "The theoretical justification for why leverage scores from SVD correspond to globally important samples for class-balanced sampling is missing - this connection needs formal analysis rather than intuitive explanation.",
+        "The temperature scaling parameters (τ_old, τ_new, ω_old, ω_new) require careful tuning with multiple hyperparameter combinations shown in Figure 4 to have substantial impact on performance, limiting the method's practical applicability.",
+        "The paper lacks comparison with other class-balancing strategies in federated learning and does not discuss why this particular SVD-based approach is fundamentally better than simpler alternatives (e.g., class-frequency based balancing).",
+        "One experiment (CIFAR-100, 5 tasks, β=1.0) shows LANDER slightly outperforming FedCBDR, which is dismissed without adequate explanation or analysis of when the method might underperform.",
+        "The writing quality could be improved with some unclear notation (e.g., the relationship between cached samples and replay buffer in Algorithm 1) and dense presentation of the GDR module."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The technical novelty is limited as the paper primarily combines existing techniques (SVD for data encryption, leverage scores for sampling, temperature scaling for loss adjustment) without significant algorithmic innovation.",
+          "severity": "major",
+          "evidence": "The GDR module uses standard SVD and leverage scores (well-established in matrix theory), while TTS applies standard temperature scaling techniques. The paper combines these without introducing fundamentally new techniques or theoretical insights specific to FCIL.",
+          "affected_claim": "The contribution of proposing FedCBDR as a novel approach to FCIL",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The privacy preservation claims are not rigorously justified - the paper claims privacy-preserving reconstruction but lacks formal privacy analysis (e.g., differential privacy guarantees) and the encrypted features could potentially leak information through leverage scores and SVD operations.",
+          "severity": "major",
+          "evidence": "Section 4.1 claims 'privacy-preserving manner' and uses ISVD encryption, but provides no formal privacy analysis. The leverage scores are computed locally then sent to server, and SVD operations on concatenated encrypted features could potentially allow reconstruction attacks. No comparison with formal privacy guarantees is provided.",
+          "affected_claim": "The method preserves privacy while achieving global coordination",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The method introduces significant communication and computational overhead (feature extraction, ISVD, SVD, leverage score computation) that is not thoroughly analyzed in the main paper.",
+          "severity": "major",
+          "evidence": "Appendix A.1.7 provides only limited overhead analysis with specific settings. Table 11 shows ISVD time ~0.006s and feature extraction ~0.9-1.0s per client, but scalability analysis for larger datasets, higher dimensions, and more clients is incomplete. The communication cost analysis (3.9-19.5 MB per round for CIFAR-10 with 10 clients) is relegated to appendix.",
+          "affected_claim": "FedCBDR is a practical and scalable solution for FCIL",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The theoretical justification for why leverage scores from SVD correspond to globally important samples for class-balanced sampling is missing - this connection needs formal analysis rather than intuitive explanation.",
+          "severity": "major",
+          "evidence": "Section 4.1 states 'a higher leverage score indicates that the sample has a larger projection in the low-dimensional latent space, suggesting that it contributes more significantly to the global structure and is more representative' but provides no formal proof that this leads to class-balanced sampling or why this is optimal for FCIL.",
+          "affected_claim": "Leverage scores enable principled class-balanced sampling for FCIL",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The temperature scaling parameters require careful tuning with multiple hyperparameter combinations shown in Figure 4 to have substantial impact on performance, limiting practical applicability.",
+          "severity": "major",
+          "evidence": "Figure 4 shows substantial sensitivity to τ_old, τ_new, ω_old, ω_new combinations. Performance varies significantly (e.g., τ_new = 2.0 leads to poor performance). The paper mentions 'appropriate hyperparameter choices' but doesn't provide principled selection guidance, making the method less practical.",
+          "affected_claim": "FedCBDR is a robust and practical method requiring minimal tuning",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The paper lacks comparison with other class-balancing strategies in federated learning and does not justify why SVD-based approach is fundamentally better than simpler alternatives.",
+          "severity": "minor",
+          "evidence": "No ablation or comparison with simpler class-balancing methods (e.g., maintaining class frequency statistics globally, per-class uniform sampling). The paper only compares against Re-Fed which uses local selection, not against other global balancing strategies.",
+          "affected_claim": "The SVD-based global coordination is an effective approach for class-balanced sampling",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "One experiment (CIFAR-100, 5 tasks, β=1.0) shows LANDER slightly outperforming FedCBDR, which is dismissed without adequate explanation.",
+          "severity": "minor",
+          "evidence": "Table 2 shows FedCBDR (52.06%) < LANDER (52.77%) on this setting. The paper dismisses this as 'suboptimal' but notes LANDER has 10,000+ generated samples per task. No analysis of why FedCBDR underperforms or when such cases might occur.",
+          "affected_claim": "FedCBDR achieves the highest Top-1 accuracy in most cases",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The writing clarity could be improved with unclear notation and dense presentation, particularly in the GDR module description.",
+          "severity": "minor",
+          "evidence": "Algorithm 1 shows 'B^pre_k' (replay buffer for historical tasks) but relationship to 'cached samples' and replay sampling procedure is not clearly explained. Equations 1-6 are presented densely without sufficient intuitive explanation. The index selection function I_k(·) in Eq. 4 is not formally defined.",
+          "affected_claim": "The paper is clearly written and easy to understand",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "While the empirical results are solid, the soundness suffers from: (1) lack of formal privacy analysis despite privacy-preservation claims; (2) missing theoretical justification connecting leverage scores to class-balanced sampling; (3) incomplete complexity analysis; (4) insufficient explanation of why the method works on one failure case. The core technical contributions lack rigorous theoretical grounding."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The paper combines existing techniques (SVD, leverage scores, temperature scaling) without significant algorithmic innovation. While the application to FCIL is somewhat novel, the individual components are well-established, and their combination is relatively straightforward without deep insights into why this particular combination is optimal or necessary for FCIL."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper addresses a relevant problem (class imbalance in federated class-incremental learning) and shows consistent empirical improvements. However, the significance is moderate because: (1) the improvements are incremental (2-15% in many cases); (2) the problem is addressed through engineering rather than fundamental insights; (3) the scalability and practical deployment remain unclear."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The experimental evaluation is comprehensive with multiple datasets, heterogeneity levels, task splits, and detailed ablations. The paper includes sensitivity analysis, per-class distribution analysis, and visualization studies. However, the evaluation could be strengthened by: (1) larger-scale experiments with more clients (50/100 relegated to appendix); (2) comparison with simpler baselines; (3) analysis of the failure case; (4) more rigorous privacy evaluation."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-organized with clear motivation, problem formulation, and comprehensive experiments. However, presentation could be improved by: (1) clearer notation and definitions in Algorithm 1 and GDR description; (2) better intuition for why leverage scores enable balanced sampling; (3) moving some results from appendix to main paper; (4) more rigorous mathematical exposition of key concepts."
+        }
+      },
+      "summary_comment": "This paper tackles the important problem of class imbalance in federated class-incremental learning through a combination of SVD-based global coordination (GDR) and temperature scaling (TTS). While the empirical results are strong and comprehensive, the work suffers from significant limitations that prevent acceptance at a top-tier venue: (1) Limited technical novelty - the paper primarily combines existing techniques without fundamental innovation; (2) Unsupported privacy claims - the privacy-preservation mechanism lacks formal analysis; (3) Incomplete theoretical justification - the connection between leverage scores and class-balanced sampling is intuitive but not rigorously proven; (4) Practical concerns - hyperparameter sensitivity and computational overhead reduce applicability. The empirical evaluation is thorough, but the work reads more as a solid engineering contribution than a fundamental advance in federated learning. The paper would benefit from: formal privacy analysis, theoretical justification of the approach, comparison with simpler baselines, and clearer presentation of the technical content. For a top-tier ML conference, stronger novelty and more rigorous theoretical grounding are expected."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Addresses a relevant machine learning problem: federated class-incremental learning with class imbalance, which aligns with ICML's interest in learning theory and trustworthy ML\",\n      \"Proposes an optimization-focused approach combining data replay with loss adjustment (temperature scaling), relevant to ICML's emphasis on optimization methods\",\n      \"Comprehensive empirical evaluation with ablation studies and sensitivity analysis demonstrates rigorous methodology valued at ICML\",\n      \"Tackles non-IID data distribution challenges relevant to ICML's interest in general machine learning and distributed methods\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited technical novelty: combines existing techniques (SVD, leverage scores, temperature scaling) without fundamental algorithmic innovation, which ICML values highly\",\n      \"Lacks theoretical analysis: no formal proofs connecting leverage scores to class-balanced sampling or convergence guarantees; ICML expects strong theoretical contributions\",\n      \"Privacy claims unsupported: despite claiming 'privacy-preserving' design, paper provides no formal differential privacy analysis or security proofs; ICML's trustworthy ML emphasis demands rigorous privacy guarantees\",\n      \"Incomplete complexity analysis relegated to appendix; ICML expects thorough computational and communication cost analysis in main paper for distributed methods\",\n      \"Engineering-focused contribution: problem solved through hyperparameter tuning (temperature, weights) rather than novel insights into class imbalance or federated learning; ICML expects deeper methodological contributions\",\n      \"Marginal improvements in several settings (only 2-3% over baselines on some datasets) and one outright failure case (CIFAR-100, β=1.0) with no theoretical explanation\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Addresses multi-task learning and federated learning, both listed topics at NeurIPS with emphasis on practical applications\",\n      \"Comprehensive experimental evaluation on multiple datasets with varying heterogeneity levels demonstrates the empirical validation NeurIPS values\",\n      \"Problem spans data-centric AI and optimization aspects aligned with NeurIPS topics\",\n      \"Application-driven approach with practical motivation for real federated learning scenarios (privacy preservation across clients)\",\n      \"Includes detailed ablations, sensitivity analysis, and visualization studies showing thorough empirical investigation\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited novelty in technical approach: standard application of existing techniques (SVD, leverage scores, temperature scaling) without new algorithmic insights; NeurIPS expects more substantial innovation\",\n      \"Unsupported privacy claims: paper claims privacy-preservation but lacks formal privacy analysis or comparison with differential privacy standards; NeurIPS places high value on trustworthy ML rigor\",\n      \"Missing theoretical grounding: no formal justification for why leverage scores enable balanced sampling in federated settings; NeurIPS increasingly values theoretical depth even for empirical work\",\n      \"Hyperparameter sensitivity (Figure 4) suggests method is sensitive to tuning choices; NeurIPS values robust methods that work across settings\",\n      \"Computational overhead not thoroughly addressed in main paper; NeurIPS emphasizes systems aspects and scalability for distributed algorithms\",\n      \"Incremental improvements: 2-15% gains are modest improvements over baselines, and one setting underperforms LANDER without adequate explanation\",\n      \"Problem is somewhat niche (class imbalance in federated class-incremental learning) compared to broader federated learning challenges\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Federated class-incremental learning directly relates to ICLR's focus on representation learning, meta-learning, and lifelong learning\",\n      \"Data replay for mitigating catastrophic forgetting is a core representation learning problem at ICLR\",\n      \"Application of loss adjustment (temperature scaling) for handling class imbalance relates to ICLR's interest in optimization and learning under distribution shift\",\n      \"Comprehensive experiments on multiple datasets with different heterogeneity levels and task configurations\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited representation learning novelty: the paper uses standard feature extraction and replay without proposing new representation learning techniques; ICLR emphasizes novel ways to learn representations\",\n      \"Combines existing techniques without fundamental contribution: SVD-based feature aggregation and temperature scaling are well-established; ICLR expects deeper insights into representation learning\",\n      \"Privacy claims lack rigor: ICLR values safety and privacy considerations but the paper provides no formal privacy analysis despite claiming 'privacy-preserving' design\",\n      \"Missing theoretical justification: no formal analysis of why this particular combination of techniques is optimal for learning under class imbalance; ICLR values theoretical contributions\",\n      \"Engineering-focused: problem solved through careful hyperparameter tuning rather than insights into representation learning dynamics or class imbalance in federated settings\",\n      \"One experimental failure (CIFAR-100, β=1.0) with inadequate analysis; ICLR values understanding of method limitations\",\n      \"Computational/communication overhead concerns for scalability to larger-scale representation learning problems\",\n      \"Hyperparameter sensitivity (4 temperature/weight parameters requiring tuning) limits method applicability to broader representation learning contexts\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\nBased on the reviewer feedback and conference profiles:\n\n### **Key Assessment:**\n\nThe paper presents a **solid engineering contribution** to federated class-incremental learning but suffers from **limited technical novelty** and **weak theoretical grounding**—issues that critically impact fit at top-tier ML venues.\n\n**Critical Issues:**\n1. **Novelty**: Combines existing techniques (SVD, leverage scores, temperature scaling) without fundamental algorithmic innovation\n2. **Soundness**: Privacy claims unsupported (no formal privacy analysis); theoretical justification for leverage score method missing\n3. **Rigor**: Hyperparameter sensitivity; incomplete complexity analysis; one failure case unexplained\n4. **Scope**: Problem is somewhat niche; improvements are incremental (2-15%)\n\n### **Venue Fit Rankings:**\n\n- **ICML (5/10 - Borderline/Risky)**: Values strong theory and optimization insights. Paper lacks theoretical analysis connecting leverage scores to class-balanced sampling. Privacy claims unsubstantiated. Engineering contribution insufficient for ICML's standards.\n\n- **NeurIPS (6/10 - Borderline)**: More receptive to empirical contributions and applications, but paper still lacks novelty and theoretical depth. Hyperparameter sensitivity and scalability concerns remain problematic. Better fit than ICML but risky.\n\n- **ICLR (5/10 - Borderline/Risky)**: Emphasizes representation learning and understanding of learned features. Paper treats representation as fixed and focuses on replay/loss adjustment—not core ICLR territory. Missing insights into learning dynamics under class imbalance.\n\n### **Recommendation:**\nThis paper would likely be **rejected at all three venues** in its current form due to limited novelty and unsupported core claims (especially privacy). The work needs: (1) formal privacy analysis, (2) theoretical justification of the approach, (3) comparison with simpler baselines, or (4) reformulation to emphasize representation learning aspects for ICLR. **NeurIPS is the best option** if targeting a top venue, given its broader acceptance of application-driven empirical work, but expect reviewer concerns about novelty and rigor.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 3,
+              "evaluation": 3,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a relevant and practical problem in federated class-incremental learning (FCIL) by tackling class imbalance in data replay, which is an important challenge in this domain.",
+              "The proposed method combines two complementary modules (GDR and TTS) with clear motivation: using SVD-based privacy-preserving feature aggregation for balanced sampling and temperature scaling for handling class imbalance across tasks.",
+              "Comprehensive experimental evaluation across three datasets (CIFAR-10, CIFAR-100, TinyImageNet) with multiple heterogeneity levels and detailed ablation studies demonstrating the contribution of each component.",
+              "The paper includes practical considerations such as visualization of attention maps, sensitivity analysis of hyperparameters, and per-class distribution analysis showing balanced sampling.",
+              "Strong empirical results showing 2%-15% improvement over baselines in most settings and relatively lower sensitivity to buffer size compared to Re-Fed."
+            ],
+            "weaknesses": [
+              "The technical novelty is limited as the paper primarily combines existing techniques (SVD for data encryption, leverage scores for sampling, temperature scaling for loss adjustment) without significant algorithmic innovation.",
+              "The privacy preservation claims are not rigorously justified - the paper claims privacy-preserving reconstruction but lacks formal privacy analysis (e.g., differential privacy guarantees) and the encrypted features could potentially leak information through leverage scores and SVD operations.",
+              "The method introduces significant communication and computational overhead (feature extraction, ISVD, SVD, leverage score computation) that is not thoroughly analyzed; while Appendix A.1.7 provides some numbers, the scalability to larger feature dimensions and client numbers remains unclear.",
+              "The theoretical justification for why leverage scores from SVD correspond to globally important samples for class-balanced sampling is missing - this connection needs formal analysis rather than intuitive explanation.",
+              "The temperature scaling parameters (τ_old, τ_new, ω_old, ω_new) require careful tuning with multiple hyperparameter combinations shown in Figure 4 to have substantial impact on performance, limiting the method's practical applicability.",
+              "The paper lacks comparison with other class-balancing strategies in federated learning and does not discuss why this particular SVD-based approach is fundamentally better than simpler alternatives (e.g., class-frequency based balancing).",
+              "One experiment (CIFAR-100, 5 tasks, β=1.0) shows LANDER slightly outperforming FedCBDR, which is dismissed without adequate explanation or analysis of when the method might underperform.",
+              "The writing quality could be improved with some unclear notation (e.g., the relationship between cached samples and replay buffer in Algorithm 1) and dense presentation of the GDR module."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The technical novelty is limited as the paper primarily combines existing techniques (SVD for data encryption, leverage scores for sampling, temperature scaling for loss adjustment) without significant algorithmic innovation.",
+                "severity": "major",
+                "evidence": "The GDR module uses standard SVD and leverage scores (well-established in matrix theory), while TTS applies standard temperature scaling techniques. The paper combines these without introducing fundamentally new techniques or theoretical insights specific to FCIL.",
+                "affected_claim": "The contribution of proposing FedCBDR as a novel approach to FCIL",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The privacy preservation claims are not rigorously justified - the paper claims privacy-preserving reconstruction but lacks formal privacy analysis (e.g., differential privacy guarantees) and the encrypted features could potentially leak information through leverage scores and SVD operations.",
+                "severity": "major",
+                "evidence": "Section 4.1 claims 'privacy-preserving manner' and uses ISVD encryption, but provides no formal privacy analysis. The leverage scores are computed locally then sent to server, and SVD operations on concatenated encrypted features could potentially allow reconstruction attacks. No comparison with formal privacy guarantees is provided.",
+                "affected_claim": "The method preserves privacy while achieving global coordination",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The method introduces significant communication and computational overhead (feature extraction, ISVD, SVD, leverage score computation) that is not thoroughly analyzed in the main paper.",
+                "severity": "major",
+                "evidence": "Appendix A.1.7 provides only limited overhead analysis with specific settings. Table 11 shows ISVD time ~0.006s and feature extraction ~0.9-1.0s per client, but scalability analysis for larger datasets, higher dimensions, and more clients is incomplete. The communication cost analysis (3.9-19.5 MB per round for CIFAR-10 with 10 clients) is relegated to appendix.",
+                "affected_claim": "FedCBDR is a practical and scalable solution for FCIL",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The theoretical justification for why leverage scores from SVD correspond to globally important samples for class-balanced sampling is missing - this connection needs formal analysis rather than intuitive explanation.",
+                "severity": "major",
+                "evidence": "Section 4.1 states 'a higher leverage score indicates that the sample has a larger projection in the low-dimensional latent space, suggesting that it contributes more significantly to the global structure and is more representative' but provides no formal proof that this leads to class-balanced sampling or why this is optimal for FCIL.",
+                "affected_claim": "Leverage scores enable principled class-balanced sampling for FCIL",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The temperature scaling parameters require careful tuning with multiple hyperparameter combinations shown in Figure 4 to have substantial impact on performance, limiting practical applicability.",
+                "severity": "major",
+                "evidence": "Figure 4 shows substantial sensitivity to τ_old, τ_new, ω_old, ω_new combinations. Performance varies significantly (e.g., τ_new = 2.0 leads to poor performance). The paper mentions 'appropriate hyperparameter choices' but doesn't provide principled selection guidance, making the method less practical.",
+                "affected_claim": "FedCBDR is a robust and practical method requiring minimal tuning",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The paper lacks comparison with other class-balancing strategies in federated learning and does not justify why SVD-based approach is fundamentally better than simpler alternatives.",
+                "severity": "minor",
+                "evidence": "No ablation or comparison with simpler class-balancing methods (e.g., maintaining class frequency statistics globally, per-class uniform sampling). The paper only compares against Re-Fed which uses local selection, not against other global balancing strategies.",
+                "affected_claim": "The SVD-based global coordination is an effective approach for class-balanced sampling",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "One experiment (CIFAR-100, 5 tasks, β=1.0) shows LANDER slightly outperforming FedCBDR, which is dismissed without adequate explanation.",
+                "severity": "minor",
+                "evidence": "Table 2 shows FedCBDR (52.06%) < LANDER (52.77%) on this setting. The paper dismisses this as 'suboptimal' but notes LANDER has 10,000+ generated samples per task. No analysis of why FedCBDR underperforms or when such cases might occur.",
+                "affected_claim": "FedCBDR achieves the highest Top-1 accuracy in most cases",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The writing clarity could be improved with unclear notation and dense presentation, particularly in the GDR module description.",
+                "severity": "minor",
+                "evidence": "Algorithm 1 shows 'B^pre_k' (replay buffer for historical tasks) but relationship to 'cached samples' and replay sampling procedure is not clearly explained. Equations 1-6 are presented densely without sufficient intuitive explanation. The index selection function I_k(·) in Eq. 4 is not formally defined.",
+                "affected_claim": "The paper is clearly written and easy to understand",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While the empirical results are solid, the soundness suffers from: (1) lack of formal privacy analysis despite privacy-preservation claims; (2) missing theoretical justification connecting leverage scores to class-balanced sampling; (3) incomplete complexity analysis; (4) insufficient explanation of why the method works on one failure case. The core technical contributions lack rigorous theoretical grounding."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The paper combines existing techniques (SVD, leverage scores, temperature scaling) without significant algorithmic innovation. While the application to FCIL is somewhat novel, the individual components are well-established, and their combination is relatively straightforward without deep insights into why this particular combination is optimal or necessary for FCIL."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a relevant problem (class imbalance in federated class-incremental learning) and shows consistent empirical improvements. However, the significance is moderate because: (1) the improvements are incremental (2-15% in many cases); (2) the problem is addressed through engineering rather than fundamental insights; (3) the scalability and practical deployment remain unclear."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is comprehensive with multiple datasets, heterogeneity levels, task splits, and detailed ablations. The paper includes sensitivity analysis, per-class distribution analysis, and visualization studies. However, the evaluation could be strengthened by: (1) larger-scale experiments with more clients (50/100 relegated to appendix); (2) comparison with simpler baselines; (3) analysis of the failure case; (4) more rigorous privacy evaluation."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-organized with clear motivation, problem formulation, and comprehensive experiments. However, presentation could be improved by: (1) clearer notation and definitions in Algorithm 1 and GDR description; (2) better intuition for why leverage scores enable balanced sampling; (3) moving some results from appendix to main paper; (4) more rigorous mathematical exposition of key concepts."
+              }
+            },
+            "summary_comment": "This paper tackles the important problem of class imbalance in federated class-incremental learning through a combination of SVD-based global coordination (GDR) and temperature scaling (TTS). While the empirical results are strong and comprehensive, the work suffers from significant limitations that prevent acceptance at a top-tier venue: (1) Limited technical novelty - the paper primarily combines existing techniques without fundamental innovation; (2) Unsupported privacy claims - the privacy-preservation mechanism lacks formal analysis; (3) Incomplete theoretical justification - the connection between leverage scores and class-balanced sampling is intuitive but not rigorously proven; (4) Practical concerns - hyperparameter sensitivity and computational overhead reduce applicability. The empirical evaluation is thorough, but the work reads more as a solid engineering contribution than a fundamental advance in federated learning. The paper would benefit from: formal privacy analysis, theoretical justification of the approach, comparison with simpler baselines, and clearer presentation of the technical content. For a top-tier ML conference, stronger novelty and more rigorous theoretical grounding are expected."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

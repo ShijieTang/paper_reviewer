@@ -1,0 +1,786 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 3,
+        "clarity": 4
+      },
+      "strengths": [
+        "Significant theoretical contribution: The paper provides the first polynomial-time learnability result (strong agnostic PAC learning) for multi-head linear attention networks, which is a meaningful advance bridging the gap between known expressivity and computational learnability of Transformers.",
+        "Novel identifiability certificate: The introduction of a computationally checkable condition (based on eigenvalue of a second-moment matrix) that certifies all empirical risk minimizers compute the same function is innovative and provides a practical tool for understanding when out-of-distribution generalization can be guaranteed.",
+        "Clever technical approach: The reformulation of the MHLA optimization problem as a convex regression over a d^2-dimensional relaxation through kernel methods (using feature mapping X) is elegant and enables the polynomial-time algorithm via SVD decomposition. The proof that this relaxation is tight (recovers an equivalent MHLA) is non-trivial.",
+        "Well-structured empirical validation: Experiments effectively validate theoretical predictions, including the benefit of overparameterization via heads (Section 4.1) and the correlation between the identifiability certificate and generalization (Section 4.2).",
+        "Breadth of theoretical results: The paper covers multiple complementary aspects: learnability, identifiability, applications to UTM learning, and extensions to noisy/non-realizable data (Lemmas A.5-A.7)."
+      ],
+      "weaknesses": [
+        "Limited practical applicability: The model studied (single-layer linear attention without softmax) is far simpler than modern Transformers used in practice. While acknowledged in the conclusion, the gap between theory and practice limits real-world impact.",
+        "Unexplained gap between theoretical algorithm and SGD practice: Algorithm 1 solves a convex relaxation exactly via linear regression, but practitioners use SGD on the original non-convex loss. Figure 2b shows SGD empirically converges to equivalent parameters when the certificate holds, but no theoretical analysis justifies this alignment. The rebuttal acknowledges this as an open question without providing theoretical justification.",
+        "Limited experimental scope: Experiments are restricted to synthetic tasks with small dimensions (d ≤ 4). No validation on real datasets, language modeling, or larger d demonstrates scalability or broader applicability. The rebuttal acknowledges that larger-d experiments would strengthen empirical support but notes they are beyond the current submission's scope.",
+        "Sample complexity has prohibitive d^4 dependence: While polynomial, N = O(d^4/ϵ + log(1/δ)) and runtime O(Nd^4n_max/ϵ^-1) are impractical for realistic embedding dimensions (d > 100). The rebuttal reframes this as a fundamental trade-off but does not resolve the practical limitation."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited practical applicability: The model studied (single-layer linear attention without softmax) is far simpler than modern Transformers used in practice. While acknowledged in the conclusion, the gap between theory and practice limits real-world impact.",
+          "severity": "minor",
+          "evidence": "The paper studies MHLA which omits: softmax attention, multi-layer stacking, MLPs, layer normalization. Definition 2.1 defines MHLA as Ŷ = Σ_h V_h Z(Z^T Q_h Z). Figure 1 shows competitive performance only on synthetic data generation task. The conclusion states: 'the model class we consider is far simpler than modern LLM's, but we consider our work an important step.' The rebuttal correctly notes that linear attention variants have matched softmax attention on some benchmarks, providing some justification for the model choice.",
+          "affected_claim": "The theoretical results bridge expressivity and learnability for Transformers",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Unexplained gap between theoretical algorithm and SGD practice: Algorithm 1 solves a convex relaxation exactly via linear regression, but practitioners use SGD on the original non-convex loss. Figure 2b shows SGD empirically converges to equivalent parameters when the certificate holds, but no theoretical analysis justifies this alignment. The rebuttal acknowledges this as an open question without providing theoretical justification.",
+          "severity": "major",
+          "evidence": "Algorithm 1 explicitly performs OLS regression (line 5: Ŵ := arg min_W Σ_i Σ_a (⟨W, X_{i,a}⟩ - y_{i,a})²). The original MHLA loss (Equations 4-5) is a quadratic polynomial in parameters, hence non-convex when restricted to rank-H matrices. Figure 2b shows empirical convergence of SGD when λ_min(Λ_D) > 0. The rebuttal states: 'we do not have a rigorous proof of this for MHLA' and frames this as an 'important open question.' This honest acknowledgment clarifies the status but does not resolve the gap—no theoretical connection is provided in the submitted paper.",
+          "affected_claim": "Algorithm 1's guarantees extend to practical SGD training",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Limited experimental scope: Experiments are restricted to synthetic tasks with small dimensions (d ≤ 4). No validation on real datasets, language modeling, or larger d demonstrates scalability or broader applicability. The rebuttal acknowledges that larger-d experiments would strengthen empirical support but notes they are beyond the current submission's scope.",
+          "severity": "minor",
+          "evidence": "Section 4.1 generates data from Gaussian MHLA with d ∈ {2, 4}, N ∈ {512, 2048}. Section 4.2 uses synthetic associative memory with d = 4, N = 2^14. Appendix G confirms no real dataset experiments. The rebuttal states: 'testing d = 16 or 32 would demonstrate whether this worst-case bound is loose in practice' but acknowledges such experiments 'would require new computational work' and are 'beyond the current submission's scope.' This does not resolve the limitation in the submitted paper.",
+          "affected_claim": "The algorithm and certificate are empirically validated beyond toy problems",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Sample complexity has prohibitive d^4 dependence: While polynomial, N = O(d^4/ϵ + log(1/δ)) and runtime O(Nd^4n_max/ϵ^-1) are impractical for realistic embedding dimensions (d > 100). The rebuttal reframes this as a fundamental trade-off but does not resolve the practical limitation.",
+          "severity": "minor",
+          "evidence": "Theorem 2.2 explicitly states sample complexity N = O(1/ϵ · d^4 + log(δ^-1)) and runtime O(Nd^4n_max ϵ^-1). For d = 1024, d^4 ≈ 10^12. The rebuttal explains: 'the complexity emerges from the VC-dimension of the d²-dimensional relaxed space' and notes this is 'a fundamental trade-off.' It also states: 'we do not claim this algorithm is practical for modern LLMs. The paper is a theoretical stepping stone.' This is an honest reframing but does not change the fundamental limitation present in the submitted paper.",
+          "affected_claim": "The algorithm is practically feasible",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The mathematical proofs are sound. The core theoretical contributions (Theorem 2.2, Lemmas A.3, A.6) are rigorous and correct. The rebuttal clarifies that Algorithm 1 finds global minimizers of training loss without i.i.d. assumptions (Appendix D), and that the i.i.d. requirement for generalization is standard in PAC learning. The rebuttal correctly notes that Lemma A.6 removes realizability when H ≥ d², aligning with Algorithm 1's output (Ĥ ≤ d²). The unresolved gap between the convex algorithm and SGD practice does not affect the soundness of the stated theoretical results—it is an open question about extending the theory to SGD, not an error in existing proofs. The identifiability results follow rigorously from linear regression uniqueness."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "This is the first polynomial-time learnability result for multi-head linear attention networks with agnostic PAC guarantees. The rebuttal clarifies that prior work (Chen & Li 2024, Tarzanagh et al. 2024, Fu et al. 2023) required stronger assumptions or provided lower bounds. The certifiable identifiability framework is genuinely novel. The paper's positioning as the first algorithm achieving polynomial-time agnostic PAC learning for MHLA is accurate and the novelty bar is met."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The paper addresses a fundamental open question in Transformer learning theory: efficient learnability with theoretical guarantees. Bridging expressivity (what Transformers can compute) with learnability (whether functions can be recovered efficiently from data) is conceptually important for understanding neural network optimization. The identifiability certificate is a useful theoretical tool. The significance is limited by the restrictive model class (single-layer linear attention) and acknowledged practical limitations, but the theoretical contribution is solid. The paper represents meaningful progress on an important problem, even if not immediately applicable to modern LLMs."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The theoretical results are rigorously proven in appendices. The experiments on the studied model class adequately validate key theoretical predictions: Figure 1 shows benefits of head overparameterization (aligned with Algorithm 1's d² rank bound), and Figure 2 validates the identifiability certificate's correlation with generalization. The rebuttal justifies the restriction to synthetic tasks (ground truth access needed to validate the certificate) and acknowledges experiments could be strengthened with larger d. For a theoretical paper, the evaluation adequately supports the central claims about learnability and identifiability of MHLA, though empirical validation remains limited to small dimensions."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written overall. Main results are precisely stated (Theorems 2.2, Lemma A.3, A.6). Section 2 provides clear intuition. Algorithm 1 is transparent. Figures are informative. The rebuttal clarifies that autoregressive sequence handling appears in the paper (Lemma C.5, Appendix F.2) but could be more prominent in the main text. The rebuttal also clarifies that the realizability requirement for Lemma A.3 is partially addressed by Lemma A.6. Some notational density exists, but the presentation meets standards for a theoretical contribution."
+        }
+      },
+      "summary_comment": "This paper makes a solid theoretical contribution by proving the first polynomial-time learnability result for multi-head linear attention networks with agnostic PAC guarantees. The technical innovation—reformulating MHLA optimization as convex regression over a lifted d^2-dimensional feature space and recovering equivalent parameters via SVD—is non-trivial and clever. The certifiable identifiability framework providing a data-dependent condition for out-of-distribution generalization is novel and useful.\n\nThe rebuttal provides helpful clarifications: (1) Algorithm 1 finds global training minima without i.i.d.; (2) the i.i.d. requirement for generalization is standard in PAC theory; (3) Lemma A.6 removes realizability when H ≥ d²; (4) autoregressive sequences are handled via union bounds (Lemma C.5, Appendix F.2). Critically, the rebuttal is honest about remaining limitations: (a) the gap between Algorithm 1 (exact OLS) and SGD practice remains unexplained theoretically, though Figure 2b provides empirical evidence; (b) this is framed as an important open question about SGD's implicit bias; (c) the authors transparently state they lack rigorous theoretical justification.\n\nLimitations that remain unresolved in the submitted paper: (1) single-layer linear attention without softmax is simplified; (2) the theory-SGD gap is acknowledged but unresolved; (3) experiments are synthetic with d ≤ 4; (4) d^4 sample complexity is prohibitive. However, these do not prevent acceptance. The paper delivers on its core claim: the first polynomial-time algorithm for learning MHLA with provable guarantees. The limitations are understood by the authors and appropriately framed. This is a theoretical stepping stone, not a practical algorithm for modern LLMs—a distinction the authors explicitly acknowledge.\n\nFor a top-tier ML conference with emphasis on theoretical advances, this represents solid, novel, and rigorous work on an important open problem. The execution is sound, the technical approach is non-obvious, and the results extend the understanding of neural network learnability. While not groundbreaking in practical impact, the paper merits acceptance as a theoretical contribution that moves the field forward."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Core theoretical contribution on learning algorithms: The paper provides the first polynomial-time learnability algorithm (Theorem 2.2) for multi-head linear attention networks, directly addressing ICML's focus on 'general machine learning' and 'theory of machine learning.'\",\n      \"Optimization and kernel methods: The reformulation of MHLA learning as convex regression via kernel methods (feature mapping X, RKHS perspective) aligns with ICML's emphasis on 'optimization' and represents a non-trivial technical innovation in handling non-convex parameter spaces.\",\n      \"Learning theory contribution: The paper makes explicit PAC learning guarantees (agnostic PAC, sample complexity bounds, VC-dimension arguments) which directly align with ICML's stated focus on 'statistical learning theory' and 'evaluation (methodology... validity).'\",\n      \"Identifiability as a methodological contribution: The certifiable identifiability framework (Lemma A.3) addresses a fundamental question in learning theory—when do empirical risk minimizers generalize out-of-distribution—which fits ICML's emphasis on rigorous evaluation methodology.\",\n      \"Empirical validation of theoretical predictions: Section 4 validates theoretical findings on synthetic tasks, demonstrating the interplay between overparameterization (heads) and optimization (Figure 1) and the predictive power of the identifiability certificate (Figure 2), which aligns with ICML's appreciation for methodological rigor.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited scope of model class: ICML values breadth across machine learning, but this paper focuses narrowly on single-layer linear attention without softmax—an architecture far removed from modern practice. While a valid theoretical focus, the contribution is incremental relative to existing expressivity results.\",\n      \"Weak experimental validation relative to conference standards: ICML typically expects more comprehensive empirical work. Experiments are limited to toy synthetic tasks with d ≤ 4, no real datasets, and no comparison with competing learnability approaches. The rebuttal acknowledges larger-d experiments would strengthen claims but were not completed.\",\n      \"Prohibitive sample/time complexity for practical relevance: The d^4 dependence in sample complexity (N = O(d^4/ϵ + log(1/δ))) and runtime (O(Nd^4n_max ϵ^-1)) severely limits practical applicability. While polynomial, this is far from competitive with modern methods, reducing the significance of the learning result for ICML's application-driven audience.\",\n      \"SGD-theory gap unresolved: Algorithm 1 solves a convex relaxation exactly, but practitioners use SGD on the original non-convex problem. Figure 2b shows empirical alignment, but no theoretical justification is provided. The rebuttal acknowledges this as an open question, leaving a critical gap between theory and practice.\",\n      \"Narrow technical toolbox: The approach (lifting to d^2-dimensional space, SVD recovery) is elegant but applies primarily to the specific MHLA structure. The technical insights do not generalize to broader learning problems or provide new algorithmic principles of wider applicability within ICML's scope.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Transformer theory and learning: NeurIPS explicitly welcomes interdisciplinary submissions and 'theory' on deep learning. The paper addresses a fundamental open question about Transformer learnability, bridging expressivity (prior work) with efficient learnability—a conceptually important gap.\",\n      \"Learning theory with neural network focus: The paper makes PAC learning contributions specific to neural architectures (linear attention), which fits NeurIPS's broader scope on learning theory compared to ICML's emphasis on core ML algorithms.\",\n      \"Identifiability and generalization: The certifiable identifiability framework contributes to understanding when neural networks generalize out-of-distribution, which aligns with NeurIPS's interest in 'generalization and multi-task learning' and 'learning theory.'\",\n      \"Breadth of applications: The paper includes applications to learning universal Turing machines (Section 3, Appendix C), demonstrating that the framework captures meaningful computational procedures, which provides conceptual depth valued at NeurIPS.\",\n      \"Honest acknowledgment of limitations: The rebuttal transparently discusses the theory-SGD gap, sample complexity barriers, and practical limitations. NeurIPS values rigorous, honest scientific contributions even when not immediately applicable, and the paper's framing as a 'theoretical stepping stone' is appropriate for the venue.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Narrow model class limits interdisciplinary relevance: While NeurIPS welcomes theory, the focus on single-layer linear attention (without softmax, MLPs, or layer norm) is too specialized. The model bears limited connection to practical Transformers, reducing appeal to NeurIPS's diverse community spanning vision, language, robotics, and applications.\",\n      \"No experiments on real or language modeling tasks: NeurIPS expects theoretical papers to validate findings beyond toy problems. The complete absence of language modeling experiments, computer vision tasks, or real datasets significantly weakens the paper's relevance to NeurIPS's application-focused tracks.\",\n      \"Theory-practice gap leaves central question open: NeurIPS values understanding why practices work. Algorithm 1 (exact convex solving) differs fundamentally from SGD (practitioners' choice), yet only empirical alignment is shown (Figure 2b). The unresolved theoretical gap limits the paper's contribution to understanding Transformer optimization.\",\n      \"Limited novelty in proof techniques: The core proof strategy (reformulate as kernel regression, apply OLS, recover via SVD) is competent but relies on standard tools (VC theory, linear regression). The technical innovation is limited relative to NeurIPS's expectations for theoretical breakthroughs.\",\n      \"Experimental validation insufficient for venue standards: NeurIPS expects stronger empirical support for theoretical claims. Experiments use only d ≤ 4, no hyperparameter studies beyond basic overparameterization, and no comparison to related learnability results (e.g., Chen & Li 2024). The rebuttal acknowledges larger-d experiments would help but were not performed.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Representation learning and learning theory: ICLR explicitly emphasizes 'learning theory' and 'representation learning,' and the paper contributes to understanding when attention-based representations can be learned efficiently with theoretical guarantees.\",\n      \"Deep learning expressivity and learnability bridge: ICLR is the premier venue for deep learning, and this paper directly addresses a gap between expressivity results (what Transformers can compute) and computational learnability (how to recover these computations from data), which is conceptually aligned with ICLR's scope.\",\n      \"Identifiability and interpretability: The certifiable identifiability framework (Lemma A.3) contributes to understanding neural network behavior and when learned models are uniquely determined, which overlaps with ICLR's interest in 'interpretation of learned representations' and model identifiability.\",\n      \"Kernel and metric learning: The reformulation of MHLA learning as a kernel method (feature mapping X, RKHS perspective) connects to ICLR's topics of 'metric learning, kernel learning,' providing a representation-learning angle.\",\n      \"Multi-head attention as representation: The finding that multi-head structure aids optimization (Figure 1) and enables convex relaxation contributes to understanding attention mechanisms, a core ICLR topic.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Severely limited model scope for deep learning venue: ICLR specializes in deep learning, but the paper studies single-layer linear attention—the opposite of deep. The model lacks softmax (non-linearity), MLPs, layer norm, and multi-layer stacking, which are fundamental to modern deep learning. This is not a restriction on linear attention per se, but the single-layer, simplified architecture is poorly aligned with ICLR's deep learning focus.\",\n      \"Linear attention is not state-of-the-art: While the paper cites recent linear attention variants (Mamba2, xLSTM), the single-layer, non-softmax variant studied here is not the focus of active development. ICLR audiences expect engagement with cutting-edge architectures and methods; the simplified model feels dated.\",\n      \"No representation learning insights: Despite ICLR's emphasis on representation learning, the paper provides no insights into what representations MHLA learns, how different heads specialize, or how learned representations compare to softmax attention. The paper is purely about learnability of parameters, not about the learned representations themselves.\",\n      \"Experimental validation is entirely synthetic: ICLR typically expects at least some real-world validation (e.g., image classification, language modeling). All experiments use synthetic data generated by the model itself. The rebuttal acknowledges this and notes the authors' framing as a 'theoretical stepping stone,' but this diminishes relevance for a deep learning venue.\",\n      \"Theory-SGD gap is critical unresolved issue for ICLR: ICLR audiences care deeply about understanding how neural networks train in practice. The complete disconnect between Algorithm 1 (exact convex solution) and SGD (what practitioners use) is a fundamental gap. While the rebuttal provides Figure 2b (empirical alignment), no theoretical explanation is offered, leaving the practical relevance unclear.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\n**Overall Assessment:**\n\nThis paper makes a solid theoretical contribution by proving the first polynomial-time PAC learnability result for multi-head linear attention networks and introducing a novel certifiable identifiability framework. The technical approach (convex relaxation via kernel methods) is sound and non-trivial. However, the work has significant limitations that affect venue fit:\n\n### Key Limitations Across All Venues:\n1. **Narrow model class**: Single-layer linear attention without softmax, MLPs, or layer normalization is far simpler than modern Transformers.\n2. **Theory-SGD gap**: Algorithm 1 solves convex regression exactly, but practitioners use SGD on the non-convex loss. Only empirical alignment (Figure 2b) is shown; no theoretical justification is provided.\n3. **Prohibitive complexity**: d⁴ sample and time complexity makes the algorithm impractical for realistic embedding dimensions (d > 100).\n4. **Limited experiments**: Only synthetic tasks with d ≤ 4; no real datasets, language modeling, or larger-scale validation.\n\n### Venue-Specific Fit:\n\n- **ICML (7/10 - Good Fit)**: Best match. The paper directly addresses learning theory and optimization, core ICML topics. Theorem 2.2 and the identifiability framework are rigorous PAC learning contributions. However, limited experimental scope and narrow model class prevent \"excellent\" fit.\n\n- **NeurIPS (6/10 - Borderline/Risky)**: Moderate fit. NeurIPS values theory broadly, but the specialized focus on linear attention and complete absence of real-world applications (language, vision, etc.) limits appeal to the interdisciplinary community. The theory-SGD gap is concerning for understanding practice.\n\n- **ICLR (5/10 - Borderline/Risky)**: Weakest fit. ICLR emphasizes deep learning, but this paper studies single-layer (shallow) architecture. No insights into representation learning, no real-world validation, and the gap between theory and practice undermines relevance to a venue focused on understanding how deep learning works in practice.\n\n**Recommendation**: **ICML is the best destination.** The paper is a solid theoretical contribution with rigorous proofs and appropriate scope for ICML's learning theory track. NeurIPS is acceptable but riskier due to the narrow model scope. ICLR is the poorest fit due to misalignment with deep learning focus.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "Significant theoretical contribution: The paper provides the first polynomial-time learnability result (strong agnostic PAC learning) for multi-head linear attention networks, which is a meaningful advance bridging the gap between known expressivity and computational learnability of Transformers.",
+              "Novel identifiability certificate: The introduction of a computationally checkable condition (based on eigenvalue of a second-moment matrix) that certifies all empirical risk minimizers compute the same function is innovative and provides a practical tool for understanding when out-of-distribution generalization can be guaranteed.",
+              "Clever technical approach: The reformulation of the MHLA optimization problem as a convex regression over a d^2-dimensional relaxation through kernel methods (using feature mapping X) is elegant and enables the polynomial-time algorithm via SVD decomposition. The proof that this relaxation is tight (recovers an equivalent MHLA) is non-trivial.",
+              "Well-structured empirical validation: Experiments effectively validate theoretical predictions, including the benefit of overparameterization via heads (Section 4.1) and the correlation between the identifiability certificate and generalization (Section 4.2).",
+              "Breadth of theoretical results: The paper covers multiple complementary aspects: learnability, identifiability, applications to UTM learning, and extensions to noisy/non-realizable data (Lemmas A.5-A.7)."
+            ],
+            "weaknesses": [
+              "Limited practical applicability: The model studied (single-layer linear attention without softmax) is far simpler than modern Transformers used in practice. While acknowledged in the conclusion, the gap between theory and practice limits real-world impact.",
+              "Restrictive assumptions for key results: The learnability result requires the data to be i.i.d. drawn from a distribution and the identifiability certificate requires either data realizability or more than d^2 heads. These assumptions may not hold in many practical scenarios (e.g., autoregressive sequence data).",
+              "Modest experimental scope: Experiments are limited to synthetic tasks (random linear attention networks, key-value lookup, UTM simulation). No comparison with real datasets or practical language modeling tasks. The GTD framework's comparison in Section 4.1 uses only synthetic data.",
+              "Sample complexity polynomial but potentially prohibitive: While polynomial in d, the sample complexity is O(d^4/ϵ + log(1/δ)), which could be prohibitive for high-dimensional embeddings typical in modern ML. Runtime is O(Nd^4n_max/ϵ), dominated by dimension-dependent factors.",
+              "Gap between algorithm and SGD practice: Algorithm 1 uses exact linear regression in feature space, but practitioners use SGD. While experiments show SGD can work (Figure 2b), theoretical guarantees are limited. The paper does not explain why SGD, which optimizes the original non-convex loss, should match the convex relaxation."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited practical applicability: The model studied (single-layer linear attention without softmax) is far simpler than modern Transformers used in practice. While acknowledged in the conclusion, the gap between theory and practice limits real-world impact.",
+                "severity": "minor",
+                "evidence": "The paper studies MHLA which omits: softmax attention, multi-layer stacking, MLPs, layer normalization, and other components of standard Transformers. In Figure 1, even the full Transformer baseline does not significantly outperform single-layer linear attention, suggesting the studied model captures only a small subset of Transformer functionality.",
+                "affected_claim": "The theoretical results bridge expressivity and learnability for Transformers",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Restrictive assumptions for key results: The learnability result requires the data to be i.i.d. drawn from a distribution and the identifiability certificate requires either data realizability or more than d^2 heads. These assumptions may not hold in many practical scenarios (e.g., autoregressive sequence data).",
+                "severity": "major",
+                "evidence": "Theorem 2.2 assumes i.i.d. sampling; Lemma A.3 (identifiability) requires realizability; Lemma A.6 avoids realizability only when H ≥ d^2. The paper notes in Section 2.1 that 'autoregressive sequences rather than i.i.d. data are handled in the UTM learning result with a standard union bound' but does not provide detailed analysis. For practical autoregressive language models, these assumptions are violated.",
+                "affected_claim": "The algorithm learns MHLA on any dataset with polynomial guarantees; the identifiability certificate applies generally",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Modest experimental scope: Experiments are limited to synthetic tasks (random linear attention networks, key-value lookup, UTM simulation). No comparison with real datasets or practical language modeling tasks. The GTD framework's comparison in Section 4.1 uses only synthetic data.",
+                "severity": "minor",
+                "evidence": "Section 4.1 generates data from a single-layer MHLA with Gaussian initialization. Section 4.2 uses synthetic associative memory tasks. No experiments on actual NLP datasets, vision tasks, or real-world sequences. The paper does not demonstrate applicability beyond synthetic, controlled settings.",
+                "affected_claim": "The algorithm and certificate are practically useful for learning real tasks",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Sample complexity polynomial but potentially prohibitive: While polynomial in d, the sample complexity is O(d^4/ϵ + log(1/δ)), which could be prohibitive for high-dimensional embeddings typical in modern ML. Runtime is O(Nd^4n_max/ϵ), dominated by dimension-dependent factors.",
+                "severity": "minor",
+                "evidence": "Theorem 2.2 states sample complexity N = O(1/ϵ · d^4 + log(1/δ^-1)) and runtime O(Nd^4n_max/ϵ^-1). For d=1024 (typical embeddings), d^4 ≈ 10^12, making this impractical. Experiments use d ≤ 4.",
+                "affected_claim": "The algorithm is efficient and practical",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Gap between algorithm and SGD practice: Algorithm 1 uses exact linear regression in feature space, but practitioners use SGD. While experiments show SGD can work (Figure 2b), theoretical guarantees are limited. The paper does not explain why SGD, which optimizes the original non-convex loss, should match the convex relaxation.",
+                "severity": "major",
+                "evidence": "Algorithm 1 solves the convex relaxation exactly via linear regression. In practice, SGD is used on the original non-convex loss. Figure 2b shows SGD empirically converges to the ground truth when λ_min(Λ_D) > 0, but no theoretical analysis justifies why SGD should find a point in the convex relaxation's solution set or converge to it. The connection between training the relaxed problem and optimizing the original MHLA with SGD is unexplained.",
+                "affected_claim": "Algorithm 1 is a practical learning algorithm; SGD learning is understood through the theory",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical proofs appear correct. The key insight—reformulating MHLA optimization as linear regression over a relaxed parameter space with rank-H structure—is sound. The feature mapping X (Equation 7) correctly transforms the MHLA output into an inner product form. SVD decomposition recovers an equivalent MHLA. The identifiability results follow rigorously from classical results on uniqueness in linear regression when the covariance matrix is full rank. The UTM expressibility and learning results are technically sound, though complex. No major logical errors detected in the main theorem or proofs."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "This is the first polynomial-time learnability result for multi-head linear attention networks with theoretical guarantees. Prior work (Chen & Li 2024, Tarzanagh et al. 2024, Fu et al. 2023) studies learnability under strong structural assumptions (fixed attention matrices, special initialization, separability conditions) or provides lower bounds. This paper removes many of these restrictions and provides an agnostic PAC-learning algorithm for any dataset. The certifiable identifiability framework is novel and original. While linear attention has been studied in prior work (Yang et al. 2025, Schlag et al. 2021), the algorithmic learnability results are new."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper advances a fundamental question in deep learning theory: whether Transformers can be efficiently learned from data with theoretical guarantees. This bridges expressivity results (which show Transformers can express complex functions) and learning results (which ensure those functions can be recovered from data). For the specific model class (MHLAs), the results are theoretically significant. The identifiability certificate provides a data-dependent condition for out-of-distribution generalization, which is conceptually important. However, the practical significance is limited by the restrictive model class and assumptions."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The theoretical results are well-supported by proofs in appendices. Experimental validation on Section 4.1 and 4.2 effectively demonstrates predictions from the theory (benefits of overparameterization via heads, correlation between certificate and generalization). However, experiments are limited to synthetic tasks with small dimensions (d ≤ 4). The paper would be stronger with experiments on realistic datasets or higher-dimensional problems. The omission of comparisons with other learnability approaches or baselines limits evaluation. Overall, the theory-experiment alignment is adequate but not comprehensive."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written. Main results (Theorems 2.2, Lemma A.3, Lemma A.6) are clearly stated. The high-level intuition in Section 2 explains the key ideas (feature mapping, convex relaxation, SVD decomposition) accessibly. Algorithm 1 is clearly presented. Figures are informative (Figure 1 shows benefits of heads, Figure 2 validates certificate). Proofs are relegated to appendices. Some notation is heavy (e.g., ψ = d^2/(d) + d/2 for feature dimension), but generally manageable. The connection between multiple results (learnability, identifiability, UTM learning) could be clearer in the main text."
+              }
+            },
+            "summary_comment": "This paper makes a solid theoretical contribution by proving the first polynomial-time learnability result for multi-head linear attention networks. The key technical innovation—reformulating MHLA optimization as convex regression in a lifted feature space—is clever and non-obvious. The certifiable identifiability framework is novel and provides a useful tool for analyzing when learned models generalize. However, the scope is limited: the paper studies single-layer MHLA without softmax, which is far simpler than practical Transformers. Key theoretical results require strong assumptions (i.i.d. data, realizability, or many heads). Experiments are limited to small synthetic tasks. The gap between the exact algorithm (linear regression in feature space) and practical SGD training remains unexplained theoretically. The sample complexity is polynomial but grows as d^4, potentially prohibitive for realistic embeddings. Despite these limitations, the paper advances fundamental theory of Transformer learning and provides the first polynomial-time algorithm for this model class with agnostic PAC guarantees, which is a meaningful contribution to understanding neural network learnability. The work is technically sound and represents progress on an important open problem, even if practical applicability is limited."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "Significant theoretical contribution: The paper provides the first polynomial-time learnability result (strong agnostic PAC learning) for multi-head linear attention networks, which is a meaningful advance bridging the gap between known expressivity and computational learnability of Transformers.",
+              "Novel identifiability certificate: The introduction of a computationally checkable condition (based on eigenvalue of a second-moment matrix) that certifies all empirical risk minimizers compute the same function is innovative and provides a practical tool for understanding when out-of-distribution generalization can be guaranteed.",
+              "Clever technical approach: The reformulation of the MHLA optimization problem as a convex regression over a d^2-dimensional relaxation through kernel methods (using feature mapping X) is elegant and enables the polynomial-time algorithm via SVD decomposition. The proof that this relaxation is tight (recovers an equivalent MHLA) is non-trivial.",
+              "Well-structured empirical validation: Experiments effectively validate theoretical predictions, including the benefit of overparameterization via heads (Section 4.1) and the correlation between the identifiability certificate and generalization (Section 4.2).",
+              "Breadth of theoretical results: The paper covers multiple complementary aspects: learnability, identifiability, applications to UTM learning, and extensions to noisy/non-realizable data (Lemmas A.5-A.7)."
+            ],
+            "weaknesses": [
+              "Limited practical applicability: The model studied (single-layer linear attention without softmax) is far simpler than modern Transformers used in practice. While acknowledged in the conclusion, the gap between theory and practice limits real-world impact.",
+              "Unexplained gap between theoretical algorithm and SGD practice: Algorithm 1 solves a convex relaxation exactly via linear regression, but practitioners use SGD on the original non-convex loss. Figure 2b shows SGD empirically converges to equivalent parameters when the certificate holds, but no theoretical analysis justifies this alignment.",
+              "Limited experimental scope: Experiments are restricted to synthetic tasks with small dimensions (d ≤ 4). No validation on real datasets, language modeling, or larger d demonstrates scalability or broader applicability.",
+              "Sample complexity has prohibitive d^4 dependence: While polynomial, N = O(d^4/ϵ + log(1/δ)) and runtime O(Nd^4n_max/ϵ^-1) are impractical for realistic embedding dimensions (d > 100)."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited practical applicability: The model studied (single-layer linear attention without softmax) is far simpler than modern Transformers used in practice. While acknowledged in the conclusion, the gap between theory and practice limits real-world impact.",
+                "severity": "minor",
+                "evidence": "The paper studies MHLA which omits: softmax attention, multi-layer stacking, MLPs, layer normalization, and other components of standard Transformers. In Figure 1, even the full Transformer baseline does not significantly outperform single-layer linear attention. The conclusion states: 'the model class we consider is far simpler than modern LLM's, but we consider our work an important step towards designing algorithms with provable guarantees for training neural sequence models.'",
+                "affected_claim": "The theoretical results bridge expressivity and learnability for Transformers",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Unexplained gap between theoretical algorithm and SGD practice: Algorithm 1 solves a convex relaxation exactly via linear regression, but practitioners use SGD on the original non-convex loss. Figure 2b shows SGD empirically converges to equivalent parameters when the certificate holds, but no theoretical analysis justifies this alignment.",
+                "severity": "major",
+                "evidence": "Algorithm 1 explicitly performs OLS regression (line 5 and proof in Appendix D). The original MHLA loss (Equation 4, 5) is a quadratic polynomial in parameters, hence non-convex when restricted to rank-H matrices. Figure 2b shows empirical convergence of SGD when λ_min(Λ_D) > 0, but the paper provides no proof that SGD on the original loss converges to solutions of the convex relaxation. The author's rebuttal states: 'we view Figure 2b as empirical evidence that SGD can find solutions consistent with the theory when the certificate condition holds, though we cannot yet provide theoretical guarantees.'",
+                "affected_claim": "Algorithm 1's guarantees extend to practical SGD training",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited experimental scope: Experiments are restricted to synthetic tasks with small dimensions (d ≤ 4). No validation on real datasets, language modeling, or larger d demonstrates scalability or broader applicability.",
+                "severity": "minor",
+                "evidence": "Section 4.1 generates data from Gaussian MHLA initialization with d ∈ {2, 4}. Section 4.2 uses synthetic associative memory tasks with d = 4 and N = 2^14 samples. No experiments on: (a) real datasets (language, vision, or other domains); (b) d > 10; (c) comparison with other Transformer learning algorithms. The paper explicitly limits experiments to synthetic tasks where ground truth is known.",
+                "affected_claim": "The algorithm is empirically validated on realistic problems",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Sample complexity has prohibitive d^4 dependence: While polynomial, N = O(d^4/ϵ + log(1/δ)) and runtime O(Nd^4n_max/ϵ^-1) are impractical for realistic embedding dimensions (d > 100).",
+                "severity": "minor",
+                "evidence": "Theorem 2.2 explicitly states sample complexity N = O(1/ϵ · d^4 + log(δ^-1)) and runtime O(Nd^4n_max ϵ^-1). For d = 1024 (standard embeddings in modern LLMs), d^4 ≈ 10^12. The author acknowledges this is 'prohibitive for d >> 100' and states 'we are transparent about this limitation and do not claim the algorithm is practical for modern LLM embeddings.'",
+                "affected_claim": "The algorithm is practical for realistic problem sizes",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical proofs are sound. The rebuttal clarifies that Algorithm 1 finds a global minimizer of training loss without the i.i.d. assumption (Appendix D discussion), and that for generalization guarantees, i.i.d. is standard in PAC learning. The rebuttal correctly notes that Lemma A.6 removes realizability requirements when H ≥ d², which aligns with Algorithm 1's output guarantee (Ĥ ≤ d²). The autoregressive sequence analysis is handled via Lemma C.5 and Appendix F.2 with union bounds, which is a valid approach. The core technical approach—reformulating as convex regression and applying SVD—remains sound. The identifiability results follow rigorously from linear regression uniqueness theory."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "This is the first polynomial-time learnability result for multi-head linear attention networks with agnostic PAC guarantees. The rebuttal does not claim prior work solved this problem; instead, it clarifies that prior work (Chen & Li 2024, Tarzanagh et al. 2024, Fu et al. 2023) required much stronger assumptions (fixed attention matrices, special initialization, separability) or provided lower bounds. The certifiable identifiability framework remains novel. The positioning as 'first algorithm with PAC-learning guarantees for multi-head attention' is accurate and justified."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a fundamental open question in Transformer learning theory: efficient learnability with theoretical guarantees. This is significant because prior work focused on expressivity (what Transformers can compute) without addressing learnability (whether those functions can be recovered from data efficiently). The identifiability certificate provides a conceptually important data-dependent condition for out-of-distribution generalization. However, the significance is somewhat limited by the restrictive model class (single-layer linear attention) and the acknowledged gap from modern Transformers. The contribution is primarily theoretical rather than practical."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The theoretical results are well-supported by proofs in appendices. The rebuttal clarifies that experiments validate theory on the model class analyzed, noting that PAC learning bounds are not expected to be tight in practice. Figure 1 effectively shows benefits of overparameterization via heads. Figure 2 demonstrates the certificate's correlation with generalization on synthetic tasks. The limitation to synthetic tasks with d ≤ 4 is acknowledged and justified (ground truth known). For a theoretical paper, the experimental validation is adequate, though stronger with real data. The evaluation adequately supports the central claims about the analyzed model class."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written. Main results (Theorems 2.2, Lemma A.3, Lemma A.6) are precisely stated. Section 2 provides clear intuition for the algorithmic approach. Algorithm 1 is transparent. Figures are informative. The rebuttal clarifies several presentation issues: (1) autoregressive handling via Lemma C.5 and Appendix F.2 is in the paper but could be more prominent; (2) the realizability requirement for Lemma A.3 is mitigated by Lemma A.6 for the algorithm's output scale. Notation is heavy but manageable. The paper could be clearer about when each result requires which assumptions, but the current presentation is acceptable."
+              }
+            },
+            "summary_comment": "This paper makes a solid theoretical contribution by proving the first polynomial-time learnability result for multi-head linear attention networks with agnostic PAC guarantees. The key technical innovation—reformulating MHLA optimization as convex regression in a lifted d^2-dimensional feature space—is clever and enables the polynomial-time algorithm via SVD. The certifiable identifiability framework is novel and provides a useful tool for analyzing when learned models generalize. The rebuttal clarifies several important points: (1) Algorithm 1 finds global training loss minima without i.i.d.; (2) generalization requires i.i.d. as is standard in PAC theory; (3) Lemma A.6 removes realizability when H ≥ d², which matches Algorithm 1's output; (4) autoregressive sequences are handled via Lemma C.5 with union bounds; (5) the authors explicitly acknowledge the model class is simplified and the d^4 complexity is impractical. Remaining limitations are genuine: (a) single-layer linear attention without softmax is far from modern Transformers; (b) the gap between the convex algorithm and SGD practice remains unexplained theoretically (though Figure 2b provides empirical evidence); (c) experiments are synthetic with small d; (d) d^4 sample complexity is prohibitive. However, these limitations do not invalidate the theoretical contribution. The paper represents important progress on understanding Transformer learnability, even if restricted to a simplified model class. The work opens avenues for future research on more complex architectures. For a top-tier venue focused on theoretical advances in machine learning, this represents solid, original work that answers a previously open question, despite acknowledged practical limitations."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited practical applicability due to studying a simplified model (single-layer linear attention without softmax) far removed from modern Transformers\",\n        \"Restrictive assumptions for key results: i.i.d. data requirement for learnability, realizability requirement for identifiability, and limitation to d² heads in some results\",\n        \"Modest experimental scope limited to synthetic tasks with small dimensions (d ≤ 4)\",\n        \"Sample complexity and runtime have prohibitive d⁴ dependence, making the algorithm impractical for realistic embedding dimensions\",\n        \"Unexplained gap between the exact convex algorithm (Algorithm 1) and SGD practice used in experiments\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Model is simplified compared to modern Transformers\",\n          \"location\": \"Section 6 (Conclusion and Limitations), Figure 1\",\n          \"explanation\": \"The paper explicitly acknowledges: 'the model class we consider is far simpler than modern LLM's.' Figure 1 compares against a full Transformer with softmax, MLPs, and layer normalization, showing MHLA is only one component.\"\n        },\n        {\n          \"concern\": \"I.i.d. assumption for main learnability result\",\n          \"location\": \"Theorem 2.2, Section 2.1\",\n          \"explanation\": \"Theorem 2.2 explicitly states 'drawn i.i.d. from a distribution D.' The paper acknowledges autoregressive data via 'standard union bound on the sample complexity' in Section 2.1 but provides no detailed analysis.\"\n        },\n        {\n          \"concern\": \"Realizability required for identifiability\",\n          \"location\": \"Lemma A.3, Definition A.2\",\n          \"explanation\": \"Lemma A.3 (Certificate of Identifiability) explicitly requires the dataset to be 'realizable' (Definition A.2: yi = MHLAΘ(Zi)). Lemma A.6 removes this but requires H ≥ d² heads.\"\n        },\n        {\n          \"concern\": \"Polynomial but high-degree complexity\",\n          \"location\": \"Theorem 2.2\",\n          \"explanation\": \"Sample complexity is N = O(1/ε · d⁴ + log(δ⁻¹)) and runtime is O(Nd⁴n_max ε⁻¹). For d=1024, d⁴ ≈ 10¹². Experiments use d ≤ 4.\"\n        },\n        {\n          \"concern\": \"Experiments on synthetic tasks only\",\n          \"location\": \"Section 4, Figures 1-2\",\n          \"explanation\": \"Section 4.1 generates data from Gaussian MHLA. Section 4.2 uses synthetic associative memory. No experiments on real datasets or language modeling tasks.\"\n        },\n        {\n          \"concern\": \"Algorithm uses exact linear regression, not SGD\",\n          \"location\": \"Algorithm 1, Section 4.2\",\n          \"explanation\": \"Algorithm 1 solves the convex relaxation exactly via ordinary least squares (Equation I). Section 4.2 shows SGD works empirically (Figure 2b) but provides no theoretical connection between SGD optimizing the non-convex MHLA loss and the convex relaxation.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Gap between theoretical algorithm and SGD practice\",\n          \"proposed_change\": \"Provide analysis explaining when/why SGD on the original MHLA loss converges to a solution of the convex relaxation, or show that SGD finds a point with similar generalization guarantees. Alternatively, empirically study SGD convergence on realistic tasks to validate practical utility.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited experimental validation\",\n          \"proposed_change\": \"Extend experiments beyond synthetic tasks to include: (1) learning MHLA on real datasets from language modeling or vision; (2) comparison with other learning algorithms for Transformers; (3) validation on d > 4 to assess scalability; (4) correlation between λ_min(Λ_D) and generalization on real tasks.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Autoregressive sequence assumption unclear\",\n          \"proposed_change\": \"Provide detailed analysis of how the theory extends to autoregressive (non-i.i.d.) sequence data. Specify the union bound mentioned in Section 2.1 and quantify sample complexity degradation. Apply this to the UTM learning result more explicitly.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited discussion of realizability and non-realizability regimes\",\n          \"proposed_change\": \"Expand discussion on when Lemma A.6 (identifiability without realizability for H ≥ d²) applies in practice. Provide experiments showing how the certificate behaves when data is non-realizable or noisy.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We thank the reviewer for this thorough and constructive evaluation. We appreciate the recognition of our theoretical contributions and address each concern below.\\n\\n**On Limited Practical Applicability:**\\nWe agree that studying single-layer linear attention is a significant simplification from modern Transformers. However, we view this as an intentional trade-off common in theoretical work: to obtain the first polynomial-time learnability guarantees for any Transformer-like model, we focus on a simpler class where the problem is tractable. The paper's opening motivation and related work position this as addressing a fundamental gap—previous work shows what Transformers *can* express, but not what can be *efficiently learned*. Our result, even for a restricted model, provides the first algorithm with PAC-learning guarantees for multi-head attention. We note that linear attention variants (Yang et al. 2025, 2024; Beck et al. 2024; Dao and Gu 2024) have recently matched softmax attention on some benchmarks, suggesting the model class has practical value.\\n\\n**On Restrictive Assumptions (I.i.d. Data, Realizability, d² Heads):**\\nThese are valid concerns, and we clarify the scope and conditions:\\n\\n- **I.i.d. assumption for Theorem 2.2:** This is standard in PAC learning theory and applies to the generalization guarantee (Equation 6). For finding a global minimizer of the *training* loss (without i.i.d. guarantee), Algorithm 1 requires no i.i.d. assumption—see Appendix D discussion. For autoregressive sequence learning, we provide Lemma C.5 in the UTM application, which handles non-i.i.d. data via a union bound over time steps. While not detailed in the main text, this demonstrates that our analysis extends to sequence models; a reviewer interested in the details is referred to Appendix F.2.\\n\\n- **Realizability for Lemma A.3 (identifiability):** This is a sufficient condition, not necessary. Lemma A.6 removes the realizability assumption for H ≥ d² heads, which is the MHLA capacity used in Algorithm 1's output (Hˆ ≤ d²). Thus, the identifiability certificate applies without realizability when we have d² or more heads—aligning with the algorithm's guarantee. For experiments (Section 4.2, Figure 2), we show the certificate predicts generalization even without strict realizability (Figure 2b uses mixing of identifiable and non-identifiable distributions).\\n\\n- **d² head requirement:** The algorithm returns Hˆ ≤ d² heads as a consequence of the SVD decomposition of the relaxed matrix W. This is not an artificial limitation—it emerges naturally from the convex relaxation. Empirically, d² heads also benefit SGD training (Figure 1), suggesting this parameterization is not just a theoretical artifact.\\n\\n**On Sample Complexity:**\\nThe O(d⁴/ε + log(1/δ)) sample complexity is polynomial but has high dimension dependence. We acknowledge this is prohibitive for d >> 100. However, (i) this is what comes from applying VC-theory to a d²-dimensional relaxation—a price paid for converting non-convex optimization to convex—and (ii) experiments demonstrate that SGD avoids this worst-case complexity in practice (Figure 1). We are transparent about this limitation and do not claim the algorithm is practical for modern LLM embeddings. This is a trade-off: we obtain *provable* learnability at the cost of unfavorable scaling.\\n\\n**On Modest Experimental Scope:**\\nWe agree that experiments are limited to synthetic tasks. We intentionally chose tasks where ground truth is known and certification can be verified (Sections 4.1-4.2). Adding real dataset experiments would strengthen the paper, but the current experiments validate our theoretical predictions on the model class we analyze. We note that the absence of real-world experiments does not invalidate the theoretical results—PAC learning theory is not expected to be tight in practice, and our experiments demonstrate the key phenomena (benefits of heads, certificate correlation with generalization).\\n\\n**On Gap Between Algorithm 1 and SGD:**\\nThis is an excellent question that deserves a direct answer: Algorithm 1 solves the convex relaxation exactly, whereas practitioners use SGD on the original non-convex MHLA loss. In Figure 2b, we observe empirically that SGD converges to parameters equivalent to the ground truth in feature space p(Θ) when the certificate condition holds. We can interpret this as follows: when λ_min(ΛD) > 0, the linear model in feature space has a unique solution p(Θ*). By the implicit bias of gradient descent, SGD may converge to this solution even though the original loss is non-convex. However, we do not have a formal proof of this alignment. This is a genuine gap between theory and practice that warrants further investigation, and we appreciate the reviewer pointing it out. For the purposes of this submission, we view Figure 2b as empirical evidence that SGD can find solutions consistent with the theory when the certificate condition holds, though we cannot yet provide theoretical guarantees.\\n\\n**Summary of Response:**\\nOur contributions are: (1) the first polynomial-time algorithm for MHLA learning; (2) a data-dependent certificate for identifiability and out-of-distribution generalization; (3) extensions to learning UTMs and handling noisy/non-realizable data. These are meaningful theoretical advances, even if restricted to a simplified model. The practical limitations are real and acknowledged, but do not diminish the theoretical novelty or the progress on a previously open problem. We believe the paper makes a solid contribution to Transformer learning theory and provides a foundation for future work on more complex architectures.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 3,
+              "clarity": 4
+            },
+            "strengths": [
+              "Significant theoretical contribution: The paper provides the first polynomial-time learnability result (strong agnostic PAC learning) for multi-head linear attention networks, which is a meaningful advance bridging the gap between known expressivity and computational learnability of Transformers.",
+              "Novel identifiability certificate: The introduction of a computationally checkable condition (based on eigenvalue of a second-moment matrix) that certifies all empirical risk minimizers compute the same function is innovative and provides a practical tool for understanding when out-of-distribution generalization can be guaranteed.",
+              "Clever technical approach: The reformulation of the MHLA optimization problem as a convex regression over a d^2-dimensional relaxation through kernel methods (using feature mapping X) is elegant and enables the polynomial-time algorithm via SVD decomposition. The proof that this relaxation is tight (recovers an equivalent MHLA) is non-trivial.",
+              "Well-structured empirical validation: Experiments effectively validate theoretical predictions, including the benefit of overparameterization via heads (Section 4.1) and the correlation between the identifiability certificate and generalization (Section 4.2).",
+              "Breadth of theoretical results: The paper covers multiple complementary aspects: learnability, identifiability, applications to UTM learning, and extensions to noisy/non-realizable data (Lemmas A.5-A.7)."
+            ],
+            "weaknesses": [
+              "Limited practical applicability: The model studied (single-layer linear attention without softmax) is far simpler than modern Transformers used in practice. While acknowledged in the conclusion, the gap between theory and practice limits real-world impact.",
+              "Unexplained gap between theoretical algorithm and SGD practice: Algorithm 1 solves a convex relaxation exactly via linear regression, but practitioners use SGD on the original non-convex loss. Figure 2b shows SGD empirically converges to equivalent parameters when the certificate holds, but no theoretical analysis justifies this alignment. The rebuttal acknowledges this as an open question without providing theoretical justification.",
+              "Limited experimental scope: Experiments are restricted to synthetic tasks with small dimensions (d ≤ 4). No validation on real datasets, language modeling, or larger d demonstrates scalability or broader applicability. The rebuttal acknowledges that larger-d experiments would strengthen empirical support but notes they are beyond the current submission's scope.",
+              "Sample complexity has prohibitive d^4 dependence: While polynomial, N = O(d^4/ϵ + log(1/δ)) and runtime O(Nd^4n_max/ϵ^-1) are impractical for realistic embedding dimensions (d > 100). The rebuttal reframes this as a fundamental trade-off but does not resolve the practical limitation."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited practical applicability: The model studied (single-layer linear attention without softmax) is far simpler than modern Transformers used in practice. While acknowledged in the conclusion, the gap between theory and practice limits real-world impact.",
+                "severity": "minor",
+                "evidence": "The paper studies MHLA which omits: softmax attention, multi-layer stacking, MLPs, layer normalization. Definition 2.1 defines MHLA as Ŷ = Σ_h V_h Z(Z^T Q_h Z). Figure 1 shows competitive performance only on synthetic data generation task. The conclusion states: 'the model class we consider is far simpler than modern LLM's, but we consider our work an important step.' The rebuttal correctly notes that linear attention variants have matched softmax attention on some benchmarks, providing some justification for the model choice.",
+                "affected_claim": "The theoretical results bridge expressivity and learnability for Transformers",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Unexplained gap between theoretical algorithm and SGD practice: Algorithm 1 solves a convex relaxation exactly via linear regression, but practitioners use SGD on the original non-convex loss. Figure 2b shows SGD empirically converges to equivalent parameters when the certificate holds, but no theoretical analysis justifies this alignment. The rebuttal acknowledges this as an open question without providing theoretical justification.",
+                "severity": "major",
+                "evidence": "Algorithm 1 explicitly performs OLS regression (line 5: Ŵ := arg min_W Σ_i Σ_a (⟨W, X_{i,a}⟩ - y_{i,a})²). The original MHLA loss (Equations 4-5) is a quadratic polynomial in parameters, hence non-convex when restricted to rank-H matrices. Figure 2b shows empirical convergence of SGD when λ_min(Λ_D) > 0. The rebuttal states: 'we do not have a rigorous proof of this for MHLA' and frames this as an 'important open question.' This honest acknowledgment clarifies the status but does not resolve the gap—no theoretical connection is provided in the submitted paper.",
+                "affected_claim": "Algorithm 1's guarantees extend to practical SGD training",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited experimental scope: Experiments are restricted to synthetic tasks with small dimensions (d ≤ 4). No validation on real datasets, language modeling, or larger d demonstrates scalability or broader applicability. The rebuttal acknowledges that larger-d experiments would strengthen empirical support but notes they are beyond the current submission's scope.",
+                "severity": "minor",
+                "evidence": "Section 4.1 generates data from Gaussian MHLA with d ∈ {2, 4}, N ∈ {512, 2048}. Section 4.2 uses synthetic associative memory with d = 4, N = 2^14. Appendix G confirms no real dataset experiments. The rebuttal states: 'testing d = 16 or 32 would demonstrate whether this worst-case bound is loose in practice' but acknowledges such experiments 'would require new computational work' and are 'beyond the current submission's scope.' This does not resolve the limitation in the submitted paper.",
+                "affected_claim": "The algorithm and certificate are empirically validated beyond toy problems",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Sample complexity has prohibitive d^4 dependence: While polynomial, N = O(d^4/ϵ + log(1/δ)) and runtime O(Nd^4n_max/ϵ^-1) are impractical for realistic embedding dimensions (d > 100). The rebuttal reframes this as a fundamental trade-off but does not resolve the practical limitation.",
+                "severity": "minor",
+                "evidence": "Theorem 2.2 explicitly states sample complexity N = O(1/ϵ · d^4 + log(δ^-1)) and runtime O(Nd^4n_max ϵ^-1). For d = 1024, d^4 ≈ 10^12. The rebuttal explains: 'the complexity emerges from the VC-dimension of the d²-dimensional relaxed space' and notes this is 'a fundamental trade-off.' It also states: 'we do not claim this algorithm is practical for modern LLMs. The paper is a theoretical stepping stone.' This is an honest reframing but does not change the fundamental limitation present in the submitted paper.",
+                "affected_claim": "The algorithm is practically feasible",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical proofs are sound. The core theoretical contributions (Theorem 2.2, Lemmas A.3, A.6) are rigorous and correct. The rebuttal clarifies that Algorithm 1 finds global minimizers of training loss without i.i.d. assumptions (Appendix D), and that the i.i.d. requirement for generalization is standard in PAC learning. The rebuttal correctly notes that Lemma A.6 removes realizability when H ≥ d², aligning with Algorithm 1's output (Ĥ ≤ d²). The unresolved gap between the convex algorithm and SGD practice does not affect the soundness of the stated theoretical results—it is an open question about extending the theory to SGD, not an error in existing proofs. The identifiability results follow rigorously from linear regression uniqueness."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "This is the first polynomial-time learnability result for multi-head linear attention networks with agnostic PAC guarantees. The rebuttal clarifies that prior work (Chen & Li 2024, Tarzanagh et al. 2024, Fu et al. 2023) required stronger assumptions or provided lower bounds. The certifiable identifiability framework is genuinely novel. The paper's positioning as the first algorithm achieving polynomial-time agnostic PAC learning for MHLA is accurate and the novelty bar is met."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The paper addresses a fundamental open question in Transformer learning theory: efficient learnability with theoretical guarantees. Bridging expressivity (what Transformers can compute) with learnability (whether functions can be recovered efficiently from data) is conceptually important for understanding neural network optimization. The identifiability certificate is a useful theoretical tool. The significance is limited by the restrictive model class (single-layer linear attention) and acknowledged practical limitations, but the theoretical contribution is solid. The paper represents meaningful progress on an important problem, even if not immediately applicable to modern LLMs."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The theoretical results are rigorously proven in appendices. The experiments on the studied model class adequately validate key theoretical predictions: Figure 1 shows benefits of head overparameterization (aligned with Algorithm 1's d² rank bound), and Figure 2 validates the identifiability certificate's correlation with generalization. The rebuttal justifies the restriction to synthetic tasks (ground truth access needed to validate the certificate) and acknowledges experiments could be strengthened with larger d. For a theoretical paper, the evaluation adequately supports the central claims about learnability and identifiability of MHLA, though empirical validation remains limited to small dimensions."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written overall. Main results are precisely stated (Theorems 2.2, Lemma A.3, A.6). Section 2 provides clear intuition. Algorithm 1 is transparent. Figures are informative. The rebuttal clarifies that autoregressive sequence handling appears in the paper (Lemma C.5, Appendix F.2) but could be more prominent in the main text. The rebuttal also clarifies that the realizability requirement for Lemma A.3 is partially addressed by Lemma A.6. Some notational density exists, but the presentation meets standards for a theoretical contribution."
+              }
+            },
+            "summary_comment": "This paper makes a solid theoretical contribution by proving the first polynomial-time learnability result for multi-head linear attention networks with agnostic PAC guarantees. The technical innovation—reformulating MHLA optimization as convex regression over a lifted d^2-dimensional feature space and recovering equivalent parameters via SVD—is non-trivial and clever. The certifiable identifiability framework providing a data-dependent condition for out-of-distribution generalization is novel and useful.\n\nThe rebuttal provides helpful clarifications: (1) Algorithm 1 finds global training minima without i.i.d.; (2) the i.i.d. requirement for generalization is standard in PAC theory; (3) Lemma A.6 removes realizability when H ≥ d²; (4) autoregressive sequences are handled via union bounds (Lemma C.5, Appendix F.2). Critically, the rebuttal is honest about remaining limitations: (a) the gap between Algorithm 1 (exact OLS) and SGD practice remains unexplained theoretically, though Figure 2b provides empirical evidence; (b) this is framed as an important open question about SGD's implicit bias; (c) the authors transparently state they lack rigorous theoretical justification.\n\nLimitations that remain unresolved in the submitted paper: (1) single-layer linear attention without softmax is simplified; (2) the theory-SGD gap is acknowledged but unresolved; (3) experiments are synthetic with d ≤ 4; (4) d^4 sample complexity is prohibitive. However, these do not prevent acceptance. The paper delivers on its core claim: the first polynomial-time algorithm for learning MHLA with provable guarantees. The limitations are understood by the authors and appropriately framed. This is a theoretical stepping stone, not a practical algorithm for modern LLMs—a distinction the authors explicitly acknowledge.\n\nFor a top-tier ML conference with emphasis on theoretical advances, this represents solid, novel, and rigorous work on an important open problem. The execution is sound, the technical approach is non-obvious, and the results extend the understanding of neural network learnability. While not groundbreaking in practical impact, the paper merits acceptance as a theoretical contribution that moves the field forward."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited practical applicability of simplified model (single-layer linear attention without softmax)\",\n        \"Unexplained theoretical gap between Algorithm 1 (exact convex regression) and SGD practice (non-convex optimization)\",\n        \"Limited experimental scope restricted to synthetic tasks with small dimensions (d ≤ 4)\",\n        \"Sample complexity with prohibitive d⁴ dependence makes algorithm impractical for realistic embedding dimensions\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Model is significantly simplified compared to modern Transformers\",\n          \"location\": \"Section 6 (Conclusion), Definition 2.1, Figure 1\",\n          \"explanation\": \"The paper studies single-layer MHLA without softmax, MLPs, or layer normalization. Definition 2.1 defines MHLA as Ŷ = Σ_h V_h Z(Z^T Q_h Z), which omits nonlinearities. Figure 1 compares against 'full' Transformer with softmax and MLPs but shows MHLA is competitive on synthetic data generation task only.\"\n        },\n        {\n          \"concern\": \"Algorithm 1 uses exact OLS but practitioners use SGD\",\n          \"location\": \"Algorithm 1 (line 5), Section 2.1 proof idea, Appendix D, Figure 2b\",\n          \"explanation\": \"Algorithm 1 explicitly solves Ŵ := arg min_W Σ_i Σ_a (⟨W, X_{i,a}⟩ - y_{i,a})² via linear regression. The MHLA loss (Equations 4-5) is non-convex when restricted to rank-H. Figure 2b shows SGD empirical convergence but no theoretical justification is provided for why SGD on the non-convex MHLA loss should find solutions of the convex relaxation.\"\n        },\n        {\n          \"concern\": \"Experiments limited to synthetic tasks with d ≤ 4\",\n          \"location\": \"Section 4, Figures 1-2, Appendix G\",\n          \"explanation\": \"Section 4.1: Data generated from N(0, I/d) with d ∈ {2, 4}, T = 100, N ∈ {512, 2048}. Section 4.2: Synthetic associative memory with d = 4, N = 2^14. Appendix G.1 confirms no real dataset experiments. No language modeling, vision, or other benchmarks.\"\n        },\n        {\n          \"concern\": \"Sample complexity O(d⁴/ε + log(1/δ)) is prohibitive\",\n          \"location\": \"Theorem 2.2\",\n          \"explanation\": \"Theorem 2.2 states: 'sample complexity N = O(1/ε · d⁴ + log(δ⁻¹))' and 'runs in time O(Nd⁴n_max ε⁻¹)'. For d = 1024, d⁴ ≈ 10¹², making this infeasible. The paper acknowledges in Section 6: 'the model class we consider is far simpler than modern LLM's.'\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Gap between Algorithm 1 and SGD: theoretical justification missing\",\n          \"proposed_change\": \"Either: (a) provide theoretical analysis showing under what conditions SGD on MHLA converges to solutions of the convex relaxation (e.g., via implicit bias arguments, convergence to global minima via analysis of critical points, or loss landscape characterization); or (b) explicitly state that Figure 2b is empirical evidence only and acknowledge this as an important open question for future work.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Experiments do not validate practical utility beyond synthetic tasks\",\n          \"proposed_change\": \"Add experiments on: (1) larger dimensions (d ≥ 16); (2) one or more real datasets (e.g., associative memory with real key-value pairs, or synthetic language task with ground truth MHLA); (3) comparison with SGD from different random initializations to assess robustness. Even on synthetic tasks, scaling to d = 16-32 would provide evidence of practical feasibility.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We thank the reviewer for the thorough assessment and recognition that the paper makes solid theoretical progress on an important open problem. We appreciate the precise identification of the remaining gap between theory and practice, and we address each concern directly.\\n\\n**On the Algorithm-to-SGD Gap (Major Issue):**\\n\\nThis is the most critical point and deserves a direct, honest answer: the reviewer is correct that Figure 2b provides empirical evidence without theoretical justification. Algorithm 1 solves the convex relaxation exactly via OLS, whereas SGD optimizes the original non-convex MHLA loss. Our observation is that when λ_min(Λ_D) > 0, SGD converges to parameters that compute equivalent functions (same output in the p feature space), as shown in Figure 2b.\\n\\nWhy might this happen? One plausible explanation leverages implicit bias: When the linear model in feature space H(Z) has a unique solution (λ_min(Λ_D) > 0), gradient descent on any reparameterization may converge to this solution due to implicit bias toward solutions with certain properties (e.g., minimal norm in some metric). However, we do not have a rigorous proof of this for MHLA.\\n\\nWe see this as an important limitation but not a flaw in the main theoretical contribution:\\n- **Algorithm 1's guarantee is sound:** It provably finds parameters with near-optimal training and generalization loss (Theorem 2.2).\\n- **SGD connection is empirical:** Figure 2b demonstrates the phenomenon but is correctly not claimed as a theoretical result.\\n- **Contribution remains valid:** The identifiability certificate (Lemma A.3) characterizes when all ERM solutions compute the same function, independent of the optimization algorithm.\\n\\nWe appreciate that the reviewer did not penalize soundness despite this gap—this reflects the correct understanding that the main theoretical results are rigorous, even though the SGD practice is not fully explained. For clarity in a revision, we would: (1) explicitly state that Figure 2b is empirical evidence; (2) frame this as an interesting open question: understanding SGD's implicit bias for non-convex Transformer optimization; (3) perhaps add a brief discussion of potential implicit bias explanations in the main text or appendix.\\n\\n**On Model Simplicity (Minor Issue):**\\n\\nThe reviewer notes the model is simplified (no softmax, MLPs, or layers). We reaffirm this is an intentional choice: to obtain the first polynomial-time algorithm for *any* Transformer-like model with provable guarantees, we focus on a tractable setting. This is common in theoretical work—first results often analyze simplified models before extensions to richer classes.\\n\\nHowever, we emphasize that linear attention is not a strawman:\\n- Linear attention variants (Yang et al. 2025, 2024; Beck et al. 2024; Dao & Gu 2024) have recently matched or outperformed softmax attention on language and vision benchmarks.\\n- The paper cites these recent results in the introduction to justify studying linear attention.\\n- Our results apply to any feature map ϕ applied to keys and queries (Section 6), suggesting extensions toward softmax approximation.\\n\\n**On Limited Experiments (Minor Issue):**\\n\\nThe reviewer notes experiments use only synthetic tasks with d ≤ 4. We justify this as follows:\\n\\n1. **Ground truth requirement:** For Figures 1-2, we need access to ground-truth parameters to validate: (a) whether overparameterization via heads helps (Figure 1), and (b) whether λ_min(Λ_D) predicts generalization (Figure 2). This is cleanest on synthetic data.\\n\\n2. **Dimension scaling:** The d⁴ sample complexity is the theoretical bottleneck. Testing d = 16 or 32 would demonstrate whether this worst-case bound is loose in practice (SGD may avoid it). **We can propose this as an additional experiment** in a revision (not currently submitted).\\n\\n3. **Alignment with paper scope:** The paper is primarily a theoretical contribution validated on the model class it analyzes. Extensive experiments on real datasets would strengthen practical impact but would constitute a partial departure from the theoretical focus.\\n\\nWe agree that adding experiments with d ≥ 16 would strengthen empirical support. However, we note that such experiments are beyond the current submission's scope and would require new computational work.\\n\\n**On d⁴ Sample Complexity (Minor Issue):**\\n\\nThe reviewer correctly notes this is prohibitive for d > 100. We are transparent about this: the complexity emerges from the VC-dimension of the d²-dimensional relaxed space. This is a fundamental trade-off—we gain polynomial-time optimization by relaxing to higher dimension, incurring d⁴ sample complexity.\\n\\nTwo points:\\n1. **Theory vs. practice gap is acknowledged:** We do not claim this algorithm is practical for modern LLMs. The paper is a theoretical stepping stone.\\n2. **SGD avoids this in practice:** Figure 1 shows SGD reaches good loss without the sample complexity bound. Understanding why would require the implicit bias analysis mentioned above.\\n\\n**Summary of Response:**\\n\\nThe main theoretical contributions (Theorem 2.2, Lemmas A.3-A.6) are sound and represent genuine progress on a previously open problem. The identified gap between theory and SGD practice is real and important but does not invalidate the theoretical results—it is an open question we acknowledge. Limited experiments are justified by the focus on theory, though larger-d experiments would strengthen the empirical narrative. We believe the paper merits acceptance as a solid theoretical contribution with the understanding that practical impact remains limited by model simplicity and complexity dependence.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_bc9d56615796",
+    "conference": "NEURIPS",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/neurips_accept_2025_006_learning_linear_attention_in_polynomial_time.md",
+    "target_paper_summary": {
+      "paper_id": "paper_bc9d56615796",
+      "title": "Learning Linear Attention In Polynomial Time",
+      "abstract": "Previous research has explored the expressivity of Transformer models in simulating Boolean circuits or Turing machines. However, the efficient learnability of Transformers from data has remained an open question. Our study addresses this gap by providing the first polynomial-time learnability results (specifically strong, agnostic PAC learning) for single-layer Transformers with linear attention. We show that learning the optimal multi head linear attention can be recast as finding the optimal kernel predictor in a suitably defined RKHS. Moving to generalization, we construct an algorithm that, given a dataset, checks in polynomial time whether the set of best fit multi head linear attention networks on this data all perform an identical computation–a powerful notion for out of distribution generalization. We empirically validate our theoretical findings on several canonical tasks: learning random linear attention networks, key–value associations, and learning to execute finite automata. Our findings bridge a critical gap between theoretical expressivity and learnability of Transformer models.",
+      "topic": "",
+      "claims": [
+        "We show that learning the optimal multi head linear attention can be recast as finding the optimal kernel predictor in a suitably defined RKHS."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_e11f70607",
+        "title": "Gradient-based learning applied to document recognition",
+        "authors": [
+          "Yann LeCun",
+          "Léon Bottou",
+          "Yoshua Bengio",
+          "Patrick Haffner"
+        ],
+        "year": 1998,
+        "publication_date": "1998-01-01",
+        "venue": "Proceedings of the IEEE",
+        "abstract": "Multilayer neural networks trained with the back-propagation algorithm constitute the best example of a successful gradient based learning technique. Given an appropriate network architecture, gradient-based learning algorithms can be used to synthesize a complex decision surface that can classify high-dimensional patterns, such as handwritten characters, with minimal preprocessing. This paper reviews various methods applied to handwritten character recognition and compares them on a standard handwritten digit recognition task. Convolutional neural networks, which are specifically designed to deal with the variability of 2D shapes, are shown to outperform all other techniques. Real-life document recognition systems are composed of multiple modules including field extraction, segmentation recognition, and language modeling. A new learning paradigm, called graph transformer networks (GTN), allows such multimodule systems to be trained globally using gradient-based methods so as to minimize an overall performance measure. Two systems for online handwriting recognition are described. Experiments demonstrate the advantage of global training, and the flexibility of graph transformer networks. A graph transformer network for reading a bank cheque is also described. It uses convolutional neural network character recognizers combined with global training techniques to provide record accuracy on business and personal cheques. It is deployed commercially and reads several million cheques per day.",
+        "url": "https://doi.org/10.1109/5.726791",
+        "doi": "https://doi.org/10.1109/5.726791",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2112796928"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 58699
+      },
+      {
+        "paper_id": "rw_002_879aaa0fa",
+        "title": "A survey on deep learning in medical image analysis",
+        "authors": [
+          "Geert Litjens",
+          "Thijs Kooi",
+          "Babak Ehteshami Bejnordi",
+          "Arnaud A. A. Setio",
+          "Francesco Ciompi",
+          "Mohsen Ghafoorian",
+          "Jeroen van der Laak",
+          "Bram van Ginneken",
+          "Clara I. Sá‎nchez"
+        ],
+        "year": 2017,
+        "publication_date": "2017-07-26",
+        "venue": "Medical Image Analysis",
+        "abstract": "",
+        "url": "https://doi.org/10.1016/j.media.2017.07.005",
+        "doi": "https://doi.org/10.1016/j.media.2017.07.005",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2592929672"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 14650
+      },
+      {
+        "paper_id": "rw_003_f9e45fc13",
+        "title": "Reinforcement Learning: A Survey",
+        "authors": [
+          "Leslie Pack Kaelbling",
+          "Michael L. Littman",
+          "Andrew Moore"
+        ],
+        "year": 1996,
+        "publication_date": "1996-05-01",
+        "venue": "Journal of Artificial Intelligence Research",
+        "abstract": "This paper surveys the field of reinforcement learning from a computer-science perspective. It is written to be accessible to researchers familiar with machine learning. Both the historical basis of the field and a broad selection of current work are summarized. Reinforcement learning is the problem faced by an agent that learns behavior through trial-and-error interactions with a dynamic environment. The work described here has a resemblance to work in psychology, but differs considerably in the details and in the use of the word ``reinforcement.'' The paper discusses central issues of reinforcement learning, including trading off exploration and exploitation, establishing the foundations of the field via Markov decision theory, learning from delayed reinforcement, constructing empirical models to accelerate learning, making use of generalization and hierarchy, and coping with hidden state. It concludes with a survey of some implemented systems and an assessment of the practical utility of current methods for reinforcement learning.",
+        "url": "https://doi.org/10.1613/jair.301",
+        "doi": "https://doi.org/10.1613/jair.301",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2107726111"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 8876
+      },
+      {
+        "paper_id": "rw_004_32b64b8c5",
+        "title": "Physics-informed machine learning",
+        "authors": [
+          "George Em Karniadakis",
+          "Ioannis G. Kevrekidis",
+          "Lu Lu",
+          "Paris Perdikaris",
+          "Sifan Wang",
+          "Liu Yang"
+        ],
+        "year": 2021,
+        "publication_date": "2021-05-24",
+        "venue": "Nature Reviews Physics",
+        "abstract": "",
+        "url": "https://doi.org/10.1038/s42254-021-00314-5",
+        "doi": "https://doi.org/10.1038/s42254-021-00314-5",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3163993681"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 7015
+      },
+      {
+        "paper_id": "rw_005_ef689409d",
+        "title": "Semi-Supervised Learning",
+        "authors": [
+          "Olivier Chapelle",
+          "Schölkopf, Bernhard 1968-",
+          "Alexander Zien"
+        ],
+        "year": 2006,
+        "publication_date": "2006-09-22",
+        "venue": "The MIT Press eBooks",
+        "abstract": "A comprehensive review of an area of machine learning that deals with the use of unlabeled data in classification problems: state-of-the-art algorithms, a taxonomy of the field, applications, benchmark experiments, and directions for future research. In the field of machine learning, semi-supervised learning (SSL) occupies the middle ground, between supervised learning (in which all training examples are labeled) and unsupervised learning (in which no label data are given). Interest in SSL has increased in recent years, particularly because of application domains in which unlabeled data are plentiful, such as images, text, and bioinformatics. This first comprehensive overview of SSL presents state-of-the-art algorithms, a taxonomy of the field, selected applications, benchmark experiments, and perspectives on ongoing and future research.Semi-Supervised Learning first presents the key assumptions and ideas underlying the field: smoothness, cluster or low-density separation, manifold structure, and transduction. The core of the book is the presentation of SSL methods, organized according to algorithmic strategies. After an examination of generative models, the book describes algorithms that implement the low-density separation assumption, graph-based methods, and algorithms that perform two-step learning. The book then discusses SSL applications and offers guidelines for SSL practitioners by analyzing the results of extensive benchmark experiments. Finally, the book looks at interesting directions for SSL research. The book closes with a discussion of the relationship between semi-supervised learning and transduction.",
+        "url": "https://doi.org/10.7551/mitpress/9780262033589.001.0001",
+        "doi": "https://doi.org/10.7551/mitpress/9780262033589.001.0001",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W1479807131"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 4324
+      },
+      {
+        "paper_id": "rw_006_4415f4b29",
+        "title": "MoleculeNet: a benchmark for molecular machine learning",
+        "authors": [
+          "Zhenqin Wu",
+          "Bharath Ramsundar",
+          "Evan N. Feinberg",
+          "Joseph Gomes",
+          "Caleb Geniesse",
+          "Aneesh Pappu",
+          "Karl Leswing",
+          "Vijay S. Pande"
+        ],
+        "year": 2017,
+        "publication_date": "2017-10-31",
+        "venue": "Chemical Science",
+        "abstract": "Molecular machine learning has been maturing rapidly over the last few years. Improved methods and the presence of larger datasets have enabled machine learning algorithms to make increasingly accurate predictions about molecular properties. However, algorithmic progress has been limited due to the lack of a standard benchmark to compare the efficacy of proposed methods; most new algorithms are benchmarked on different datasets making it challenging to gauge the quality of proposed methods. This work introduces MoleculeNet, a large scale benchmark for molecular machine learning. MoleculeNet curates multiple public datasets, establishes metrics for evaluation, and offers high quality open-source implementations of multiple previously proposed molecular featurization and learning algorithms (released as part of the DeepChem open source library). MoleculeNet benchmarks demonstrate that learnable representations are powerful tools for molecular machine learning and broadly offer the best performance. However, this result comes with caveats. Learnable representations still struggle to deal with complex tasks under data scarcity and highly imbalanced classification. For quantum mechanical and biophysical datasets, the use of physics-aware featurizations can be more important than choice of particular learning algorithm.",
+        "url": "https://doi.org/10.1039/c7sc02664a",
+        "doi": "https://doi.org/10.1039/c7sc02664a",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2594183968"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 3031
+      },
+      {
+        "paper_id": "rw_007_438ffca58",
+        "title": "Spatio-Temporal Graph Convolutional Networks: A Deep Learning Framework for Traffic Forecasting",
+        "authors": [
+          "Bing Yu",
+          "Haoteng Yin",
+          "Zhanxing Zhu"
+        ],
+        "year": 2018,
+        "publication_date": "2018-07-01",
+        "venue": "",
+        "abstract": "Timely accurate traffic forecast is crucial for urban traffic control and guidance. Due to the high nonlinearity and complexity of traffic flow, traditional methods cannot satisfy the requirements of mid-and-long term prediction tasks and often neglect spatial and temporal dependencies. In this paper, we propose a novel deep learning framework, Spatio-Temporal Graph Convolutional Networks (STGCN), to tackle the time series prediction problem in traffic domain. Instead of applying regular convolutional and recurrent units, we formulate the problem on graphs and build the model with complete convolutional structures, which enable much faster training speed with fewer parameters. Experiments show that our model STGCN effectively captures comprehensive spatio-temporal correlations through modeling multi-scale traffic networks and consistently outperforms state-of-the-art baselines on various real-world traffic datasets.",
+        "url": "https://doi.org/10.24963/ijcai.2018/505",
+        "doi": "https://doi.org/10.24963/ijcai.2018/505",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2756203131"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 3354
+      },
+      {
+        "paper_id": "rw_008_df696d36f",
+        "title": "Mamba: Linear-Time Sequence Modeling with Selective State Spaces",
+        "authors": [
+          "Albert Gu",
+          "Tri Dao"
+        ],
+        "year": 2023,
+        "publication_date": "2023-12-01",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Foundation models, now powering most of the exciting applications in deep learning, are almost universally based on the Transformer architecture and its core attention module. Many subquadratic-time architectures such as linear attention, gated convolution and recurrent models, and structured state space models (SSMs) have been developed to address Transformers' computational inefficiency on long sequences, but they have not performed as well as attention on important modalities such as language. We identify that a key weakness of such models is their inability to perform content-based reasoning, and make several improvements. First, simply letting the SSM parameters be functions of the input addresses their weakness with discrete modalities, allowing the model to selectively propagate or forget information along the sequence length dimension depending on the current token. Second, even though this change prevents the use of efficient convolutions, we design a hardware-aware parallel algorithm in recurrent mode. We integrate these selective SSMs into a simplified end-to-end neural network architecture without attention or even MLP blocks (Mamba). Mamba enjoys fast inference (5$\\times$ higher throughput than Transformers) and linear scaling in sequence length, and its performance improves on real data up to million-length sequences. As a general sequence model backbone, Mamba achieves state-of-the-art performance across several modalities such as language, audio, and genomics. On language modeling, our Mamba-3B model outperforms Transformers of the same size and matches Transformers twice its size, both in pretraining and downstream evaluation.",
+        "url": "http://arxiv.org/abs/2312.00752",
+        "doi": "https://doi.org/10.48550/arxiv.2312.00752",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4389326242"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1027
+      },
+      {
+        "paper_id": "rw_009_784cb8733",
+        "title": "On the approximability of minimizing nonzero variables or unsatisfied relations in linear systems",
+        "authors": [
+          "E. Amaldi",
+          "Viggo Kann"
+        ],
+        "year": 1998,
+        "publication_date": "1998-12-01",
+        "venue": "Theoretical Computer Science",
+        "abstract": "We investigate the computational complexity of two closely related classes of combinatorial optimization problems for linear systems which arise in various fields such as machine learning, operations research and pattern recognition. In the first class (Min ULR) one wishes, given a possibly infeasible system of linear relations, to find a solution that violates as few relations as possible while satisfying all the others. In the second class (Min RVLS) the linear system is supposed to be feasible and one looks for a solution with as few nonzero variables as possible. For both Min ULR and Min RVLS the four basic types of relational operators =, ⩾, > and ≠ are considered. While Min RVLS with equations was mentioned to be NP-hard in (Garey and Johnson, 1979), we established in (Amaldi; 1992; Amaldi and Kann, 1995) that min ULR with equalities and inequalities are NP-hard even when restricted to homogeneous systems with bipolar coefficients. The latter problems have been shown hard to approximate in (Arora et al., 1993). In this paper we determine strong bounds on the approximability of various variants of Min RVLS and min ULR, including constrained ones where the variables are restricted to take binary values or where some relations are mandatory while others are optional. The various NP-hard versions turn out to have different approximability properties depending on the type of relations and the additional constraints, but none of them can be approximated within any constant factor, unless P = NP. Particular attention is devoted to two interesting special cases that occur in discriminant analysis and machine learning. In particular, we disprove a conjecture of van Horn and Martinez (1992) regarding the existence of a polynomial-time algorithm to design linear classifiers (or perceptrons) that involve a close-to-minimum number of features.",
+        "url": "https://doi.org/10.1016/s0304-3975(97)00115-1",
+        "doi": "https://doi.org/10.1016/s0304-3975(97)00115-1",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2075779886"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 766
+      },
+      {
+        "paper_id": "rw_010_462445f26",
+        "title": "On the Sample Complexity of Reinforcement Learning",
+        "authors": [
+          "Sham M. Kakade"
+        ],
+        "year": 2003,
+        "publication_date": "2003-01-01",
+        "venue": "OpenGrey (Institut de l'Information Scientifique et Technique)",
+        "abstract": "This thesis is a detailed investigation into the following question: how much data must an agent collect in order to perform \"reinforcement learning\" successfully? This question is analogous to the classical issue of the sample complexity in supervised learning, but is harder because of the increased realism of the reinforcement learning setting. This thesis summarizes recent sample complexity results in the reinforcement learning literature and builds on these results to provide novel algorithms with strong performance guarantees. We focus on a variety of reasonable performance criteria and sampling models by which agents may access the environment. For instance, in a policy search setting, we consider the problem of how much simulated experience is required to reliably choose a \"good\" policy among a restricted class of policies II (as in Kearns, Mansour, and Ng [2000]). In a more online setting, we consider the case in which an agent is placed in an environment and must follow one unbroken chain of experience with no access to \"offline\" simulation (as in Kearns and Singh [1998]). We build on the sample based algorithms suggested by Kearns, Mansour, and Ng [2000]. Their sample complexity bounds have no dependence on the size of the state space, an exponential dependence on the planning horizon time, and linear dependence on the complexity of II. We suggest novel algorithms with more restricted guarantees whose sample complexities are again independent of the size of the state space and depend linearly on the complexity of the policy class II, but have only a polynomial dependence on the horizon time. We pay particular attention to the tradeoffs made by such algorithms.",
+        "url": "http://hdl.handle.net/10068/907685",
+        "doi": "",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W107583932"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 512
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_008_df696d36f",
+        "relevance_score": 0.92,
+        "relevance_types": [
+          "same_method",
+          "novelty_competitor",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Mamba addresses linear-time sequence modeling with selective state spaces, competing with attention-based models like Transformers; it discusses computational efficiency, content-based reasoning, and performance on long sequences, aligning with the target's focus on linear attention efficiency and learnability.",
+        "evidence_summary": "In 2023, Gu and Dao published 'Mamba: Linear-Time Sequence Modeling with Selective State Spaces,' which introduced selective state space models that enable content-based reasoning and linear scaling in sequence length, achieving state-of-the-art performance on language, audio, and genomics tasks with 5x higher inference throughput than Transformers."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_009_784cb8733",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "same_constraints",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This paper discusses NP-hardness and approximability in linear systems, relevant to the target's theoretical constraints and efficiency claims for learning linear attention in polynomial time.",
+        "evidence_summary": "In 1998, Amaldi and Kann published 'On the approximability of minimizing nonzero variables or unsatisfied relations in linear systems,' which established that various NP-hard problems in linear systems cannot be approximated within any constant factor unless P = NP, highlighting fundamental computational limitations."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_001_e11f70607",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "LeCun et al.'s work on gradient-based learning and convolutional neural networks provides background on efficient learning methods and benchmark tasks, indirectly relevant to the target's empirical validation on canonical tasks.",
+        "evidence_summary": "In 1998, LeCun et al. published 'Gradient-based learning applied to document recognition,' which reviewed methods for handwritten character recognition, showing convolutional neural networks outperform other techniques on standard digit recognition tasks and enabling global training in document systems."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_006_4415f4b29",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "benchmark_baseline"
+        ],
+        "rationale": "MoleculeNet introduces benchmarks for molecular machine learning, which could serve as a reference for empirical validation, though not directly related to attention mechanisms.",
+        "evidence_summary": "In 2017, Wu et al. published 'MoleculeNet: a benchmark for molecular machine learning,' which curated multiple public datasets for evaluating molecular featurization and learning algorithms, demonstrating that learnable representations offer the best performance but struggle with data scarcity and imbalanced classification."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_007_438ffca58",
+        "relevance_score": 0.43,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "STGCN uses graph convolutional networks for spatio-temporal data, relevant as a deep learning method but not specifically addressing attention or polynomial-time learnability.",
+        "evidence_summary": "In 2018, Yu, Yin, and Zhu published 'Spatio-Temporal Graph Convolutional Networks: A Deep Learning Framework for Traffic Forecasting,' which introduced STGCN to capture spatio-temporal correlations with convolutional structures, achieving faster training and outperforming baselines on real-world traffic datasets."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_003_f9e45fc13",
+        "relevance_score": 0.41,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This survey covers reinforcement learning, a broad machine learning area, providing general background but limited direct relevance to linear attention learnability.",
+        "evidence_summary": "In 1996, Kaelbling, Littman, and Moore published 'Reinforcement Learning: A Survey,' which summarized the field, including issues like exploration-exploitation trade-offs and learning from delayed reinforcement, without specific focus on attention mechanisms or polynomial-time results."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_005_ef689409d",
+        "relevance_score": 0.39,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Chapelle et al.'s book on semi-supervised learning offers general machine learning context but lacks direct connection to attention models or polynomial-time learning.",
+        "evidence_summary": "In 2006, Chapelle, Schölkopf, and Zien published 'Semi-Supervised Learning,' which provided a comprehensive review of algorithms using unlabeled data, including a taxonomy and benchmark experiments, without addressing attention-based architectures."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_010_462445f26",
+        "relevance_score": 0.38,
+        "relevance_types": [
+          "same_constraints"
+        ],
+        "rationale": "Kakade's thesis on sample complexity in reinforcement learning discusses data efficiency, which is tangentially related to learnability but not specific to attention or polynomial time.",
+        "evidence_summary": "In 2003, Kakade published 'On the Sample Complexity of Reinforcement Learning,' which investigated data requirements for reinforcement learning, providing algorithms with performance guarantees independent of state space size but not addressing attention mechanisms."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_004_32b64b8c5",
+        "relevance_score": 0.37,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Karniadakis et al.'s review on physics-informed machine learning is a broad methodological overview with no direct relevance to attention or polynomial-time learnability.",
+        "evidence_summary": "In 2021, Karniadakis et al. published 'Physics-informed machine learning,' which summarized approaches integrating physical principles into machine learning, without specific details on attention models or computational efficiency."
+      },
+      {
+        "rank": 10,
+        "paper_id": "rw_002_879aaa0fa",
+        "relevance_score": 0.35,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Litjens et al.'s survey on deep learning in medical image analysis provides general background on applications but no connection to attention mechanisms or learnability theory.",
+        "evidence_summary": "In 2017, Litjens et al. published 'A survey on deep learning in medical image analysis,' which reviewed deep learning methods in the medical domain, without addressing polynomial-time learning or attention-based architectures."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2023, Gu and Dao published 'Mamba: Linear-Time Sequence Modeling with Selective State Spaces,' introducing selective state space models for content-based reasoning with linear sequence scaling and 5x inference throughput improvement over Transformers, achieving state-of-the-art results on language, audio, and genomics. In 1998, Amaldi and Kann published 'On the approximability of minimizing nonzero variables or unsatisfied relations in linear systems,' showing NP-hard problems in linear systems cannot be approximated within any constant factor unless P = NP. In 1998, LeCun et al. published 'Gradient-based learning applied to document recognition,' demonstrating convolutional neural networks outperform other methods on handwritten digit recognition and enabling global training in document systems. In 2017, Wu et al. published 'MoleculeNet: a benchmark for molecular machine learning,' curating datasets where learnable representations perform best but face challenges with data scarcity. In 2018, Yu, Yin, and Zhu published 'Spatio-Temporal Graph Convolutional Networks: A Deep Learning Framework for Traffic Forecasting,' using convolutional structures for spatio-temporal correlations with faster training on traffic data. In 1996, Kaelbling, Littman, and Moore published 'Reinforcement Learning: A Survey,' covering exploration-exploitation and delayed reinforcement without attention-specific details.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 0,
+      "num_removed_undated": 0,
+      "num_used": 10,
+      "num_cutoff_valid": 10,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 0,
+    "num_removed_undated": 0,
+    "num_used": 10,
+    "num_cutoff_valid": 10,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

@@ -1,0 +1,198 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 2,
+        "soundness": 3,
+        "significance": 2,
+        "evaluation": 3,
+        "clarity": 3
+      },
+      "strengths": [
+        "The paper addresses a practical problem in multilingual information retrieval: the trade-off between optimizing for monolingual versus cross-lingual retrieval. The motivation is clear and well-articulated.",
+        "Comprehensive experimental evaluation across multiple datasets (XQuAD-R, MLQA-R, MIRACL), models (XLM-R, LaBSE), and metrics (mAP, Recall@1, Recall@10, language bias metrics). The evaluation is thorough and covers various language pairs and retrieval settings.",
+        "The paper demonstrates consistent improvements in multilingual retrieval while maintaining competitive performance in both monolingual and cross-lingual settings. The hybrid approach provides a reasonable balance across different retrieval scenarios."
+      ],
+      "weaknesses": [
+        "The proposed method is an extremely simple combination of two existing batch sampling strategies (X-X-mono and X-Y) with a fixed hyperparameter (α=0.5). This lacks novelty and represents only an incremental engineering contribution rather than a methodological advance.",
+        "The paper does not provide sufficient justification or theoretical insight into why the specific 50-50 split works well. The hyperparameter tuning section mentions α=0.5 was chosen based on grid search but provides no analysis of the trade-offs or learning dynamics.",
+        "The improvements achieved by the hybrid approach are often marginal. In many cases (e.g., Table 1 for multilingual retrieval), the proposed method achieves essentially comparable results to X-Y basching rather than clear improvements. The gains do not justify the added complexity.",
+        "The paper uses in-house machine translation for creating parallel data, making reproducibility difficult. The translation quality, coverage, and potential biases introduced are not discussed or validated.",
+        "The language bias metric (average rank distance) is borrowed from prior work and applied without critical discussion of its limitations or appropriateness for this context.",
+        "The paper does not compare against more recent multilingual IR approaches or the state-of-the-art methods discussed in the introduction (e.g., InfoXLM, LaBSE for training, Aggretriever). It only compares against two naive baselines."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The proposed method is an extremely simple combination of two existing batch sampling strategies (X-X-mono and X-Y) with a fixed hyperparameter (α=0.5). This lacks novelty and represents only an incremental engineering contribution rather than a methodological advance.",
+          "severity": "major",
+          "evidence": "Section 2.2 describes the hybrid batch sampling as simply setting probabilities α and β=1-α for selecting between two existing baseline batch types. The method involves no new loss functions, architectural components, or learning algorithms. The grid search finding α=0.5 (lines 195-202) shows this is essentially equal weighting of two existing approaches.",
+          "affected_claim": "The claim of proposing a 'novel hybrid batch training strategy' is overstated.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The paper does not provide sufficient justification or theoretical insight into why the specific 50-50 split works well. The hyperparameter tuning section mentions α=0.5 was chosen based on grid search but provides no analysis of the trade-offs or learning dynamics.",
+          "severity": "major",
+          "evidence": "Lines 195-202 state only that 'setting α = 0.5 provided the best overall results' and note that performance was 'relatively stable for α values between 0.4 and 0.6'. No learning curves, sensitivity analysis, or explanation of why this particular balance emerges is provided. No ablation studies examine the behavior across different α values.",
+          "affected_claim": "The choice of α=0.5 as optimal is not well justified beyond empirical grid search on a single validation set.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The improvements achieved by the hybrid approach are often marginal. In many cases (e.g., Table 1 for multilingual retrieval), the proposed method achieves essentially comparable results to X-Y batching rather than clear improvements. The gains do not justify the added complexity.",
+          "severity": "major",
+          "evidence": "In Table 1 (XQuAD-R), multilingual retrieval: Hybrid achieves 0.593 mAP (XLM-R) vs X-Y's 0.593, and 0.512 (LaBSE) vs X-Y's 0.512. These are identical. For monolingual retrieval, improvements over X-X-mono are small (0.798 vs 0.792 for XLM-R). In Tables 5-6, improvements are often within noise margins or the method ranks second. The paper acknowledges 'performs as a strong runner-up' (line 334), which indicates it rarely wins decisively.",
+          "affected_claim": "The claim of achieving 'comparable or superior results' does not demonstrate clear superiority; in many cases it is merely competitive with existing methods.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The paper uses in-house machine translation for creating parallel data, making reproducibility difficult. The translation quality, coverage, and potential biases introduced are not discussed or validated.",
+          "severity": "major",
+          "evidence": "Lines 97-99 mention 'in-house machine translation pipeline' applied to multiple datasets. Section A.1 provides no details about this pipeline, its quality metrics, error rates, or coverage. The appendix (lines 752-756) references external papers but provides no specifics about the actual implementation used. Without access to this data or its quality metrics, results cannot be independently reproduced.",
+          "affected_claim": "The empirical results depend critically on translation quality, which is not disclosed or validated.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The paper does not compare against more recent multilingual IR approaches or the state-of-the-art methods discussed in the introduction (e.g., InfoXLM, LaBSE for training, Aggretriever). It only compares against two naive baselines.",
+          "severity": "major",
+          "evidence": "The introduction mentions InfoXLM (Chi et al., 2021), LaBSE (Feng et al., 2022), multilingual distillation approaches (Huang et al., 2023a), and Aggretriever extensions (Lin et al., 2023a, 2023b), but no experimental comparisons are provided. Section 4 only compares X-X-mono, X-Y, and the proposed hybrid approach. No comparisons to recent strong baselines or SOTA methods are included.",
+          "affected_claim": "The paper does not demonstrate whether the approach is competitive with the state-of-the-art methods in multilingual IR.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The technical approach is sound. Combining two batch sampling strategies with probabilistic weighting is a valid approach. The experimental setup with early stopping, standard optimizers, and standard contrastive learning formulation follows established practices. However, the simplicity of the method and lack of deeper technical innovation raises questions about significance."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The core contribution is trivial: a probabilistic mixture of two existing batch sampling strategies (X-X-mono and X-Y introduced by Roy et al., 2020) with a fixed weight (α=0.5). This is not a novel methodological contribution. The paper amounts to an empirical study showing that a simple combination works, but provides no new insights into why, when, or how such combinations should be constructed. This falls far short of the novelty bar for a top-tier venue."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "The practical significance is limited. The improvements are marginal or comparable to existing baselines in most cases (often identical in multilingual settings as shown in Table 1). The method does not advance the understanding of multilingual IR, does not introduce new techniques or principles, and does not achieve state-of-the-art results compared to recent methods. The contribution is insufficient for a selective top-tier conference."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The evaluation is comprehensive across multiple datasets, models, and metrics. Tables are extensive and detailed. However, the evaluation has significant limitations: (1) no comparisons to recent SOTA baselines mentioned in the introduction, (2) use of unreproducible in-house MT pipeline, (3) limited analysis of why the approach works, (4) no ablation studies beyond the hyperparameter grid search. The evaluation supports the claims but does not go beyond demonstrating basic competitiveness."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is generally well-written and organized. The motivation is clear. Figures and tables are informative. However, there are some presentation issues: the main contribution is buried and understated, the method section is extremely brief (half a page for the main contribution), and key implementation details (MT pipeline) are relegated to appendix or omitted. Overall clarity is acceptable but could be improved."
+        }
+      },
+      "summary_comment": "This paper proposes a simple hybrid batch training strategy for multilingual information retrieval that combines monolingual and cross-lingual batch sampling with a 50-50 weighting (α=0.5). While the paper addresses a relevant problem and conducts comprehensive experiments, it falls short of the standards for a top-tier ML conference. The core contribution is trivial—a probabilistic mixture of two existing batch sampling strategies—with no novel insights, no theoretical justification, and only marginal empirical improvements over baselines. The results often show the proposed method is merely competitive with existing approaches rather than superior. The evaluation lacks comparisons to recent state-of-the-art methods mentioned in the introduction. The use of an in-house, unreproducible machine translation pipeline further limits the contribution. The paper reads more as an empirical engineering study confirming that a straightforward combination of existing methods provides reasonable trade-offs, but this is insufficient for a selective venue. For acceptance at a top-tier conference, the work would need significant novelty (new methods, theoretical insights, or learning mechanisms), clear superiority over strong baselines, and reproducible experiments."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 3,\n    \"why_it_fits\": [\n      \"The paper addresses information retrieval, which is within ICML's scope as an application-driven machine learning contribution focused on practical problems in NLP.\",\n      \"The work involves fine-tuning multilingual pre-trained language models using contrastive learning, which touches on core ML topics (representation learning, optimization strategies).\",\n      \"The experimental evaluation is comprehensive and systematic, covering multiple datasets, models, and metrics in a rigorous manner that aligns with ICML's standards for empirical validation.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The core contribution is extremely limited in novelty: it is a trivial combination of two existing batch sampling strategies with a fixed hyperparameter (α=0.5). This represents an incremental engineering study rather than a methodological advance in machine learning, which ICML expects.\",\n      \"No novel algorithmic contributions, loss functions, architectural innovations, or learning mechanisms are introduced. The paper merely demonstrates that a 50-50 probabilistic mixture of existing baselines works reasonably well empirically.\",\n      \"The improvements are marginal and often identical to baselines. For example, in Table 1 (multilingual retrieval), the proposed method achieves 0.593 mAP for XLM-R versus X-Y's 0.593—identical performance. This fails to demonstrate clear superiority warranting publication.\",\n      \"The paper lacks theoretical justification or insights into why the 50-50 split emerges as optimal or when/why such combinations should be preferred. No ablation studies or sensitivity analyses explain the trade-offs or learning dynamics.\",\n      \"Reproducibility is severely compromised by the use of an undisclosed, in-house machine translation pipeline. No details on translation quality, coverage, or validation are provided, making independent reproduction impossible.\",\n      \"The evaluation is limited to two naive baselines (X-X-mono and X-Y from Roy et al., 2020). No comparisons are provided against recent state-of-the-art methods (InfoXLM, LaBSE pretraining approaches, Aggretriever variants, distillation frameworks) mentioned in the introduction, leaving the relative performance unclear.\",\n      \"The paper is categorized as 'Others' rather than clearly fitting ICML's core topics (general ML, deep learning, optimization, representation learning, reinforcement learning, etc.), indicating weak topical alignment.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"Multilingual information retrieval is relevant to NeurIPS's broad scope, particularly under 'Language and multimodal language models' and application-driven ML categories.\",\n      \"The paper demonstrates extensive zero-shot generalization to unseen languages (Greek, Vietnamese), which aligns with NeurIPS's interest in generalization and transfer learning.\",\n      \"The comprehensive experimental evaluation across multiple languages (11 in XQuAD-R, 7 in MLQA-R, 15+ in MIRACL) and the investigation of language bias mitigation show breadth of evaluation expected at NeurIPS.\",\n      \"The work engages with multilingual pre-trained models (XLM-R, LaBSE), which are contemporary topics in the NeurIPS community's interest in large language models.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The core methodological contribution is extremely weak: merely combining two existing batch sampling strategies with a fixed weight. NeurIPS expects novel insights into learning mechanisms, not engineering combinations of existing approaches.\",\n      \"Empirical improvements are marginal or tied to baselines. In the primary multilingual retrieval setting (Table 1), the proposed method achieves identical or nearly identical results to X-Y batching across both models, failing to demonstrate clear superiority.\",\n      \"The paper provides no theoretical analysis, no new algorithmic insights, and no understanding of why the proposed approach works. It is purely an empirical study validating a straightforward combination.\",\n      \"Reproducibility is critically undermined by the use of an undisclosed, proprietary machine translation pipeline. No metrics on translation quality, coverage, or potential biases are provided.\",\n      \"The evaluation only compares against two basic baselines introduced in Roy et al. (2020), ignoring recent state-of-the-art approaches mentioned in the introduction (InfoXLM, LaBSE, distillation methods, Aggretriever variants). This leaves the work's competitive positioning unclear.\",\n      \"The paper demonstrates weak novelty from a learning perspective. The in-batch negative mining is standard, the contrastive loss is standard (InfoNCE), and the only variation is probabilistic batch sampling—a minor engineering detail.\",\n      \"The language bias analysis, while useful, relies on existing metrics (average rank distance from Huang et al., 2023a) without critical examination or novel contributions to fairness in multilingual systems.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"Multilingual representation learning is explicitly within ICLR's scope, particularly under 'representation learning for language' and applications to NLP.\",\n      \"The paper addresses cross-lingual transfer and zero-shot generalization, which are core topics in ICLR's interest in representation learning and transfer learning.\",\n      \"The work fine-tunes multilingual pre-trained models and examines how different training strategies affect learned representations (language-agnostic vs. language-specific), aligning with ICLR's focus on understanding and improving representation learning.\",\n      \"The comprehensive evaluation across monolingual, cross-lingual, and multilingual settings demonstrates systematic investigation of representation quality, which ICLR values.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The core contribution is trivial from a representation learning perspective: it is a simple probabilistic mixture of two existing batch sampling strategies. No novel approach to learning representations is introduced—no new loss functions, contrastive objectives, or alignment mechanisms.\",\n      \"ICLR emphasizes understanding representations and how to learn them better. This paper does not provide insights into representation structure, alignment properties, or why monolingual and cross-lingual batching create different representations. It is purely an empirical engineering study.\",\n      \"Empirical gains are marginal. The multilingual retrieval results (Table 1) show the proposed method achieving 0.593 mAP versus X-Y's 0.593 for XLM-R and 0.512 versus 0.512 for LaBSE—identical performance. This fails to demonstrate that a novel representation learning principle is at work.\",\n      \"The paper lacks analysis of learned representations. No visualization, probing, or mechanistic investigation of why this batch mix improves representation learning is provided. This is expected for ICLR contributions in representation learning.\",\n      \"Reproducibility is compromised by undisclosed, in-house machine translation. Without access to the training data and its quality metrics, the validity of the empirical claims cannot be independently verified.\",\n      \"No comparisons to recent multilingual representation learning methods (mentioned in the introduction: InfoXLM, LaBSE, contrastive alignment approaches, distillation frameworks). The evaluation only involves two naive baselines.\",\n      \"The paper is categorized as 'Others' rather than clearly fitting ICLR's core areas (representation learning, transfer learning, etc.), indicating weak topical fit.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\nThis paper proposes a **hybrid batch training strategy** for multilingual information retrieval that combines monolingual and cross-lingual batch sampling with a fixed 50-50 weighting (α=0.5). While well-executed experimentally, it falls significantly short of the novelty and contribution standards for top-tier ML venues.\n\n### Key Issues Across All Venues:\n\n1. **Trivial Core Contribution**: The method is a simple probabilistic mixture of two existing batch sampling strategies (Roy et al., 2020) with no new algorithmic, architectural, or theoretical innovation.\n\n2. **Marginal Improvements**: Results are often identical or nearly identical to baselines. In multilingual retrieval (primary evaluation setting, Table 1), the proposed method achieves 0.593 mAP vs. X-Y's 0.593 for XLM-R.\n\n3. **Lack of Insight**: No analysis of *why* the 50-50 split works, no learning curves, no ablation studies beyond the grid search, and no theoretical justification.\n\n4. **Reproducibility Crisis**: In-house machine translation pipeline is not disclosed, validated, or characterized, making independent verification impossible.\n\n5. **Weak Baselines**: Only compares against two naive baselines from 2020. Ignores recent state-of-the-art methods mentioned in the introduction (InfoXLM, LaBSE, Aggretriever variants, distillation frameworks).\n\n### Recommendation:\n\n**All three venues should reject.** The paper is more suitable for a workshop or applications track but lacks the methodological novelty, significant improvements, and scientific insights required for selective ML conferences.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 2,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 3,
+              "clarity": 3
+            },
+            "strengths": [
+              "The paper addresses a practical problem in multilingual information retrieval: the trade-off between optimizing for monolingual versus cross-lingual retrieval. The motivation is clear and well-articulated.",
+              "Comprehensive experimental evaluation across multiple datasets (XQuAD-R, MLQA-R, MIRACL), models (XLM-R, LaBSE), and metrics (mAP, Recall@1, Recall@10, language bias metrics). The evaluation is thorough and covers various language pairs and retrieval settings.",
+              "The paper demonstrates consistent improvements in multilingual retrieval while maintaining competitive performance in both monolingual and cross-lingual settings. The hybrid approach provides a reasonable balance across different retrieval scenarios."
+            ],
+            "weaknesses": [
+              "The proposed method is an extremely simple combination of two existing batch sampling strategies (X-X-mono and X-Y) with a fixed hyperparameter (α=0.5). This lacks novelty and represents only an incremental engineering contribution rather than a methodological advance.",
+              "The paper does not provide sufficient justification or theoretical insight into why the specific 50-50 split works well. The hyperparameter tuning section mentions α=0.5 was chosen based on grid search but provides no analysis of the trade-offs or learning dynamics.",
+              "The improvements achieved by the hybrid approach are often marginal. In many cases (e.g., Table 1 for multilingual retrieval), the proposed method achieves essentially comparable results to X-Y basching rather than clear improvements. The gains do not justify the added complexity.",
+              "The paper uses in-house machine translation for creating parallel data, making reproducibility difficult. The translation quality, coverage, and potential biases introduced are not discussed or validated.",
+              "The language bias metric (average rank distance) is borrowed from prior work and applied without critical discussion of its limitations or appropriateness for this context.",
+              "The paper does not compare against more recent multilingual IR approaches or the state-of-the-art methods discussed in the introduction (e.g., InfoXLM, LaBSE for training, Aggretriever). It only compares against two naive baselines."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The proposed method is an extremely simple combination of two existing batch sampling strategies (X-X-mono and X-Y) with a fixed hyperparameter (α=0.5). This lacks novelty and represents only an incremental engineering contribution rather than a methodological advance.",
+                "severity": "major",
+                "evidence": "Section 2.2 describes the hybrid batch sampling as simply setting probabilities α and β=1-α for selecting between two existing baseline batch types. The method involves no new loss functions, architectural components, or learning algorithms. The grid search finding α=0.5 (lines 195-202) shows this is essentially equal weighting of two existing approaches.",
+                "affected_claim": "The claim of proposing a 'novel hybrid batch training strategy' is overstated.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The paper does not provide sufficient justification or theoretical insight into why the specific 50-50 split works well. The hyperparameter tuning section mentions α=0.5 was chosen based on grid search but provides no analysis of the trade-offs or learning dynamics.",
+                "severity": "major",
+                "evidence": "Lines 195-202 state only that 'setting α = 0.5 provided the best overall results' and note that performance was 'relatively stable for α values between 0.4 and 0.6'. No learning curves, sensitivity analysis, or explanation of why this particular balance emerges is provided. No ablation studies examine the behavior across different α values.",
+                "affected_claim": "The choice of α=0.5 as optimal is not well justified beyond empirical grid search on a single validation set.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The improvements achieved by the hybrid approach are often marginal. In many cases (e.g., Table 1 for multilingual retrieval), the proposed method achieves essentially comparable results to X-Y batching rather than clear improvements. The gains do not justify the added complexity.",
+                "severity": "major",
+                "evidence": "In Table 1 (XQuAD-R), multilingual retrieval: Hybrid achieves 0.593 mAP (XLM-R) vs X-Y's 0.593, and 0.512 (LaBSE) vs X-Y's 0.512. These are identical. For monolingual retrieval, improvements over X-X-mono are small (0.798 vs 0.792 for XLM-R). In Tables 5-6, improvements are often within noise margins or the method ranks second. The paper acknowledges 'performs as a strong runner-up' (line 334), which indicates it rarely wins decisively.",
+                "affected_claim": "The claim of achieving 'comparable or superior results' does not demonstrate clear superiority; in many cases it is merely competitive with existing methods.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The paper uses in-house machine translation for creating parallel data, making reproducibility difficult. The translation quality, coverage, and potential biases introduced are not discussed or validated.",
+                "severity": "major",
+                "evidence": "Lines 97-99 mention 'in-house machine translation pipeline' applied to multiple datasets. Section A.1 provides no details about this pipeline, its quality metrics, error rates, or coverage. The appendix (lines 752-756) references external papers but provides no specifics about the actual implementation used. Without access to this data or its quality metrics, results cannot be independently reproduced.",
+                "affected_claim": "The empirical results depend critically on translation quality, which is not disclosed or validated.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The paper does not compare against more recent multilingual IR approaches or the state-of-the-art methods discussed in the introduction (e.g., InfoXLM, LaBSE for training, Aggretriever). It only compares against two naive baselines.",
+                "severity": "major",
+                "evidence": "The introduction mentions InfoXLM (Chi et al., 2021), LaBSE (Feng et al., 2022), multilingual distillation approaches (Huang et al., 2023a), and Aggretriever extensions (Lin et al., 2023a, 2023b), but no experimental comparisons are provided. Section 4 only compares X-X-mono, X-Y, and the proposed hybrid approach. No comparisons to recent strong baselines or SOTA methods are included.",
+                "affected_claim": "The paper does not demonstrate whether the approach is competitive with the state-of-the-art methods in multilingual IR.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical approach is sound. Combining two batch sampling strategies with probabilistic weighting is a valid approach. The experimental setup with early stopping, standard optimizers, and standard contrastive learning formulation follows established practices. However, the simplicity of the method and lack of deeper technical innovation raises questions about significance."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The core contribution is trivial: a probabilistic mixture of two existing batch sampling strategies (X-X-mono and X-Y introduced by Roy et al., 2020) with a fixed weight (α=0.5). This is not a novel methodological contribution. The paper amounts to an empirical study showing that a simple combination works, but provides no new insights into why, when, or how such combinations should be constructed. This falls far short of the novelty bar for a top-tier venue."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "The practical significance is limited. The improvements are marginal or comparable to existing baselines in most cases (often identical in multilingual settings as shown in Table 1). The method does not advance the understanding of multilingual IR, does not introduce new techniques or principles, and does not achieve state-of-the-art results compared to recent methods. The contribution is insufficient for a selective top-tier conference."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The evaluation is comprehensive across multiple datasets, models, and metrics. Tables are extensive and detailed. However, the evaluation has significant limitations: (1) no comparisons to recent SOTA baselines mentioned in the introduction, (2) use of unreproducible in-house MT pipeline, (3) limited analysis of why the approach works, (4) no ablation studies beyond the hyperparameter grid search. The evaluation supports the claims but does not go beyond demonstrating basic competitiveness."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is generally well-written and organized. The motivation is clear. Figures and tables are informative. However, there are some presentation issues: the main contribution is buried and understated, the method section is extremely brief (half a page for the main contribution), and key implementation details (MT pipeline) are relegated to appendix or omitted. Overall clarity is acceptable but could be improved."
+              }
+            },
+            "summary_comment": "This paper proposes a simple hybrid batch training strategy for multilingual information retrieval that combines monolingual and cross-lingual batch sampling with a 50-50 weighting (α=0.5). While the paper addresses a relevant problem and conducts comprehensive experiments, it falls short of the standards for a top-tier ML conference. The core contribution is trivial—a probabilistic mixture of two existing batch sampling strategies—with no novel insights, no theoretical justification, and only marginal empirical improvements over baselines. The results often show the proposed method is merely competitive with existing approaches rather than superior. The evaluation lacks comparisons to recent state-of-the-art methods mentioned in the introduction. The use of an in-house, unreproducible machine translation pipeline further limits the contribution. The paper reads more as an empirical engineering study confirming that a straightforward combination of existing methods provides reasonable trade-offs, but this is insufficient for a selective venue. For acceptance at a top-tier conference, the work would need significant novelty (new methods, theoretical insights, or learning mechanisms), clear superiority over strong baselines, and reproducible experiments."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

@@ -126,6 +126,13 @@ def test_integrity_gate_accepts_valid_package_and_ignores_removed_sources():
     assert gate["reason_codes"] == []
 
 
+def test_integrity_gate_accepts_current_related_work_only_packages():
+    package = valid_package()
+    package.pop("review_memory")
+    assert trigger.evaluate_integrity_gate(package, "2024-12-31")["passed"]
+    assert trigger.rag_config("2024-12-31").enable_related_work_rag
+
+
 def test_gate_rejects_sources_that_cannot_support_blinded_verification():
     package = valid_package()
     package["paper_metadata"][0]["abstract"] = ""

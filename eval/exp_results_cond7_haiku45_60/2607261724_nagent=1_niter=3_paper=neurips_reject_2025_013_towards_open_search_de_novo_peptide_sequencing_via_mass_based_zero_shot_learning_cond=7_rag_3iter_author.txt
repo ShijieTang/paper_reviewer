@@ -1,0 +1,756 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 3,
+        "significance": 2,
+        "evaluation": 2,
+        "clarity": 4
+      },
+      "strengths": [
+        "Novel problem formulation: Recasting de novo peptide sequencing as a continuous mass prediction task rather than discrete token classification is creative and provides a principled path toward zero-shot learning for unseen PTMs.",
+        "Well-motivated approach: The core insight that amino acids and their derivatives are characterized by mass as a generalizable feature is biochemically sound and addresses a real limitation in existing DNPS models that rely on fixed vocabularies.",
+        "Transparent identification of root cause: The paper identifies and articulates the fundamental limitation—that the training objective does not explicitly encourage extrapolation, leading implicit memorization of training-set masses (Section 4.2.1, lines 230-235)."
+      ],
+      "weaknesses": [
+        "Failed zero-shot learning on experimental data with overstated claims: The paper claims to provide 'a promising proof of concept for zero-shot inference for unseen residues' (Abstract, line 18) but achieves only 0.6%-14.41% recall on held-out modifications. This fundamental mismatch between claims and results undermines the submission.",
+        "Identified root cause not addressed experimentally: The paper explicitly identifies that 'the training objective does not explicitly encourage extrapolation to unseen masses' (lines 230-235) but does not test standard mitigation strategies such as auxiliary losses, contrastive regularization in mass space, or modified loss functions that would directly address this limitation.",
+        "Domain gap remains unresolved despite proposed adversarial approach: The adversarial loss produces negligible improvements (3.18% vs 3.10% for methionine oxidation) and a discriminator AUC of only 0.78 (where >0.9 would indicate effective alignment). This indicates the proposed method is insufficient to bridge simulated-experimental domain shift.",
+        "Evaluation limited to teacher-forced inference prevents practical validation: All results use teacher forcing with ground-truth masses provided at each step. This prevents assessment of error accumulation, sequence-level consistency, and end-to-end de novo sequencing capability—the actual task of interest.",
+        "Performance degradation on known residues without demonstrated benefit: The model achieves 62.37% amino acid-level recall on seen residues compared to higher performance from classification-based baselines. This trade-off is justified in the paper as enabling zero-shot learning, but zero-shot learning fails to materialize, making the approach strictly worse than baselines."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Failed zero-shot learning on experimental data with overstated claims: The paper claims to provide 'a promising proof of concept for zero-shot inference for unseen residues' (Abstract, line 18) but achieves only 0.6%-14.41% recall on held-out modifications. This fundamental mismatch between claims and results undermines the submission.",
+          "severity": "major",
+          "evidence": "Section 4.2.1 (lines 220-235) reports 0.6% recall for cysteine carbamidomethylation and 14.18% for methionine oxidation. Section 4.2.3 (lines 304-306) shows marginal improvements with MTL: 3.18% and 14.41% respectively. The paper's own analysis states 'predictions for cysteine carbamidomethylation showed no enrichment near the correct mass' (line 222). The abstract claims 'we show that our approach allows the prediction of previously unseen PTMs, providing a promising proof of concept' (lines 18-19). Recall rates of 0.6%-14.41% do not constitute 'promising' results or support claims of enabling 'zero-shot' inference. The rebuttal acknowledges the abstract 'should have been more precise' but the submitted paper contains these overstated claims.",
+          "affected_claim": "The central claim that mass-based representations enable zero-shot learning for unseen PTMs on experimental data is directly contradicted by reported results. The abstract makes affirmative claims that are not supported by the evidence.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Identified root cause not addressed experimentally: The paper explicitly identifies that 'the training objective does not explicitly encourage extrapolation to unseen masses' (lines 230-235) but does not test standard mitigation strategies such as auxiliary losses, contrastive regularization in mass space, or modified loss functions that would directly address this limitation.",
+          "severity": "major",
+          "evidence": "Section 4.2.1 (lines 230-235) diagnoses the problem: 'Since the training objective does not explicitly encourage extrapolation to unseen masses, the model was not incentivized to learn a truly continuous mass space.' The paper then states this 'might implicitly treat the task as a form of multi-class classification' but does not propose or test solutions within the submitted work. The rebuttal acknowledges this gap: 'We identified that the model implicitly memorizes training-set masses rather than learning continuous representations (Section 4.2.1, lines 230-235), yet we did not test standard ML approaches to address this.' No auxiliary losses, regularization terms, or modified objectives appear in the submitted methods or experiments.",
+          "affected_claim": "Once the root cause is identified—the training objective does not incentivize extrapolation—the natural experimental progression is to modify the objective to encourage extrapolation. The paper fails to pursue this logical next step.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Domain gap remains unresolved despite proposed adversarial approach: The adversarial loss produces negligible improvements (3.18% vs 3.10% for methionine oxidation) and a discriminator AUC of only 0.78 (where >0.9 would indicate effective alignment). This indicates the proposed method is insufficient to bridge simulated-experimental domain shift.",
+          "severity": "major",
+          "evidence": "Section 4.2.4 (lines 307-329) proposes adversarial learning but results show: (1) Discriminator AUC of 0.78 (line 324), indicating incomplete alignment; (2) Recall improvements negligible: methionine oxidation 3.18% vs 3.10%, cysteine carbamidomethylation 14.41% vs 15.11% (lines 328-329); (3) MSE losses 'similar' between MTL and GAN-inspired models (line 330). The rebuttal acknowledges 'the discriminator AUC of 0.78 (where 0.5 is random) indicates the model can still meaningfully distinguish simulated from experimental spectra, which suggests incomplete alignment' and that 'the adversarial term is not providing the intended benefit.' These admissions confirm the proposed solution is ineffective.",
+          "affected_claim": "The paper proposes adversarial alignment as a solution to domain shift. The empirical results demonstrate this approach fails to meaningfully align representations or improve generalization.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Evaluation limited to teacher-forced inference prevents practical validation: All results use teacher forcing with ground-truth masses provided at each step. This prevents assessment of error accumulation, sequence-level consistency, and end-to-end de novo sequencing capability—the actual task of interest.",
+          "severity": "major",
+          "evidence": "Section 4.1 (lines 192-197) states: 'For evaluation, we ran the model in inference mode using teacher forcing...the model is supplied with the ground truth masses of all previously decoded residues at each prediction step.' Limitations section (lines 341-345) acknowledges: 'Although we show that mass-based modeling can overcome vocabulary constraints, the current framework has only been evaluated under teacher-forced decoding.' No end-to-end autoregressive evaluation is provided in the submitted paper. The rebuttal acknowledges this is 'a fundamental gap' that prevents validation of 'practical de novo sequencing capability.'",
+          "affected_claim": "The paper claims to enable de novo peptide sequencing. Teacher forcing evaluation does not demonstrate this; it artificially removes the key challenges of sequencing (error accumulation and sequence consistency). Practical viability cannot be assessed from the submitted results.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Performance degradation on known residues without demonstrated benefit: The model achieves 62.37% amino acid-level recall on seen residues compared to higher performance from classification-based baselines. This trade-off is justified in the paper as enabling zero-shot learning, but zero-shot learning fails to materialize, making the approach strictly worse than baselines.",
+          "severity": "major",
+          "evidence": "Section 4.2.1 (line 206) reports 62.37% recall for seen residues. Lines 211-217 acknowledge this is 'somewhat lower than those reported by classification-based transformer models such as AdaNovo' but justify it as a trade-off for 'generalization to modified residues beyond the training set' (lines 217-219). However, generalization fails: Section 4.2.3 reports only 3.18% recall for cysteine carbamidomethylation and 14.41% for methionine oxidation (lines 304-306). The rebuttal states: 'the mass regression approach sacrifices accuracy on known residues (62.37% recall vs. higher for AdaNovo) based on the premise that zero-shot learning capability justifies this trade-off. However, zero-shot learning fails to materialize (0.6%-14.41% recall), making the approach strictly worse than baselines.'",
+          "affected_claim": "The paper explicitly trades off performance on known residues for improved generalization to unseen residues. With generalization failing, the approach offers no compensating benefit over baselines.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "While the technical approach (mass regression, MTL, adversarial alignment) is sound in isolation, the central claims are not supported by the evidence. The paper claims to enable zero-shot learning for unseen PTMs but achieves only 0.6%-14.41% recall on held-out modifications. The paper identifies the root cause—training objective does not incentivize extrapolation—but does not test standard solutions. The proposed adversarial approach is ineffective (0.78 AUC discriminator, negligible recall improvement). The rebuttal does not provide new in-paper evidence resolving these issues; it merely acknowledges them and proposes solutions that are not in the submitted work. Evaluation is further compromised by reliance on teacher forcing, which bypasses practical sequencing constraints. The submission fails the soundness gate because affirmative claims are contradicted by submitted evidence, and identified limitations are not addressed experimentally."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The reformulation of DNPS as mass prediction rather than token classification is novel. The combination of mass regression with MTL on simulated and experimental spectra, coupled with adversarial alignment, represents a reasonable methodological contribution. However, novelty is substantially diminished by the lack of empirical validation of the core hypothesis and the identification of fundamental limitations that undermine the motivating principles."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "For a top-tier ML venue, the work must either achieve stated goals or provide significant insights that advance understanding and enable future progress. This paper achieves neither. Zero-shot learning fails on experimental data (0.6%-14.41% recall). The identified insights—that mass-based regression implicitly memorizes training masses and that domain shift cannot be resolved by the proposed approach—are diagnosed but not addressed with tested solutions. The paper does not provide actionable mechanistic insights explaining why mass-based approaches fail or how they could be fixed. The rebuttal agrees that 'framing the work as identifying limitations of mass-based approaches does not retroactively establish significance without deeper mechanistic insights or actionable solutions in the submitted work.' Without new solutions, tested mitigation strategies, or deeper analysis in the submission, this represents an incomplete negative result insufficient for a top-tier venue."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "Evaluation has multiple critical gaps not addressed in the submitted paper: (1) Teacher forcing prevents end-to-end validation—no autoregressive evaluation provided; (2) Only two held-out modifications evaluated (methionine oxidation, cysteine carbamidomethylation), limiting generalization claims; (3) No quantitative comparison to recent baselines (AdaNovo, π-PrimeNovo, ContraNovo) under identical settings; (4) Adversarial loss effectiveness questioned by minimal improvement (3.18% vs 3.10%) and incomplete discriminator alignment (0.78 AUC); (5) No statistical significance testing or confidence intervals for low-performance regimes; (6) No ablation studies on loss component contributions. The rebuttal acknowledges these gaps but does not provide corrected results within the submitted paper. Evaluation must be based on the submitted work, which is incomplete."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written with good motivation, adequate background, and transparent discussion of limitations. The acknowledgment of failures and root causes demonstrates intellectual integrity. Figures are informative and results are presented honestly, including negative findings. However, presentation clarity does not compensate for fundamental soundness and significance failures, nor does it resolve the disconnect between claims and evidence."
+        }
+      },
+      "summary_comment": "The author's second rebuttal demonstrates commendable intellectual honesty by fully acknowledging all major criticisms and agreeing with the reviewer's assessment that the submission fails to support its central claims. The authors concede that: (1) zero-shot learning fails on experimental data (0.6%-14.41% recall contradicts 'promising' claims in the abstract); (2) the identified root cause (lack of extrapolation incentive) was not addressed experimentally, representing a methodological gap; (3) the adversarial approach is ineffective (0.78 AUC discriminator, minimal improvement); (4) teacher forcing prevents practical validation; and (5) degraded performance on known residues is not justified without corresponding zero-shot benefit. The rebuttal correctly notes that acknowledging problems is not the same as solving them within the submitted work. The authors identify exactly what the submission should have contained—testing of loss modifications, end-to-end evaluation, stronger domain alignment investigation, broader modification evaluation, and baseline comparisons—but none of these are present in the paper under review. This represents a completed work that is honest about its limitations but incomplete in its execution and insufficient for publication at a selective top-tier venue. While the core idea (mass-based representations for open-search DNPS) has merit and could potentially be viable with appropriate modifications, the current submission does not demonstrate this. The paper makes affirmative claims that are contradicted by evidence, identifies but does not experimentally address the root cause of failure, proposes but does not effectively implement a solution (adversarial alignment), and evaluates the method under artificial constraints (teacher forcing) that prevent assessment of practical applicability. The work would benefit from the additional experiments and analyses the reviewer suggested, but as submitted, it does not meet the standards of a top-tier venue."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"Application-driven machine learning: The paper addresses a real biological problem (PTM identification in proteomics) with practical relevance to biomedical research, which aligns with ICML's interest in 'application-driven machine learning...in healthcare, biosciences, and related fields'\",\n      \"Novel methodological contribution: The reformulation of peptide sequencing as continuous mass prediction rather than discrete classification is technically creative and represents a reasonable contribution to the machine learning methodology literature\",\n      \"Multi-task learning and domain adaptation: The use of MTL combining experimental and simulated data, plus adversarial alignment, engages with ICML-relevant topics like domain adaptation, transfer learning, and learning from heterogeneous data sources\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Fundamental failure of core claims: The paper claims to enable 'zero-shot learning' for unseen PTMs but achieves only 0.6%-14.41% recall on held-out modifications. This contradicts the central motivation and makes the work unsuitable for a venue focused on robust methodological contributions. The reviewer notes this is 'a fundamental mismatch between claims and results [that] undermines the submission'\",\n      \"Incomplete experimental validation: The paper identifies the root cause of failure—'the training objective does not explicitly encourage extrapolation to unseen masses'—but fails to test standard solutions (auxiliary losses, contrastive regularization, modified objectives). ICML values thorough experimental work; submitting work where the diagnosed problem remains unaddressed experimentally is problematic\",\n      \"Performance degradation without compensating benefit: The model sacrifices 62.37% recall on known residues (vs. higher performance from baselines like AdaNovo) based on the promise of zero-shot generalization. Since generalization fails, the approach is strictly worse than baselines, providing no methodological insight valuable to ICML's audience. This is neither an advance in methodology nor a negative result with actionable insights\",\n      \"Evaluation compromised by teacher forcing: All results use teacher forcing with ground-truth masses provided at each step, preventing assessment of error accumulation and end-to-end sequencing capability. ICML readers expect practical validation; this artificial evaluation setting undermines credibility of the approach\",\n      \"Ineffective proposed solution: The adversarial loss (the main technical contribution addressing domain shift) produces negligible improvements (3.18% vs. 3.10% for methionine oxidation) and incomplete alignment (0.78 AUC discriminator). This suggests the core methodological innovation is unsound\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 4,\n    \"why_it_fits\": [\n      \"Interdisciplinary contribution at AI/ML intersection: NeurIPS encourages 'interdisciplinary submissions that do not fit neatly into existing categories' and explicitly welcomes 'AI/ML for health and biotechnology'—this paper sits at the intersection of deep learning and proteomics\",\n      \"Honest analysis of limitations: The paper transparently identifies root causes of failure (lines 230-235 explicitly diagnose that the training objective does not incentivize extrapolation). NeurIPS values intellectual honesty and 'in-depth analysis of existing methods that provide new insights in terms of their limitations'\",\n      \"Proof-of-concept exploration: The paper frames itself as exploratory work proposing a novel framework (mass-based representations) and explicitly labels it as 'a proof of concept rather than a production-ready system' (lines 341-342), which aligns with NeurIPS's interest in novel approaches and problem formulations\",\n      \"Simulated data generation strategy: The creation of synthetic spectra to enable zero-shot learning, combined with realistic simulation progression, demonstrates thoughtful experimental design relevant to NeurIPS's interest in data-centric AI approaches\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Central claims unsupported by evidence: The abstract promises 'zero-shot inference for unseen residues' and claims the approach 'allows the prediction of previously unseen PTMs, providing a promising proof of concept.' Results show 0.6%-14.41% recall on held-out modifications. The reviewer explicitly notes this 'fundamental mismatch between claims and results undermines the submission.' Even for exploratory work, NeurIPS requires evidence matching claims\",\n      \"Identified problems remain experimentally unaddressed: While the paper diagnoses that mass regression implicitly memorizes rather than generalizes, it does not test standard solutions within the submitted work. The reviewer notes: 'the paper explicitly identifies that...the training objective does not explicitly encourage extrapolation to unseen masses but does not test standard mitigation strategies.' NeurIPS expects authors to pursue identified problems experimentally or provide actionable insights for others to do so\",\n      \"Proposed solution proven ineffective: The adversarial alignment approach (the main technical response to domain shift) fails to deliver meaningful improvement. The discriminator achieves only 0.78 AUC (incomplete alignment) and recall improvements are negligible (3.18% vs. 3.10%). Publishing an ineffective proposed solution, even as exploratory work, does not meet NeurIPS standards\",\n      \"Teacher forcing evaluation prevents practical assessment: All results use teacher forcing, bypassing key sequencing challenges (error accumulation, sequence consistency). NeurIPS emphasizes practical relevance; this evaluation prevents validation of whether the approach could ever work for the stated problem. The limitations section acknowledges this but provides no end-to-end results\",\n      \"Limited scope of evaluation on unseen modifications: Only two held-out modifications evaluated (methionine oxidation, cysteine carbamidomethylation). For a paper claiming zero-shot generalization, this limited scope is insufficient to demonstrate generalizability. No evaluation on truly novel PTM types or variations\",\n      \"No comparative analysis with recent baselines: The paper does not quantitatively compare performance to recent state-of-the-art methods (AdaNovo, π-PrimeNovo, ContraNovo) under identical evaluation settings, making it difficult for readers to assess whether the proposed approach offers any advantage. NeurIPS expects rigorous positioning relative to existing work\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 5,\n    \"why_it_fits\": [\n      \"Representation learning perspective: ICLR's focus on 'representation learning' and 'unsupervised, self-supervised, semi-supervised learning' aligns with the paper's attempt to learn generalizable mass-based representations that enable zero-shot inference. The core idea of using continuous mass space rather than discrete embeddings is fundamentally a representation learning question\",\n      \"Domain adaptation and transfer learning: The combination of experimental and simulated data with adversarial alignment directly engages with ICLR's stated interest in 'transfer learning' and learning invariant representations across domains\",\n      \"Applications to biological sciences: ICLR explicitly welcomes 'applications to neuroscience & cognitive science' and 'applications to physical sciences (physics, chemistry, biology, etc.)'—this proteomics application fits within stated scope\",\n      \"Novel problem formulation: Recasting peptide sequencing as mass regression rather than classification represents a genuine contribution to how representation learning problems can be formulated, which is relevant to ICLR's audience interested in learning different inductive biases\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Representation learning fails to generalize: The core representation learning objective—learning continuous mass representations that enable zero-shot generalization—fundamentally fails. Only 0.6%-14.41% recall on unseen modifications contradicts the premise that mass-based representations capture generalizable biochemical features. For a venue focused on learning good representations, this is a critical failure\",\n      \"Insufficient mechanistic insight into failure: ICLR values papers that 'provide new insights in terms of their limitations or behavior beyond the scope of the original work.' While the paper identifies that models implicitly memorize training masses, it does not provide deep analysis of why this occurs or how continuous representations could be learned. The insights are diagnostic but not mechanistic\",\n      \"Ineffective alignment approach: The adversarial alignment (designed to create domain-invariant representations) produces only 0.78 AUC discriminator and negligible performance improvement. For a paper centered on learning shared representations across data sources, this is a fundamental failure. ICLR readers would expect more sophisticated or effective alignment strategies for this scale of domain shift\",\n      \"Teacher forcing prevents evaluation of learned representations: ICLR cares about what representations are actually learned and whether they capture meaningful structure. Teacher forcing evaluation, where ground-truth information is provided at each step, prevents assessment of what the model's representations actually encode about peptide sequences and modifications\",\n      \"Trade-off on seen residues unjustified: The approach sacrifices 62.37% recall on known residues compared to classification-based methods. In representation learning, this could be justified if the learned representations capture richer structure or enable better generalization. Since neither occurs, the representation learning framework fails its own test\",\n      \"Limited ablation and analysis of learned representations: No visualization of learned mass spaces, no analysis of how the model organizes known residues in continuous space, no investigation of why simulated and experimental spectra separate in latent space despite adversarial training. ICLR would expect deeper analysis of what representations are actually learned\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\n**Overall Assessment:**\n\nThis paper presents a creative reformulation of de novo peptide sequencing from discrete classification to continuous mass prediction, motivated by the goal of achieving zero-shot generalization to unseen post-translational modifications (PTMs). However, the work suffers from a **fundamental disconnect between claims and evidence** that severely limits its suitability for top-tier venues.\n\n**Core Problems (per Reviewer 1):**\n\n1. **Failed Core Promise**: Claims \"zero-shot inference for unseen residues\" but achieves only 0.6%–14.41% recall on held-out modifications.\n2. **Diagnosed but Unaddressed Root Cause**: Explicitly identifies that \"the training objective does not explicitly encourage extrapolation\" but does not test standard solutions.\n3. **Ineffective Proposed Solution**: Adversarial alignment produces 0.78 AUC (incomplete) and negligible improvements (3.18% vs. 3.10%).\n4. **Artificial Evaluation**: All results use teacher forcing, preventing end-to-end validation of the sequencing task.\n5. **Performance Degradation Without Benefit**: Sacrifices 62.37% recall on known residues (vs. baselines) to enable zero-shot learning, which then fails.\n\n**Venue-Specific Fit:**\n\n- **ICML (4/10)**: While the application and MTL approach fit thematic scope, the fundamental failure of the core methodology and incomplete experimental validation (unaddressed root causes, ineffective solutions) make this unsuitable. ICML values robust methodological contributions; this work is neither an advance nor a conclusive negative result with actionable insights.\n\n- **NeurIPS (4/10)**: Despite NeurIPS's openness to exploratory interdisciplinary work, the overstated claims contradicted by evidence, unaddressed identified problems, and ineffective proposed solution violate the bar even for proof-of-concept work. NeurIPS expects honesty about limitations (which the paper has) but also either evidence supporting claims or deep actionable insights (which it lacks).\n\n- **ICLR (5/10)**: Closest fit due to focus on representation learning and domain adaptation. The mass-based representation learning idea is conceptually interesting. However, the fundamental failure of the learned representations to generalize, combined with ineffective alignment and lack of deeper mechanistic analysis, undermines the core contribution. ICLR would expect richer investigation of what representations are learned and why they fail.\n\n**Recommendation**: This paper would benefit from addressing the identified root causes experimentally before resubmission. Testing loss modifications, end-to-end evaluation, stronger domain alignment, and broader modification evaluation would either salvage the approach or yield deeper insights into why mass-based representations fail—both of which would strengthen publication prospects.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel problem formulation: Recasting de novo peptide sequencing as a continuous mass prediction task rather than discrete token classification is creative and provides a principled path toward zero-shot learning for unseen PTMs.",
+              "Well-motivated approach: The core insight that amino acids and their derivatives are characterized by mass as a generalizable feature is biochemically sound and addresses a real limitation in existing DNPS models that rely on fixed vocabularies.",
+              "Clear presentation: The paper is generally well-written with good motivation, clear description of methods, and honest discussion of limitations and failure modes."
+            ],
+            "weaknesses": [
+              "Failed zero-shot learning on experimental data: Despite the motivation for zero-shot learning capability, the model achieves extremely poor generalization to unseen PTMs on real data (0.6%-14.41% recall for held-out modifications), fundamentally undermining the central claim.",
+              "Domain gap not adequately addressed: The large gap between simulated and experimental spectra (Pearson correlation of -0.11 to 0.19 when training on simple simulations) remains largely unresolved. The adversarial loss provides minimal improvement (3.18% vs 3.10% recall), suggesting the proposed MTL and GAN-inspired approach is insufficient.",
+              "Evaluation limited to teacher-forced inference: All results use teacher forcing with ground-truth masses provided at each step. This isolated mass prediction from sequence-level errors but prevents assessment of the model's ability to perform end-to-end de novo sequencing—the actual practical requirement.",
+              "Degraded performance on known residues: The mass regression approach sacrifices 62.37% amino acid-level recall for seen residues compared to classification-based baselines like AdaNovo. This trade-off is substantial and not adequately justified given the failure to achieve zero-shot learning.",
+              "Insufficient analysis of failure modes: While the paper acknowledges that the model treats the task as implicit classification over training-set masses, it does not convincingly explain why standard regularization or explicit incentives for extrapolation (e.g., auxiliary losses encouraging coverage of continuous mass space) were not explored.",
+              "Limited experimental scope: Evaluation on only two held-out modifications (methionine oxidation, cysteine carbamidomethylation) is narrow. No evaluation on truly novel, chemically distinct modifications or systematic analysis of which types of modifications are predictable."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Failed zero-shot learning on experimental data: Despite the motivation for zero-shot learning capability, the model achieves extremely poor generalization to unseen PTMs on real data (0.6%-14.41% recall for held-out modifications), fundamentally undermining the central claim.",
+                "severity": "major",
+                "evidence": "Section 4.2.1 (lines 220-235) reports recall of 0.6% for cysteine carbamidomethylation and 14.18% for methionine oxidation, with the authors noting 'predictions for cysteine carbamidomethylation showed no enrichment near the correct mass' and that for methionine oxidation 'this perhaps reflected a memorization artifact.' Improvements with MTL are marginal: 3.18% and 14.41% respectively (lines 304-306).",
+                "affected_claim": "The paper claims to provide 'a promising proof of concept for mass-based representations as a path towards true open-search DNPS' and enable 'zero-shot inference for unseen residues.' The experimental results contradict this claim.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Domain gap not adequately addressed: The large gap between simulated and experimental spectra (Pearson correlation of -0.11 to 0.19 when training on simple simulations) remains largely unresolved. The adversarial loss provides minimal improvement (3.18% vs 3.10% recall), suggesting the proposed MTL and GAN-inspired approach is insufficient.",
+                "severity": "major",
+                "evidence": "Section 4.2.2 (lines 252-269) shows negative or near-zero correlations for simulated-only models on experimental data. Section 4.2.4 (lines 325-329) reports that the adversarial loss yields minimal improvement: 'recall for methionine oxidation (3.18% vs 3.10%) and cystein carbamidomethylation (14.41% vs 15.11%), along with similar MSE losses.' The discriminator achieves only 0.78 AUC despite the claimed alignment (line 324).",
+                "affected_claim": "The paper proposes a 'GAN-inspired MTL model' as a solution to domain shift. The empirical results demonstrate this approach is ineffective.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Evaluation limited to teacher-forced inference: All results use teacher forcing with ground-truth masses provided at each step. This isolated mass prediction from sequence-level errors but prevents assessment of the model's ability to perform end-to-end de novo sequencing—the actual practical requirement.",
+                "severity": "major",
+                "evidence": "Section 4.1 (lines 192-197) explicitly states: 'For evaluation, we ran the model in inference mode using teacher forcing...the model is supplied with the ground truth masses of all previously decoded residues at each prediction step.' This is a critical limitation acknowledged in the paper (lines 341-345) but not addressed experimentally.",
+                "affected_claim": "The paper claims to enable peptide sequencing from mass spectra. Teacher forcing evaluation does not demonstrate this capability, as error accumulation and sequence-level constraints are bypassed.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Degraded performance on known residues: The mass regression approach sacrifices 62.37% amino acid-level recall for seen residues compared to classification-based baselines like AdaNovo. This trade-off is substantial and not adequately justified given the failure to achieve zero-shot learning.",
+                "severity": "major",
+                "evidence": "Section 4.2.1 (line 206) reports 62.37% overall amino acid-level recall. The paper acknowledges (lines 211-217) this is 'somewhat lower than those reported by classification-based transformer models such as AdaNovo' but justifies it as an expected trade-off. However, this trade-off fails to deliver on the core contribution (zero-shot learning).",
+                "affected_claim": "The approach is motivated as enabling zero-shot learning. If it fails to achieve zero-shot learning AND performs worse than baselines on seen residues, the contribution is significantly diminished.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Insufficient analysis of failure modes: While the paper acknowledges that the model treats the task as implicit classification over training-set masses, it does not convincingly explain why standard regularization or explicit incentives for extrapolation (e.g., auxiliary losses encouraging coverage of continuous mass space) were not explored.",
+                "severity": "minor",
+                "evidence": "Section 4.2.1 (lines 230-235) notes 'the training objective does not explicitly encourage extrapolation to unseen masses, the model was not incentivized to learn a truly continuous mass space. Instead, it might implicitly treat the task as a form of multi-class classification.' The paper identifies this limitation but does not explore solutions.",
+                "affected_claim": "The claim that mass-based representations enable zero-shot learning is not supported because the training objective does not encourage generalization to unseen masses.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited experimental scope: Evaluation on only two held-out modifications (methionine oxidation, cysteine carbamidomethylation) is narrow. No evaluation on truly novel, chemically distinct modifications or systematic analysis of which types of modifications are predictable.",
+                "severity": "minor",
+                "evidence": "Section 4.2.1 (lines 184-185) states 'we excluded all spectra containing methionine oxidation and cysteine carbamidomethylation from the training and validation sets.' This represents only two PTM types. No ablation or systematic evaluation of generalization across different PTM classes.",
+                "affected_claim": "The generalizability claims are based on evaluation of only two modifications. Broader evaluation is needed to assess the approach.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The central technical approach is sound (mass prediction via regression, MTL, adversarial alignment), but the claimed contribution—zero-shot learning for unseen PTMs—is not supported by the experimental results. The model achieves only 0.6%-14.41% recall on held-out modifications on experimental data, fundamentally contradicting the motivation. The adversarial loss fails to resolve domain shift (minimal improvement, discriminator still achieves 0.78 AUC). Additionally, evaluation is limited to teacher-forced inference, which does not demonstrate true de novo sequencing capability."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The reformulation of DNPS as mass prediction rather than token classification is novel and provides a creative approach to handling unseen PTMs. The combination of mass regression with MTL and adversarial learning for domain alignment is a reasonable contribution. However, the novelty is diminished by the lack of empirical validation of the core hypothesis."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "For a top-tier ML conference, the work must either (1) achieve the stated goal (zero-shot learning for unseen PTMs) or (2) provide significant insights that advance the field. This paper achieves neither. The zero-shot learning fails on real data. The insights into why mass-based representations do not generalize (implicit memorization of training-set masses) are interesting but not deeply analyzed or addressed. The degraded performance on known residues (62.37% vs. higher for baselines) combined with failed zero-shot learning makes the contribution marginal. For application to proteomics, the results do not advance the state-of-the-art."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Critical evaluation limitations: (1) Teacher forcing prevents assessment of end-to-end sequencing; (2) Only two held-out modifications evaluated, limiting scope; (3) No comparison to recent baselines (e.g., AdaNovo, π-PrimeNovo) under identical experimental settings—only qualitative references; (4) Simulated-only models show negative correlation on experimental data, indicating domain shift is not solved, but no further investigation; (5) The claimed contribution (zero-shot learning) is evaluated via poor metrics (~3-14% recall) with no statistical significance testing or confidence intervals for low-performance regimes. The paper acknowledges it is 'proof of concept rather than production-ready' (line 341), but this is insufficient for a top-tier venue."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with good motivation, adequate background, and honest discussion of limitations. Figures are informative and results are presented transparently. The methods section provides sufficient detail for reproducibility. The acknowledgment of limitations (teacher forcing, proof-of-concept status) is appreciated. However, clarity alone does not overcome the fundamental issues with soundness, significance, and evaluation."
+              }
+            },
+            "summary_comment": "This paper presents a creative reformulation of de novo peptide sequencing as mass prediction to enable zero-shot learning for unseen PTMs. While the core idea is novel and well-motivated, the experimental validation fails to support the central claim. On experimental data, the model achieves only 0.6%-14.41% recall for held-out modifications, fundamentally undermining the proposed contribution. The domain gap between simulated and real spectra remains largely unresolved despite the proposed MTL and adversarial learning approach (discriminator AUC: 0.78, minimal recall improvement). Additionally, evaluation is restricted to teacher-forced inference, preventing assessment of true end-to-end sequencing capability. The degraded performance on known residues (62.37% vs. higher for baselines) combined with failed zero-shot learning raises questions about whether the trade-off is justified. While the paper is well-written and transparent about limitations, it provides only a proof-of-concept that does not convincingly advance the field. The insights into why mass-based regression fails to generalize (implicit memorization of training masses) are interesting but not sufficiently analyzed or addressed. For a selective top-tier ML conference, the work lacks both empirical validation of its central claims and significant methodological or theoretical insights to compensate for the empirical shortfalls."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel problem formulation: Recasting de novo peptide sequencing as a continuous mass prediction task rather than discrete token classification is creative and provides a principled path toward zero-shot learning for unseen PTMs.",
+              "Well-motivated approach: The core insight that amino acids and their derivatives are characterized by mass as a generalizable feature is biochemically sound and addresses a real limitation in existing DNPS models that rely on fixed vocabularies.",
+              "Honest acknowledgment of limitations: The authors transparently identify and discuss failure modes, including the implicit memorization of training-set masses rather than learning a true continuous mass space (lines 230-235)."
+            ],
+            "weaknesses": [
+              "Failed zero-shot learning on experimental data: Despite the motivation for zero-shot learning capability, the model achieves extremely poor generalization to unseen PTMs on real data (0.6%-14.41% recall for held-out modifications), fundamentally undermining the central claim. The rebuttal acknowledges this failure but does not provide evidence of any in-paper solutions.",
+              "Domain gap not adequately addressed: The large gap between simulated and experimental spectra (Pearson correlation of -0.11 to 0.19 when training on simple simulations) remains unresolved. The adversarial loss provides minimal improvement (3.18% vs 3.10% recall, 0.78 AUC discriminator), indicating the proposed method is insufficient.",
+              "Evaluation limited to teacher-forced inference: All results use teacher forcing with ground-truth masses provided at each step. This prevents assessment of the model's ability to perform end-to-end de novo sequencing—the actual practical requirement. The rebuttal acknowledges this but does not provide end-to-end evaluation results.",
+              "Degraded performance on known residues without compensating benefit: The mass regression approach achieves 62.37% amino acid-level recall for seen residues compared to higher performance from classification-based baselines. This substantial trade-off is not justified, as the promised zero-shot learning fails to materialize.",
+              "Insufficient analysis of core failure and lack of mitigation attempts: While the paper identifies that the training objective does not encourage extrapolation to unseen masses, it does not explore or test solutions such as auxiliary losses, contrastive regularization in mass space, or explicit regularization to encourage continuous mass space coverage."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Failed zero-shot learning on experimental data: Despite the motivation for zero-shot learning capability, the model achieves extremely poor generalization to unseen PTMs on real data (0.6%-14.41% recall for held-out modifications), fundamentally undermining the central claim. The rebuttal acknowledges this failure but does not provide evidence of any in-paper solutions.",
+                "severity": "major",
+                "evidence": "Section 4.2.1 (lines 220-235) and Section 4.2.3 (lines 304-306) report recall of 0.6% for cysteine carbamidomethylation and 14.18% for methionine oxidation. With MTL improvements are marginal: 3.18% and 14.41% respectively. The rebuttal states 'we acknowledge this is a significant limitation that fundamentally impacts the claimed contribution' but does not present new experimental evidence resolving this in the submitted paper.",
+                "affected_claim": "The paper claims to provide 'a promising proof of concept for mass-based representations as a path towards true open-search DNPS' and enable 'zero-shot inference for unseen residues.' The submitted experimental results directly contradict this central claim.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Domain gap not adequately addressed: The large gap between simulated and experimental spectra (Pearson correlation of -0.11 to 0.19 when training on simple simulations) remains unresolved. The adversarial loss provides minimal improvement (3.18% vs 3.10% recall, 0.78 AUC discriminator), indicating the proposed method is insufficient.",
+                "severity": "major",
+                "evidence": "Section 4.2.2 (lines 252-269) reports negative or near-zero correlations for simulated-only models on experimental data. Section 4.2.4 (lines 325-329) states adversarial loss yields negligible improvement: 'recall for methionine oxidation (3.18% vs 3.10%) and cystein carbamidomethylation (14.41% vs 15.11%), along with similar MSE losses.' The discriminator achieves only 0.78 AUC (line 324). The rebuttal acknowledges this but proposes only future work (stronger discriminator, instance-level DA), not solutions presented in the submitted paper.",
+                "affected_claim": "The paper proposes a GAN-inspired adversarial MTL model as a solution to domain shift. The empirical results demonstrate this approach is ineffective, and no alternative in-paper solutions are provided.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Evaluation limited to teacher-forced inference: All results use teacher forcing with ground-truth masses provided at each step. This prevents assessment of the model's ability to perform end-to-end de novo sequencing—the actual practical requirement. The rebuttal acknowledges this but does not provide end-to-end evaluation results.",
+                "severity": "major",
+                "evidence": "Section 4.1 (lines 192-197) explicitly restricts evaluation to teacher forcing. Limitations section (lines 341-345) acknowledges: 'Although we show that mass-based modeling can overcome vocabulary constraints, the current framework has only been evaluated under teacher-forced decoding.' The rebuttal agrees ('teacher forcing prevents assessment of true end-to-end sequencing') but provides no end-to-end results in the submitted paper.",
+                "affected_claim": "The paper claims to enable peptide sequencing. Teacher forcing evaluation does not demonstrate this capability; error accumulation and sequence-level consistency constraints are bypassed. This is a fundamental evaluation gap for the sequencing task.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Degraded performance on known residues without compensating benefit: The mass regression approach achieves 62.37% amino acid-level recall for seen residues compared to higher performance from classification-based baselines. This substantial trade-off is not justified, as the promised zero-shot learning fails to materialize.",
+                "severity": "major",
+                "evidence": "Section 4.2.1 (line 206) reports 62.37% overall recall. Lines 211-217 acknowledge 'somewhat lower than those reported by classification-based transformer models such as AdaNovo' but justify it as an expected trade-off for the benefit of generalization. However, generalization fails (0.6%-14.41% zero-shot recall), so the trade-off yields no benefit. The rebuttal does not contest this analysis.",
+                "affected_claim": "The core motivation is that sacrificing accuracy on known residues is justified by zero-shot learning capability. With zero-shot learning failing, the approach is strictly worse than baselines.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Insufficient analysis of core failure and lack of mitigation attempts: While the paper identifies that the training objective does not encourage extrapolation to unseen masses, it does not explore or test solutions such as auxiliary losses, contrastive regularization in mass space, or explicit regularization to encourage continuous mass space coverage.",
+                "severity": "major",
+                "evidence": "Section 4.2.1 (lines 230-235) identifies the root cause: 'the training objective does not explicitly encourage extrapolation to unseen masses, the model was not incentivized to learn a truly continuous mass space.' The paper acknowledges this fundamental limitation but does not attempt standard ML solutions (e.g., auxiliary losses, regularization terms, or modified loss functions). The rebuttal proposes such solutions as 'future work' but provides no in-paper results.",
+                "affected_claim": "The paper claims mass-based representations are a path to zero-shot learning. Once the root cause (lack of extrapolation incentive) is identified, standard approaches to address it should have been explored in the submitted work.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While the technical approach (mass regression, MTL, adversarial alignment) is sound in isolation, the overall method fails to achieve its stated goal. The central claim—that mass-based prediction enables zero-shot learning for unseen PTMs—is contradicted by experimental results (0.6%-14.41% recall on held-out modifications). The root cause is identified (training objective does not encourage extrapolation) but not addressed. The rebuttal acknowledges these issues but provides no new in-paper evidence resolving them. Evaluation is further compromised by reliance on teacher forcing, which bypasses practical sequencing constraints. The paper thus fails the soundness gate because the central claims are not supported by the submitted evidence."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The reformulation of DNPS as mass prediction rather than token classification is novel. The combination of mass regression with MTL on simulated and experimental spectra, coupled with adversarial alignment, represents a reasonable contribution to methodology. However, novelty is substantially diminished by the lack of empirical validation and the identification of fundamental limitations (implicit memorization instead of continuous mass space learning) that undermine the motivating hypothesis."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "For a top-tier ML venue, the work must either achieve its stated goal or provide significant insights that advance understanding. This paper achieves neither in the submitted form. Zero-shot learning fails on experimental data (0.6%-14.41% recall). The insights—that mass-based regression implicitly memorizes training masses and that domain shift between simulated and real spectra cannot be resolved by the proposed MTL/adversarial approach—are negative results without actionable solutions provided in the paper. The degraded performance on known residues (62.37% vs. baselines) combined with failed zero-shot learning indicates the approach does not advance the field. Reframing as a 'negative result' does not retroactively establish significance without deeper analysis or solutions in the submitted work."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Evaluation has multiple critical gaps: (1) Teacher forcing prevents end-to-end validation; (2) Only two held-out modifications evaluated, limiting generalization claims; (3) No quantitative comparison to recent baselines (AdaNovo, π-PrimeNovo) under identical settings; (4) Adversarial loss effectiveness questioned by minimal improvement and 0.78 AUC; (5) No statistical significance testing or confidence intervals for low-performance regimes. The rebuttal acknowledges these gaps but does not provide corrected results in the submitted paper. The authors propose future experiments (end-to-end evaluation, systematic evaluation across modification types, baseline comparisons) but these are not present in the submission, which is what must be evaluated."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with good motivation, adequate background, and transparent discussion of limitations. Figures are informative and results are presented honestly. The acknowledgment of failures (e.g., lines 230-235 identifying implicit memorization, lines 341-345 acknowledging teacher forcing limitation) demonstrates intellectual integrity. However, clarity of presentation does not compensate for fundamental soundness and significance failures."
+              }
+            },
+            "summary_comment": "The rebuttal demonstrates good faith engagement with the review by acknowledging all major criticisms and agreeing that zero-shot learning has failed on experimental data, domain shift remains unresolved, and teacher forcing prevents practical validation. Notably, the authors reframe the contribution as identifying 'limitations of mass-based approaches' rather than advancing solutions. While this intellectual honesty is commendable, it does not address the core problem: the submitted paper makes affirmative claims about enabling zero-shot DNPS ('promising proof of concept for mass-based representations as a path towards true open-search DNPS') that are contradicted by empirical results. The rebuttal proposes valuable suggestions for future work (explicit losses encouraging extrapolation, stronger domain adaptation, end-to-end evaluation, systematic evaluation across modification types) but none of these solutions are present in the submitted paper. Evaluation must be based on what is submitted, not what the authors promise to do. The submitted work presents negative results—mass-based regression with MTL and adversarial alignment fails to achieve zero-shot learning—without providing sufficient analysis, insights, or alternative solutions to make these negative results significant. For a top-tier ML conference, papers presenting negative results can be valuable if they provide deep mechanistic insights or suggest actionable paths forward. This work identifies that the model implicitly memorizes training-set masses rather than learning continuous representations, but does not explore why standard regularization or loss modifications fail to address this, nor does it test such solutions. The combination of failed central claim, degraded baseline performance, limited evaluation scope, and insufficient analysis of root causes prevents acceptance."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Failed zero-shot learning on experimental data undermines central claim\",\n        \"Domain gap between simulated and experimental spectra not adequately addressed\",\n        \"Evaluation limited to teacher-forced inference prevents assessment of true sequencing capability\",\n        \"Degraded performance on known residues (62.37% recall) not justified given zero-shot learning failure\",\n        \"Limited experimental scope (only two held-out modifications evaluated)\",\n        \"Insufficient analysis of why mass-based regression fails to generalize\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Extremely poor zero-shot performance on unseen PTMs\",\n          \"location\": \"Section 4.2.1, lines 220-235 and Table in lines 304-306\",\n          \"explanation\": \"The model achieves only 0.6% recall for cysteine carbamidomethylation and 14.18% for methionine oxidation when these modifications are held out from training. Even with MTL, recall only improves marginally to 3.18% and 14.41%. The paper explicitly acknowledges 'predictions for cysteine carbamidomethylation showed no enrichment near the correct mass' (line 222).\"\n        },\n        {\n          \"concern\": \"Domain shift between simulated and experimental spectra remains unresolved\",\n          \"location\": \"Section 4.2.2, lines 252-269 and Section 4.2.4, lines 325-329\",\n          \"explanation\": \"Models trained on simulated data achieve Pearson correlations of -0.11 to 0.19 on experimental spectra. The adversarial loss intended to resolve this yields minimal improvement: discriminator achieves 0.78 AUC (line 324), and recall differences are negligible (3.18% vs 3.10% for methionine oxidation with/without adversarial loss).\"\n        },\n        {\n          \"concern\": \"Evaluation limited to teacher-forced inference\",\n          \"location\": \"Section 4.1, lines 192-197 and Limitations section, lines 341-345\",\n          \"explanation\": \"All results use teacher forcing where ground truth masses are provided at each decoding step. The paper acknowledges this as a limitation: 'Although we show that mass-based modeling can overcome vocabulary constraints, the current framework has only been evaluated under teacher-forced decoding.' This prevents assessment of error accumulation and true sequence-level performance.\"\n        },\n        {\n          \"concern\": \"Performance degradation on known residues\",\n          \"location\": \"Section 4.2.1, lines 206-217\",\n          \"explanation\": \"The model achieves 62.37% amino acid-level recall for seen residues, with some residues performing much worse (lysine: 26.97% despite 0.48 Da error). The paper acknowledges this is 'somewhat lower than those reported by classification-based transformer models such as AdaNovo' but does not adequately justify this trade-off given the failure of zero-shot learning.\"\n        },\n        {\n          \"concern\": \"Model implicitly memorizes training-set masses instead of learning continuous space\",\n          \"location\": \"Section 4.2.1, lines 230-235\",\n          \"explanation\": \"The paper identifies that 'the training objective does not explicitly encourage extrapolation to unseen masses, the model was not incentivized to learn a truly continuous mass space. Instead, it might implicitly treat the task as a form of multi-class classification.' This fundamental limitation is acknowledged but not addressed.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Teacher forcing evaluation prevents assessment of true de novo sequencing\",\n          \"proposed_change\": \"Conduct end-to-end evaluation without teacher forcing, reporting metrics such as: (1) peptide-level identification rate without ground truth residues; (2) error accumulation analysis; (3) comparison to autoregressive baselines. This is essential to validate practical applicability.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Minimal improvement from adversarial loss suggests alternative domain alignment strategies needed\",\n          \"proposed_change\": \"Investigate alternative approaches to reduce domain shift: (1) Instance-level domain adaptation (e.g., DANN with instance weighting); (2) Explicit auxiliary losses encouraging continuous mass space coverage (e.g., constraint loss requiring predictions for intermediate masses); (3) Analysis of whether the discriminator can be made stronger to force better alignment (currently AUC=0.78 suggests incomplete alignment).\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited experimental scope with only two held-out modifications\",\n          \"proposed_change\": \"Expand evaluation to systematically assess generalization across: (1) chemically distinct modification types (phosphorylation, sulfation, methylation, etc.); (2) modifications with varying mass distances from training-set residues; (3) held-out combinations of modifications. This provides more robust evidence of zero-shot capability.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Lack of comparison to recent baselines under identical experimental settings\",\n          \"proposed_change\": \"Provide direct quantitative comparisons with AdaNovo, π-PrimeNovo, and ContraNovo under identical train/test splits and evaluation protocols. Current comparisons are only qualitative references (e.g., 'somewhat lower than AdaNovo'). This establishes the practical trade-off more clearly.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"No explicit regularization or loss design to encourage extrapolation\",\n          \"proposed_change\": \"Explore loss modifications that explicitly encourage generalization to unseen masses: (1) contrastive regularization pushing predictions away from training-set masses for some synthetic examples; (2) temperature-scaled regression with calibration; (3) adversarial data augmentation in mass space (e.g., noise injection encouraging robustness to mass perturbations). Provide ablation studies justifying the chosen approach.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the thorough and constructive review. The reviewer correctly identifies the central challenge to our work: despite reformulating peptide sequencing as a mass prediction task with strong motivation, the model fails to achieve zero-shot generalization to unseen PTMs on experimental data. We acknowledge this is a significant limitation that fundamentally impacts the claimed contribution.\\n\\n**On the core failure of zero-shot learning:** The reviewer is correct that our results on held-out modifications (0.6%-14.41% recall) fall far short of demonstrating practical zero-shot learning capability. We appreciate the reviewer pointing out that the paper's own analysis reveals the root cause: the training objective does not explicitly incentivize extrapolation, leading the model to implicitly memorize training-set masses rather than learn a true continuous mass space. This is a fundamental issue that we did not adequately address in the current submission.\\n\\n**On domain shift and adversarial learning:** The reviewer highlights a critical observation: despite the motivation for adversarial alignment, the discriminator achieves only 0.78 AUC, and the improvement in recall is negligible (3.18% vs 3.10%). This suggests the GAN-inspired approach is insufficient. We agree this is a significant limitation. The minimal improvement indicates either (1) the domain shift is more fundamental than architectural solutions can address, or (2) a different alignment strategy is needed.\\n\\n**On teacher forcing evaluation:** The reviewer correctly points out that teacher forcing prevents assessment of true end-to-end sequencing. We acknowledge this in lines 341-345 as a proof-of-concept limitation. However, the reviewer is right that for a rigorous evaluation, autoregressive inference without ground truth masses is essential to validate the practical applicability of our approach. Our current evaluation isolates mass prediction from sequence-level error dynamics, which is a significant limitation we should have addressed experimentally.\\n\\n**On the performance trade-off:** The reviewer raises an important point: the degraded performance on known residues (62.37% vs. higher for AdaNovo) combined with failed zero-shot learning makes the overall trade-off hard to justify. We acknowledge this trade-off in Section 4.2.1 but did not provide sufficient justification. The current results do not demonstrate that sacrificing accuracy on known residues yields a meaningful benefit.\\n\\n**On limited experimental scope:** We agree that evaluation on only two held-out modifications is narrow. A more systematic evaluation across chemically distinct modification types would provide stronger evidence of whether zero-shot generalization is possible with mass-based approaches.\\n\\n**Path forward:** The reviewer's suggestions for future work are valuable. We recognize that the current submission represents an important negative result: mass-based regression alone is insufficient for zero-shot learning on experimental data, even with MTL and adversarial alignment. To make this work viable, explicit mechanisms to encourage extrapolation to unseen masses (e.g., auxiliary losses, contrastive regularization in mass space, or more sophisticated loss design) would be needed. Additionally, end-to-end evaluation without teacher forcing is essential before claims of sequencing capability can be made.\\n\\nWe view this work as identifying both the promise and limitations of mass-based representations for open-search DNPS. While the zero-shot learning goal is not achieved in the current form, we believe the insights about why mass-based approaches fail (implicit memorization, insufficient domain alignment) and the proposed framework for combining simulated and experimental data may inform future research. However, we acknowledge the current results do not sufficiently advance the field to warrant acceptance at a top-tier venue without substantial additional improvements.\"\n    }\n  ]\n}\n```\n\n---\n\n## Detailed Analysis of the Review\n\nThe reviewer (Reviewer 1 - Neutral) provides a substantive critique centered on **soundness and significance** concerns. Here is my assessment:\n\n### **Reviewer Accuracy Assessment**\n\nThe reviewer's criticisms are **fundamentally correct**:\n\n1. **Zero-shot learning failure is real**: The reported recall values (0.6%-14.41%) genuinely do not support claims of zero-shot learning capability. The paper's own analysis (lines 230-235) acknowledges the model implicitly memorizes training masses.\n\n2. **Domain gap unresolved**: Pearson correlations of -0.11 to 0.19 and negligible improvement from adversarial loss (0.78 AUC discriminator) substantiate this concern.\n\n3. **Teacher forcing limitation is valid**: This is a critical evaluation gap that prevents end-to-end validation of the proposed method.\n\n4. **Trade-off not justified**: 62.37% recall on known residues is degraded compared to baselines, and this sacrifice fails to deliver the promised benefit (zero-shot learning).\n\n### **My Response Strategy**\n\nThe reviewer is **right to reject**. Rather than defend indefensible results, I:\n\n- **Acknowledge the core failure**: Zero-shot learning on experimental data is not achieved.\n- **Validate the root cause analysis**: Agree that training objectives do not encourage extrapolation.\n- **Admit evaluation limitations**: Teacher forcing prevents practical validation.\n- **Reframe as negative result**: This work identifies limitations of mass-based approaches, not advances.\n- **Suggest credible paths forward**: Without inventing new experiments, outline what would be needed to make the approach viable.\n\nThis honest response maximizes reviewer confidence and positions the work as contributing negative results rather than overclaimed capabilities—an important contribution in itself, though below the bar for acceptance at top venues.",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 3,
+              "significance": 2,
+              "evaluation": 2,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel problem formulation: Recasting de novo peptide sequencing as a continuous mass prediction task rather than discrete token classification is creative and provides a principled path toward zero-shot learning for unseen PTMs.",
+              "Well-motivated approach: The core insight that amino acids and their derivatives are characterized by mass as a generalizable feature is biochemically sound and addresses a real limitation in existing DNPS models that rely on fixed vocabularies.",
+              "Transparent identification of root cause: The paper identifies and articulates the fundamental limitation—that the training objective does not explicitly encourage extrapolation, leading implicit memorization of training-set masses (Section 4.2.1, lines 230-235)."
+            ],
+            "weaknesses": [
+              "Failed zero-shot learning on experimental data with overstated claims: The paper claims to provide 'a promising proof of concept for zero-shot inference for unseen residues' (Abstract, line 18) but achieves only 0.6%-14.41% recall on held-out modifications. This fundamental mismatch between claims and results undermines the submission.",
+              "Identified root cause not addressed experimentally: The paper explicitly identifies that 'the training objective does not explicitly encourage extrapolation to unseen masses' (lines 230-235) but does not test standard mitigation strategies such as auxiliary losses, contrastive regularization in mass space, or modified loss functions that would directly address this limitation.",
+              "Domain gap remains unresolved despite proposed adversarial approach: The adversarial loss produces negligible improvements (3.18% vs 3.10% for methionine oxidation) and a discriminator AUC of only 0.78 (where >0.9 would indicate effective alignment). This indicates the proposed method is insufficient to bridge simulated-experimental domain shift.",
+              "Evaluation limited to teacher-forced inference prevents practical validation: All results use teacher forcing with ground-truth masses provided at each step. This prevents assessment of error accumulation, sequence-level consistency, and end-to-end de novo sequencing capability—the actual task of interest.",
+              "Performance degradation on known residues without demonstrated benefit: The model achieves 62.37% amino acid-level recall on seen residues compared to higher performance from classification-based baselines. This trade-off is justified in the paper as enabling zero-shot learning, but zero-shot learning fails to materialize, making the approach strictly worse than baselines."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Failed zero-shot learning on experimental data with overstated claims: The paper claims to provide 'a promising proof of concept for zero-shot inference for unseen residues' (Abstract, line 18) but achieves only 0.6%-14.41% recall on held-out modifications. This fundamental mismatch between claims and results undermines the submission.",
+                "severity": "major",
+                "evidence": "Section 4.2.1 (lines 220-235) reports 0.6% recall for cysteine carbamidomethylation and 14.18% for methionine oxidation. Section 4.2.3 (lines 304-306) shows marginal improvements with MTL: 3.18% and 14.41% respectively. The paper's own analysis states 'predictions for cysteine carbamidomethylation showed no enrichment near the correct mass' (line 222). The abstract claims 'we show that our approach allows the prediction of previously unseen PTMs, providing a promising proof of concept' (lines 18-19). Recall rates of 0.6%-14.41% do not constitute 'promising' results or support claims of enabling 'zero-shot' inference. The rebuttal acknowledges the abstract 'should have been more precise' but the submitted paper contains these overstated claims.",
+                "affected_claim": "The central claim that mass-based representations enable zero-shot learning for unseen PTMs on experimental data is directly contradicted by reported results. The abstract makes affirmative claims that are not supported by the evidence.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Identified root cause not addressed experimentally: The paper explicitly identifies that 'the training objective does not explicitly encourage extrapolation to unseen masses' (lines 230-235) but does not test standard mitigation strategies such as auxiliary losses, contrastive regularization in mass space, or modified loss functions that would directly address this limitation.",
+                "severity": "major",
+                "evidence": "Section 4.2.1 (lines 230-235) diagnoses the problem: 'Since the training objective does not explicitly encourage extrapolation to unseen masses, the model was not incentivized to learn a truly continuous mass space.' The paper then states this 'might implicitly treat the task as a form of multi-class classification' but does not propose or test solutions within the submitted work. The rebuttal acknowledges this gap: 'We identified that the model implicitly memorizes training-set masses rather than learning continuous representations (Section 4.2.1, lines 230-235), yet we did not test standard ML approaches to address this.' No auxiliary losses, regularization terms, or modified objectives appear in the submitted methods or experiments.",
+                "affected_claim": "Once the root cause is identified—the training objective does not incentivize extrapolation—the natural experimental progression is to modify the objective to encourage extrapolation. The paper fails to pursue this logical next step.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Domain gap remains unresolved despite proposed adversarial approach: The adversarial loss produces negligible improvements (3.18% vs 3.10% for methionine oxidation) and a discriminator AUC of only 0.78 (where >0.9 would indicate effective alignment). This indicates the proposed method is insufficient to bridge simulated-experimental domain shift.",
+                "severity": "major",
+                "evidence": "Section 4.2.4 (lines 307-329) proposes adversarial learning but results show: (1) Discriminator AUC of 0.78 (line 324), indicating incomplete alignment; (2) Recall improvements negligible: methionine oxidation 3.18% vs 3.10%, cysteine carbamidomethylation 14.41% vs 15.11% (lines 328-329); (3) MSE losses 'similar' between MTL and GAN-inspired models (line 330). The rebuttal acknowledges 'the discriminator AUC of 0.78 (where 0.5 is random) indicates the model can still meaningfully distinguish simulated from experimental spectra, which suggests incomplete alignment' and that 'the adversarial term is not providing the intended benefit.' These admissions confirm the proposed solution is ineffective.",
+                "affected_claim": "The paper proposes adversarial alignment as a solution to domain shift. The empirical results demonstrate this approach fails to meaningfully align representations or improve generalization.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Evaluation limited to teacher-forced inference prevents practical validation: All results use teacher forcing with ground-truth masses provided at each step. This prevents assessment of error accumulation, sequence-level consistency, and end-to-end de novo sequencing capability—the actual task of interest.",
+                "severity": "major",
+                "evidence": "Section 4.1 (lines 192-197) states: 'For evaluation, we ran the model in inference mode using teacher forcing...the model is supplied with the ground truth masses of all previously decoded residues at each prediction step.' Limitations section (lines 341-345) acknowledges: 'Although we show that mass-based modeling can overcome vocabulary constraints, the current framework has only been evaluated under teacher-forced decoding.' No end-to-end autoregressive evaluation is provided in the submitted paper. The rebuttal acknowledges this is 'a fundamental gap' that prevents validation of 'practical de novo sequencing capability.'",
+                "affected_claim": "The paper claims to enable de novo peptide sequencing. Teacher forcing evaluation does not demonstrate this; it artificially removes the key challenges of sequencing (error accumulation and sequence consistency). Practical viability cannot be assessed from the submitted results.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Performance degradation on known residues without demonstrated benefit: The model achieves 62.37% amino acid-level recall on seen residues compared to higher performance from classification-based baselines. This trade-off is justified in the paper as enabling zero-shot learning, but zero-shot learning fails to materialize, making the approach strictly worse than baselines.",
+                "severity": "major",
+                "evidence": "Section 4.2.1 (line 206) reports 62.37% recall for seen residues. Lines 211-217 acknowledge this is 'somewhat lower than those reported by classification-based transformer models such as AdaNovo' but justify it as a trade-off for 'generalization to modified residues beyond the training set' (lines 217-219). However, generalization fails: Section 4.2.3 reports only 3.18% recall for cysteine carbamidomethylation and 14.41% for methionine oxidation (lines 304-306). The rebuttal states: 'the mass regression approach sacrifices accuracy on known residues (62.37% recall vs. higher for AdaNovo) based on the premise that zero-shot learning capability justifies this trade-off. However, zero-shot learning fails to materialize (0.6%-14.41% recall), making the approach strictly worse than baselines.'",
+                "affected_claim": "The paper explicitly trades off performance on known residues for improved generalization to unseen residues. With generalization failing, the approach offers no compensating benefit over baselines.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "While the technical approach (mass regression, MTL, adversarial alignment) is sound in isolation, the central claims are not supported by the evidence. The paper claims to enable zero-shot learning for unseen PTMs but achieves only 0.6%-14.41% recall on held-out modifications. The paper identifies the root cause—training objective does not incentivize extrapolation—but does not test standard solutions. The proposed adversarial approach is ineffective (0.78 AUC discriminator, negligible recall improvement). The rebuttal does not provide new in-paper evidence resolving these issues; it merely acknowledges them and proposes solutions that are not in the submitted work. Evaluation is further compromised by reliance on teacher forcing, which bypasses practical sequencing constraints. The submission fails the soundness gate because affirmative claims are contradicted by submitted evidence, and identified limitations are not addressed experimentally."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The reformulation of DNPS as mass prediction rather than token classification is novel. The combination of mass regression with MTL on simulated and experimental spectra, coupled with adversarial alignment, represents a reasonable methodological contribution. However, novelty is substantially diminished by the lack of empirical validation of the core hypothesis and the identification of fundamental limitations that undermine the motivating principles."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "For a top-tier ML venue, the work must either achieve stated goals or provide significant insights that advance understanding and enable future progress. This paper achieves neither. Zero-shot learning fails on experimental data (0.6%-14.41% recall). The identified insights—that mass-based regression implicitly memorizes training masses and that domain shift cannot be resolved by the proposed approach—are diagnosed but not addressed with tested solutions. The paper does not provide actionable mechanistic insights explaining why mass-based approaches fail or how they could be fixed. The rebuttal agrees that 'framing the work as identifying limitations of mass-based approaches does not retroactively establish significance without deeper mechanistic insights or actionable solutions in the submitted work.' Without new solutions, tested mitigation strategies, or deeper analysis in the submission, this represents an incomplete negative result insufficient for a top-tier venue."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "Evaluation has multiple critical gaps not addressed in the submitted paper: (1) Teacher forcing prevents end-to-end validation—no autoregressive evaluation provided; (2) Only two held-out modifications evaluated (methionine oxidation, cysteine carbamidomethylation), limiting generalization claims; (3) No quantitative comparison to recent baselines (AdaNovo, π-PrimeNovo, ContraNovo) under identical settings; (4) Adversarial loss effectiveness questioned by minimal improvement (3.18% vs 3.10%) and incomplete discriminator alignment (0.78 AUC); (5) No statistical significance testing or confidence intervals for low-performance regimes; (6) No ablation studies on loss component contributions. The rebuttal acknowledges these gaps but does not provide corrected results within the submitted paper. Evaluation must be based on the submitted work, which is incomplete."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with good motivation, adequate background, and transparent discussion of limitations. The acknowledgment of failures and root causes demonstrates intellectual integrity. Figures are informative and results are presented honestly, including negative findings. However, presentation clarity does not compensate for fundamental soundness and significance failures, nor does it resolve the disconnect between claims and evidence."
+              }
+            },
+            "summary_comment": "The author's second rebuttal demonstrates commendable intellectual honesty by fully acknowledging all major criticisms and agreeing with the reviewer's assessment that the submission fails to support its central claims. The authors concede that: (1) zero-shot learning fails on experimental data (0.6%-14.41% recall contradicts 'promising' claims in the abstract); (2) the identified root cause (lack of extrapolation incentive) was not addressed experimentally, representing a methodological gap; (3) the adversarial approach is ineffective (0.78 AUC discriminator, minimal improvement); (4) teacher forcing prevents practical validation; and (5) degraded performance on known residues is not justified without corresponding zero-shot benefit. The rebuttal correctly notes that acknowledging problems is not the same as solving them within the submitted work. The authors identify exactly what the submission should have contained—testing of loss modifications, end-to-end evaluation, stronger domain alignment investigation, broader modification evaluation, and baseline comparisons—but none of these are present in the paper under review. This represents a completed work that is honest about its limitations but incomplete in its execution and insufficient for publication at a selective top-tier venue. While the core idea (mass-based representations for open-search DNPS) has merit and could potentially be viable with appropriate modifications, the current submission does not demonstrate this. The paper makes affirmative claims that are contradicted by evidence, identifies but does not experimentally address the root cause of failure, proposes but does not effectively implement a solution (adversarial alignment), and evaluates the method under artificial constraints (teacher forcing) that prevent assessment of practical applicability. The work would benefit from the additional experiments and analyses the reviewer suggested, but as submitted, it does not meet the standards of a top-tier venue."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Failed zero-shot learning on experimental data contradicts central claim\",\n        \"Domain gap between simulated and experimental spectra unresolved despite proposed adversarial approach\",\n        \"Evaluation restricted to teacher forcing, preventing end-to-end validation\",\n        \"Degraded performance on known residues (62.37% recall) without compensating benefit\",\n        \"Root cause of failure identified but not addressed with attempted solutions\",\n        \"Rebuttal acknowledges issues but provides no new in-paper evidence resolving them\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Zero-shot learning fails dramatically on experimental data\",\n          \"location\": \"Section 4.2.1, lines 220-235 and Section 4.2.3, lines 304-306\",\n          \"explanation\": \"Cysteine carbamidomethylation: 0.6% recall (improving only to 3.18% with MTL). Methionine oxidation: 14.18% recall (improving only to 14.41% with MTL). The paper explicitly states 'predictions for cysteine carbamidomethylation showed no enrichment near the correct mass' (line 222) and notes for methionine oxidation that 'this perhaps reflected a memorization artifact' (lines 227-229).\"\n        },\n        {\n          \"concern\": \"Adversarial alignment is ineffective at bridging simulated-experimental domain gap\",\n          \"location\": \"Section 4.2.4, lines 307-329 and Figure 4D\",\n          \"explanation\": \"Discriminator achieves 0.78 AUC (line 324), indicating incomplete alignment. Recall improvements with adversarial loss are negligible: methionine oxidation 3.18% vs 3.10%, cysteine carbamidomethylation 14.41% vs 15.11% (lines 328-329). PCA visualization (Figure 4D) shows embeddings become less separated but does not demonstrate meaningful convergence. MSE losses are 'similar' between MTL and GAN-inspired models (line 330).\"\n        },\n        {\n          \"concern\": \"Teacher forcing prevents practical end-to-end evaluation\",\n          \"location\": \"Section 4.1, lines 192-197 and Limitations, lines 341-345\",\n          \"explanation\": \"All results use teacher forcing with ground truth masses provided at each step: 'the model is supplied with the ground truth masses of all previously decoded residues at each prediction step' (lines 193-194). Limitations section acknowledges 'the current framework has only been evaluated under teacher-forced decoding' (lines 343-345), but no autoregressive evaluation is provided.\"\n        },\n        {\n          \"concern\": \"Performance on known residues is degraded without benefit from zero-shot learning\",\n          \"location\": \"Section 4.2.1, lines 206-217\",\n          \"explanation\": \"Overall amino acid-level recall of 62.37% for seen residues, with significant variation (Lysine 26.97% despite 0.48 Da error; Arginine 79.91%; Glycine mass prediction achieves median error of 0.39 Da but still lower recall than classification-based methods). The paper acknowledges this is 'somewhat lower than those reported by classification-based transformer models such as AdaNovo' (lines 212-213) and justifies it as a trade-off for generalization, but generalization fails (0.6%-14.41% on unseen modifications).\"\n        },\n        {\n          \"concern\": \"Root cause identified but no mitigation strategies tested in submitted work\",\n          \"location\": \"Section 4.2.1, lines 230-235\",\n          \"explanation\": \"The paper identifies: 'Since the training objective does not explicitly encourage extrapolation to unseen masses, the model was not incentivized to learn a truly continuous mass space. Instead, it might implicitly treat the task as a form of multi-class classification, where the \\\"classes\\\" were the residue masses encountered during training' (lines 231-234). This fundamental limitation is acknowledged but no solutions are tested (e.g., auxiliary losses, contrastive regularization, explicit extrapolation penalties).\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Root cause of failure (implicit memorization rather than continuous mass learning) identified but not addressed experimentally\",\n          \"proposed_change\": \"To strengthen the submission, the authors should test mitigation strategies directly addressing the identified root cause: (1) Add an auxiliary loss term that penalizes predictions clustering around training-set masses (e.g., a repulsion loss in mass space); (2) Implement explicit contrastive regularization encouraging diverse predictions on synthetic spectra with intermediate masses; (3) Modify the MSE loss with a continuity regularizer that penalizes large gaps in predictions across adjacent mass ranges. Any of these approaches should be tested on both simulated and experimental data, with clear ablation studies.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Teacher forcing prevents validation of practical de novo sequencing capability\",\n          \"proposed_change\": \"Conduct end-to-end autoregressive inference without teacher forcing, reporting: (1) Peptide-level identification rate (exact match of predicted sequence to ground truth); (2) Amino acid-level recall without teacher forcing to assess impact of error accumulation; (3) Distribution of error propagation (how early errors affect downstream predictions); (4) Comparison to baselines (AdaNovo, Casanovo) on identical test sets under identical inference protocols. This is essential to establish whether the approach is viable for practical peptide sequencing.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Adversarial loss ineffective (0.78 AUC discriminator, minimal recall improvement)\",\n          \"proposed_change\": \"Investigate whether domain alignment can be improved through alternative strategies: (1) Strengthen the discriminator architecture and training dynamics to achieve > 0.9 AUC; (2) Test instance-level reweighting (giving higher weight to hard-to-classify instances); (3) Explore other domain adaptation methods (e.g., maximum mean discrepancy, correlation alignment); (4) Provide ablation comparing discriminator strength vs. recall improvement. Document why each approach succeeds or fails. Current 0.78 AUC suggests the discriminator is not learning meaningful domain signals.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited experimental scope: only two held-out modifications\",\n          \"proposed_change\": \"Expand evaluation to systematically assess generalization: (1) Hold out diverse modification types (phosphorylation, sulfation, acetylation, methylation, etc.) separately and together; (2) Evaluate modifications at varying mass distances from training-set residues; (3) Test on synthetically generated modifications (arbitrary masses) that were never seen; (4) Provide per-modification-type analysis of zero-shot performance. This establishes whether zero-shot capability is modification-dependent or fundamental.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"No quantitative comparison to recent baselines\",\n          \"proposed_change\": \"Provide direct quantitative comparisons (not qualitative references) to AdaNovo, π-PrimeNovo, and ContraNovo under identical train/test splits: (1) Amino acid-level recall on known residues; (2) Mass prediction accuracy (MAE, RMSE) where applicable; (3) End-to-end peptide-level identification rate. This establishes the practical trade-off: how much performance is sacrificed on known residues relative to baselines, and whether any zero-shot capability compensates.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the reviewer's detailed follow-up engagement. The reviewer has correctly identified that our rebuttal acknowledges the paper's failures but does not provide new in-paper evidence addressing them. This is a fair and important distinction: acknowledgment of limitations is not the same as resolution of limitations within the submitted work. We want to directly address why we believe the core criticisms are valid and what this means for the submission.\\n\\n**On the fundamental mismatch between claims and results:** The reviewer is correct that the submitted paper makes affirmative claims—'a promising proof of concept for mass-based representations as a path towards true open-search DNPS' (Abstract, line 19) and 'demonstrate[ing] promising generalization to previously unseen modifications' (Abstract, line 18)—that are contradicted by the empirical results. The zero-shot recall rates of 0.6%-14.41% do not constitute 'promising generalization.' We did not adequately qualify these claims in the submission. The abstract should have been more precise about what was achieved (strong performance on simulated data, marginal improvements on experimental data with MTL) versus what was not achieved (practical zero-shot learning on real experimental data).\\n\\n**On the identified root cause without attempted solutions:** The reviewer highlights an important methodological gap. We identified that the model implicitly memorizes training-set masses rather than learning continuous representations (Section 4.2.1, lines 230-235), yet we did not test standard ML approaches to address this: auxiliary losses, contrastive regularization, or modified loss functions. Once the root cause is identified—'the training objective does not explicitly encourage extrapolation'—the next step should be to modify the objective to encourage extrapolation. This is a natural experimental progression we should have undertaken. Instead, we moved to adversarial alignment (attempting to solve domain shift) without addressing the more fundamental problem that our loss function does not incentivize the desired behavior.\\n\\n**On the ineffectiveness of adversarial alignment:** The reviewer is correct to question whether the adversarial component is meaningful. A discriminator AUC of 0.78 (where 0.5 is random) indicates the model can still meaningfully distinguish simulated from experimental spectra, which suggests incomplete alignment. More importantly, the negligible recall improvements (3.18% vs 3.10% for methionine oxidation) and similar MSE losses between MTL and GAN-inspired models indicate the adversarial term is not providing the intended benefit. The PCA visualization (Figure 4D) shows reduced separation but does not establish that the shared representation enables better generalization. We should have questioned whether this approach was working before reporting it as a proposed solution.\\n\\n**On teacher forcing as a critical evaluation limitation:** The reviewer is correct that this is a fundamental gap. Teacher forcing provides an unrealistically favorable evaluation by (1) removing error accumulation, (2) ensuring perfect sequence alignment, and (3) bypassing the actual de novo sequencing task. We cannot claim to enable de novo peptide sequencing based on teacher-forced evaluation. An honest assessment requires end-to-end autoregressive evaluation, which we did not conduct. The fact that we acknowledged this limitation in the paper (lines 341-345) but did not address it experimentally is a significant oversight.\\n\\n**On degraded performance on known residues without compensating benefit:** The reviewer's logic is sound. The mass regression approach sacrifices accuracy on known residues (62.37% recall vs. higher for AdaNovo) based on the premise that zero-shot learning capability justifies this trade-off. However, zero-shot learning fails to materialize (0.6%-14.41% recall), making the approach strictly worse than baselines. We cannot retroactively justify this trade-off when the promised benefit does not materialize.\\n\\n**On the claim that this is a 'negative result':** The reviewer is astute in noting that framing the work as identifying 'limitations of mass-based approaches' does not retroactively establish significance without deeper mechanistic insights or actionable solutions in the submitted work. We agree with this assessment. A negative result can be valuable if it provides (1) deep analysis of why an approach fails and under what conditions, (2) insights about what types of solutions might work, or (3) a clear roadmap for future work with evidence that proposed solutions are promising. Our paper provides partial analysis (identifying implicit memorization as a root cause) but does not test solutions or provide sufficient mechanistic insight to constitute a significant negative result for a top-tier venue.\\n\\n**On what should have been in the submission:** In retrospect, the submission should have included:\\n\\n1. **Testing of explicit extrapolation incentives** in the loss function (auxiliary losses, regularization terms, or modified objectives) before concluding that mass-based regression is fundamentally limited. We identified the problem but did not attempt standard solutions.\\n\\n2. **End-to-end autoregressive evaluation** to assess practical de novo sequencing capability, not just isolated mass prediction accuracy.\\n\\n3. **More rigorous evaluation of the adversarial component**, including investigation of why 0.78 AUC discriminator should be expected to improve performance, or acknowledgment that it may not be effective.\\n\\n4. **Broader held-out evaluation** beyond two modifications to establish whether zero-shot generalization is modification-dependent or fundamentally infeasible.\\n\\n5. **Quantitative baseline comparisons** rather than qualitative references to establish the magnitude of the performance trade-off.\\n\\n**Regarding the rebuttal's proposed future work:** The reviewer is correct to note that proposing solutions in the rebuttal is not the same as testing them in the submission. We appreciate the reviewer's suggestions for strengthening the work (testing auxiliary losses, stronger discriminators, contrastive regularization, end-to-end evaluation, and systematic evaluation across modification types). These would be valuable additions if pursued, but they are not present in the submitted paper, and evaluation must be based on what is submitted.\\n\\n**Overall assessment:** We agree with the reviewer that the submitted paper fails to support its central claims. The zero-shot learning goal is not achieved on experimental data. The proposed solutions (MTL, adversarial alignment) provide only marginal improvements. The evaluation is limited by teacher forcing. The performance on known residues is degraded without compensating benefit. And the identified root cause (lack of extrapolation incentive in the training objective) is acknowledged but not addressed experimentally. These are legitimate reasons for rejection at a top-tier venue. While we believe the mass-based approach is conceptually sound and could potentially be viable with appropriate modifications (explicit extrapolation losses, stronger domain alignment, end-to-end evaluation), the current submission does not demonstrate this. The paper makes affirmative claims that are not supported by sufficient evidence, and the proposed improvements do not resolve the core failures. Thank you for the detailed feedback; it has clarified both the limitations of the current work and what would be necessary to make it suitable for publication at a selective venue.\"\n    }\n  ]\n}\n```\n\n---\n\n## Summary\n\nThis follow-up review from **Reviewer 1 (Neutral)** is particularly challenging because:\n\n1. **The reviewer correctly notes the disconnect**: The rebuttal acknowledges failures but provides no *new in-paper evidence* resolving them. This is a precise and devastating observation—acknowledgment ≠ resolution.\n\n2. **The reviewer's logic is airtight**: \n   - Zero-shot learning fails (0.6%-14.41% recall) → central claim not supported\n   - Adversarial loss ineffective (0.78 AUC, minimal improvement) → proposed solution doesn't work\n   - Teacher forcing prevents end-to-end validation → practical applicability unproven\n   - Performance on known residues is worse than baselines → no benefit from trade-off\n\n3. **The reviewer rejects the \"negative result\" framing**: Simply identifying why something fails is not sufficient for a top-tier venue; deeper insights or tested solutions are required.\n\n**My response strategy:**\n\n- **Accept the verdict**: Agree that the submission fails to support its claims.\n- **Validate the root cause analysis**: Concede that we identified the problem (implicit memorization) but didn't address it.\n- **Acknowledge methodological gaps**: Agree that we should have tested loss modifications, adversarial strengthening, and end-to-end evaluation before concluding failure.\n- **Don't over-defend**: Frame this as an honest but incomplete negative result that would benefit from the work the reviewer suggests.\n- **Position for future work**: Clearly outline what would be needed to make the approach viable (without claiming it's in the current submission).\n\nThis tone maximizes credibility by conceding valid criticisms rather than defending indefensible results.",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_58c191292304",
+    "conference": "NEURIPS",
+    "year": 2025,
+    "decision": "reject",
+    "paper_dir": "openreview_md/neurips_reject_2025_013_towards_open_search_de_novo_peptide_sequencing_via_mass_based_zero_shot_learning.md",
+    "target_paper_summary": {
+      "paper_id": "paper_58c191292304",
+      "title": "Towards Open-Search De Novo Peptide Sequencing Via Mass-Based Zero-Shot Learning",
+      "abstract": "1 Proteins are the main drivers of biochemical processes and play a pivotal role in 2 almost all cellular functions. Through post-translational modifications (PTMs), 3 residues within a protein can be chemically modified to fine-tune the protein's 4 function in the cellular context. Despite the importance of PTMs, the plethora 5 of deep learning-based de novo peptide sequencing (DNPS) models, which, in 6 contrast to database searching approaches, predict peptide sequence solely from 7 tandem mass spectra without any reference organism database, can only predict 8 peptide sequences with a limited set of PTMs. This is because they rely on fixed 9 vocabularies that map residue tokens to non-generalizable learned embeddings. To 10 overcome this limitation, we propose a novel approach that leverages the fact that 11 amino acids and their derivatives are characterized by their mass, a generalizable 12 feature that enables zero-shot learning. Specifically, we reformulate DNPS as a 13 mass prediction problem instead of a multiclass classification problem, where the 14 model predicts the mass of the next residue instead of its token representation. To 15 facilitate generalization to unseen PTMs, we leverage an adversarial multi-task 16 learning scheme by supplementing the training data of experimental spectra with 17 simulated spectra that mimic spectra containing unseen residues. We show that our 18 approach allows the prediction of previously unseen PTMs, providing a promising 19 proof of concept for mass-based representations as a path towards true open-search 20 DNPS.",
+      "topic": "",
+      "claims": [
+        "we propose a novel approach that leverages the fact that 11 amino acids and their derivatives are characterized by their mass, a generalizable 12 feature that enables zero-shot learning.",
+        "We show that our 18 approach allows the prediction of previously unseen PTMs, providing a promising 19 proof of concept for mass-based representations as a path towards true open-search 20 DNPS."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_002_d5a9231ab",
+        "title": "Predicting glycan structure from tandem mass spectrometry via deep learning",
+        "authors": [
+          "James Urban",
+          "Chunsheng Jin",
+          "Kristina A. Thomsson",
+          "Niclas G. Karlsson",
+          "Callum M. Ives",
+          "Elisa Fadda",
+          "Daniel Bojar"
+        ],
+        "year": 2024,
+        "publication_date": "2024-07-01",
+        "venue": "Nature Methods",
+        "abstract": "Glycans constitute the most complicated post-translational modification, modulating protein activity in health and disease. However, structural annotation from tandem mass spectrometry (MS/MS) data is a bottleneck in glycomics, preventing high-throughput endeavors and relegating glycomics to a few experts. Trained on a newly curated set of 500,000 annotated MS/MS spectra, here we present CandyCrunch, a dilated residual neural network predicting glycan structure from raw liquid chromatography-MS/MS data in seconds (top-1 accuracy: 90.3%). We developed an open-access Python-based workflow of raw data conversion and prediction, followed by automated curation and fragment annotation, with predictions recapitulating and extending expert annotation. We demonstrate that this can be used for de novo annotation, diagnostic fragment identification and high-throughput glycomics. For maximum impact, this entire pipeline is tightly interlaced with our glycowork platform and can be easily tested at https://colab.research.google.com/github/BojarLab/CandyCrunch/blob/main/CandyCrunch.ipynb . We envision CandyCrunch to democratize structural glycomics and the elucidation of biological roles of glycans.",
+        "url": "https://doi.org/10.1038/s41592-024-02314-6",
+        "doi": "https://doi.org/10.1038/s41592-024-02314-6",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4380442602"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 68
+      },
+      {
+        "paper_id": "rw_003_f5687e159",
+        "title": "Opportunities and obstacles for deep learning in biology and medicine",
+        "authors": [
+          "Travers Ching",
+          "Daniel Himmelstein",
+          "Brett K. Beaulieu‐Jones",
+          "Alexandr A. Kalinin",
+          "T. Brian",
+          "Gregory P. Way",
+          "Enrico Ferrero",
+          "Paul‐Michael Agapow",
+          "Michael Zietz",
+          "Michael M. Hoffman",
+          "Wei Xie",
+          "Gail Rosen",
+          "Benjamin J. Lengerich",
+          "Johnny Israeli",
+          "Jack Lanchantin",
+          "Stephen Woloszynek",
+          "Anne E. Carpenter",
+          "Avanti Shrikumar",
+          "Jinbo Xu",
+          "Evan M. Cofer",
+          "Christopher A. Lavender",
+          "Srinivas C. Turaga",
+          "Amr M. Alexandari",
+          "Zhiyong Lu",
+          "David J. Harris",
+          "David DeCaprio",
+          "Yanjun Qi",
+          "Anshul Kundaje",
+          "Yifan Peng",
+          "Laura K. Wiley",
+          "Marwin Segler",
+          "Simina M. Boca",
+          "S. Joshua Swamidass",
+          "Austin Huang",
+          "Anthony Gitter",
+          "Casey S. Greene"
+        ],
+        "year": 2017,
+        "publication_date": "2017-05-28",
+        "venue": "bioRxiv (Cold Spring Harbor Laboratory)",
+        "abstract": "Abstract Deep learning, which describes a class of machine learning algorithms, has recently showed impressive results across a variety of domains. Biology and medicine are data rich, but the data are complex and often ill-understood. Problems of this nature may be particularly well-suited to deep learning techniques. We examine applications of deep learning to a variety of biomedical problems—patient classification, fundamental biological processes, and treatment of patients—and discuss whether deep learning will transform these tasks or if the biomedical sphere poses unique challenges. We find that deep learning has yet to revolutionize or definitively resolve any of these problems, but promising advances have been made on the prior state of the art. Even when improvement over a previous baseline has been modest, we have seen signs that deep learning methods may speed or aid human investigation. More work is needed to address concerns related to interpretability and how to best model each problem. Furthermore, the limited amount of labeled data for training presents problems in some domains, as do legal and privacy constraints on work with sensitive health records. Nonetheless, we foresee deep learning powering changes at both bench and bedside with the potential to transform several areas of biology and medicine.",
+        "url": "https://doi.org/10.1101/142760",
+        "doi": "https://doi.org/10.1101/142760",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2618245351"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 310
+      },
+      {
+        "paper_id": "rw_004_aecf96327",
+        "title": "Prediction of glycopeptide fragment mass spectra by deep learning",
+        "authors": [
+          "Yi Yang",
+          "Qun Fang"
+        ],
+        "year": 2024,
+        "publication_date": "2024-03-19",
+        "venue": "Nature Communications",
+        "abstract": "Deep learning has achieved a notable success in mass spectrometry-based proteomics and is now emerging in glycoproteomics. While various deep learning models can predict fragment mass spectra of peptides with good accuracy, they cannot cope with the non-linear glycan structure in an intact glycopeptide. Herein, we present DeepGlyco, a deep learning-based approach for the prediction of fragment spectra of intact glycopeptides. Our model adopts tree-structured long-short term memory networks to process the glycan moiety and a graph neural network architecture to incorporate potential fragmentation pathways of a specific glycan structure. This feature is beneficial to model explainability and differentiation ability of glycan structural isomers. We further demonstrate that predicted spectral libraries can be used for data-independent acquisition glycoproteomics as a supplement for library completeness. We expect that this work will provide a valuable deep learning resource for glycoproteomics.",
+        "url": "https://doi.org/10.1038/s41467-024-46771-1",
+        "doi": "https://doi.org/10.1038/s41467-024-46771-1",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4392959252"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 41
+      },
+      {
+        "paper_id": "rw_006_66a93f871",
+        "title": "Deep learning and generative methods in cheminformatics and chemical biology: navigating small molecule space intelligently",
+        "authors": [
+          "Douglas B. Kell",
+          "Soumitra Samanta",
+          "Neil Swainston"
+        ],
+        "year": 2020,
+        "publication_date": "2020-12-08",
+        "venue": "Biochemical Journal",
+        "abstract": "The number of 'small' molecules that may be of interest to chemical biologists - chemical space - is enormous, but the fraction that have ever been made is tiny. Most strategies are discriminative, i.e. have involved 'forward' problems (have molecule, establish properties). However, we normally wish to solve the much harder generative or inverse problem (describe desired properties, find molecule). 'Deep' (machine) learning based on large-scale neural networks underpins technologies such as computer vision, natural language processing, driverless cars, and world-leading performance in games such as Go; it can also be applied to the solution of inverse problems in chemical biology. In particular, recent developments in deep learning admit the in silico generation of candidate molecular structures and the prediction of their properties, thereby allowing one to navigate (bio)chemical space intelligently. These methods are revolutionary but require an understanding of both (bio)chemistry and computer science to be exploited to best advantage. We give a high-level (non-mathematical) background to the deep learning revolution, and set out the crucial issue for chemical biology and informatics as a two-way mapping from the discrete nature of individual molecules to the continuous but high-dimensional latent representation that may best reflect chemical space. A variety of architectures can do this; we focus on a particular type known as variational autoencoders. We then provide some examples of recent successes of these kinds of approach, and a look towards the future.",
+        "url": "https://doi.org/10.1042/bcj20200781",
+        "doi": "https://doi.org/10.1042/bcj20200781",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3111995631"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 60
+      },
+      {
+        "paper_id": "rw_007_b4f92727c",
+        "title": "Diffusion models in bioinformatics and computational biology",
+        "authors": [
+          "Zhiye Guo",
+          "Jian Liu",
+          "Yanli Wang",
+          "Mengrui Chen",
+          "Duolin Wang",
+          "Dong Xu",
+          "Jianlin Cheng"
+        ],
+        "year": 2023,
+        "publication_date": "2023-10-27",
+        "venue": "Nature Reviews Bioengineering",
+        "abstract": "",
+        "url": "https://doi.org/10.1038/s44222-023-00114-9",
+        "doi": "https://doi.org/10.1038/s44222-023-00114-9",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4388185854"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 130
+      },
+      {
+        "paper_id": "rw_008_695dc80d8",
+        "title": "xTrimoPGLM: Unified 100B-Scale Pre-trained Transformer for Deciphering the Language of Protein",
+        "authors": [
+          "Bo Chen",
+          "Xingyi Cheng",
+          "Li Pan",
+          "Yangli‐ao Geng",
+          "Jing Gong",
+          "Shen Li",
+          "Zhilei Bei",
+          "Xu Tan",
+          "Boyan Wang",
+          "Xin Zeng",
+          "Chi-Ming Liu",
+          "Aohan Zeng",
+          "Yuxiao Dong",
+          "Jie Tang",
+          "Le Song"
+        ],
+        "year": 2023,
+        "publication_date": "2023-07-06",
+        "venue": "bioRxiv (Cold Spring Harbor Laboratory)",
+        "abstract": "Protein language models have shown remarkable success in learning biological information from protein sequences. However, most existing models are limited by either autoencoding or autoregressive pre-training objectives, which makes them struggle to handle protein understanding and generation tasks concurrently. We propose a unified protein language model, xTrimoPGLM, to address these two types of tasks simultaneously through an innovative pre-training framework. Our key technical contribution is an exploration of the compatibility and the potential for joint optimization of the two types of objectives, which has led to a strategy for training xTrimoPGLM at an unprecedented scale of 100 billion parameters and 1 trillion training tokens. Our extensive experiments reveal that 1) xTrimoPGLM significantly outperforms other advanced baselines in 18 protein understanding benchmarks across four categories. The model also facilitates an atomic-resolution view of protein structures, leading to an advanced 3D structural prediction model that surpasses existing language model-based tools. 2) xTrimoPGLM not only can generate de novo protein sequences following the principles of natural ones, but also can perform programmable generation after supervised fine-tuning (SFT) on curated sequences. These results highlight the substantial capability and versatility of xTrimoPGLM in understanding and generating protein sequences, contributing to the evolving landscape of foundation models in protein science. Trained weight for the xTrimoPGLM model, and downstream datasets are available at https://huggingface.co/proteinglm .",
+        "url": "https://doi.org/10.1101/2023.07.05.547496",
+        "doi": "https://doi.org/10.1101/2023.07.05.547496",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4383550741"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 105
+      },
+      {
+        "paper_id": "rw_009_9c24d2078",
+        "title": "Exploration of cell state heterogeneity using single-cell proteomics through sensitivity-tailored data-independent acquisition",
+        "authors": [
+          "Valdemaras Petrosius",
+          "Pedro Aragon-Fernandez",
+          "Nil Üresin",
+          "Gergő Kovács",
+          "Teeradon Phlairaharn",
+          "Benjamin Furtwängler",
+          "Jeff Op De Beeck",
+          "Sarah Line Skovbakke",
+          "Steffen Goletz",
+          "Simon Francis Thomsen",
+          "Ulrich auf dem Keller",
+          "Kedar Nath Natarajan",
+          "Bo Porse",
+          "Erwin M. Schoof"
+        ],
+        "year": 2023,
+        "publication_date": "2023-09-22",
+        "venue": "Nature Communications",
+        "abstract": "Single-cell resolution analysis of complex biological tissues is fundamental to capture cell-state heterogeneity and distinct cellular signaling patterns that remain obscured with population-based techniques. The limited amount of material encapsulated in a single cell however, raises significant technical challenges to molecular profiling. Due to extensive optimization efforts, single-cell proteomics by Mass Spectrometry (scp-MS) has emerged as a powerful tool to facilitate proteome profiling from ultra-low amounts of input, although further development is needed to realize its full potential. To this end, we carry out comprehensive analysis of orbitrap-based data-independent acquisition (DIA) for limited material proteomics. Notably, we find a fundamental difference between optimal DIA methods for high- and low-load samples. We further improve our low-input DIA method by relying on high-resolution MS1 quantification, thus enhancing sensitivity by more efficiently utilizing available mass analyzer time. With our ultra-low input tailored DIA method, we are able to accommodate long injection times and high resolution, while keeping the scan cycle time low enough to ensure robust quantification. Finally, we demonstrate the capability of our approach by profiling mouse embryonic stem cell culture conditions, showcasing heterogeneity in global proteomes and highlighting distinct differences in key metabolic enzyme expression in distinct cell subclusters.",
+        "url": "https://doi.org/10.1038/s41467-023-41602-1",
+        "doi": "https://doi.org/10.1038/s41467-023-41602-1",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4386944450"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 106
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_002_d5a9231ab",
+        "relevance_score": 0.85,
+        "relevance_types": [
+          "same_problem",
+          "same_method"
+        ],
+        "rationale": "Addresses de novo structural annotation from tandem mass spectrometry data using deep learning, specifically predicting glycan structures from MS/MS spectra, which is closely related to the target's peptide sequencing problem",
+        "evidence_summary": "In 2024, Urban et al. published 'Predicting glycan structure from tandem mass spectrometry via deep learning' in Nature Methods, which introduced CandyCrunch, a dilated residual neural network trained on 500,000 annotated MS/MS spectra. The model achieved 90.3% top-1 accuracy in predicting glycan structure from raw liquid chromatography-MS/MS data and was demonstrated to work for de novo annotation, diagnostic fragment identification, and high-throughput glycomics."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_004_aecf96327",
+        "relevance_score": 0.82,
+        "relevance_types": [
+          "same_problem",
+          "same_method"
+        ],
+        "rationale": "Focuses on deep learning-based prediction of fragment mass spectra for glycopeptides, addressing similar mass spectrometry challenges with specialized architectures for non-linear structures",
+        "evidence_summary": "In 2024, Yang and Fang published 'Prediction of glycopeptide fragment mass spectra by deep learning' in Nature Communications, which presented DeepGlyco using tree-structured long-short term memory networks for glycan processing and graph neural networks to incorporate fragmentation pathways. The approach was shown to facilitate differentiation of glycan structural isomers and enable use of predicted spectral libraries for data-independent acquisition glycoproteomics."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_009_9c24d2078",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline"
+        ],
+        "rationale": "Demonstrates advanced mass spectrometry techniques including data-independent acquisition methods for proteomics, providing methodological context for mass-based approaches",
+        "evidence_summary": "In 2023, Petrosius et al. published 'Exploration of cell state heterogeneity using single-cell proteomics through sensitivity-tailored data-independent acquisition' in Nature Communications, which developed an ultra-low input tailored DIA method relying on high-resolution MS1 quantification. The method enhanced sensitivity by optimizing mass analyzer time utilization and was demonstrated in profiling mouse embryonic stem cell culture conditions, revealing heterogeneity in global proteomes."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_008_695dc80d8",
+        "relevance_score": 0.62,
+        "relevance_types": [
+          "same_method",
+          "novelty_competitor"
+        ],
+        "rationale": "Presents a large-scale protein language model that handles both understanding and generation tasks, relevant to sequence prediction approaches in proteomics",
+        "evidence_summary": "In 2023, Chen et al. published 'xTrimoPGLM: Unified 100B-Scale Pre-trained Transformer for Deciphering the Language of Protein' on bioRxiv, which introduced a unified protein language model trained at 100 billion parameters on 1 trillion tokens. The model significantly outperformed baselines in 18 protein understanding benchmarks and was shown to generate de novo protein sequences following natural principles while also enabling programmable generation after supervised fine-tuning."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_003_f5687e159",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "same_constraints",
+          "limitations_counterevidence"
+        ],
+        "rationale": "Provides broad context on deep learning challenges in biology including limited labeled data and interpretability concerns, relevant to the target's methodological constraints",
+        "evidence_summary": "In 2017, Ching et al. published 'Opportunities and obstacles for deep learning in biology and medicine' on bioRxiv, which examined applications of deep learning to biomedical problems including patient classification and biological processes. The authors found that deep learning had yet to revolutionize these domains due to concerns about interpretability, limited labeled data, and legal/privacy constraints, though promising advances had been made over prior baselines."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_006_66a93f871",
+        "relevance_score": 0.48,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Discusses deep learning and generative methods for navigating chemical space, providing background on inverse problem solving relevant to mass-based prediction approaches",
+        "evidence_summary": "In 2020, Kell et al. published 'Deep learning and generative methods in cheminformatics and chemical biology: navigating small molecule space intelligently' in Biochemical Journal, which discussed deep learning approaches for solving inverse problems in chemical biology. The paper focused on variational autoencoders for mapping discrete molecules to continuous latent representations and generating candidate molecular structures with predicted properties."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_007_b4f92727c",
+        "relevance_score": 0.42,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "Covers diffusion models in computational biology, providing methodological context for generative approaches though less directly related to mass spectrometry",
+        "evidence_summary": "In 2023, Guo et al. published 'Diffusion models in bioinformatics and computational biology' in Nature Reviews Bioengineering, which examined applications of diffusion models across various bioinformatics domains."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Urban et al. published 'Predicting glycan structure from tandem mass spectrometry via deep learning' in Nature Methods, introducing CandyCrunch, a dilated residual neural network trained on 500,000 annotated MS/MS spectra that achieved 90.3% top-1 accuracy for glycan structure prediction. In 2024, Yang and Fang published 'Prediction of glycopeptide fragment mass spectra by deep learning' in Nature Communications, presenting DeepGlyco with tree-structured LSTM networks and graph neural architectures for glycopeptide spectrum prediction and isomer differentiation. In 2023, Petrosius et al. published 'Exploration of cell state heterogeneity using single-cell proteomics through sensitivity-tailored data-independent acquisition' in Nature Communications, developing an ultra-low input DIA method with high-resolution MS1 quantification that enhanced sensitivity for single-cell proteomics. In 2023, Chen et al. published 'xTrimoPGLM: Unified 100B-Scale Pre-trained Transformer for Deciphering the Language of Protein' on bioRxiv, introducing a 100-billion parameter model that outperformed baselines in 18 protein understanding benchmarks and enabled de novo sequence generation. In 2017, Ching et al. published 'Opportunities and obstacles for deep learning in biology and medicine' on bioRxiv, identifying challenges including limited labeled data, interpretability concerns, and legal constraints that hinder deep learning revolution in biomedical domains. In 2020, Kell et al. published 'Deep learning and generative methods in cheminformatics and chemical biology: navigating small molecule space intelligently' in Biochemical Journal, discussing variational autoencoders for mapping discrete molecules to continuous representations and solving inverse problems in chemical space navigation.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 9,
+      "num_removed_post_cutoff": 2,
+      "num_removed_undated": 0,
+      "num_used": 7,
+      "num_cutoff_valid": 7,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 9,
+    "num_removed_post_cutoff": 2,
+    "num_removed_undated": 0,
+    "num_used": 7,
+    "num_cutoff_valid": 7,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

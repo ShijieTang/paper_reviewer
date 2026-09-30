@@ -6,7 +6,7 @@ import pytest
 
 import agents
 import mas_loop
-from review_schema import REVIEW_SCORE_KEYS, review_is_valid, workflow_is_complete
+from review_schema import REVIEW_SCORE_KEYS, parse_json_object, review_is_valid, workflow_is_complete
 
 
 REVIEW = {"decision": "reject", "scores": {key: 3 for key in REVIEW_SCORE_KEYS},
@@ -48,6 +48,38 @@ def test_schema_retry_recovers_same_prompt_without_polluting_conversation():
     assert [item["status"] for item in first_author["attempts"]] == ["invalid_output", "valid"]
     assert author.requests[0] == author.requests[1]
     assert all(message["content"] != "{}" for message in author.requests[-1][1])
+    assert len(result["iterations"]) == 3
+    assert result["iterations"][1]["reviewers"][0]["review"] == REVIEW
+    assert json.loads(result["iterations"][1]["reviewers"][0]["author_response"]) == REBUTTAL
+
+
+def test_author_ablation_has_no_required_author_turns():
+    reviewer, author, conference = Replies([REVIEW] * 3), Replies([]), Replies([CONFERENCE])
+    with patch("agents.create_llm_client", side_effect=[reviewer, author, conference]):
+        result = mas_loop.main("# Paper", n_iter=3, reviewer_types=["reviewer_nopersona"],
+                               enable_author_rebuttal=False, run_citation_check=False)
+    assert not author.requests
+    assert workflow_is_complete(result, 1, 3, enable_author_rebuttal=False)
+    assert not workflow_is_complete(result, 1, 3)  # Cannot masquerade as a trigger run.
+    assert len(result["iterations"]) == 3
+    assert all(turn["role"] != "author" for turn in result["turn_outcomes"])
+    assert "No rebuttal" in result["iterations"][1]["reviewers"][0]["author_response"]
+
+
+def test_trailing_comma_tolerance_preserves_string_contents():
+    raw = '```json\n{"text": "literal ,} and ,]", "items": [1,2,],}\n```'
+    expected = {"text": "literal ,} and ,]", "items": [1, 2]}
+    assert parse_json_object(raw) == expected
+    assert agents._parse_required_json_object(raw) == expected
+    assert mas_loop._parse_json(raw) == expected
+
+
+def test_agent_and_pipeline_accept_same_trailing_comma_syntax():
+    raw = json.dumps(REVIEW)[:-1] + ',}'
+    reviewer, author, conference = Replies([raw] * 3), Replies([REBUTTAL] * 2), Replies([CONFERENCE])
+    result = run_workflow(reviewer, author, conference)
+    assert workflow_is_complete(result, 1, 3)
+    assert len(reviewer.requests) == 3
 
 
 def test_exhausted_middle_rebuttal_stops_before_any_later_review():

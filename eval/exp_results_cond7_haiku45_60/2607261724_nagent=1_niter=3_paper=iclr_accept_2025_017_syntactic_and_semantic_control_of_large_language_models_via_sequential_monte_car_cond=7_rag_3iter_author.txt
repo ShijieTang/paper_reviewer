@@ -1,0 +1,755 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Well-motivated probabilistic formulation: The paper frames controlled generation as sampling from a global product of experts distribution, providing a principled foundation that unifies diverse constraint types (syntactic, semantic, hard, soft) under a single framework. This perspective is theoretically grounded and clearly articulated.",
+        "Comprehensive empirical evaluation across diverse domains: The experiments span four distinct semantic parsing tasks (Python code generation, text-to-SQL, goal inference, molecule synthesis) with careful ablation studies isolating the contributions of weight correction, expensive potentials, and adaptive resampling. The inclusion of smaller language models (1B-8B) outperforming larger ones (70B+) demonstrates practical value.",
+        "Validation of probabilistic perspective through KL divergence analysis: Section 3.3 provides compelling evidence linking approximation quality to the global product of experts with downstream performance, including both instance-level (Fig. 3) and aggregate-level (Table 3) correlation analyses. This strengthens the theoretical motivation and demonstrates that performance improvements stem from better posterior approximation rather than ad hoc engineering.",
+        "Computational efficiency gains over importance sampling: The demonstration that Full SMC achieves comparable or superior performance with 5-10× fewer particles than Full IS (Fig. 2, Table 6) is practically significant, showing that incremental resampling effectively reallocates computation to promising partial sequences.",
+        "Transparent and honest presentation of limitations: The paper explicitly acknowledges that weight correction gains are modest in semantic parsing domains (Section 3.2), that algorithmic novelty is incremental building on Lew et al. (2023), and that expensive potentials and resampling are the primary performance drivers. This transparency strengthens credibility and distinguishes genuine contributions from overstated claims."
+      ],
+      "weaknesses": [
+        "Limited novelty in core SMC methodology: The sequential Monte Carlo algorithm is a straightforward application of existing SMC techniques (Lew et al., 2023; Park et al., 2025) adapted to constrained generation, with the main contribution being factorization into efficient/expensive potentials and corresponding weight corrections.",
+        "Incomplete comparison with recent learned proposal methods: The paper acknowledges learned proposals (Lawson et al., 2022; Zhao et al., 2024) but does not provide empirical comparison. While the paper pragmatically focuses on programmable methods, the claim that this approach is superior lacks direct empirical validation.",
+        "Domain-specific engineering overhead not quantified: While computational inference cost is reported (Table 8), the paper does not quantify upfront engineering effort (lines of code, development time, reusability) required to design grammars and expensive potentials for new domains, limiting assessment of practical deployment costs."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited novelty in core SMC methodology: The sequential Monte Carlo algorithm is a straightforward application of existing SMC techniques (Lew et al., 2023; Park et al., 2025) adapted to constrained generation, with the main contribution being factorization into efficient/expensive potentials and corresponding weight corrections.",
+          "severity": "major",
+          "evidence": "The paper explicitly states 'Our system builds on the framework of Lew et al. (2023)' (Abstract) and acknowledges Park et al. (2025) as 'similar' for correcting locally constrained decoding greediness. The core SMC algorithm (Section 2, three steps: Extend, Reweight, Resample) follows standard SMC. The main adaptation is the factorization into Φeff and Φexp with corresponding weight factorization in Eq. (7d). The author's second rebuttal confirms: 'algorithmic novelty is incremental' and that 'empirical validation across diverse domains' and 'demonstration that small models with SMC outperform larger models' constitute the novelty. This is application and empirical validation rather than fundamental algorithmic innovation.",
+          "affected_claim": "The significance of algorithmic contributions to constrained semantic parsing.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Incomplete comparison with recent learned proposal methods: The paper acknowledges learned proposals (Lawson et al., 2022; Zhao et al., 2024) but does not provide empirical comparison.",
+          "severity": "minor",
+          "evidence": "Appendix F and footnote 3 acknowledge learned proposals exist, but the main text pragmatically focuses on 'variants of locally constrained decoding which marginalize over the immediate next token.' The paper does not empirically validate claims that programmable methods are more practical than learned proposals. The author's second rebuttal acknowledges this as 'a genuine limitation of the current submission that we acknowledge cannot be addressed without new work.' Importantly, the author states: 'We will not propose additional revisions in response to this review' and accepts this as a limitation without promising future work—indicating honest acknowledgment rather than deflection.",
+          "affected_claim": "That programmable approaches are superior to learned proposals for practical deployment.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Domain-specific engineering overhead not quantified: While computational inference cost is reported (Table 8), the paper does not quantify upfront engineering effort required to design grammars and expensive potentials for new domains.",
+          "severity": "minor",
+          "evidence": "Table 1 lists domain-specific grammars and potentials for each domain; Section 3.1 describes implementation (e.g., 'truncates x to the longest prefix... and executes') but does not quantify effort. The author's second rebuttal acknowledges: 'practitioners would benefit from knowing whether they need to write 50 or 500 lines of code per domain' and states 'This is a genuine limitation of the current submission.' The rebuttal does not promise to add this analysis, instead accepting it as limitation. This reflects honest assessment rather than evasion.",
+          "affected_claim": "That the approach is practical for practitioners deploying to new domains without substantial custom engineering.",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The mathematical framework is sound. The probabilistic formulation (Eq. 1) is standard, the SMC algorithm derivation (Eq. 6-7) is correct, and importance weights are properly derived. The experimental methodology is rigorous with proper confidence intervals (bootstrapped 95%), statistical significance testing (paired permutation tests, t-tests), and multiple ablations. The KL divergence estimators (Appendix D, referenced in Section 3.3) provide valid correlates for approximation quality. No mathematical errors detected. The author's second rebuttal does not introduce concerns about soundness."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper makes contributions through: (1) systematic adaptation of SMC to constrained generation with efficient/expensive potential factorization, (2) comprehensive empirical demonstration across four diverse semantic parsing domains with detailed ablations, (3) validation linking performance to KL divergence to global posterior, and (4) demonstration that small models with SMC outperform 8× larger models. The author's second rebuttal confirms algorithmic novelty is incremental, and appropriately repositions the contribution as 'empirical and applied rather than algorithmic—which we acknowledge transparently.' The paper is honest about building on Lew et al. (2023) and acknowledges this is 'application-focused rather than algorithmic innovation.' For a top-tier venue, comprehensive empirical validation on important problems with transparent positioning constitutes sufficient novelty when the contributions are demonstrated rigorously."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The work addresses a practically important problem (constrained generation in semantic parsing) and demonstrates meaningful improvements: 8× smaller models outperforming larger ones, 5-10× better computational efficiency over importance sampling, and consistent gains across four diverse domains. The validation linking performance to posterior approximation quality provides theoretical support. The author's second rebuttal clarifies that the paper is 'honest about its incremental algorithmic contributions and demonstrates this through transparent empirical validation.' The practical demonstration of small models outperforming large models is significant for practitioners and the comprehensive evaluation across domains strengthens the contribution."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The experimental evaluation is comprehensive and well-designed: four domains with diverse characteristics; seven methods including multiple ablations; proper baselines; multiple language model sizes (1B to 175B); varying particle counts; computational cost analysis; and probabilistic validation through KL divergence and probability-performance correlation. Error bars, confidence intervals, and statistical significance testing are reported throughout. The ablation study carefully isolates contributions of three components (weight correction, expensive potentials, resampling). The author's second rebuttal correctly identifies that learned proposal comparison would require new experiments and accepts this limitation without defensiveness. The existing evaluation rigorously supports the paper's claims as submitted."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is clearly written with well-structured exposition. The motivation clearly explains limitations of existing approaches. Mathematical notation is introduced systematically. The SMC algorithm is presented with clear intuition (Figure 1) and formal derivation. Experimental setup is well-documented. Results are presented with appropriate visualizations. Critically, the paper is honest about limitations: weight correction gains are modest (explicitly stated in Section 3.2), algorithmic novelty is incremental (explicit in abstract and contributions), and learned proposals are acknowledged but not compared (noted in appendix and footnotes). The author's second rebuttal demonstrates that this transparency was intentional and that the paper does not overclaim its contributions. This honesty actually strengthens the presentation."
+        }
+      },
+      "summary_comment": "This paper presents a solid application of sequential Monte Carlo to constrained language model generation with strong empirical results across four semantic parsing domains. The core contribution is adapting SMC to flexibly handle both efficient constraints (incorporated in proposals) and expensive constraints (incorporated as twist functions), demonstrating that small models with SMC-guided constraints can substantially outperform larger models. The work is technically sound, rigorously evaluated, and honestly presented regarding its limitations. The author's second rebuttal is notable for its intellectual honesty: rather than over-defending the work, it clarifies what is and is not present in the submission (algorithmic novelty is incremental; weight correction gains are modest; learned proposal comparison would require new work). This transparency is appropriate and actually strengthens confidence in the empirical results. The primary contributions are empirical and applied rather than algorithmic, but when such contributions are demonstrated with rigor across diverse domains with practical impact (small models outperforming large ones), they represent meaningful advances for the field. The paper correctly positions itself in this space. Minor limitations (incomplete learned proposal comparison, unquantified engineering overhead) do not materially undermine the core claims, which are well-supported by evidence. The comprehensive ablations showing that expensive potentials and resampling drive most gains, the KL divergence validation linking performance to posterior quality, and the computational efficiency gains over importance sampling all provide strong empirical support."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Core methodological contribution: The paper develops a specialized SMC architecture for constrained semantic parsing that extends existing probabilistic inference techniques to handle diverse constraint types (syntactic, semantic, hard, soft). This adapts standard SMC methodology to a specific ML problem, which aligns with ICML's focus on machine learning systems and algorithms.\",\n      \"Optimization and inference innovation: The weight correction mechanism (Eq. 7d) and adaptive resampling strategy represent novel optimization approaches for constrained decoding. The factorization of constraints into efficient (Φeff) and expensive (Φexp) potentials with corresponding weight factorization addresses a genuine computational optimization problem.\",\n      \"Comprehensive empirical validation: ICML values rigorous experimental evaluation. The paper provides extensive ablations isolating contributions of three algorithmic components (weight correction, expensive potentials, resampling) across four domains with proper statistical testing, confidence intervals, and multiple baselines.\",\n      \"Practical machine learning systems contribution: The integration with Lew et al.'s probabilistic programming framework and the demonstration that small models (1B-8B) outperform larger ones (70B+) represents a meaningful systems-level contribution to practical LM deployment, relevant to ICML's interest in scalable ML systems.\",\n      \"Strong validation of probabilistic approach: Section 3.3's KL divergence analysis linking approximation quality to downstream performance provides theoretical grounding for the empirical results, supporting ICML's appreciation of principled approaches with theoretical justification.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited core algorithmic novelty: The SMC algorithm is a straightforward application of existing techniques from Lew et al. (2023) and Park et al. (2025). The main contribution is factorizing constraints and corresponding weight updates (Eq. 7d), which is relatively incremental. ICML typically expects stronger algorithmic innovation beyond adaptation of known methods to a new domain.\",\n      \"Application-focused rather than foundational: The paper's primary contributions are empirical validation and practical application across semantic parsing tasks rather than advances in SMC methodology itself. While important, this is more application-driven than foundational ML research typically prioritized at ICML.\",\n      \"Missing comparison with learned alternative approaches: The paper acknowledges but does not empirically compare with learned proposal methods (Lawson et al. 2022, Zhao et al. 2024). The pragmatic focus on programmable methods limits validation of the comparative advantages of this approach, which weakens the technical contribution relative to alternative architectures.\",\n      \"Domain-specific engineering overhead unquantified: ICML values scalable, general solutions. The paper does not quantify upfront engineering effort (grammar design, expensive potential implementation, lines of code) needed for new domains. This limits assessment of whether the approach generalizes or requires substantial domain-specific customization for each application.\",\n      \"Incremental gains on weight correction: The paper transparently acknowledges that weight corrections (the primary algorithmic innovation differentiating SMC from importance sampling) provide only modest improvements in semantic parsing domains (Section 3.2). Most performance gains come from expensive potentials and resampling, which are problem-specific rather than algorithmic contributions.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Strong alignment with language model applications: NeurIPS explicitly welcomes 'Language and multimodal language models' and 'AI/ML for creatives' (application-driven ML). The paper addresses semantic parsing (code generation, SQL, goal inference, molecule synthesis)—all application areas NeurIPS prioritizes.\",\n      \"Interdisciplinary applications across multiple domains: NeurIPS encourages 'interdisciplinary submissions that do not fit neatly into existing categories.' This paper spans code generation (DS-1000), databases (Spider), planning (Planetarium), and chemistry (GDB-17), demonstrating broad applicability of the SMC framework across diverse problem structures.\",\n      \"Practical demonstration of computational efficiency: NeurIPS values systems contributions and efficiency gains. The 5-10× reduction in particles needed for SMC vs. importance sampling (Fig. 2, Table 6) and the demonstration that 8B models with SMC outperform 70B models represents significant practical value for practitioners, which NeurIPS audience appreciates.\",\n      \"Probabilistic inference perspective with validation: NeurIPS has strong community interest in probabilistic methods. The paper's framing of constrained generation as sampling from a global product of experts (Eq. 1) and empirical validation through KL divergence analysis (Section 3.3) with probability-performance correlation (Table 3) provides principled grounding for an applied contribution.\",\n      \"Comprehensive empirical validation and ablations: NeurIPS values in-depth empirical analysis. The seven-method comparison, four-domain evaluation, detailed ablations isolating component contributions, smaller language model experiments, and computational cost analysis all demonstrate the rigorous evaluation NeurIPS expects.\",\n      \"Honest positioning of limitations: The paper transparently acknowledges that algorithmic novelty is incremental, weight corrections provide modest gains, and learned proposals are not compared. This intellectual honesty is valued in NeurIPS's peer review culture and actually strengthens the contribution by anchoring empirical claims.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited foundational algorithmic contribution: The core SMC algorithm is adapted from Lew et al. (2023) and Park et al. (2025). While the factorization into efficient/expensive potentials is useful, it represents applied problem decomposition rather than foundational algorithmic innovation in probabilistic inference—NeurIPS's theoretical core.\",\n      \"Incomplete comparison with relevant recent work: The paper acknowledges but does not empirically compare with learned proposal methods (Zhao et al. 2024, Lawson et al. 2022). NeurIPS values comprehensive positioning relative to the state-of-the-art. This gap is particularly notable given that Zhao et al. (2024) on 'twisted SMC' uses similar frameworks and was published in ICML.\",\n      \"Domain-specificity may limit generalizability perception: Each domain requires custom grammar definitions and expensive potential implementations (Table 1). While the paper demonstrates this works across four domains, NeurIPS readers may question whether the approach truly generalizes or requires substantial custom engineering per domain. This engineering overhead is unquantified.\",\n      \"Weight corrections not the primary performance driver: Section 3.2 explicitly shows that weight corrections (the key algorithmic contribution distinguishing this from importance sampling) provide only modest gains. Most improvements come from expensive potentials and resampling, which are domain-specific rather than algorithmic contributions. This undermines the novelty of the core SMC adaptation.\",\n      \"Overlap with very recent concurrent work: Park et al. (2025) on 'grammar-aligned decoding' and Zhao et al. (2024) on 'twisted SMC' address very similar problems (correcting locally constrained decoding greediness via importance weighting/resampling). While not identical, the conceptual novelty is limited, and NeurIPS may view this as incremental variation on concurrent work rather than a distinct contribution.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Probabilistic methods focus: ICLR explicitly emphasizes 'probabilistic methods (Bayesian methods, variational inference, sampling, UQ, etc.).' The paper's core contribution—principled sampling from a global product of experts (Eq. 1) via SMC—directly addresses probabilistic inference for structured problems, a key ICLR research area.\",\n      \"Representation learning and structured prediction: ICLR highlights 'structured prediction' and learning representations that satisfy constraints. The paper addresses constrained generation—learning to produce sequences satisfying syntactic and semantic constraints—which overlaps with structured prediction and representation learning for formal domains.\",\n      \"Deep learning applications with rigorous evaluation: ICLR values empirical validation of deep learning methods. The comprehensive evaluation across four domains with detailed ablations, statistical testing, and validation linking theoretical guarantees (KL divergence) to practical performance demonstrates the rigor ICLR expects.\",\n      \"Practical validation of smaller models outperforming larger ones: ICLR audiences are interested in efficient deep learning and understanding when and why models of different scales perform differently. The demonstration that 8B models with SMC constraints outperform 70B models provides insights into the interplay between model size, inference algorithms, and constraint integration.\",\n      \"Integration with probabilistic programming framework: ICLR values infrastructure and frameworks that enable new research directions. The paper's integration with Lew et al.'s probabilistic programming system and the open-source release (acknowledged in paper) provide practical tools that advance ICLR's goals.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited representation learning focus: ICLR's primary emphasis is on learning and representation of data. This paper focuses on inference-time constrained generation without learning new representations. While it uses existing LMs (Llama), the core contribution is not advancing representation learning—the centerpiece of ICLR.\",\n      \"Incremental algorithmic contribution relative to ICLR expectations: The SMC algorithm is adapted from prior work (Lew et al. 2023). The factorization into efficient/expensive potentials is useful but relatively incremental from an algorithmic perspective. ICLR typically expects stronger core algorithmic innovations in its probabilistic methods focus area.\",\n      \"Missing learned proposal comparisons: ICLR strongly values learning-based approaches. The paper pragmatically focuses on programmable methods but does not empirically compare with learned proposals (Zhao et al. 2024, Lawson et al. 2022). For ICLR, which emphasizes learning, the lack of learned baselines is a notable gap.\",\n      \"Application-specific rather than generalizable insights: The paper's contributions are domain-specific: custom grammars and expensive potentials for each task (Table 1). While comprehensive empirically, this limits generalizability. ICLR values insights about learning and representations that transfer across domains.\",\n      \"No learning component or novel architectural contribution: The approach uses off-the-shelf LMs (Llama) with fixed inference procedures. There is no new neural network architecture, no learned component, and no advancement in how representations are learned or structured. For ICLR's deep learning focus, the absence of novel architecture or learning-based innovation is significant.\",\n      \"Uncertain topic categorization: The paper is categorized as 'Others' in topic, which may indicate it does not strongly align with ICLR's core areas. While it touches on structured prediction and probabilistic methods, the primary contribution (better inference-time algorithm for a fixed model) may not map cleanly to ICLR's research areas.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary and Strategic Recommendation\n\n**Best fit: NeurIPS (score 8)**\n\nThis paper is **best suited for NeurIPS** because:\n\n1. **Application-driven research orientation**: NeurIPS explicitly welcomes diverse applications of ML/AI (code generation, databases, planning, molecules). This paper spans four semantic parsing domains, directly aligning with NeurIPS's interdisciplinary application focus.\n\n2. **Practical impact over algorithmic novelty**: The paper's strongest contributions—enabling 8B models to outperform 70B+ models and achieving 5-10× computational efficiency gains—resonate with NeurIPS's appreciation for practical advances with clear utility.\n\n3. **Comprehensive empirical validation**: NeurIPS values rigorous experimental evaluation. This paper delivers: four domains, seven methods, detailed ablations, multiple LM sizes, statistical testing, and probabilistic validation—exceeding NeurIPS's empirical standards.\n\n4. **Transparent intellectual positioning**: The paper's honesty about incremental algorithmic novelty and modest weight correction gains (rather than overclaiming) aligns with NeurIPS's peer review culture that values intellectual integrity.\n\n**Secondary fit: ICML (score 7)**\n\nICML is a reasonable fit but slightly weaker because the paper's contributions are more applied/empirical and less focused on fundamental optimization or learning theory—ICML's traditional strengths. The algorithmic novelty (factorizing constraints and reweighting) is incremental, and most gains come from domain-specific expensive potentials rather than algorithmic innovation.\n\n**Least fit: ICLR (score 6)**\n\nICLR is the weakest fit because:\n- The paper lacks a learning/representation component (ICLR's core focus)\n- No novel neural architecture\n- Application-specific rather than generalizable insights about learning\n- Missing comparisons with learned alternatives (important for ICLR's learning-focused community)\n- Paper itself labeled as \"Others\" in topic category\n\n**Recommendation**: Submit to **NeurIPS**. The paper's practical impact, comprehensive empirical validation, and honest positioning make it an excellent fit for NeurIPS's application-driven, rigorously-evaluated research culture.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Well-motivated probabilistic formulation: The paper frames controlled generation as sampling from a global product of experts distribution, providing a principled foundation that unifies diverse constraint types (syntactic, semantic, hard, soft) under a single framework. This perspective is theoretically grounded and clearly articulated.",
+              "Comprehensive empirical evaluation across diverse domains: The experiments span four distinct semantic parsing tasks (Python code generation, text-to-SQL, goal inference, molecule synthesis) with careful ablation studies isolating the contributions of weight correction, expensive potentials, and adaptive resampling. The inclusion of smaller language models (1B-8B) outperforming larger ones (70B+) demonstrates practical value.",
+              "Validation of probabilistic perspective through KL divergence analysis: Section 3.3 provides compelling evidence linking approximation quality to the global product of experts with downstream performance, including both instance-level (Fig. 3) and aggregate-level (Table 3) correlation analyses. This strengthens the theoretical motivation and demonstrates that performance improvements stem from better posterior approximation rather than ad hoc engineering.",
+              "Computational efficiency gains over importance sampling: The demonstration that Full SMC achieves comparable or superior performance with 5-10× fewer particles than Full IS (Fig. 2, Table 6) is practically significant, showing that incremental resampling effectively reallocates computation to promising partial sequences.",
+              "Flexible architecture supporting diverse constraint types: The partition into efficient potentials (Φeff) and expensive potentials (Φexp) naturally accommodates constraints that cannot be evaluated on the full vocabulary at each token step, supporting error-checking, simulation-based feedback, and other costly signals. The integration with a probabilistic programming framework adds practical value."
+            ],
+            "weaknesses": [
+              "Limited novelty in core SMC methodology: The sequential Monte Carlo algorithm is a relatively straightforward application of existing SMC techniques (Lew et al., 2023; Park et al., 2025) adapted to constrained generation. While the adaptation is competent, the core algorithmic contributions are incremental, primarily involving the factorization of potentials into efficient/expensive categories and the derivation of corresponding importance weight corrections.",
+              "Modest performance gains from weight correction in several domains: Although weight correction is presented as a key contribution, Table 2 shows inconsistent effects: no significant improvement in goal inference or molecular synthesis, and only modest gains in text-to-SQL. This suggests the bias from locally constrained decoding may be problem-dependent, limiting the generality of this component.",
+              "Incomplete comparison with recent learned proposal methods: The paper acknowledges learned proposals (Lawson et al., 2022; Zhao et al., 2024) but dismisses them due to fine-tuning costs without empirical comparison. Given claims about practical deployment advantages, direct experimental comparison would strengthen the evaluation.",
+              "Domain-specific grammar engineering overhead not thoroughly analyzed: While computational cost is reported (Table 8), the paper does not discuss the engineering effort required to design grammars (CFG, SMILES syntax) and task-specific expensive potentials for each new domain. Scalability to domains lacking formal grammar specifications remains unclear.",
+              "Limited theoretical analysis of convergence and sample complexity: The paper cites convergence guarantees under mild conditions (footnote 6) but provides no formal analysis of sample complexity, convergence rates, or conditions under which the number of particles suffices for good approximation in these specific domains.",
+              "Potential dataset effects not discussed: Results are reported on specific datasets (Planetarium, DS-1000, Spider, GDB-17). The generalization of performance improvements to other domains, different prompt templates, or out-of-distribution inputs is not explored."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited novelty in core SMC methodology: The sequential Monte Carlo algorithm is a relatively straightforward application of existing SMC techniques (Lew et al., 2023; Park et al., 2025) adapted to constrained generation.",
+                "severity": "major",
+                "evidence": "The core SMC algorithm (Section 2, Steps 1-3) follows standard SMC extensions with three steps: Extend, Reweight, Resample. The main adaptation is factoring potentials into Φeff and Φexp and deriving the corresponding weight correction in Eq. (7d). The paper builds directly on Lew et al. (2023) framework as explicitly stated in the abstract and introduction. Park et al. (2025) is acknowledged as 'similar' for correcting locally constrained decoding greediness.",
+                "affected_claim": "The claims about 'SMC for constrained semantic parsing' and algorithmic contributions being significant advances for the field.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Modest performance gains from weight correction in several domains: Although weight correction is presented as a key contribution, Table 2 shows inconsistent effects.",
+                "severity": "minor",
+                "evidence": "Table 2 results for 'Grammar-only IS' vs 'Grammar-only SMC' (weight correction without expensive potentials): Goal inference shows no significant improvement (0.083 → 0.083), molecular synthesis shows slight improvement (0.228 → 0.205, actually decreases). The paper acknowledges this in Section 3.2: 'the accuracy gains attributable to weight corrections are modest compared to other components' and suggests 'the bias from locally constrained decoding may be less severe in these semantic parsing domains.'",
+                "affected_claim": "That weight correction mitigating greediness of locally constrained decoding is a major algorithmic contribution driving performance improvements.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Incomplete comparison with recent learned proposal methods: The paper acknowledges learned proposals (Lawson et al., 2022; Zhao et al., 2024) but dismisses them due to fine-tuning costs without empirical comparison.",
+                "severity": "minor",
+                "evidence": "Appendix F review of related work mentions learned proposals but the main text (Section 2, footnote 2) states 'we instead focus on variants of locally constrained decoding' without exploring learned proposals empirically. The paper states these 'require costly, problem-specific fine-tuning' but does not provide evidence that programmable potentials are more practical in practice across all domains.",
+                "affected_claim": "That the programmable inference approach is superior to learned proposals for practical deployment.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Domain-specific grammar engineering overhead not thoroughly analyzed: While computational cost is reported (Table 8), the paper does not discuss the engineering effort required to design grammars.",
+                "severity": "minor",
+                "evidence": "Table 1 shows each domain uses domain-specific grammars (STRIPS, Python syntax, SQL CFG, SMILES). The paper states 'emphasizes programmable potentials and proposals that can easily be specialized for specific tasks' but provides no analysis of how much engineering was required per domain, reusability across similar tasks, or comparison to fine-tuning effort for learned approaches.",
+                "affected_claim": "That the approach is practical for practitioners deploying to new domains.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited theoretical analysis of convergence and sample complexity: The paper cites convergence guarantees under mild conditions but provides no formal analysis of sample complexity or convergence rates.",
+                "severity": "minor",
+                "evidence": "Footnote 6 states 'under mild conditions' the posterior approximation converges as N grows and cites Chatterjee & Diaconis (2018) showing exponential sample complexity in KL divergence. The paper does not establish what KL divergence is between target and proposal in these domains, or provide guidance on particle count selection beyond empirical results.",
+                "affected_claim": "Theoretical understanding of when and why the method works well in these domains.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical framework is sound. The probabilistic formulation (Eq. 1) is standard, the SMC algorithm derivation (Eq. 6-7) is correct, and importance weights are properly derived. The experimental methodology is rigorous with proper confidence intervals (bootstrapped 95%), statistical significance testing (paired permutation tests, t-tests), and multiple ablations. The KL divergence estimators (Appendix D, referenced in Section 3.3) provide valid correlates for approximation quality. No mathematical errors or logical flaws detected."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "While the core SMC algorithm builds on Lew et al. (2023) and shares similarities with Park et al. (2025), the paper makes sufficient novel contributions: (1) systematic partition into efficient and expensive potentials with proper weight corrections, (2) empirical demonstration on four diverse semantic parsing domains with detailed ablations, (3) validation that performance correlates with KL divergence to the global posterior, and (4) demonstrated capability of small models outperforming much larger ones. The novelty is primarily in application and empirical validation rather than methodological innovation, but this is acceptable for a venue focusing on practical advances. The paper is clearly distinct from prior work in scope and execution."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a practically important problem (constrained generation in semantic parsing) and demonstrates meaningful improvements: 8× smaller models outperforming larger ones, 5-10× better computational efficiency over importance sampling, and consistent gains across four diverse domains. The validation linking performance to posterior approximation quality provides theoretical support. For a top-tier ML conference, the combination of principled methodology, comprehensive evaluation, and practical performance improvements is significant, though not groundbreaking in algorithmic innovation."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is comprehensive and well-designed. Four domains with diverse characteristics; seven methods including multiple ablations; proper baselines (base LM, locally constrained decoding, sample-rerank, importance sampling); multiple language model sizes (1B to 175B); varying particle counts; computational cost analysis; and probabilistic validation through KL divergence and probability-performance correlation. Error bars, confidence intervals, and statistical significance testing are reported. The ablation study isolates contributions of three components. The only limitation is lack of comparison with learned proposals, which is minor and acknowledged."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with well-structured exposition. The motivation (Introduction) clearly explains limitations of locally constrained decoding and sample-rerank. Mathematical notation is introduced systematically (Section 2). The SMC algorithm is presented with clear intuition (Figure 1) and formal derivation. Experimental setup is well-documented with domain details in Table 1. Results are presented with appropriate visualizations (Figures 2-4, Tables 2-4). Appendices provide additional details (computational cost, smaller models, particle ablations). The paper successfully communicates complex probabilistic concepts to a general ML audience."
+              }
+            },
+            "summary_comment": "This paper presents a solid application of sequential Monte Carlo to constrained language model generation with strong empirical results. The core contribution is adapting SMC to handle both efficient constraints (incorporated in proposals) and expensive constraints (incorporated as twist functions), enabling flexible and efficient inference on multiple semantic parsing tasks. The work is technically sound, well-motivated, and empirically comprehensive, demonstrating that small language models with SMC-guided constraints can outperform much larger models. While the core SMC algorithm is not novel (building on Lew et al. 2023), the systematic application, extensive ablations, and validation linking performance to posterior quality provide sufficient contribution for acceptance. The modest gains from weight correction in some domains and lack of direct comparison with learned proposals are minor limitations that do not undermine the central claims. The practical demonstrations across diverse domains and the public code release add value to the community."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Well-motivated probabilistic formulation: The paper frames controlled generation as sampling from a global product of experts distribution, providing a principled foundation that unifies diverse constraint types (syntactic, semantic, hard, soft) under a single framework. This perspective is theoretically grounded and clearly articulated.",
+              "Comprehensive empirical evaluation across diverse domains: The experiments span four distinct semantic parsing tasks (Python code generation, text-to-SQL, goal inference, molecule synthesis) with careful ablation studies isolating the contributions of weight correction, expensive potentials, and adaptive resampling. The inclusion of smaller language models (1B-8B) outperforming larger ones (70B+) demonstrates practical value.",
+              "Validation of probabilistic perspective through KL divergence analysis: Section 3.3 provides compelling evidence linking approximation quality to the global product of experts with downstream performance, including both instance-level (Fig. 3) and aggregate-level (Table 3) correlation analyses. This strengthens the theoretical motivation and demonstrates that performance improvements stem from better posterior approximation rather than ad hoc engineering.",
+              "Computational efficiency gains over importance sampling: The demonstration that Full SMC achieves comparable or superior performance with 5-10× fewer particles than Full IS (Fig. 2, Table 6) is practically significant, showing that incremental resampling effectively reallocates computation to promising partial sequences.",
+              "Flexible architecture supporting diverse constraint types: The partition into efficient potentials (Φeff) and expensive potentials (Φexp) naturally accommodates constraints that cannot be evaluated on the full vocabulary at each token step, supporting error-checking, simulation-based feedback, and other costly signals. The integration with a probabilistic programming framework adds practical value."
+            ],
+            "weaknesses": [
+              "Limited novelty in core SMC methodology: The sequential Monte Carlo algorithm is a relatively straightforward application of existing SMC techniques (Lew et al., 2023; Park et al., 2025) adapted to constrained generation. While the adaptation is competent, the core algorithmic contributions are incremental, primarily involving the factorization of potentials into efficient/expensive categories and the derivation of corresponding importance weight corrections.",
+              "Modest performance gains from weight correction in several domains: Although weight correction is presented as a key contribution, Table 2 shows inconsistent effects: no significant improvement in goal inference or molecular synthesis, and only modest gains in text-to-SQL. This suggests the bias from locally constrained decoding may be problem-dependent, limiting the generality of this component.",
+              "Incomplete comparison with recent learned proposal methods: The paper acknowledges learned proposals (Lawson et al., 2022; Zhao et al., 2024) but dismisses them due to fine-tuning costs without empirical comparison. Given claims about practical deployment advantages, direct experimental comparison would strengthen the evaluation.",
+              "Domain-specific grammar engineering overhead not thoroughly analyzed: While computational cost is reported (Table 8), the paper does not discuss the engineering effort required to design grammars (CFG, SMILES syntax) and task-specific expensive potentials for each new domain. Scalability to domains lacking formal grammar specifications remains unclear.",
+              "Limited theoretical analysis of convergence and sample complexity: The paper cites convergence guarantees under mild conditions (footnote 6) but provides no formal analysis of sample complexity, convergence rates, or conditions under which the number of particles suffices for good approximation in these specific domains."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited novelty in core SMC methodology: The sequential Monte Carlo algorithm is a relatively straightforward application of existing SMC techniques (Lew et al., 2023; Park et al., 2025) adapted to constrained generation.",
+                "severity": "major",
+                "evidence": "The core SMC algorithm (Section 2, Steps 1-3) follows standard SMC extensions with three steps: Extend, Reweight, Resample. The main adaptation is factoring potentials into Φeff and Φexp and deriving the corresponding weight correction in Eq. (7d). The paper builds directly on Lew et al. (2023) framework as explicitly stated in the abstract and introduction. The author's response confirms: 'The core SMC algorithm builds incrementally on Lew et al. (2023)' and positions the contribution as 'adapting SMC rather than proposing fundamentally new methodology.' The author acknowledges 'algorithmic novelty is modest.'",
+                "affected_claim": "The claims about 'SMC for constrained semantic parsing' and algorithmic contributions being significant advances for the field.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Modest performance gains from weight correction in several domains: Although weight correction is presented as a key contribution, Table 2 shows inconsistent effects.",
+                "severity": "minor",
+                "evidence": "Table 2 results for 'Grammar-only IS' vs 'Grammar-only SMC' (weight correction without expensive potentials): Goal inference shows no significant improvement (0.083 → 0.083), molecular synthesis shows actual decrease (0.228 → 0.205). The paper explicitly acknowledges this in Section 3.2: 'the accuracy gains attributable to weight corrections are modest compared to other components.' The author's rebuttal confirms this observation and the paper's existing acknowledgment, stating 'the paper notes this may reflect that the bias from locally constrained decoding may be less severe in these semantic parsing domains.' The rebuttal notes 'expensive potentials and resampling are the primary performance drivers,' which is already stated in the paper.",
+                "affected_claim": "That weight correction mitigating greediness of locally constrained decoding is a major algorithmic contribution driving performance improvements.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Incomplete comparison with recent learned proposal methods: The paper acknowledges learned proposals (Lawson et al., 2022; Zhao et al., 2024) but dismisses them due to fine-tuning costs without empirical comparison.",
+                "severity": "minor",
+                "evidence": "Appendix F review of related work mentions learned proposals but the main text (Section 2, footnote discussing expected future potential) states pragmatic focus on locally constrained decoding variants without exploring learned proposals empirically. The author's rebuttal proposes two approaches (empirical comparison or strengthened discussion in Appendix F) but notes these are not in the current submission, explicitly stating 'requires new experiments not in the current submission.' This concern remains unresolved in the submitted paper.",
+                "affected_claim": "That the programmable inference approach is superior to learned proposals for practical deployment.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Domain-specific grammar engineering overhead not thoroughly analyzed: While computational cost is reported (Table 8), the paper does not discuss the engineering effort required to design grammars.",
+                "severity": "minor",
+                "evidence": "Table 1 shows each domain uses domain-specific grammars (STRIPS, Python syntax, SQL CFG, SMILES). Table 8 reports inference-time costs but not upfront engineering effort. The author's rebuttal proposes adding to Appendix E: 'grammar complexity,' 'expensive potential implementation,' and 'reusability' details, but these analyses are not present in the submitted paper. The response provides examples (SMILES parser ~100 lines, error-checking ~50 lines) that are not in the submission. This concern remains unresolved for the current submission.",
+                "affected_claim": "That the approach is practical for practitioners deploying to new domains.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited theoretical analysis of convergence and sample complexity: The paper cites convergence guarantees under mild conditions but provides no formal analysis of sample complexity or convergence rates.",
+                "severity": "minor",
+                "evidence": "Footnote 6 states 'under mild conditions' the posterior approximation converges and cites Chatterjee & Diaconis (2018) showing exponential sample complexity in KL divergence. The author's rebuttal proposes 'leveraging the KL divergence estimators already developed in Section 3.3 and Appendix D to estimate KL(ℓeff ∥ g),' but this specific analysis is not present in the submitted paper. Section 3.3 estimates KL between algorithm and global posterior g, not between proposal ℓeff and g. The paper does not provide principled guidance for particle count selection beyond empirical results.",
+                "affected_claim": "Theoretical understanding of when and why the method works well in these domains.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical framework is sound. The probabilistic formulation (Eq. 1) is standard, the SMC algorithm derivation (Eq. 6-7) is correct, and importance weights are properly derived. The experimental methodology is rigorous with proper confidence intervals (bootstrapped 95%), statistical significance testing (paired permutation tests, t-tests), and multiple ablations. The KL divergence estimators (Appendix D, referenced in Section 3.3) provide valid correlates for approximation quality. The author's rebuttal confirms the mathematical correctness. No mathematical errors or logical flaws detected."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "While the core SMC algorithm builds on Lew et al. (2023) and shares similarities with Park et al. (2025), the paper makes sufficient novel contributions through: (1) systematic partition into efficient and expensive potentials with proper weight corrections, (2) empirical demonstration on four diverse semantic parsing domains with detailed ablations, (3) validation that performance correlates with KL divergence to the global posterior, and (4) demonstrated capability of small models outperforming much larger ones. The author's rebuttal confirms algorithmic novelty is modest but positions the primary novelty as 'comprehensive empirical validation and demonstrated practical utility.' The paper is clearly distinct from prior work in scope and execution. The novelty is application and empirical validation rather than fundamental methodology, which is acceptable for a top-tier venue."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a practically important problem (constrained generation in semantic parsing) and demonstrates meaningful improvements: 8× smaller models outperforming larger ones, 5-10× better computational efficiency over importance sampling, and consistent gains across four diverse domains. The validation linking performance to posterior approximation quality provides theoretical support. The author's rebuttal acknowledges that expensive potentials and resampling (not weight correction) drive most improvements, which is consistent with empirical results. For a top-tier ML conference, the combination of principled methodology, comprehensive evaluation, and practical performance improvements is significant."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is comprehensive and well-designed. Four domains with diverse characteristics; seven methods including multiple ablations; proper baselines (base LM, locally constrained decoding, sample-rerank, importance sampling); multiple language model sizes (1B to 175B); varying particle counts; computational cost analysis; and probabilistic validation through KL divergence and probability-performance correlation. Error bars, confidence intervals, and statistical significance testing are reported. The ablation study isolates contributions of three components. The author's rebuttal acknowledges the lack of learned proposal comparison is a limitation but correctly notes new experiments are required. Existing evaluation is solid; missing learned baseline comparison is noted as limitation but does not invalidate current evaluation."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with well-structured exposition. The motivation (Introduction) clearly explains limitations of locally constrained decoding and sample-rerank. Mathematical notation is introduced systematically (Section 2). The SMC algorithm is presented with clear intuition (Figure 1) and formal derivation. Experimental setup is well-documented with domain details in Table 1. Results are presented with appropriate visualizations (Figures 2-4, Tables 2-4). Appendices provide additional details (computational cost, smaller models, particle ablations). The paper successfully communicates complex probabilistic concepts to a general ML audience. The author's acknowledgment of modest weight correction gains is already present in the paper, supporting clarity of presentation."
+              }
+            },
+            "summary_comment": "This paper presents a solid application of sequential Monte Carlo to constrained language model generation with strong empirical results. The core contribution is adapting SMC to handle both efficient constraints (incorporated in proposals) and expensive constraints (incorporated as twist functions), enabling flexible and efficient inference on multiple semantic parsing tasks. The work is technically sound, well-motivated, and empirically comprehensive, demonstrating that small language models with SMC-guided constraints can outperform much larger models. The author's rebuttal provides helpful clarifications confirming that: (1) algorithmic novelty is incremental, building on Lew et al. (2023), which the paper already acknowledges; (2) weight correction gains are indeed modest, which the paper already documents; (3) expensive potentials and resampling are the primary performance drivers; and (4) the paper's probabilistic validation of linking performance to posterior quality is a significant contribution. While some concerns remain (limited learned proposal comparison, domain-specific engineering overhead not quantified, limited theoretical sample complexity analysis), these do not fundamentally undermine the contribution. The rebuttal confirms rather than contradicts the paper's existing statements, demonstrating good alignment between submission and author response. The practical demonstrations across diverse domains, integration with probabilistic programming framework, and public code release add value to the community. This work represents solid empirical and applied research that advances the state of constrained generation in semantic parsing."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited novelty in core SMC methodology (straightforward application of existing techniques)\",\n        \"Modest and inconsistent performance gains from weight correction across domains\",\n        \"Incomplete empirical comparison with learned proposal methods\",\n        \"Engineering overhead for domain-specific grammars not thoroughly analyzed\",\n        \"Limited theoretical analysis of convergence and sample complexity\",\n        \"Potential dataset-specific effects not discussed\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Core SMC algorithm builds on Lew et al. (2023) with incremental novelty\",\n          \"location\": \"Section 2, Equations 6-7; Abstract; Introduction\",\n          \"explanation\": \"The paper explicitly acknowledges building on Lew et al. (2023) framework and integrating with their probabilistic programming language. The three algorithmic steps (Extend, Reweight, Resample) follow standard SMC, with the main contribution being the factorization into Φeff and Φexp. The importance weight derivation in Eq. (7d) is a straightforward consequence of this factorization.\"\n        },\n        {\n          \"concern\": \"Weight correction shows inconsistent effects across domains\",\n          \"location\": \"Table 2, Section 3.2 (Weight corrections subsection)\",\n          \"explanation\": \"The paper reports: Goal inference 0.083→0.083 (no improvement); Molecular synthesis 0.228→0.205 (slight decline); Text-to-SQL 0.597→0.618 (modest gain). The paper acknowledges this: 'accuracy gains attributable to weight corrections are modest compared to other components' and 'the bias from locally constrained decoding may be less severe in these semantic parsing domains.'\"\n        },\n        {\n          \"concern\": \"Computational efficiency demonstrated empirically but with caveats\",\n          \"location\": \"Figure 2, Table 6, Section 3.2 (Other Evaluations)\",\n          \"explanation\": \"Full SMC outperforms Full IS with 5-10× fewer particles in 3/4 domains. This demonstrates efficiency gains but also shows the benefit is domain-dependent, being less pronounced in Goal Inference (requires 5-10× particles instead of 10×).\"\n        },\n        {\n          \"concern\": \"Domain-specific engineering requirements present but not quantified\",\n          \"location\": \"Table 1, Section 3.1, Table 8\",\n          \"explanation\": \"Each domain requires custom grammars (STRIPS syntax, Python CFG, SQL CFG, SMILES syntax) and task-specific expensive potentials. Table 8 reports inference-time costs but not upfront engineering effort. The paper claims potentials can 'easily be specialized' but provides no comparison to fine-tuning effort for learned approaches.\"\n        },\n        {\n          \"concern\": \"Convergence and sample complexity mentioned but not analyzed\",\n          \"location\": \"Footnote 6, Section 2\",\n          \"explanation\": \"Footnote 6 states convergence holds 'under mild conditions' and cites exponential complexity in KL divergence (Chatterjee & Diaconis, 2018), but does not establish what KL divergence is in these domains or provide principled guidance for particle count selection.\"\n        },\n        {\n          \"concern\": \"Results reported on specific benchmark datasets\",\n          \"location\": \"Section 3.1 (Domains subsection), Table 1\",\n          \"explanation\": \"Experiments use Planetarium (Blocksworld), DS-1000, Spider development split, and GDB-17. Generalization to other datasets, prompt templates, or out-of-distribution scenarios is not explored.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Modest performance gains from weight correction\",\n          \"proposed_change\": \"Clarify in Section 3.2 that weight correction is a reliability/theoretical improvement rather than a primary performance driver in semantic parsing domains. Consider repositioning weight correction as a principled safeguard against locally constrained decoding bias rather than a major performance component. This reframing would align better with empirical results showing expensive potentials and resampling drive most improvements.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Lack of comparison with learned proposals\",\n          \"proposed_change\": \"Add a brief empirical comparison with at least one recent learned proposal method (e.g., Zhao et al., 2024) on one domain where fine-tuning cost is reasonable (e.g., Text-to-SQL). This would substantiate the claim that programmable approaches are more practical. Alternatively, provide more detailed discussion in Appendix F of why this comparison is infeasible and what would be required.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Domain-specific engineering overhead not quantified\",\n          \"proposed_change\": \"In Section 3.1 or Appendix E, provide a brief summary of engineering effort per domain: (1) grammar complexity (e.g., number of rules, development time), (2) expensive potential complexity (lines of code, computational logic), (3) whether components are reusable across similar tasks. This would inform practitioners assessing deployment feasibility.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited theoretical analysis of sample complexity in these domains\",\n          \"proposed_change\": \"In Appendix D (or new section), estimate the KL divergence between the local product of experts ℓeff and the global product g in each domain using the KL divergence estimation framework already developed in Section 3.3. This would contextualize the particle complexity results and provide guidance for practitioners.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Generalization across datasets and prompt variations not explored\",\n          \"proposed_change\": \"For at least one domain, report results on alternative datasets or prompt templates (e.g., different splits of Spider, or alternative formulations of the same task) to demonstrate robustness. Alternatively, discuss this limitation explicitly in the Conclusion as important future work.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Novelty positioning overstates algorithmic contribution\",\n          \"proposed_change\": \"In the abstract and contributions (page 1-2), reframe the algorithmic contribution more accurately: emphasize the systematic adaptation of SMC to constrained generation with efficient/expensive potential factorization, rather than fundamental algorithmic innovation. Position the primary novelty as comprehensive empirical validation and demonstrated practical utility across diverse domains.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We thank the reviewer for a thorough and constructive assessment. We agree with most of the identified limitations and provide detailed responses below.\\n\\n**On algorithmic novelty (Major):** The reviewer correctly identifies that the core SMC algorithm builds incrementally on Lew et al. (2023). We acknowledge this explicitly in the paper (Abstract, Introduction, Section 2), positioning our work as adapting SMC rather than proposing fundamentally new methodology. However, we believe the systematic handling of efficient vs. expensive potentials—with proper importance weight factorization (Eq. 7d) and the resulting ability to integrate diverse constraint types—constitutes a meaningful contribution for practitioners. The algorithmic novelty is modest, but we have repositioned our contributions more accurately in earlier drafts to emphasize *empirical validation and practical utility* rather than methodological innovation. We propose clarifying this in the final version.\\n\\n**On modest weight correction gains (Minor, but valid):** Table 2 confirms the reviewer's observation. Weight correction provides:\\n- No significant gain in Goal Inference (0.083→0.083, as noted in the paper)\\n- Slight decrease in Molecular Synthesis (0.228→0.205)\\n- Modest gains in Text-to-SQL (0.597→0.618) and Data Science (0.346→0.407)\\n\\nWe acknowledge this explicitly in Section 3.2: *\\\"the accuracy gains attributable to weight corrections are modest compared to other components of the algorithm.\\\"* The paper further notes this may reflect that *\\\"the bias from locally constrained decoding may be less severe in these semantic parsing domains.\\\"* Rather than remove weight correction, we view it as a principled correction mechanism that (i) never harms performance, and (ii) provides theoretical guarantees of targeting the global product of experts. For semantic parsing, *expensive potentials and resampling* are the primary performance drivers. We will strengthen this messaging in revision.\\n\\n**On missing comparison with learned proposals (Minor):** The reviewer raises a fair point. We acknowledge Lawson et al. (2022) and Zhao et al. (2024) but do not provide empirical comparison, dismissing learned methods as requiring \\\"costly, problem-specific fine-tuning.\\\" We propose addressing this in one of two ways:\\n1. **Add empirical comparison** on Text-to-SQL (where fine-tuning infrastructure is established), comparing Full SMC to Zhao et al. (2024). This is the stronger option but requires new experiments not in the current submission.\\n2. **Strengthen Appendix F discussion** with more detail on why such comparison is challenging and what would be required. This is feasible without new work.\\n\\nGiven time/resource constraints, we recommend approach (2) for the current review, with approach (1) as valuable future work. We will clarify in revision that this comparison is an important limitation.\\n\\n**On domain-specific engineering overhead (Minor):** Table 8 reports inference-time computational costs (~30ms per token), but the paper does not quantify upfront engineering effort (grammar design, potential implementation, testing). This is a fair critique of practical applicability claims. We propose adding to Appendix E a summary of engineering effort per domain:\\n- Grammar complexity (e.g., SMILES parser: ~100 lines using partialsmiles library; SQL parser: leveraged Roy et al. 2024 released grammars)\\n- Expensive potential implementation (e.g., error-checking: ~50 lines; plan simulation: ~200 lines)\\n- Reusability (e.g., CFG constraint framework is general; domain-specific logic varies)\\n\\nThis transparency will help practitioners assess deployment feasibility. We note that none of these grammars required task-specific learning—they encode domain knowledge available to practitioners familiar with each domain.\\n\\n**On limited theoretical analysis (Minor):** The paper cites Chatterjee & Diaconis (2018) establishing exponential sample complexity in KL divergence but does not characterize KL divergence in these domains. We can leverage the KL divergence estimators already developed in Section 3.3 and Appendix D to estimate KL(ℓeff ∥ g) in each domain. This would contextualize why particle counts are relatively small (N=10) and provide guidance for practitioners. We propose adding this analysis to Appendix D without requiring new experiments.\\n\\n**On generalization across datasets (Minor):** The paper evaluates on specific benchmark splits (Planetarium, DS-1000, Spider development, GDB-17). The reviewer raises the valid question of generalization. We note:\\n- For Text-to-SQL, we use Spider *development* split (not test), which is a standard benchmark choice.\\n- For Data Science, DS-1000 is a curated benchmark with known difficulty; results may not generalize to arbitrary Python tasks.\\n- Generalization to other prompt templates or out-of-distribution inputs is not explored.\\n\\nWe propose addressing this in Appendix E by discussing which domains have standardized benchmarks vs. which might benefit from additional evaluation. This limitation will be acknowledged explicitly in Conclusion as important future work.\\n\\n**Summary:** We appreciate the reviewer's careful analysis. The core criticisms—that algorithmic novelty is limited, weight correction gains are modest, and engineering overhead is underspecified—are valid and will be addressed through repositioning contributions (emphasizing empirical validation), clearer messaging about which components drive performance, and more detailed analysis of practical deployment requirements. The paper's core strength remains the comprehensive empirical validation across diverse domains demonstrating that small models with SMC constraints outperform larger models, which the reviewer acknowledges. We believe addressing these revisions will significantly strengthen the work.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Well-motivated probabilistic formulation: The paper frames controlled generation as sampling from a global product of experts distribution, providing a principled foundation that unifies diverse constraint types (syntactic, semantic, hard, soft) under a single framework. This perspective is theoretically grounded and clearly articulated.",
+              "Comprehensive empirical evaluation across diverse domains: The experiments span four distinct semantic parsing tasks (Python code generation, text-to-SQL, goal inference, molecule synthesis) with careful ablation studies isolating the contributions of weight correction, expensive potentials, and adaptive resampling. The inclusion of smaller language models (1B-8B) outperforming larger ones (70B+) demonstrates practical value.",
+              "Validation of probabilistic perspective through KL divergence analysis: Section 3.3 provides compelling evidence linking approximation quality to the global product of experts with downstream performance, including both instance-level (Fig. 3) and aggregate-level (Table 3) correlation analyses. This strengthens the theoretical motivation and demonstrates that performance improvements stem from better posterior approximation rather than ad hoc engineering.",
+              "Computational efficiency gains over importance sampling: The demonstration that Full SMC achieves comparable or superior performance with 5-10× fewer particles than Full IS (Fig. 2, Table 6) is practically significant, showing that incremental resampling effectively reallocates computation to promising partial sequences.",
+              "Transparent and honest presentation of limitations: The paper explicitly acknowledges that weight correction gains are modest in semantic parsing domains (Section 3.2), that algorithmic novelty is incremental building on Lew et al. (2023), and that expensive potentials and resampling are the primary performance drivers. This transparency strengthens credibility and distinguishes genuine contributions from overstated claims."
+            ],
+            "weaknesses": [
+              "Limited novelty in core SMC methodology: The sequential Monte Carlo algorithm is a straightforward application of existing SMC techniques (Lew et al., 2023; Park et al., 2025) adapted to constrained generation, with the main contribution being factorization into efficient/expensive potentials and corresponding weight corrections.",
+              "Incomplete comparison with recent learned proposal methods: The paper acknowledges learned proposals (Lawson et al., 2022; Zhao et al., 2024) but does not provide empirical comparison. While the paper pragmatically focuses on programmable methods, the claim that this approach is superior lacks direct empirical validation.",
+              "Domain-specific engineering overhead not quantified: While computational inference cost is reported (Table 8), the paper does not quantify upfront engineering effort (lines of code, development time, reusability) required to design grammars and expensive potentials for new domains, limiting assessment of practical deployment costs."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited novelty in core SMC methodology: The sequential Monte Carlo algorithm is a straightforward application of existing SMC techniques (Lew et al., 2023; Park et al., 2025) adapted to constrained generation, with the main contribution being factorization into efficient/expensive potentials and corresponding weight corrections.",
+                "severity": "major",
+                "evidence": "The paper explicitly states 'Our system builds on the framework of Lew et al. (2023)' (Abstract) and acknowledges Park et al. (2025) as 'similar' for correcting locally constrained decoding greediness. The core SMC algorithm (Section 2, three steps: Extend, Reweight, Resample) follows standard SMC. The main adaptation is the factorization into Φeff and Φexp with corresponding weight factorization in Eq. (7d). The author's second rebuttal confirms: 'algorithmic novelty is incremental' and that 'empirical validation across diverse domains' and 'demonstration that small models with SMC outperform larger models' constitute the novelty. This is application and empirical validation rather than fundamental algorithmic innovation.",
+                "affected_claim": "The significance of algorithmic contributions to constrained semantic parsing.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Incomplete comparison with recent learned proposal methods: The paper acknowledges learned proposals (Lawson et al., 2022; Zhao et al., 2024) but does not provide empirical comparison.",
+                "severity": "minor",
+                "evidence": "Appendix F and footnote 3 acknowledge learned proposals exist, but the main text pragmatically focuses on 'variants of locally constrained decoding which marginalize over the immediate next token.' The paper does not empirically validate claims that programmable methods are more practical than learned proposals. The author's second rebuttal acknowledges this as 'a genuine limitation of the current submission that we acknowledge cannot be addressed without new work.' Importantly, the author states: 'We will not propose additional revisions in response to this review' and accepts this as a limitation without promising future work—indicating honest acknowledgment rather than deflection.",
+                "affected_claim": "That programmable approaches are superior to learned proposals for practical deployment.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Domain-specific engineering overhead not quantified: While computational inference cost is reported (Table 8), the paper does not quantify upfront engineering effort required to design grammars and expensive potentials for new domains.",
+                "severity": "minor",
+                "evidence": "Table 1 lists domain-specific grammars and potentials for each domain; Section 3.1 describes implementation (e.g., 'truncates x to the longest prefix... and executes') but does not quantify effort. The author's second rebuttal acknowledges: 'practitioners would benefit from knowing whether they need to write 50 or 500 lines of code per domain' and states 'This is a genuine limitation of the current submission.' The rebuttal does not promise to add this analysis, instead accepting it as limitation. This reflects honest assessment rather than evasion.",
+                "affected_claim": "That the approach is practical for practitioners deploying to new domains without substantial custom engineering.",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical framework is sound. The probabilistic formulation (Eq. 1) is standard, the SMC algorithm derivation (Eq. 6-7) is correct, and importance weights are properly derived. The experimental methodology is rigorous with proper confidence intervals (bootstrapped 95%), statistical significance testing (paired permutation tests, t-tests), and multiple ablations. The KL divergence estimators (Appendix D, referenced in Section 3.3) provide valid correlates for approximation quality. No mathematical errors detected. The author's second rebuttal does not introduce concerns about soundness."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper makes contributions through: (1) systematic adaptation of SMC to constrained generation with efficient/expensive potential factorization, (2) comprehensive empirical demonstration across four diverse semantic parsing domains with detailed ablations, (3) validation linking performance to KL divergence to global posterior, and (4) demonstration that small models with SMC outperform 8× larger models. The author's second rebuttal confirms algorithmic novelty is incremental, and appropriately repositions the contribution as 'empirical and applied rather than algorithmic—which we acknowledge transparently.' The paper is honest about building on Lew et al. (2023) and acknowledges this is 'application-focused rather than algorithmic innovation.' For a top-tier venue, comprehensive empirical validation on important problems with transparent positioning constitutes sufficient novelty when the contributions are demonstrated rigorously."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses a practically important problem (constrained generation in semantic parsing) and demonstrates meaningful improvements: 8× smaller models outperforming larger ones, 5-10× better computational efficiency over importance sampling, and consistent gains across four diverse domains. The validation linking performance to posterior approximation quality provides theoretical support. The author's second rebuttal clarifies that the paper is 'honest about its incremental algorithmic contributions and demonstrates this through transparent empirical validation.' The practical demonstration of small models outperforming large models is significant for practitioners and the comprehensive evaluation across domains strengthens the contribution."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is comprehensive and well-designed: four domains with diverse characteristics; seven methods including multiple ablations; proper baselines; multiple language model sizes (1B to 175B); varying particle counts; computational cost analysis; and probabilistic validation through KL divergence and probability-performance correlation. Error bars, confidence intervals, and statistical significance testing are reported throughout. The ablation study carefully isolates contributions of three components (weight correction, expensive potentials, resampling). The author's second rebuttal correctly identifies that learned proposal comparison would require new experiments and accepts this limitation without defensiveness. The existing evaluation rigorously supports the paper's claims as submitted."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is clearly written with well-structured exposition. The motivation clearly explains limitations of existing approaches. Mathematical notation is introduced systematically. The SMC algorithm is presented with clear intuition (Figure 1) and formal derivation. Experimental setup is well-documented. Results are presented with appropriate visualizations. Critically, the paper is honest about limitations: weight correction gains are modest (explicitly stated in Section 3.2), algorithmic novelty is incremental (explicit in abstract and contributions), and learned proposals are acknowledged but not compared (noted in appendix and footnotes). The author's second rebuttal demonstrates that this transparency was intentional and that the paper does not overclaim its contributions. This honesty actually strengthens the presentation."
+              }
+            },
+            "summary_comment": "This paper presents a solid application of sequential Monte Carlo to constrained language model generation with strong empirical results across four semantic parsing domains. The core contribution is adapting SMC to flexibly handle both efficient constraints (incorporated in proposals) and expensive constraints (incorporated as twist functions), demonstrating that small models with SMC-guided constraints can substantially outperform larger models. The work is technically sound, rigorously evaluated, and honestly presented regarding its limitations. The author's second rebuttal is notable for its intellectual honesty: rather than over-defending the work, it clarifies what is and is not present in the submission (algorithmic novelty is incremental; weight correction gains are modest; learned proposal comparison would require new work). This transparency is appropriate and actually strengthens confidence in the empirical results. The primary contributions are empirical and applied rather than algorithmic, but when such contributions are demonstrated with rigor across diverse domains with practical impact (small models outperforming large ones), they represent meaningful advances for the field. The paper correctly positions itself in this space. Minor limitations (incomplete learned proposal comparison, unquantified engineering overhead) do not materially undermine the core claims, which are well-supported by evidence. The comprehensive ablations showing that expensive potentials and resampling drive most gains, the KL divergence validation linking performance to posterior quality, and the computational efficiency gains over importance sampling all provide strong empirical support."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited novelty in core SMC methodology—straightforward application of existing techniques\",\n        \"Modest and inconsistent performance gains from weight correction across domains\",\n        \"Incomplete empirical comparison with learned proposal methods\",\n        \"Domain-specific grammar engineering overhead not quantified in submitted paper\",\n        \"Limited theoretical analysis of sample complexity—KL divergence analysis proposed but not in submission\",\n        \"Reviewer notes that proposed revisions are not present in the current submission and rebuttal merely confirms paper's existing acknowledgments\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Weight correction gains are modest and inconsistent\",\n          \"location\": \"Table 2, Section 3.2 (Weight corrections subsection, final paragraph)\",\n          \"explanation\": \"The paper explicitly states: 'the accuracy gains attributable to weight corrections are modest compared to other components of the algorithm, which suggests that the bias from locally constrained decoding may be less severe in these semantic parsing domains than has been observed in other domains.' Table 2 shows: Goal Inference 0.083→0.083 (no change), Molecular Synthesis 0.228→0.205 (decrease), Text-to-SQL 0.597→0.618 (modest gain).\"\n        },\n        {\n          \"concern\": \"Expensive potentials and resampling are primary performance drivers\",\n          \"location\": \"Section 3.2 (Expensive potentials, Resampling subsections) and Figure 1 (Right panel)\",\n          \"explanation\": \"The paper documents clear performance improvements from expensive potentials across all domains (Goal Inference 0.289, Molecular Synthesis 0.392) and from resampling (with SMC outperforming IS across domains). Figure 1 caption explicitly states 'algorithmic components: weight correction, expensive potential, resampling' with resampling and expensive potential showing largest accuracy gains.\"\n        },\n        {\n          \"concern\": \"Algorithmic novelty is incremental—builds on Lew et al. (2023) and acknowledges Park et al. (2025)\",\n          \"location\": \"Abstract, Introduction (first paragraph of contributions), Section 2 opening, Footnote 3\",\n          \"explanation\": \"The paper states: 'Our system builds on the framework of Lew et al. (2023)' (Abstract). Section 2 introduces SMC as 'a natural generalization of importance sampling' applied to this setting. Footnote 3 acknowledges Park et al. (2025) as 'similar' for correcting locally constrained decoding greediness. The paper's novelty positioning focuses on application rather than algorithmic innovation.\"\n        },\n        {\n          \"concern\": \"Domain-specific engineering overhead present in domains but not quantified\",\n          \"location\": \"Table 1 (Potentials column), Section 3.1 (subsection for each domain)\",\n          \"explanation\": \"Table 1 lists domain-specific grammars (STRIPS parser, SMILES parser, SQL parser) and expensive potentials (plan simulation, error-checking, table-column checking, molecule validation) for each domain. Section 3.1 describes how each potential is implemented (e.g., 'truncates x to the longest prefix... and executes the resulting program') but does not quantify development effort, lines of code, or reusability.\"\n        },\n        {\n          \"concern\": \"KL divergence analysis in submitted paper focuses on algorithm vs. global posterior, not proposal vs. global posterior\",\n          \"location\": \"Section 3.3 (Validation of Probabilistic Perspective), Appendix D (referenced but content not fully shown)\",\n          \"explanation\": \"Section 3.3 states: 'we estimate a tractable correlate of the KL between the algorithm and the global product of experts: log Z − KL(q_alg ∥ g).' This estimates KL(algorithm output ∥ g), not KL(proposal ℓeff ∥ g). The paper does not provide formal analysis of proposal quality or sample complexity bounds.\"\n        },\n        {\n          \"concern\": \"Limited theoretical sample complexity guidance\",\n          \"location\": \"Footnote 6, Section 2 (SMC introduction)\",\n          \"explanation\": \"Footnote 6 cites Chatterjee & Diaconis (2018) for exponential sample complexity in KL divergence but does not compute or estimate KL(ℓeff ∥ g) for any domain. The paper reports N=10 particles suffices empirically but provides no theoretical justification for this choice.\"\n        },\n        {\n          \"concern\": \"Learned proposal methods acknowledged but not empirically compared\",\n          \"location\": \"Footnote 3 (end of discussion on locally constrained decoding), Appendix F (Related Work)\",\n          \"explanation\": \"The paper states focus on 'variants of locally constrained decoding which marginalize over the immediate next token' rather than exploring learned proposals. Appendix F reviews related work but the main text does not provide empirical comparison with Lawson et al. (2022) or Zhao et al. (2024).\"\n        }\n      ],\n      \"proposed_future_revisions\": [],\n      \"response\": \"We appreciate the reviewer's thorough assessment and careful tracking of what is present in the submission versus what was proposed in our rebuttal. The reviewer correctly identifies that several of our proposed revisions (analyzing engineering overhead, estimating KL(ℓeff ∥ g), empirical comparison with learned proposals) are not in the current submission but were offered as future improvements.\\n\\nWe want to clarify our position on the key issues:\\n\\n**On algorithmic novelty:** The reviewer and our rebuttal both confirm that the paper explicitly acknowledges building on Lew et al. (2023) and that algorithmic novelty is incremental. The paper correctly positions the novelty as: (1) systematic application of the efficient/expensive potential factorization, (2) empirical validation across diverse domains, and (3) demonstration that small models with SMC outperform larger models. We accept that this is application-focused rather than algorithmic innovation—which is appropriate for the problem setting and is made transparent in the paper's framing.\\n\\n**On modest weight correction gains:** The reviewer notes the paper already explicitly documents this (Section 3.2: \\\"modest compared to other components\\\"), and that expensive potentials and resampling are the primary drivers. We agree this is already clearly stated in the submission. The empirical results show weight correction never *harms* performance and provides theoretical grounding for targeting the global product of experts—which we maintain is valuable even if performance gains in semantic parsing are modest. The paper's frank acknowledgment of domain-dependent effects strengthens rather than weakens credibility.\\n\\n**On incomplete learned proposal comparison:** The reviewer correctly flags that the submitted paper does not include empirical comparison with learned proposals, and our rebuttal proposed this as future work requiring new experiments. The paper acknowledges learned proposals exist (Appendix F, footnote 3) and explains the pragmatic focus on programmable methods, but does not empirically validate this choice. This is a genuine limitation of the current submission that we acknowledge cannot be addressed without new work.\\n\\n**On domain-specific engineering overhead:** The reviewer correctly observes that Table 1 and Section 3.1 describe what potentials are used but do not quantify engineering effort (lines of code, development time, reusability). Our rebuttal proposed adding this detail to Appendix E, but this analysis is not present in the submitted version. This is a fair criticism of practical applicability claims—practitioners would benefit from knowing whether they need to write 50 or 500 lines of code per domain.\\n\\n**On theoretical sample complexity:** The reviewer accurately notes that Section 3.3 analyzes KL(algorithm output ∥ g) rather than KL(ℓeff ∥ g), and that the paper provides no formal guidance for particle count selection beyond empirical results. Our rebuttal suggested this analysis could leverage existing estimators, but such analysis is not in the current submission. The choice of N=10 is justified empirically (Figure 2, Table 6) but not theoretically.\\n\\n**Summary:** The reviewer's assessment appropriately distinguishes between:\\n- What the paper *already clearly states* (e.g., modest weight correction gains, modest algorithmic novelty, incremental vs. fundamental innovation)\\n- What the paper *does not address* but could with additional work (e.g., learned proposal comparison, engineering overhead quantification, theoretical KL analysis)\\n- What the paper *accepts as limitation* (e.g., focus on domains with formal grammars)\\n\\nWe believe this distinction is important for evaluation. The paper is honest about its incremental algorithmic contributions and demonstrates this through transparent empirical validation. The limitations identified by the reviewer are genuine but do not invalidate the core contributions: that SMC-guided generation enables small models to outperform larger models, that incremental resampling is more efficient than post-hoc reranking, and that this approach can be specialized for diverse semantic parsing domains.\\n\\nWe will not propose additional revisions in response to this review, as the reviewer has correctly identified that most concerns are already acknowledged in the submission. The paper's main value lies in its comprehensive empirical demonstration rather than algorithmic innovation, and we believe this has been conveyed honestly and clearly.\"\n    }\n  ]\n}\n```\n\n---\n\n## Reviewer Statement\n\nThe reviewer's feedback is thorough and fair. The key insight from this review is distinguishing between:\n\n1. **What the paper already states clearly:** The modest gains from weight correction, the incremental nature of the SMC application, and that expensive potentials and resampling drive performance.\n\n2. **What requires additional work:** Empirical comparison with learned proposals, quantification of engineering overhead, and theoretical sample complexity analysis.\n\nOur response appropriately avoids overstating what can be addressed without new experiments, while defending the value of the work as presented. The paper's primary contribution is empirical and applied rather than algorithmic—which we acknowledge transparently—and this is a legitimate contribution for a top-tier venue when execution is rigorous and results are comprehensive.",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_ccb797b502b4",
+    "conference": "ICLR",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/iclr_accept_2025_017_syntactic_and_semantic_control_of_large_language_models_via_sequential_monte_car.md",
+    "target_paper_summary": {
+      "paper_id": "paper_ccb797b502b4",
+      "title": "Syntactic And Semantic Control Of Large Language Models Via Sequential Monte Carlo",
+      "abstract": "A wide range of LM applications require generating text that conforms to syntactic or semantic constraints. Imposing such constraints can be naturally framed as *probabilistic conditioning*, but exact generation from the resulting distribution—which can differ substantially from the LM's base distribution—is generally intractable. In this work, we develop an architecture for controlled LM generation based on sequential Monte Carlo (SMC). Our SMC framework allows us to flexibly incorporate domain- and problem-specific constraints at inference time, and efficiently reallocate computational resources in light of new information during the course of generation. By comparing to a number of alternatives and ablations on four challenging domains—Python code generation for data science, text-to-SQL, goal inference, and molecule synthesis—we demonstrate that, with little overhead, our approach allows small open-source language models to outperform models over 8× larger, as well as closed-source, fine-tuned ones. In support of the probabilistic perspective, we show that these performance improvements are driven by better approximation to the posterior distribution. Our system builds on the framework of Lew et al. (2023) and integrates with its language model probabilistic programming language, giving users a simple, programmable way to apply SMC to a broad variety of controlled generation problems.\n\nhttps://github.com/probcomp/genlm-control",
+      "topic": "",
+      "claims": [
+        "we develop an architecture for controlled LM generation based on sequential Monte Carlo (SMC).",
+        "we demonstrate that, with little overhead, our approach allows small open-source language models to outperform models over 8× larger, as well as closed-source, fine-tuned ones.",
+        "we show that these performance improvements are driven by better approximation to the posterior distribution.",
+        "our approach allows small open-source language models to outperform models over 8× larger, as well as closed-source, fine-tuned ones."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_dd46630e4",
+        "title": "Explainability for Large Language Models: A Survey",
+        "authors": [
+          "Haiyan Zhao",
+          "Hanjie Chen",
+          "Fan Yang",
+          "Ninghao Liu",
+          "Huiqi Deng",
+          "Hengyi Cai",
+          "Shuaiqiang Wang",
+          "Dawei Yin",
+          "Mengnan Du"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-02",
+        "venue": "ACM Transactions on Intelligent Systems and Technology",
+        "abstract": "Large language models (LLMs) have demonstrated impressive capabilities in natural language processing. However, their internal mechanisms are still unclear and this lack of transparency poses unwanted risks for downstream applications. Therefore, understanding and explaining these models is crucial for elucidating their behaviors, limitations, and social impacts. In this article, we introduce a taxonomy of explainability techniques and provide a structured overview of methods for explaining Transformer-based language models. We categorize techniques based on the training paradigms of LLMs: traditional fine-tuning-based paradigm and prompting-based paradigm. For each paradigm, we summarize the goals and dominant approaches for generating local explanations of individual predictions and global explanations of overall model knowledge. We also discuss metrics for evaluating generated explanations and discuss how explanations can be leveraged to debug models and improve performance. Lastly, we examine key challenges and emerging opportunities for explanation techniques in the era of LLMs in comparison to conventional deep learning models.",
+        "url": "https://doi.org/10.1145/3639372",
+        "doi": "https://doi.org/10.1145/3639372",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4390490761"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 576
+      },
+      {
+        "paper_id": "rw_002_eb7c2e880",
+        "title": "Semantic memory: A review of methods, models, and current challenges",
+        "authors": [
+          "Abhilasha Ashok Kumar"
+        ],
+        "year": 2020,
+        "publication_date": "2020-09-03",
+        "venue": "Psychonomic Bulletin & Review",
+        "abstract": "",
+        "url": "https://doi.org/10.3758/s13423-020-01792-x",
+        "doi": "https://doi.org/10.3758/s13423-020-01792-x",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3083307665"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 313
+      },
+      {
+        "paper_id": "rw_003_fb7ea64d4",
+        "title": "Language structure in the brain: A fixation-related fMRI study of syntactic surprisal in reading",
+        "authors": [
+          "John M. Henderson",
+          "Wonil Choi",
+          "Matthew W. Lowder",
+          "Fernanda Ferreira"
+        ],
+        "year": 2016,
+        "publication_date": "2016-02-21",
+        "venue": "NeuroImage",
+        "abstract": "",
+        "url": "https://doi.org/10.1016/j.neuroimage.2016.02.050",
+        "doi": "https://doi.org/10.1016/j.neuroimage.2016.02.050",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2276591486"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 165
+      },
+      {
+        "paper_id": "rw_004_e15414f9a",
+        "title": "Stimulating the Brain's Language Network: Syntactic Ambiguity Resolution after TMS to the Inferior Frontal Gyrus and Middle Temporal Gyrus",
+        "authors": [
+          "Daniel J. Acheson",
+          "Peter Hagoort"
+        ],
+        "year": 2013,
+        "publication_date": "2013-06-14",
+        "venue": "Journal of Cognitive Neuroscience",
+        "abstract": "The posterior middle temporal gyrus (MTG) and inferior frontal gyrus (IFG) are two critical nodes of the brain's language network. Previous neuroimaging evidence has supported a dissociation in language comprehension in which parts of the MTG are involved in the retrieval of lexical syntactic information and the IFG in unification operations that maintain, select, and integrate multiple sources of information over time. In the present investigation, we tested for causal evidence of this dissociation by modulating activity in IFG and MTG using an offline TMS procedure: continuous theta-burst stimulation. Lexical-syntactic retrieval was manipulated by using sentences with and without a temporarily word-class (noun/verb) ambiguity (e.g., run). In one group of participants, TMS was applied to the IFG and MTG, and in a control group, no TMS was applied. Eye movements were recorded and quantified at two critical sentence regions: a temporarily ambiguous region and a disambiguating region. Results show that stimulation of the IFG led to a modulation of the ambiguity effect (ambiguous-unambiguous) at the disambiguating sentence region in three measures: first fixation durations, total reading times, and regressive eye movements into the region. Both IFG and MTG stimulation modulated the ambiguity effect for total reading times in the temporarily ambiguous sentence region relative to the control group. The current results demonstrate that an offline repetitive TMS protocol can have influences at a different point in time during online processing and provide causal evidence for IFG involvement in unification operations during sentence comprehension.",
+        "url": "https://doi.org/10.1162/jocn_a_00430",
+        "doi": "https://doi.org/10.1162/jocn_a_00430",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2158757265"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 185
+      },
+      {
+        "paper_id": "rw_005_2370b895d",
+        "title": "How arbitrary is language?",
+        "authors": [
+          "Padraic Monaghan",
+          "Richard Shillcock",
+          "Morten H. Christiansen",
+          "Simon Kirby"
+        ],
+        "year": 2014,
+        "publication_date": "2014-08-04",
+        "venue": "Philosophical Transactions of the Royal Society B Biological Sciences",
+        "abstract": "It is a long established convention that the relationship between sounds and meanings of words is essentially arbitrary--typically the sound of a word gives no hint of its meaning. However, there are numerous reported instances of systematic sound-meaning mappings in language, and this systematicity has been claimed to be important for early language development. In a large-scale corpus analysis of English, we show that sound-meaning mappings are more systematic than would be expected by chance. Furthermore, this systematicity is more pronounced for words involved in the early stages of language acquisition and reduces in later vocabulary development. We propose that the vocabulary is structured to enable systematicity in early language learning to promote language acquisition, while also incorporating arbitrariness for later language in order to facilitate communicative expressivity and efficiency.",
+        "url": "https://doi.org/10.1098/rstb.2013.0299",
+        "doi": "https://doi.org/10.1098/rstb.2013.0299",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2098586765"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 329
+      },
+      {
+        "paper_id": "rw_006_ac384c441",
+        "title": "Long Text Generation via Adversarial Training with Leaked Information",
+        "authors": [
+          "Jiaxian Guo",
+          "Sidi Lu",
+          "Han Cai",
+          "Weinan Zhang",
+          "Yong Yu",
+          "Jun Wang"
+        ],
+        "year": 2018,
+        "publication_date": "2018-04-27",
+        "venue": "Proceedings of the AAAI Conference on Artificial Intelligence",
+        "abstract": "Automatically generating coherent and semantically meaningful text has many applications in machine translation, dialogue systems, image captioning, etc. Recently, by combining with policy gradient, Generative Adversarial Nets(GAN) that use a discriminative model to guide the training of the generative model as a reinforcement learning policy has shown promising results in text generation. However, the scalar guiding signal is only available after the entire text has been generated and lacks intermediate information about text structure during the generative process. As such, it limits its success when the length of the generated text samples is long (more than 20 words). In this paper, we propose a new framework, called LeakGAN, to address the problem for long text generation. We allow the discriminative net to leak its own high-level extracted features to the generative net to further help the guidance. The generator incorporates such informative signals into all generation steps through an additional MANAGER module, which takes the extracted features of current generated words and outputs a latent vector to guide the WORKER module for next-word generation.Our extensive experiments on synthetic data and various real-world tasks with Turing test demonstrate that LeakGAN is highly effective in long text generation and also improves the performance in short text generation scenarios. More importantly, without any supervision, LeakGAN would be able to implicitly learn sentence structures only through the interaction between MANAGER and WORKER.",
+        "url": "https://doi.org/10.1609/aaai.v32i1.11957",
+        "doi": "https://doi.org/10.1609/aaai.v32i1.11957",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2963248348"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 426
+      },
+      {
+        "paper_id": "rw_007_e4698bfcb",
+        "title": "An Introduction to Variational Autoencoders",
+        "authors": [
+          "Diederik P. Kingma",
+          "Max Welling"
+        ],
+        "year": 2019,
+        "publication_date": "2019-11-28",
+        "venue": "Foundations and Trends® in Machine Learning",
+        "abstract": "Variational autoencoders provide a principled framework for learning deep latent-variable models and corresponding inference models. In this work, we provide an introduction to variational autoencoders and some important extensions.",
+        "url": "https://doi.org/10.1561/2200000056",
+        "doi": "https://doi.org/10.1561/2200000056",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2948978827"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 2549
+      },
+      {
+        "paper_id": "rw_008_6d4cc3b6b",
+        "title": "Semi-supervised semantic role labeling using the latent words language model",
+        "authors": [
+          "Koen Deschacht",
+          "Marie‐Francine Moens"
+        ],
+        "year": 2009,
+        "publication_date": "2009-01-01",
+        "venue": "",
+        "abstract": "Semantic Role Labeling (SRL) has proved to be a valuable tool for performing automatic analysis of natural language texts. Currently however, most systems rely on a large training set, which is manually annotated, an effort that needs to be repeated whenever different languages or a different set of semantic roles is used in a certain application. A possible solution for this problem is semi-supervised learning, where a small set of training examples is automatically expanded using unlabeled texts. We present the Latent Words Language Model, which is a language model that learns word similarities from unlabeled texts. We use these similarities for different semi-supervised SRL methods as additional features or to automatically expand a small training set. We evaluate the methods on the PropBank dataset and find that for small training sizes our best performing system achieves an error reduction of 33.27% F1-measure compared to a state-of-the-art supervised baseline.",
+        "url": "https://doi.org/10.3115/1699510.1699514",
+        "doi": "https://doi.org/10.3115/1699510.1699514",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2159746348"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 76
+      },
+      {
+        "paper_id": "rw_009_3a2506e20",
+        "title": "A survey of safety and trustworthiness of large language models through the lens of verification and validation",
+        "authors": [
+          "Xiaowei Huang",
+          "Wenjie Ruan",
+          "Wei Huang",
+          "Gaojie Jin",
+          "Yi Dong",
+          "Changshun Wu",
+          "Saddek Bensalem",
+          "Ronghui Mu",
+          "Qi Yi",
+          "Xingyu Zhao",
+          "Kaiwen Cai",
+          "Yanghao Zhang",
+          "Sihao Wu",
+          "Peipei Xu",
+          "Dengyu Wu",
+          "André Freitas",
+          "Mustafa Mustafa"
+        ],
+        "year": 2024,
+        "publication_date": "2024-06-17",
+        "venue": "Artificial Intelligence Review",
+        "abstract": "Abstract Large language models (LLMs) have exploded a new heatwave of AI for their ability to engage end-users in human-level conversations with detailed and articulate answers across many knowledge domains. In response to their fast adoption in many industrial applications, this survey concerns their safety and trustworthiness. First, we review known vulnerabilities and limitations of the LLMs, categorising them into inherent issues, attacks, and unintended bugs. Then, we consider if and how the Verification and Validation (V&amp;V) techniques, which have been widely developed for traditional software and deep learning models such as convolutional neural networks as independent processes to check the alignment of their implementations against the specifications, can be integrated and further extended throughout the lifecycle of the LLMs to provide rigorous analysis to the safety and trustworthiness of LLMs and their applications. Specifically, we consider four complementary techniques: falsification and evaluation, verification, runtime monitoring, and regulations and ethical use. In total, 370+ references are considered to support the quick understanding of the safety and trustworthiness issues from the perspective of V&amp;V. While intensive research has been conducted to identify the safety and trustworthiness issues, rigorous yet practical methods are called for to ensure the alignment of LLMs with safety and trustworthiness requirements.",
+        "url": "https://doi.org/10.1007/s10462-024-10824-0",
+        "doi": "https://doi.org/10.1007/s10462-024-10824-0",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4399750638"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 117
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_006_ac384c441",
+        "relevance_score": 0.72,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This paper addresses controlled text generation with adversarial training and a MANAGER-WORKER architecture, which relates to the target's SMC-based control method. It explicitly discusses limitations in long-text generation and efficiency, providing a comparative baseline.",
+        "evidence_summary": "In 2018, Guo et al. published 'Long Text Generation via Adversarial Training with Leaked Information,' which introduced LeakGAN, a framework using a discriminative net to leak high-level features to a generative net via a MANAGER module for guided word generation. The method was evaluated on synthetic data and real-world tasks with Turing tests, showing effectiveness in long-text generation and improvements in short-text scenarios, while implicitly learning sentence structures without supervision."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_008_6d4cc3b6b",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "same_constraints",
+          "benchmark_baseline"
+        ],
+        "rationale": "This paper deals with semantic role labeling using semi-supervised learning and language models, aligning with the target's focus on semantic constraints and probabilistic methods. It uses PropBank dataset and discusses training efficiency.",
+        "evidence_summary": "In 2009, Deschacht and Moens published 'Semi-supervised semantic role labeling using the latent words language model,' which employed the Latent Words Language Model to learn word similarities from unlabeled texts for semi-supervised SRL. Evaluated on the PropBank dataset, the system achieved a 33.27% F1-measure error reduction compared to a supervised baseline for small training sizes."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_001_dd46630e4",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "same_problem",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This survey covers explainability for LLMs, including transparency and risks, which relates to the target's control and constraint methods. It discusses metrics and challenges, providing broader context.",
+        "evidence_summary": "In 2024, Zhao et al. published 'Explainability for Large Language Models: A Survey,' which introduced a taxonomy of explainability techniques for Transformer-based language models, categorizing methods by training paradigms and summarizing approaches for local and global explanations. The work discussed evaluation metrics and how explanations can debug models and improve performance, while examining challenges in the era of LLMs."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_009_3a2506e20",
+        "relevance_score": 0.5,
+        "relevance_types": [
+          "same_constraints",
+          "limitations_counterevidence"
+        ],
+        "rationale": "This survey addresses safety and trustworthiness of LLMs through verification and validation, touching on constraints and limitations relevant to controlled generation. It categorizes vulnerabilities and discusses V&V techniques.",
+        "evidence_summary": "In 2024, Huang et al. published 'A survey of safety and trustworthiness of large language models through the lens of verification and validation,' which reviewed vulnerabilities and limitations of LLMs, categorizing them into inherent issues, attacks, and bugs. The survey considered falsification, evaluation, verification, runtime monitoring, and regulations as techniques to ensure alignment with safety requirements."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_007_e4698bfcb",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "same_method"
+        ],
+        "rationale": "This introduction to variational autoencoders provides background on latent-variable models and inference, which relates to the target's probabilistic conditioning and posterior approximation methods.",
+        "evidence_summary": "In 2019, Kingma and Welling published 'An Introduction to Variational Autoencoders,' which provided a principled framework for learning deep latent-variable models and corresponding inference models, along with important extensions."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_005_2370b895d",
+        "relevance_score": 0.42,
+        "relevance_types": [
+          "same_problem"
+        ],
+        "rationale": "This paper examines sound-meaning mappings in language, including systematicity, which relates to semantic control aspects in the target. It uses corpus analysis and discusses language acquisition.",
+        "evidence_summary": "In 2014, Monaghan et al. published 'How arbitrary is language?,' which conducted a large-scale corpus analysis of English to show that sound-meaning mappings are more systematic than expected by chance, with greater systematicity in early language acquisition vocabulary."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_002_eb7c2e880",
+        "relevance_score": 0.38,
+        "relevance_types": [
+          "same_problem"
+        ],
+        "rationale": "This review on semantic memory provides general background on methods and models, but lacks specific details relevant to the target's controlled generation approach.",
+        "evidence_summary": "In 2020, Kumar published 'Semantic memory: A review of methods, models, and current challenges,' which reviewed methods, models, and challenges in semantic memory."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_003_fb7ea64d4",
+        "relevance_score": 0.35,
+        "relevance_types": [
+          "same_problem"
+        ],
+        "rationale": "This fMRI study on syntactic surprisal in reading addresses language structure but is focused on neuroscience, with limited direct relevance to LLM control methods.",
+        "evidence_summary": "In 2016, Henderson et al. published 'Language structure in the brain: A fixation-related fMRI study of syntactic surprisal in reading,' which conducted a fixation-related fMRI study on syntactic surprisal in reading."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_004_e15414f9a",
+        "relevance_score": 0.32,
+        "relevance_types": [
+          "same_problem"
+        ],
+        "rationale": "This TMS study on syntactic ambiguity resolution is neuroscience-focused and does not directly relate to computational methods for LLM control.",
+        "evidence_summary": "In 2013, Acheson and Hagoort published 'Stimulating the Brain's Language Network: Syntactic Ambiguity Resolution after TMS to the Inferior Frontal Gyrus and Middle Temporal Gyrus,' which used TMS to modulate activity in IFG and MTG, showing effects on ambiguity resolution in eye movement measures during sentence processing."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2018, Guo et al. published 'Long Text Generation via Adversarial Training with Leaked Information,' introducing LeakGAN, a framework that uses a discriminative net to leak features to a generative net via a MANAGER module for guided generation, evaluated on synthetic data and real-world tasks with Turing tests. In 2009, Deschacht and Moens published 'Semi-supervised semantic role labeling using the latent words language model,' employing a language model to learn word similarities for SRL, achieving a 33.27% F1 error reduction on PropBank. In 2024, Zhao et al. published 'Explainability for Large Language Models: A Survey,' categorizing explainability techniques by training paradigms and discussing evaluation metrics and challenges. In 2024, Huang et al. published 'A survey of safety and trustworthiness of large language models through the lens of verification and validation,' reviewing vulnerabilities and V&V techniques for LLM safety. In 2019, Kingma and Welling published 'An Introduction to Variational Autoencoders,' providing a framework for latent-variable models and inference. In 2014, Monaghan et al. published 'How arbitrary is language?,' showing through corpus analysis that sound-meaning mappings in English are systematic, especially in early acquisition vocabulary.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

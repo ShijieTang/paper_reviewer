@@ -17,6 +17,18 @@ The commands below have not been executed as a new paid experiment.
 
 Reviewer generation, audit, repair, and evaluation share the same required score fields and output validation. Author responses must address the intended reviewer. A workflow is complete only when every scheduled required turn succeeds.
 
+The integrated pipeline retains the remote per-round `iterations` trace alongside
+the new turn-level diagnostics. JSON fences and trailing commas are accepted
+without altering quoted text; semantic validation remains strict. Ordinary
+module-ablation runs may disable author rebuttals, but T0-T2 completeness requires
+them. Current related-work packages omit the removed review-memory subsystem;
+legacy packages are accepted only when that subsystem is explicitly disabled.
+
+Evaluate each sealed trigger summary separately. Multi-summary evaluation remains
+available for ordinary legacy/module-ablation runs. These integration changes
+alter code hashes: do not reuse previously frozen packages or started trials under
+the new code, or rewrite their stored hashes to make them pass validation.
+
 The agent applies a fixed budget of up to four attempts to the same request/context. Invalid JSON/schema output and qualifying transient errors can be retried; terminal provider errors stop the turn. Provider SDK retries may occur separately. Invalid replies are not added to subsequent conversation context.
 
 For example, an empty second-round author response must not be hidden by valid third-round reviews. Exhausted retries produce a stored failure and stop the workflow. The trigger runner reserves a result before its first call, preserves interruption/failure records, and prevents automatic resampling of incomplete started arms.

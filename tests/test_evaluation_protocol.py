@@ -70,6 +70,44 @@ def test_fixed_metric_accepts_frozen_model_identity():
     evaluation._validate_frozen_metric(frozen_summary(), EMBED_MODEL, EMBED_REVISION)
 
 
+def test_sealed_summary_cannot_be_mixed_with_other_runs(tmp_path):
+    path = tmp_path / "sealed.json"
+    path.write_text(json.dumps(frozen_summary()))
+    with patch("eval.evaluation.load_model") as load:
+        with pytest.raises(ValueError, match="separately"):
+            evaluation.run_evaluation("unused.json", None, None, str(tmp_path),
+                                      exp_summary_path=[str(path), str(path)])
+    load.assert_not_called()
+
+
+def test_multiple_legacy_summaries_keep_remote_naming_and_validate_results(tmp_path):
+    papers = {"p": {"title": "Paper", "conference": "ICLR", "score": 7,
+                    "accept_or_not": "accept", "reviews": [{"strengths": ["S"], "weaknesses": ["W"]}]}}
+    papers_path = tmp_path / "papers.json"
+    papers_path.write_text(json.dumps(papers))
+    paths = []
+    for model in ("model-a", "model-b"):
+        path = tmp_path / (model + ".json")
+        path.write_text(json.dumps({"model": model, "conditions": {"1": {"agents": ["N"]}},
+            "papers": [{"paper_id": "p", "conditions": {"1": {"result_file": model + ".txt",
+                "result": {"reviewers": []}}}}]}))
+        (tmp_path / (model + ".txt")).write_text(json.dumps({"reviewers": [review()]}))
+        paths.append(str(path))
+    with patch("eval.evaluation.load_model", return_value=object()), \
+         patch("eval.evaluation.compute_src_both", return_value={"strengths": 0.5, "weaknesses": 0.5, "overall": 0.5}):
+        result = evaluation.run_evaluation(str(papers_path), None, None, str(tmp_path / "out"),
+                                            exp_summary_path=paths)
+    assert set(result["papers"][0]["systems"]) == {"our_model-a_cond1", "our_model-b_cond1"}
+    assert not result["invalid_conditions"]
+    assert len(result["input_artifacts"]["exp_summaries"]) == 2
+
+
+@pytest.mark.parametrize("condition,suffix", [("A", "single"), ("B", "multi"),
+                                               ("7", "cond7"), ("C3", "C3"), ("T1", "T1")])
+def test_condition_naming_preserves_both_experiment_families(condition, suffix):
+    assert evaluation._cond_system_suffix(condition) == suffix
+
+
 def test_incomplete_condition_is_reported_not_scored(tmp_path):
     papers = {"p": {"title": "Paper", "conference": "ICLR", "score": 7,
                     "accept_or_not": "accept", "reviews": [{"strengths": ["S"], "weaknesses": ["W"]}]}}

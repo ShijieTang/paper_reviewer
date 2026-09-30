@@ -1,0 +1,780 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Significant scale-up achievement: Successfully scales memory mosaics from medium-scale networks (GPT-2 scale) to llama-8B scale trained on 1 trillion tokens, demonstrating that the appealing compositional and in-context learning properties persist at scale.",
+        "Comprehensive and well-motivated evaluation framework: The three-dimensional evaluation (persistent-knowledge storage, new-knowledge storage, and in-context learning) provides a transparent and systematic way to assess different model capabilities, moving beyond standard language benchmarks to directly target the stated objectives.",
+        "Strong empirical results on new-task learning: Memory mosaics v2 demonstrates consistent and significant improvements (>10%) over transformers on new-knowledge storage and in-context learning tasks, with memory mosaics v2 trained on 1T tokens outperforming transformers trained on 8T tokens on certain benchmarks—a compelling efficiency claim.",
+        "Mechanistic insights grounded in empirical observations: Figure 1 provides a key observation that attention scores naturally separate into position-dependent (near tokens) and position-invariant (far tokens) behavior in memory mosaics, which motivated the 3-level memory design. This pattern emergence suggests the architecture enables compositional learning in a fundamentally different way than standard attention.",
+        "Thoughtful evaluation design with rigorous controls: The use of anonymous labels (Figure 4) to remove semantic knowledge and isolate compositional learning, removal-of-long-term-memory tests (Tables 2, 9, 10) to verify task dependencies, and stochastic long-term memory training (Table 12) all demonstrate careful experimental methodology."
+      ],
+      "weaknesses": [
+        "Limited theoretical framework connecting architecture to compositional learning: While the rebuttal identifies mechanistic insights (Figure 1 patterns, exchangeability properties, ablation results), the causal link between symmetric keys/queries, absence of position encoding, and improved compositional learning remains largely empirical rather than theoretically grounded.",
+        "Practical deployment characteristics not adequately characterized: The paper reports FLOPs overhead (13%) and parameter counts but lacks discussion of wall-clock inference time implications, memory footprint during long-context inference, and memory bandwidth characteristics—information necessary for practitioners to assess real-world feasibility.",
+        "In-context learning evaluation limited to classification tasks: While the rebuttal justifies this choice (avoiding confounding metrics in generation tasks), the scope remains narrow and does not address generation, reasoning, or other important in-context learning scenarios, limiting the generality of claims."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "Limited theoretical framework connecting architecture to compositional learning: While the rebuttal identifies mechanistic insights (Figure 1 patterns, exchangeability properties, ablation results), the causal link between symmetric keys/queries, absence of position encoding, and improved compositional learning remains largely empirical rather than theoretically grounded.",
+          "severity": "minor",
+          "evidence": "The rebuttal clarifies that Figure 1 shows emergence of position-dependent/invariant separation, and connects exchangeability (set semantics) to compositional invariance. These are present in the submitted paper (Section 2 on exchangeability, Figure 1 pattern analysis, Table 12 on stochastic training effects). The rebuttal proposes strengthening this via expanded discussion and reorganized ablations, but these are promised revisions. In the submitted work, the connection is suggestive but not rigorously established. For an empirical paper, this level is acceptable, and the rebuttal's identification of these insights in existing material partially resolves the concern by clarifying that the insights are there but not fully developed.",
+          "affected_claim": "That the associative memory architecture fundamentally enables better compositional learning through design choices",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Practical deployment characteristics not adequately characterized: The paper reports FLOPs overhead (13%) and parameter counts but lacks discussion of wall-clock inference time implications, memory footprint during long-context inference, and memory bandwidth characteristics—information necessary for practitioners to assess real-world feasibility.",
+          "severity": "minor",
+          "evidence": "The rebuttal provides estimates and analysis: '13% FLOPs overhead translates to roughly 13% slowdown assuming linear scaling,' notes that memory footprint is O(context_length × hidden_dim) same as transformers, and identifies memory bandwidth as a known concern for kernel regression methods. However, these estimates and characterizations are in the rebuttal, not in the submitted paper. Table 2 reports FLOPs and parameters; Appendix E states efficiency is not the goal. The rebuttal acknowledges practitioners should benchmark on target hardware. The gap between what is needed and what is submitted remains, though the rebuttal demonstrates the authors have thought about these issues.",
+          "affected_claim": "That memory mosaics v2 are practical to deploy at scale",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "In-context learning evaluation limited to classification tasks: While the rebuttal justifies this choice (avoiding confounding metrics in generation tasks), the scope remains narrow and does not address generation, reasoning, or other important in-context learning scenarios, limiting the generality of claims.",
+          "severity": "minor",
+          "evidence": "Section 5.3 evaluates Banking77, TACRED, GoEmotion (all classification). The rebuttal explains the rationale: generation metrics (BLEU, ROUGE) confound with length/style; reasoning tasks have format dependencies. These are sound arguments. The multi-document QA (Section 5.2) and fine-tuning speed (Section 7) provide some evidence for complex information handling. However, the evaluation in the submitted paper remains limited to classification. The rebuttal proposes reframing claims as 'few-shot classification' and explicitly noting that generation/reasoning are open questions, but these are promised revisions to the submitted work.",
+          "affected_claim": "That memory mosaics v2 demonstrate broadly superior in-context learning capabilities",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The mathematical formulations are correct (Equations 1-10). Experimental methodology is sound with well-designed ablations (Tables 2, 9, 10, 12) that validate architectural choices. The rebuttal clarifies that design decisions (anonymous labels, stochastic long-term memory size, removal-of-components tests) are intentional and well-motivated, which strengthens the soundness of the evaluation. The multi-document QA benchmark is more rigorous than typical needle-in-haystack. The 8T transformer baseline uses group-query attention (Table 5), which is a minor fairness concern but not a soundness issue. No mathematical or logical errors undermine core claims."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The rebuttal does not directly address novelty but clarifies the contributions: (1) scaling from prior work (Zhang et al. 2025) to 10B parameters and 1T tokens is meaningful engineering; (2) three architectural modifications (adaptive bandwidth from kernel theory, gated time-variant features inspired by recurrent networks, 3-level memory from observed Figure 1 patterns) represent principled extensions; (3) three-dimensional evaluation framework systematically assesses compositional learning with novel methodology. The paper extends prior work with both architectural and methodological innovations sufficient for top-tier venue standards."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The empirical improvements are meaningful: >10% gains on in-context learning tasks consistently, 1T-token memory mosaics outperform 8T-token transformers on new-knowledge storage (53.4% vs. 46.9% on RULER 32k), and fine-tuning speed improvement (Figure 8: one minibatch vs. 800 for transformer). These results address an important problem (data-efficient new-task learning). The rebuttal's acknowledgment that scope is limited to classification does not diminish the significance of the improvements on those tasks, though it does limit the breadth of impact claims. For acceptance at a top-tier venue, this represents solid practical significance even if theoretical novelty is limited."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "The experimental evaluation is comprehensive and well-designed. Three-dimensional framework with clear motivation. Ablations (Tables 2, 9, 10, 12) are thorough and interpretable. Matched-budget comparisons (Appendix E) control for computational fairness. Multi-document QA (RULER) is more challenging than standard benchmarks. Anonymous labels (Figure 4) provide stringent control for in-context learning. The rebuttal clarifies that classification focus is deliberate to isolate learning capability without confounding metrics—this justification is sound. Main limitation—narrow scope (classification only)—is now clearly intentional rather than an oversight. Evaluation quality supports the core claims about new-task learning capability."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-written and logically structured. Motivation, background, architecture, and results flow clearly. The three-dimensional framework is intuitive. Equations are correct and notation mostly clear (Section 3.2 is dense but workable). Extensive supplementary material provides depth. The rebuttal does not identify presentation issues. The organization effectively guides readers through the work. Minor issues (informal 'risk-return' framing in Section 6, dense notation in Section 3.2) do not materially affect clarity. Sufficient clarity for reliable assessment."
+        }
+      },
+      "summary_comment": "After considering the rebuttal, the assessment remains that this is a solid empirical contribution deserving acceptance. The rebuttal provides substantive clarifications that strengthen understanding of the work without relying solely on promises of future revision. Key points: (1) **Mechanistic insights are present but not fully developed**: Figure 1 patterns, exchangeability properties, and ablation results provide mechanistic grounding for why the architecture works, though a complete theoretical framework remains absent. This is appropriate for an empirical systems paper. (2) **Deployment concerns are acknowledged with reasonable characterization**: The rebuttal demonstrates the authors have thought through FLOPs-to-wall-clock translation, memory footprint implications, and memory bandwidth tradeoffs, even if these are not fully addressed in the paper. The deprioritization of efficiency in favor of capability assessment is transparent and justified. (3) **Evaluation scope limitations are now clearly intentional**: The rebuttal articulates sound reasons for focusing on classification (avoiding confounding metrics) and explains how multi-document QA and fine-tuning experiments provide evidence for information handling capability. The scope is narrow but purposeful. The paper demonstrates meaningful empirical improvements (>10% on in-context learning, 1T vs. 8T token efficiency) on an important problem (new-task learning). While theoretical understanding and practical deployment details remain areas for future work, the core contributions are sound and significant. The three-dimensional evaluation framework is a useful methodological contribution. This work represents strong systems/scaling research appropriate for a top-tier ML venue."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Addresses core ICML topic: machine learning systems and scalability. The paper demonstrates successful scaling of an architecture from GPT-2 scale (prior work) to llama-8B scale with 1 trillion tokens, directly contributing to understanding of how architectural innovations scale.\",\n      \"Optimization and system contributions: The three architectural modifications (adaptive bandwidth from kernel regression theory, gated time-variant key extractor, 3-level memory design) represent principled technical improvements grounded in statistical learning theory and empirical observations.\",\n      \"Evaluation methodology innovation: The three-dimensional evaluation framework (persistent-knowledge storage, new-knowledge storage, in-context learning) provides a systematic way to assess different model capabilities, advancing methodology for evaluating foundation models—a topic ICML values.\",\n      \"Computational efficiency angle: Comparisons showing memory mosaics v2 trained on 1T tokens outperforming transformers trained on 8T tokens (Table 5, Figures 6-7) directly address ICML's interest in efficient machine learning systems and resource optimization.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited theoretical contribution: While mechanistic insights are present (Figure 1 patterns, exchangeability properties), the causal connection between architectural choices and improved compositional learning remains largely empirical rather than theoretically grounded. ICML typically values stronger theoretical understanding.\",\n      \"Narrow evaluation scope limits generality: In-context learning evaluation is restricted to classification tasks (Banking77, TACRED, GoEmotion). This narrow scope reduces the breadth of contribution and limits applicability to other important in-context learning scenarios (generation, reasoning), which weakens the systems contribution claim.\",\n      \"Topic classification mismatch: The paper is submitted under 'Others' category rather than clear ICML topics like 'optimization,' 'machine learning systems,' or 'deep learning theory.' The positioning is somewhat unclear for ICML's structured topic areas.\",\n      \"Incremental scaling rather than fundamental innovation: The core architecture (Memory Mosaics v1) is from prior work (Zhang et al., 2025). This paper primarily scales it up and introduces three refinements. While scaling is valuable, ICML typically expects stronger fundamental contributions, especially given the limited theoretical advances.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Excellent fit with NeurIPS's broad, interdisciplinary scope: The paper addresses multiple NeurIPS topics including deep learning architectures, optimization, probabilistic methods (kernel regression formulation), and applications to in-context learning and language understanding.\",\n      \"Strong empirical systems contribution: NeurIPS welcomes papers that scale novel ideas to realistic settings and validate them at scale. The successful scaling to 8B parameters and 1T tokens with consistent improvements (>10% on in-context learning) is precisely the type of systems-at-scale work NeurIPS values.\",\n      \"Mechanistic insights and interpretability: The paper provides interpretable design insights (Figure 1 showing position-dependent vs. position-invariant attention patterns emerging naturally in memory mosaics, motivating the 3-level design). This aligns with NeurIPS's interest in understanding and interpreting learned representations.\",\n      \"Comprehensive evaluation framework: The three-dimensional evaluation design systematically isolates different learning capabilities. This methodological contribution and the use of rigorous controls (anonymous labels in Figure 4, ablation studies in Tables 2, 9, 10, 12) are strengths NeurIPS values.\",\n      \"Data-efficient learning focus: Demonstrating that 1T-token memory mosaics outperform 8T-token transformers on new-task learning addresses an important open question in the field, aligned with NeurIPS's interest in sample efficiency and learning with limited data.\",\n      \"Practical relevance: Results on fine-tuning speed (Figure 8: one minibatch vs. 800 for transformers) and context length extrapolation without fine-tuning (Table 3) have practical significance for practitioners, fitting NeurIPS's balance of theory and practice.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited theoretical framework: While mechanistic insights are present, NeurIPS increasingly values theoretical understanding. The paper relies heavily on empirical observation (Figure 1 patterns, emergence of position-dependent/invariant separation) rather than principled theoretical analysis of why the architecture achieves better compositionality.\",\n      \"Narrow in-context learning evaluation: Classification tasks only (Banking77, TACRED, GoEmotion). While the paper provides justification (avoiding confounding metrics in generation), this limits the generality of in-context learning claims and leaves important questions unanswered about reasoning, generation, and other complex tasks.\",\n      \"Prior work dependency: The core architecture (Memory Mosaics v1) is from prior work (Zhang et al., 2025). This paper's novelty is primarily in scaling and three architectural refinements. For a venue like NeurIPS that values novel insights, the incremental nature of the contribution (especially given that v1 already demonstrated promising properties) may be seen as engineering-focused rather than insight-driven.\",\n      \"Practical deployment gaps: While Table 2 reports FLOPs and parameters, the paper acknowledges that efficiency is not a goal ('Appendix E'). However, practitioners need wall-clock time, memory footprint during inference, and memory bandwidth characteristics to assess real-world deployment feasibility. These gaps may limit adoption and impact.\",\n      \"Hyperparameter transfer concern: Section 4 notes that hyperparameters were optimized for transformers and transferred to memory mosaics v2 without further search. While this controls for fair comparison, it raises questions about whether the improvements would hold under memory mosaics v2-specific optimization, which could affect result interpretation.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Strong representation learning contribution: Memory mosaics v2 demonstrate how different types of information (position-dependent vs. position-invariant, short-term vs. long-term) can be disentangled through architecture design (Section 3.3, Figure 1). This aligns with ICLR's interest in learning interpretable and compositional representations.\",\n      \"Deep learning architecture innovation: The three modifications (adaptive bandwidth, gated time-variant key extractor, 3-level memory) represent principled architectural contributions that advance understanding of how to design networks for better compositionality and in-context learning.\",\n      \"In-context and few-shot learning: ICLR values research on meta-learning and in-context learning. The paper's systematic evaluation of few-shot classification (Section 5.3) with >10% improvements over transformers directly addresses core ICLR interests.\",\n      \"Theoretical grounding in kernel methods: The connection to kernel regression (Section 2, Equations 1-4) and principled bandwidth scheduling based on kernel theory (Equation 6) provides statistical grounding, which ICLR appreciates.\",\n      \"Comprehensive empirical evaluation: The three-dimensional framework with rigorous controls (anonymous labels, ablations, component removal) demonstrates careful experimental methodology valued at ICLR.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited theoretical depth on compositionality: While the paper observes that position-dependent/position-invariant signals separate in memory mosaics (Figure 1), it lacks theoretical analysis of why this leads to better compositional learning. ICLR increasingly expects theoretical insights to complement empirical observations.\",\n      \"Representation learning claims are partially supported: The paper frames improvements as coming from better representation learning, but the evaluation (Section 5.1) shows persistent-knowledge storage is comparable to transformers. Only new-knowledge storage and in-context learning show improvements. This suggests the advantage is not in learned representations per se, but in how the architecture retrieves and uses information—a subtly different claim that weakens the representation learning framing.\",\n      \"Narrow evaluation scope limits generality: Evaluation focuses on classification tasks, multi-document QA, and language benchmarks. ICLR values breadth across different learning modalities (vision, language, multimodal). The lack of vision experiments or other modalities limits applicability of claims about compositional learning.\",\n      \"Incremental architectural modifications: The changes (adaptive bandwidth, gated features, 3-level memory) are well-motivated refinements but somewhat incremental given that v1 already showed promise. ICLR typically expects more substantial architectural innovations, especially for scaling papers.\",\n      \"Unclear positioning on key ICLR topics: The paper does not engage deeply with core ICLR topics like transfer learning, meta-learning theory, or principled approaches to generalization. While it touches on few-shot learning, it doesn't deeply analyze why memory-based approaches generalize better, which would strengthen the fit.\",\n      \"Confounding factors in efficiency claims: FLOPs increase by 13% (Table 2), which may or may not translate to actual speedup depending on hardware and implementation. The lack of wall-clock comparisons and the admission that efficiency is 'not the goal' weakens claims about practical advantages, which ICLR increasingly values.\"\n    ]\n  }\n}\n```\n\n---\n\n## Detailed Reasoning\n\n### Overall Assessment\n\nThis paper presents **Memory Mosaics v2**, a scaled-up version of Memory Mosaics (Zhang et al., 2025), that demonstrates strong empirical improvements in in-context learning and new-knowledge storage tasks compared to transformers. The work is technically sound, well-executed, and provides meaningful empirical contributions. However, the novelty is somewhat **incremental** (scaling + three refinements to prior work), and theoretical understanding of *why* the approach works remains limited.\n\n### ICML (Score: 7/10 – Good Fit, but not optimal)\n\n**Why it fits:**\n- ICML values **machine learning systems and scalability**. Scaling from GPT-2 to llama-8B is a meaningful engineering contribution.\n- The **three-dimensional evaluation framework** is a methodological contribution ICML appreciates.\n- Computational efficiency angle (1T tokens vs. 8T for transformers) directly aligns with ICML's interest in efficient systems.\n- Grounded in **kernel regression theory** (Equation 6, bandwidth scheduling), which has strong connections to ICML's statistical learning theory community.\n\n**Why it doesn't fit:**\n- **Limited theoretical contribution**: The causal link between architectural choices and compositionality is empirical, not theoretically established. ICML increasingly values theoretical grounding.\n- **Narrow evaluation scope**: Classification tasks only. Limits generality for a systems paper aiming to make broad claims about learning.\n- **Incremental novelty**: Scaling + three refinements to prior work. ICML expects stronger fundamental contributions.\n- **Topic mismatch**: Submitted as \"Others\" rather than clear ICML topics like \"optimization\" or \"deep learning systems.\"\n\n**Verdict**: Good fit for ICML's systems track, but the incremental nature and narrow evaluation scope prevent this from being an excellent match. The work is more of a strong systems paper than a fundamentally innovative one.\n\n---\n\n### NeurIPS (Score: 8/10 – Excellent Fit)\n\n**Why it fits:**\n- **Broad, interdisciplinary scope**: NeurIPS explicitly welcomes papers that don't fit neatly into categories. This paper spans representation learning, optimization, probabilistic methods (kernel regression), and language understanding—perfectly suited to NeurIPS.\n- **Strong empirical scaling results**: NeurIPS values validation of novel ideas at scale. Consistent >10% improvements on in-context learning and efficiency gains (1T vs. 8T tokens) are exactly what NeurIPS showcases.\n- **Mechanistic insights**: Figure 1 showing natural emergence of position-dependent vs. position-invariant patterns provides interpretability—a growing NeurIPS interest.\n- **Methodological contribution**: The three-dimensional evaluation framework is novel and rigorous, with careful controls (anonymous labels, ablations). NeurIPS values methodological advances.\n- **Data-efficient learning**: Addressing how to learn new tasks with fewer examples is a key NeurIPS question.\n- **Practical relevance**: Fine-tuning speed (Figure 8) and context extrapolation (Table 3) have immediate practical applications.\n\n**Why it doesn't fit:**\n- **Limited theoretical depth**: NeurIPS increasingly expects theoretical understanding alongside empirical results. The paper is mostly empirical observation.\n- **Narrow evaluation scope**: Classification only limits generality of in-context learning claims.\n- **Incremental novelty**: Scaling + three refinements to prior work. For NeurIPS, this feels more like engineering than insight.\n- **Practical deployment gaps**: No wall-clock time, memory footprint, or bandwidth analysis. Practitioners need this to deploy.\n\n**Verdict**: Excellent fit. NeurIPS's broad scope, value for empirical systems research at scale, and appreciation for mechanistic insights make this a strong match. The narrow evaluation scope and limited theory are minor concerns given NeurIPS's recent trend toward practical systems papers.\n\n---\n\n### ICLR (Score: 6/10 – Borderline Fit)\n\n**Why it fits:**\n- **Representation learning focus**: The disentanglement of position-dependent vs. position-invariant information through architecture design (Section 3.3) aligns with ICLR's interest in learning interpretable, compositional representations.\n- **Deep learning architecture innovation**: The three modifications represent principled contributions to architecture design.\n- **Few-shot and in-context learning**: Core ICLR topics. The >10% improvements on few-shot classification are strong empirical results.\n- **Kernel regression theory**: Section 2 connection to kernel methods provides theoretical grounding ICLR appreciates.\n- **Careful experimental methodology**: Ablations, component removal tests, and controls are ICLR standards.\n\n**Why it doesn't fit:**\n- **Weak representation learning justification**: Section 5.1 shows persistent-knowledge storage is comparable to transformers. The improvements are in retrieval and use of information, not in learned representations. This undermines the representation learning framing.\n- **Limited theoretical analysis of compositionality**: Why does memory-based retrieval lead to better compositionality? The paper observes patterns but doesn't theoretically explain them. ICLR expects deeper analysis.\n- **Narrow evaluation (classification only)**: ICLR values breadth across modalities. No vision, multimodal, or reasoning tasks weaken generality claims.\n- **Incremental modifications**: The three refinements are well-motivated but not groundbreaking. ICLR expects more substantial innovations.\n- **Doesn't deeply engage with core ICLR topics**: No analysis of transfer learning, meta-learning theory, or principled generalization—areas where ICLR would expect depth.\n- **Efficiency claims are weak**: 13% FLOPs increase without wall-clock validation, and the paper admits efficiency is \"not the goal.\" ICLR increasingly values practical efficiency.\n\n**Verdict**: Borderline fit. ICLR would appreciate the architecture innovation and few-shot learning focus, but the weak engagement with representation learning theory, narrow evaluation, and incremental novelty make this a risky submission. The paper would benefit from deeper theoretical analysis of compositionality and broader evaluation beyond classification.\n\n---\n\n## Summary\n\n| Conference | Fit Score | Primary Reason |\n|---|---|---|\n| **ICML** | 7/10 | Good systems/scaling contribution, but incremental novelty and narrow evaluation limit fit |\n| **NeurIPS** | 8/10 | Excellent: Broad scope, strong empirical results, mechanistic insights, methodological innovation all align well |\n| **ICLR** | 6/10 | Borderline: Representation learning framing is weak; incremental; narrow evaluation scope |\n\n**Recommendation**: **NeurIPS is the best venue** for this paper. The broad scope, appreciation for empirical systems research at scale, and growing interest in mechanistic interpretability make NeurIPS an excellent match. ICML is a solid backup. ICLR would be risky due to weak theoretical grounding and narrow evaluation.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Significant scale-up achievement: Successfully scales memory mosaics from medium-scale networks (GPT-2 scale) to llama-8B scale trained on 1 trillion tokens, demonstrating that the appealing compositional and in-context learning properties persist at scale.",
+              "Comprehensive and well-motivated evaluation framework: The three-dimensional evaluation (persistent-knowledge storage, new-knowledge storage, and in-context learning) provides a transparent and systematic way to assess different model capabilities, moving beyond standard language benchmarks to directly target the stated objectives.",
+              "Strong empirical results on new-task learning: Memory mosaics v2 demonstrates consistent and significant improvements (>10%) over transformers on new-knowledge storage and in-context learning tasks, with memory mosaics v2 trained on 1T tokens outperforming transformers trained on 8T tokens on certain benchmarks—a compelling efficiency claim.",
+              "Technically sound architectural innovations: The three modifications (adaptive bandwidth, gated time-variant key feature extractor, 3-level memory design) are well-motivated through both theoretical principles (kernel bandwidth estimation, induction heads, position-invariance patterns) and empirical validation (e.g., Table 1 showing benefits of stochastic long-term memory size).",
+              "Thorough supplementary analysis: The paper includes detailed ablations (removing long-term memory in Tables 2, 9, 10), analysis of alternative approaches (Figure 5 showing long-short-term attention fails to help transformers), and comparisons under matched computational budgets (Appendix E), strengthening the credibility of claims."
+            ],
+            "weaknesses": [
+              "Limited theoretical justification for why memory mosaics v2 fundamentally outperforms transformers: While the paper demonstrates superior performance on in-context learning, it lacks deep mechanistic explanation for why the architectural differences (symmetric keys/queries, no position encoding, associative memory framework) lead to better compositional learning. The paper is primarily empirical rather than providing novel insights into compositional learning.",
+              "Computational cost and practical deployment concerns underexplored: Memory mosaics v2 uses 18.9B FLOPs/token compared to 16.7B for transformers (13% overhead), with slightly higher parameter counts (9.9B vs 8.8B). While Appendix E addresses matched budget comparisons, the paper does not adequately discuss practical deployment considerations, inference speed, memory footprint during long-context processing, or how the associative memory lookups scale in wall-clock time.",
+              "Narrow evaluation scope on in-context learning: In-context learning tasks are limited to multiclass classification (Banking77, TACRED, GoEmotion) with relatively short examples (24-77 tokens per example). The evaluation does not cover other important in-context scenarios such as code generation, reasoning, or more complex few-shot learning patterns. The generalizability of advantages to diverse in-context learning scenarios remains unclear.",
+              "Comparison fairness with baseline transformers: The transformer baseline uses standard LLaMA architecture with RoPE position encoding. While reasonable, the paper does not compare against other transformer variants specifically designed for long-context or new-task learning (e.g., ALiBi, sliding window attention beyond the brief dismissal in Section 5.2). The comparison in Figure 5 showing long-short-term attention fails is informative but limited."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited theoretical justification for why memory mosaics v2 fundamentally outperforms transformers: While the paper demonstrates superior performance on in-context learning, it lacks deep mechanistic explanation for why the architectural differences (symmetric keys/queries, no position encoding, associative memory framework) lead to better compositional learning. The paper is primarily empirical rather than providing novel insights into compositional learning.",
+                "severity": "minor",
+                "evidence": "The paper states memory mosaics offer 'a comparatively transparent way to understand how composition or disentanglement occur' (Section 1) but does not rigorously characterize *why* the associative memory formulation (Equations 1-4) inherently supports better compositional or in-context learning compared to attention. Figure 1 shows attention score patterns differ, but the causal link between this pattern and improved learning is not established.",
+                "affected_claim": "That memory mosaics v2 have superior in-context learning capabilities due to architectural design principles",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Computational cost and practical deployment concerns underexplored: Memory mosaics v2 uses 18.9B FLOPs/token compared to 16.7B for transformers (13% overhead), with slightly higher parameter counts (9.9B vs 8.8B). While Appendix E addresses matched budget comparisons, the paper does not adequately discuss practical deployment considerations, inference speed, memory footprint during long-context processing, or how the associative memory lookups scale in wall-clock time.",
+                "severity": "minor",
+                "evidence": "Table 2 reports FLOPs but does not discuss actual wall-clock inference time, memory consumption, or practical deployment metrics. The paper notes in Appendix E that 'model efficiency (e.g. model service, throughput, VRAM, etc.) is not the goal of this work' but this is a significant practical limitation. The associative memory requires storing all key-value pairs in context, which could be problematic for very long contexts in terms of memory bandwidth.",
+                "affected_claim": "That memory mosaics v2 are practical alternatives to transformers at scale",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Narrow evaluation scope on in-context learning: In-context learning tasks are limited to multiclass classification (Banking77, TACRED, GoEmotion) with relatively short examples (24-77 tokens per example). The evaluation does not cover other important in-context scenarios such as code generation, reasoning, or more complex few-shot learning patterns. The generalizability of advantages to diverse in-context learning scenarios remains unclear.",
+                "severity": "minor",
+                "evidence": "Section 5.3 evaluates only three classification datasets. The paper does not include evaluations on in-context learning for generation tasks, reasoning tasks (e.g., chain-of-thought), or other domains where transformers excel. The prompt examples in Appendix I.1-I.4 show relatively simple classification setup without complex reasoning requirements.",
+                "affected_claim": "That memory mosaics v2 demonstrate broadly superior in-context learning capabilities",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Comparison fairness with baseline transformers: The transformer baseline uses standard LLaMA architecture with RoPE position encoding. While reasonable, the paper does not compare against other transformer variants specifically designed for long-context or new-task learning (e.g., ALiBi, sliding window attention beyond the brief dismissal in Section 5.2). The comparison in Figure 5 showing long-short-term attention fails is informative but limited.",
+                "severity": "minor",
+                "evidence": "The paper dismisses memory compression methods (Section D, Appendix D) and local-window approaches briefly in footnote 10, but does not empirically compare against other relevant transformer variants like sparse attention patterns, hierarchical attention, or other position encoding schemes beyond RoPE.",
+                "affected_claim": "That memory mosaics v2 outperform all reasonable transformer baselines",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical formulations are correct (Equations 1-10 properly specify associative memory, kernel regression, and the architectural components). The experimental methodology is sound: the three-dimensional evaluation is well-designed with appropriate ablations (Tables 2, 9, 10 verify which tasks depend on which memory components). The comparison between removing long-term memory and performance degradation is a clever validation technique. The training setup is reproducible with detailed hyperparameters in Appendix C. No mathematical or logical errors are apparent in the main claims."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "While scaling existing architectures is common, the specific contributions are sufficiently novel: (1) scaling memory mosaics from prior work (Zhang et al. 2025) to 10B parameters and 1T tokens represents meaningful technical engineering; (2) the three architectural modifications (adaptive bandwidth with principled kernel bandwidth selection, gated time-variant key features, 3-level memory hierarchy) are motivated by sound principles and go beyond trivial scaling; (3) the three-dimensional evaluation framework for assessing compositional/new-task learning is a useful methodological contribution. The paper is not a simple engineering scale-up—it adapts and extends the core ideas with principled architectural innovations."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work demonstrates meaningful improvements on an important problem (in-context/few-shot learning). The claim that memory mosaics v2 trained on 1T tokens outperform transformers trained on 8T tokens on new-task benchmarks is significant for efficiency. The consistent >10% improvements on in-context learning across multiple datasets suggest the advantage is not task-specific. The fine-tuning speed results (Section 7) are striking. However, the significance is somewhat limited by: (1) evaluation scope is narrow (classification only); (2) persistent-knowledge storage shows no improvement over transformers; (3) the work is primarily empirical validation rather than providing new theoretical understanding of compositional learning."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is comprehensive and generally fair. The three-dimensional framework is well-motivated. The ablations are thorough (Tables 2, 9, 10, 12 validate design choices). Comparisons include matched parameter/compute budgets (Appendix E). The new-knowledge storage benchmark (RULER multi-documents) is more challenging than needle-in-haystack. Extrapolation results (Table 3) are compelling. However, some concerns: (1) limited baseline comparisons (only standard LLaMA transformer); (2) in-context learning evaluation limited to classification; (3) no wall-clock timing or deployment metrics; (4) the 8T transformer baseline (Table 5) uses different architecture (group-query attention) than 1T baseline, making fair comparison harder."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written and clearly structured. The motivation is clear (Section 1). The background on associative memories (Section 2) effectively explains the framework. Architectural modifications (Section 3) are well-presented with clear equations and figures. The three-dimensional evaluation framework is intuitive and well-motivated. Experimental results are clearly presented with appropriate tables and figures. The supplementary material is extensive and well-organized. Minor issues: (1) some notation could be clearer (e.g., relationship between different β parameters); (2) the 'risk-return trade-off' framing in Section 6 is somewhat informal; (3) Section 3.2 notation with subscripts on multiple parameters is dense. Overall presentation quality is strong."
+              }
+            },
+            "summary_comment": "This paper makes a solid contribution by successfully scaling memory mosaics to realistic scales (8B parameters, 1T tokens) and demonstrating consistent improvements on new-task learning and in-context learning tasks. The three-dimensional evaluation framework is thoughtful and the empirical results are compelling—particularly the claim that 1T-token memory mosaics outperform 8T-token transformers on certain benchmarks. The architectural innovations (adaptive bandwidth, gated time-variant features, 3-level memory) are well-motivated through both theoretical principles and ablation studies. However, the work is primarily an engineering contribution with limited theoretical novelty. The in-context learning evaluation scope is narrow (classification only), practical deployment concerns are underexplored, and the mechanisms underlying improved compositional learning are not deeply analyzed. The paper makes meaningful empirical progress on an important problem but does not provide transformative insights into compositional learning or fundamentally advance our understanding of in-context learning phenomena. For a top-tier ML venue, this represents solid empirical work with useful engineering contributions and strong experimental validation, warranting acceptance despite its limitations."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Significant scale-up achievement: Successfully scales memory mosaics from medium-scale networks (GPT-2 scale) to llama-8B scale trained on 1 trillion tokens, demonstrating that the appealing compositional and in-context learning properties persist at scale.",
+              "Comprehensive and well-motivated evaluation framework: The three-dimensional evaluation (persistent-knowledge storage, new-knowledge storage, and in-context learning) provides a transparent and systematic way to assess different model capabilities, moving beyond standard language benchmarks to directly target the stated objectives.",
+              "Strong empirical results on new-task learning: Memory mosaics v2 demonstrates consistent and significant improvements (>10%) over transformers on new-knowledge storage and in-context learning tasks, with memory mosaics v2 trained on 1T tokens outperforming transformers trained on 8T tokens on certain benchmarks—a compelling efficiency claim.",
+              "Technically sound architectural innovations: The three modifications (adaptive bandwidth, gated time-variant key feature extractor, 3-level memory design) are well-motivated through both theoretical principles (kernel bandwidth estimation, induction heads, position-invariance patterns) and empirical validation (e.g., Table 12 showing benefits of stochastic long-term memory size).",
+              "Thoughtful evaluation design choices with principled justifications: The use of anonymous labels (Figure 4) to isolate in-context learning ability from semantic knowledge, the removal-of-long-term-memory tests (Tables 2, 9, 10) to verify task dependencies, and the multi-document QA benchmark from RULER all demonstrate careful experimental design to measure the intended capabilities."
+            ],
+            "weaknesses": [
+              "Limited theoretical justification for why memory mosaics v2 fundamentally outperforms transformers: While Figure 1 shows structured attention patterns and Section 3.2 explains specific components, the paper does not rigorously characterize the causal mechanisms connecting architectural differences (symmetric keys/queries, no position encoding) to improved compositional learning.",
+              "Practical deployment concerns remain largely unaddressed: While the rebuttal notes that FLOPs are reported and the work explicitly deprioritizes efficiency, the paper lacks discussion of actual wall-clock inference time, memory footprint during long-context processing, or memory bandwidth scaling—information practitioners need for real-world deployment decisions.",
+              "In-context learning evaluation intentionally limited to classification: The paper focuses exclusively on classification tasks (Banking77, TACRED, GoEmotion) with short examples. While the rebuttal explains this choice (avoiding confounding metrics), the scope does not cover generation, reasoning, or diverse in-context scenarios, limiting claims about 'in-context learning' generality."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited theoretical justification for why memory mosaics v2 fundamentally outperforms transformers: While Figure 1 shows structured attention patterns and Section 3.2 explains specific components, the paper does not rigorously characterize the causal mechanisms connecting architectural differences (symmetric keys/queries, no position encoding) to improved compositional learning.",
+                "severity": "minor",
+                "evidence": "The rebuttal acknowledges this: 'we don't claim to provide a complete theoretical framework for why associative memories improve compositional learning' but cites mechanistic insights in Figure 1, Section 3.2, and ablation studies. Figure 1 does show position-dependent vs. position-invariant patterns that motivated the 3-level design. The ablations validate design choices but do not isolate which architectural components drive compositional improvements. The rebuttal frames this as 'beyond the scope' and a 'valuable research direction,' which is a fair characterization for an empirical paper.",
+                "affected_claim": "That memory mosaics v2 architecture fundamentally improves compositional learning capability",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Practical deployment concerns remain largely unaddressed: While the rebuttal notes that FLOPs are reported and the work explicitly deprioritizes efficiency, the paper lacks discussion of actual wall-clock inference time, memory footprint during long-context processing, or memory bandwidth scaling—information practitioners need for real-world deployment decisions.",
+                "severity": "minor",
+                "evidence": "The rebuttal states: 'our focus is on assessing capability (new-task learning) rather than efficiency' and notes that the associative memory lookup is 'highly vectorizable.' Table 2 reports 13% FLOPs overhead. Appendix E explicitly states efficiency is 'not the goal of this work.' The rebuttal adds that practitioners should 'benchmark wall-clock performance on their specific hardware,' which acknowledges the limitation without resolving it in the submitted work.",
+                "affected_claim": "That memory mosaics v2 are practical to deploy at scale",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "In-context learning evaluation intentionally limited to classification: The paper focuses exclusively on classification tasks (Banking77, TACRED, GoEmotion) with short examples. While the rebuttal explains this choice (avoiding confounding metrics), the scope does not cover generation, reasoning, or diverse in-context scenarios, limiting claims about 'in-context learning' generality.",
+                "severity": "minor",
+                "evidence": "Section 5.3 evaluates only three classification datasets. The rebuttal explains: 'classification alone may not fully represent the diversity of in-context learning scenarios' and proposes that multi-document QA (Section 5.2) 'is a meaningful proxy.' However, QA is also not generation or reasoning. The rebuttal acknowledges 'a full evaluation across diverse in-context scenarios would be valuable future work' and notes this in Section 8, which is transparent but does not expand the evaluation in the submitted work.",
+                "affected_claim": "That memory mosaics v2 demonstrate broadly superior in-context learning capabilities across diverse scenarios",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical formulations remain correct (Equations 1-10 properly specify associative memory and components). The experimental methodology is sound with well-designed ablations (Tables 2, 9, 10) that validate architectural choices. The rebuttal clarifies that anonymous labels and removal-of-components tests are intentional design choices to isolate specific capabilities, which strengthens rather than weakens the soundness. The comparison against transformers trained on 8T tokens (Table 5) uses group-query attention for that variant, which the rebuttal does not address but is a minor fairness concern, not a soundness issue. No mathematical or logical errors undermine the core claims."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The rebuttal does not address the novelty concern directly, but evaluation of the submitted work confirms novelty is adequate: (1) scaling from prior work (Zhang et al. 2025) to 10B parameters and 1T tokens represents meaningful technical engineering; (2) the three architectural modifications (adaptive bandwidth justified by kernel bandwidth principles, gated time-variant key features, 3-level memory inspired by Figure 1 patterns) are principled extensions beyond trivial scaling; (3) the three-dimensional evaluation framework systematically assesses compositional learning, which is methodologically novel. The paper is not purely an engineering scale-up—it includes architectural innovations and evaluation methodology that are sufficiently distinct from prior work."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The empirical results demonstrate meaningful improvements on an important problem (new-task learning and in-context learning). The claim that 1T-token memory mosaics outperform 8T-token transformers (Table 5: 53.4% vs. 46.9% on RULER 32k) is significant for data efficiency. Consistent >10% improvements on in-context learning across three tasks and matched-budget comparisons (Appendix E) suggest the advantage is robust. The fine-tuning speed results (Section 7, Figure 8) are striking. The rebuttal's acknowledgment that theoretical understanding is limited does not diminish the practical significance of the empirical improvements. However, persistent-knowledge performance matches transformers, and evaluation scope is intentionally narrow (classification only), which moderates significance claims."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is comprehensive with sound design choices. The three-dimensional framework is well-motivated and executed. Ablations (Tables 2, 9, 10, 12) are thorough and interpretable. Comparisons include matched parameter/compute budgets (Appendix E). The multi-document QA benchmark (RULER) is more challenging than needle-in-haystack. Extrapolation results (Table 3) without fine-tuning are compelling. The rebuttal clarifies that classification tasks were chosen deliberately to avoid confounding metrics and that anonymous labels provide a stringent test of in-context learning (Figure 4). The main evaluation limitation—narrow scope (classification only)—is intentional and acknowledged. Baseline comparison (standard LLaMA with RoPE) is fair for the stated goals, though the rebuttal's explanation that window-based methods fail by construction on multi-document QA is persuasive but not empirically validated in the paper. Overall, evaluation quality supports the claims."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written and clearly structured. Motivation, background, methodology, and results are logically presented. The three-dimensional evaluation framework is intuitive and well-explained. Equations are correct and mostly clear. Extensive supplementary material supports main claims. The rebuttal does not flag presentation issues. Minor issues remain (dense notation in Section 3.2, informal 'risk-return' framing in Section 6) but are not material. The paper is sufficiently clear for reliable assessment."
+              }
+            },
+            "summary_comment": "The rebuttal addresses reviewer concerns through clarification rather than new evidence or experiments, which is appropriate for an empirical paper at this stage. Key points: (1) The rebuttal clarifies that limited theoretical justification is acknowledged; the paper's mechanistic insights (Figure 1 patterns, gated feature extraction, ablations) are appropriate for an empirical contribution, and deeper theoretical analysis is framed as future work—this is reasonable for a systems/scaling paper. (2) On deployment concerns, the rebuttal transparently states that efficiency is deprioritized in favor of capability assessment, and the 13% FLOPs overhead is justified by >10% capability gains under matched budgets—practitioners are directed to benchmark on their hardware, which is a fair division of responsibility. (3) On evaluation scope, the rebuttal explains that classification with anonymous labels provides a rigorous in-context learning benchmark and that multi-document QA is a meaningful proxy for complex information retrieval—while the scope remains narrow, the justifications are sound and the choice is transparent. The rebuttal does not resolve, but does adequately contextualize, each concern. The submitted paper remains a solid empirical contribution demonstrating meaningful improvements on new-task learning at realistic scale with sound experimental design. The work is appropriate for acceptance at a top-tier venue as a strong systems/scaling contribution with clear practical benefits, even if theoretical novelty is limited and deployment considerations are deferred to practitioners."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited theoretical justification for why memory mosaics v2 fundamentally outperforms transformers on compositional/in-context learning\",\n        \"Computational cost and practical deployment concerns (inference speed, memory footprint, wall-clock timing) not adequately discussed\",\n        \"Narrow evaluation scope on in-context learning (limited to classification tasks with short examples)\",\n        \"Limited baseline comparisons (only standard LLaMA transformer; dismissal of other variants without empirical comparison)\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Paper demonstrates that memory mosaics v2 outperforms transformers but lacks mechanistic explanation\",\n          \"location\": \"Sections 1, 2, and 5.3\",\n          \"explanation\": \"The paper claims memory mosaics offer 'a comparatively transparent way to understand how composition or disentanglement occur' (Section 1), and the background (Section 2) explains the associative memory formulation. However, the causal link between architectural differences (symmetric keys/queries, no position encoding) and improved learning is shown empirically but not rigorously characterized. Figure 1 demonstrates attention score patterns differ, but the mechanistic reason why this pattern improves compositional learning is not established.\"\n        },\n        {\n          \"concern\": \"FLOPs and parameters reported but practical deployment metrics missing\",\n          \"location\": \"Table 2, Appendix C, and Appendix E\",\n          \"explanation\": \"Table 2 reports FLOPs/token (18.9B for memory mosaics v2 vs 16.7B for transformer, a 13% overhead) and parameter counts. Appendix E provides matched budget comparisons. However, the paper explicitly states in Appendix E: 'model efficiency (e.g. model service, throughput, VRAM, etc.) is not the goal of this work,' acknowledging that wall-clock inference time, memory consumption during long-context processing, and memory bandwidth requirements are not addressed.\"\n        },\n        {\n          \"concern\": \"In-context learning evaluation limited to classification with short examples\",\n          \"location\": \"Section 5.3 and Appendix I\",\n          \"explanation\": \"The in-context learning evaluation (Section 5.3) covers only three classification tasks (Banking77: 24 tokens/example, TACRED: 77 tokens/example, GoEmotion: 26 tokens/example). The paper does not evaluate code generation, reasoning tasks, or more complex few-shot learning patterns. Appendix I shows the prompts are relatively simple classification setups without complex reasoning requirements.\"\n        },\n        {\n          \"concern\": \"Baseline comparison limited to standard LLaMA transformer\",\n          \"location\": \"Section 5.3, Figure 5, and Appendix D\",\n          \"explanation\": \"The main baseline is standard LLaMA architecture with RoPE position encoding. While Section 5.2 mentions that 'local-window memory approaches, such as Alibi position encoding and sliding-window attention...struggle for the same reason' (footnote 10), this dismissal is brief and not empirically validated. Figure 5 shows that augmenting a transformer with long-short-term attention does not improve in-context learning, but this is a limited comparison. Appendix D discusses why memory compression methods fail by construction but does not empirically compare against other transformer variants designed for long-context learning.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Limited theoretical justification for compositional learning improvements\",\n          \"proposed_change\": \"Add analysis of what properties of the associative memory formulation specifically enable better compositional learning. This could include: (1) a more formal connection between the symmetric key-query structure and compositional generalization; (2) analysis of how gradient flow differs between memory mosaics and attention during in-context learning; (3) simplified synthetic experiments demonstrating which architectural components are essential for compositional learning (moving beyond the current ablations which validate design choices but don't isolate sources of improvement).\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Practical deployment concerns underexplored\",\n          \"proposed_change\": \"Add section on practical deployment considerations including: (1) wall-clock inference time measurements on typical hardware; (2) memory footprint analysis for long contexts (the associative memory stores all key-value pairs, which could be problematic); (3) analysis of how memory bandwidth scales with context length; (4) comparison of actual throughput (tokens/second) vs theoretical FLOPs. Even a brief analysis with caveats ('measurements taken on specific hardware, results may vary') would be valuable.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Narrow in-context learning evaluation scope\",\n          \"proposed_change\": \"Extend in-context learning evaluation to include: (1) at least one generation task (e.g., simple story completion or code generation); (2) at least one reasoning task requiring multi-step inference; (3) longer examples if feasible. Alternatively, add discussion of why evaluation is intentionally limited to classification and what this means for claims about 'in-context learning' broadly.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited baseline comparisons\",\n          \"proposed_change\": \"Add empirical comparisons against: (1) transformer with ALiBi position encoding; (2) transformer with sliding-window attention; (3) at least one other long-context transformer variant. This would strengthen the claim that improvements come from memory mosaics architecture rather than simply being a transformer variant advantage. Even null results (showing these baselines also don't improve) would be informative.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"We appreciate the detailed and constructive review. We address each concern:\\n\\n**Theoretical justification for compositional learning improvements:**\\nThe reviewer correctly identifies that our work is primarily empirical. While we don't claim to provide a complete theoretical framework for why associative memories improve compositional learning, we do provide several mechanistic insights: (1) Figure 1 demonstrates that memory mosaics exhibit structured attention patterns (position-dependent for near tokens, position-invariant for far tokens), which inspired the 3-level memory design; (2) Section 3.2 explains how the gated time-variant key feature extractor handles semantic similarity better than fixed-weight averaging; (3) our ablation studies (Tables 2, 9, 10, 12) validate that architectural choices improve performance on specific evaluation dimensions. We acknowledge that deeper theoretical analysis would strengthen the work. A future direction could involve analyzing gradient flow during in-context learning or designing synthetic tasks that isolate which architectural components drive compositional improvements—this is beyond the scope of the current submission but is a valuable research direction.\\n\\n**Computational cost and practical deployment concerns:**\\nWe acknowledge this limitation. The paper does report FLOPs/token (Table 2: 18.9B for memory mosaics v2 vs 16.7B for transformer, a 13% overhead). We explicitly state in Appendix E that 'model efficiency is not the goal of this work,' which was an intentional design choice: our focus is on assessing *capability* (new-task learning) rather than *efficiency*. However, the reviewer raises a fair point that practitioners need deployment information. We note that: (1) Appendix E shows that under matched computational budgets, memory mosaics v2 still maintains >10% advantage, suggesting the overhead is justified by the capability gains; (2) the associative memory lookup (kernel regression, Eq. 3-4) is highly vectorizable and can be efficiently implemented on modern GPUs—this is a matter of software engineering rather than fundamental limitation. We recommend that practitioners interested in deployment benchmark wall-clock performance on their specific hardware, which may differ from our setting. We would be happy to add a brief discussion of these engineering considerations if space permits.\\n\\n**Narrow in-context learning evaluation scope:**\\nThe reviewer's concern about evaluation scope is valid. Our choice to focus on classification tasks was intentional: these tasks provide clean measurement of in-context learning ability without confounding factors (e.g., generation quality metrics can depend on length, style, etc.). However, we acknowledge that classification alone may not fully represent the diversity of in-context learning scenarios. The anonymous label variants (Figure 4) do provide a more challenging in-context learning setup that removes semantic knowledge advantage, which we view as a strong test of the model's ability to learn new tasks. For generation tasks and reasoning, we believe the new-knowledge storage and retrieval benchmark (Section 5.2, multi-document QA with 32k context) is a meaningful proxy, as it requires storing and retrieving complex information. A full evaluation across diverse in-context scenarios would be valuable future work; we note this in Section 8 as part of future research directions.\\n\\n**Limited baseline comparisons:**\\nThe reviewer correctly points out that we primarily compare against standard LLaMA with RoPE. Our justification for this choice: (1) ALiBi and sliding-window attention are explicitly designed to reduce computational cost for long contexts, not to improve in-context learning on the specific tasks we evaluate (multi-document QA, few-shot classification). In fact, Appendix D notes that local-window approaches fail on our multi-document QA task by construction—they cannot store all documents before reading the question. (2) Figure 5 addresses this by testing whether augmenting a transformer with long-short-term attention (inspired by our 3-level memory) helps; it does not, demonstrating that our advantage is not simply about having separate memory streams. We acknowledge that more comprehensive baseline comparisons would strengthen the paper. However, we stand by the choice of RoPE as the primary baseline because: it is the most widely used position encoding in modern LLMs, it represents a fair comparison for models of similar scale and architecture, and the specific tasks we evaluate (especially multi-document QA) are designed to test capabilities where window-based methods inherently fail. Additional comparisons would be valuable for a revised version but are not essential for validating our core claims.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Significant scale-up achievement: Successfully scales memory mosaics from medium-scale networks (GPT-2 scale) to llama-8B scale trained on 1 trillion tokens, demonstrating that the appealing compositional and in-context learning properties persist at scale.",
+              "Comprehensive and well-motivated evaluation framework: The three-dimensional evaluation (persistent-knowledge storage, new-knowledge storage, and in-context learning) provides a transparent and systematic way to assess different model capabilities, moving beyond standard language benchmarks to directly target the stated objectives.",
+              "Strong empirical results on new-task learning: Memory mosaics v2 demonstrates consistent and significant improvements (>10%) over transformers on new-knowledge storage and in-context learning tasks, with memory mosaics v2 trained on 1T tokens outperforming transformers trained on 8T tokens on certain benchmarks—a compelling efficiency claim.",
+              "Mechanistic insights grounded in empirical observations: Figure 1 provides a key observation that attention scores naturally separate into position-dependent (near tokens) and position-invariant (far tokens) behavior in memory mosaics, which motivated the 3-level memory design. This pattern emergence suggests the architecture enables compositional learning in a fundamentally different way than standard attention.",
+              "Thoughtful evaluation design with rigorous controls: The use of anonymous labels (Figure 4) to remove semantic knowledge and isolate compositional learning, removal-of-long-term-memory tests (Tables 2, 9, 10) to verify task dependencies, and stochastic long-term memory training (Table 12) all demonstrate careful experimental methodology."
+            ],
+            "weaknesses": [
+              "Limited theoretical framework connecting architecture to compositional learning: While the rebuttal identifies mechanistic insights (Figure 1 patterns, exchangeability properties, ablation results), the causal link between symmetric keys/queries, absence of position encoding, and improved compositional learning remains largely empirical rather than theoretically grounded.",
+              "Practical deployment characteristics not adequately characterized: The paper reports FLOPs overhead (13%) and parameter counts but lacks discussion of wall-clock inference time implications, memory footprint during long-context inference, and memory bandwidth characteristics—information necessary for practitioners to assess real-world feasibility.",
+              "In-context learning evaluation limited to classification tasks: While the rebuttal justifies this choice (avoiding confounding metrics in generation tasks), the scope remains narrow and does not address generation, reasoning, or other important in-context learning scenarios, limiting the generality of claims."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "Limited theoretical framework connecting architecture to compositional learning: While the rebuttal identifies mechanistic insights (Figure 1 patterns, exchangeability properties, ablation results), the causal link between symmetric keys/queries, absence of position encoding, and improved compositional learning remains largely empirical rather than theoretically grounded.",
+                "severity": "minor",
+                "evidence": "The rebuttal clarifies that Figure 1 shows emergence of position-dependent/invariant separation, and connects exchangeability (set semantics) to compositional invariance. These are present in the submitted paper (Section 2 on exchangeability, Figure 1 pattern analysis, Table 12 on stochastic training effects). The rebuttal proposes strengthening this via expanded discussion and reorganized ablations, but these are promised revisions. In the submitted work, the connection is suggestive but not rigorously established. For an empirical paper, this level is acceptable, and the rebuttal's identification of these insights in existing material partially resolves the concern by clarifying that the insights are there but not fully developed.",
+                "affected_claim": "That the associative memory architecture fundamentally enables better compositional learning through design choices",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Practical deployment characteristics not adequately characterized: The paper reports FLOPs overhead (13%) and parameter counts but lacks discussion of wall-clock inference time implications, memory footprint during long-context inference, and memory bandwidth characteristics—information necessary for practitioners to assess real-world feasibility.",
+                "severity": "minor",
+                "evidence": "The rebuttal provides estimates and analysis: '13% FLOPs overhead translates to roughly 13% slowdown assuming linear scaling,' notes that memory footprint is O(context_length × hidden_dim) same as transformers, and identifies memory bandwidth as a known concern for kernel regression methods. However, these estimates and characterizations are in the rebuttal, not in the submitted paper. Table 2 reports FLOPs and parameters; Appendix E states efficiency is not the goal. The rebuttal acknowledges practitioners should benchmark on target hardware. The gap between what is needed and what is submitted remains, though the rebuttal demonstrates the authors have thought about these issues.",
+                "affected_claim": "That memory mosaics v2 are practical to deploy at scale",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "In-context learning evaluation limited to classification tasks: While the rebuttal justifies this choice (avoiding confounding metrics in generation tasks), the scope remains narrow and does not address generation, reasoning, or other important in-context learning scenarios, limiting the generality of claims.",
+                "severity": "minor",
+                "evidence": "Section 5.3 evaluates Banking77, TACRED, GoEmotion (all classification). The rebuttal explains the rationale: generation metrics (BLEU, ROUGE) confound with length/style; reasoning tasks have format dependencies. These are sound arguments. The multi-document QA (Section 5.2) and fine-tuning speed (Section 7) provide some evidence for complex information handling. However, the evaluation in the submitted paper remains limited to classification. The rebuttal proposes reframing claims as 'few-shot classification' and explicitly noting that generation/reasoning are open questions, but these are promised revisions to the submitted work.",
+                "affected_claim": "That memory mosaics v2 demonstrate broadly superior in-context learning capabilities",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The mathematical formulations are correct (Equations 1-10). Experimental methodology is sound with well-designed ablations (Tables 2, 9, 10, 12) that validate architectural choices. The rebuttal clarifies that design decisions (anonymous labels, stochastic long-term memory size, removal-of-components tests) are intentional and well-motivated, which strengthens the soundness of the evaluation. The multi-document QA benchmark is more rigorous than typical needle-in-haystack. The 8T transformer baseline uses group-query attention (Table 5), which is a minor fairness concern but not a soundness issue. No mathematical or logical errors undermine core claims."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The rebuttal does not directly address novelty but clarifies the contributions: (1) scaling from prior work (Zhang et al. 2025) to 10B parameters and 1T tokens is meaningful engineering; (2) three architectural modifications (adaptive bandwidth from kernel theory, gated time-variant features inspired by recurrent networks, 3-level memory from observed Figure 1 patterns) represent principled extensions; (3) three-dimensional evaluation framework systematically assesses compositional learning with novel methodology. The paper extends prior work with both architectural and methodological innovations sufficient for top-tier venue standards."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The empirical improvements are meaningful: >10% gains on in-context learning tasks consistently, 1T-token memory mosaics outperform 8T-token transformers on new-knowledge storage (53.4% vs. 46.9% on RULER 32k), and fine-tuning speed improvement (Figure 8: one minibatch vs. 800 for transformer). These results address an important problem (data-efficient new-task learning). The rebuttal's acknowledgment that scope is limited to classification does not diminish the significance of the improvements on those tasks, though it does limit the breadth of impact claims. For acceptance at a top-tier venue, this represents solid practical significance even if theoretical novelty is limited."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "The experimental evaluation is comprehensive and well-designed. Three-dimensional framework with clear motivation. Ablations (Tables 2, 9, 10, 12) are thorough and interpretable. Matched-budget comparisons (Appendix E) control for computational fairness. Multi-document QA (RULER) is more challenging than standard benchmarks. Anonymous labels (Figure 4) provide stringent control for in-context learning. The rebuttal clarifies that classification focus is deliberate to isolate learning capability without confounding metrics—this justification is sound. Main limitation—narrow scope (classification only)—is now clearly intentional rather than an oversight. Evaluation quality supports the core claims about new-task learning capability."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written and logically structured. Motivation, background, architecture, and results flow clearly. The three-dimensional framework is intuitive. Equations are correct and notation mostly clear (Section 3.2 is dense but workable). Extensive supplementary material provides depth. The rebuttal does not identify presentation issues. The organization effectively guides readers through the work. Minor issues (informal 'risk-return' framing in Section 6, dense notation in Section 3.2) do not materially affect clarity. Sufficient clarity for reliable assessment."
+              }
+            },
+            "summary_comment": "After considering the rebuttal, the assessment remains that this is a solid empirical contribution deserving acceptance. The rebuttal provides substantive clarifications that strengthen understanding of the work without relying solely on promises of future revision. Key points: (1) **Mechanistic insights are present but not fully developed**: Figure 1 patterns, exchangeability properties, and ablation results provide mechanistic grounding for why the architecture works, though a complete theoretical framework remains absent. This is appropriate for an empirical systems paper. (2) **Deployment concerns are acknowledged with reasonable characterization**: The rebuttal demonstrates the authors have thought through FLOPs-to-wall-clock translation, memory footprint implications, and memory bandwidth tradeoffs, even if these are not fully addressed in the paper. The deprioritization of efficiency in favor of capability assessment is transparent and justified. (3) **Evaluation scope limitations are now clearly intentional**: The rebuttal articulates sound reasons for focusing on classification (avoiding confounding metrics) and explains how multi-document QA and fine-tuning experiments provide evidence for information handling capability. The scope is narrow but purposeful. The paper demonstrates meaningful empirical improvements (>10% on in-context learning, 1T vs. 8T token efficiency) on an important problem (new-task learning). While theoretical understanding and practical deployment details remain areas for future work, the core contributions are sound and significant. The three-dimensional evaluation framework is a useful methodological contribution. This work represents strong systems/scaling research appropriate for a top-tier ML venue."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Limited theoretical justification for why memory mosaics v2 fundamentally outperforms transformers on compositional learning\",\n        \"Practical deployment concerns (wall-clock inference time, memory footprint, bandwidth scaling) remain unaddressed\",\n        \"In-context learning evaluation intentionally limited to classification tasks, limiting generality claims\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Mechanistic explanations for compositional learning improvements are present but not comprehensive\",\n          \"location\": \"Figure 1, Section 3.2, Tables 2, 9, 10, 12\",\n          \"explanation\": \"The paper provides several mechanistic insights: Figure 1 demonstrates structured attention patterns (position-dependent for near tokens, position-invariant for far tokens) that inspired the 3-level memory design. Section 3.2 explains how the gated time-variant key feature extractor (Equation 8) handles semantic similarity better than fixed-weight averaging (Equation 7). Ablation studies (Tables 2, 9, 10, 12) validate that architectural choices improve specific dimensions. However, the paper does not rigorously characterize the causal mechanisms connecting symmetric keys/queries, absence of position encoding, and improved compositional learning.\"\n        },\n        {\n          \"concern\": \"Computational cost information provided; practical deployment metrics deferred\",\n          \"location\": \"Table 2, Appendix E, Appendix C\",\n          \"explanation\": \"Table 2 reports FLOPs/token (18.9B for memory mosaics v2 vs 16.7B for transformer, 13% overhead) and parameter counts (9.9B vs 8.8B). Appendix E provides comparisons under matched computational budgets, showing >10% advantage persists. Appendix C provides detailed training hyperparameters. However, the paper explicitly states in Appendix E: 'model efficiency (e.g. model service, throughput, VRAM, etc.) is not the goal of this work,' and does not provide wall-clock inference time, memory footprint analysis for long contexts, or memory bandwidth scaling characteristics.\"\n        },\n        {\n          \"concern\": \"In-context learning evaluation limited to classification with principled justification\",\n          \"location\": \"Section 5.3, Appendix I, Section 8\",\n          \"explanation\": \"Section 5.3 evaluates three classification datasets (Banking77, TACRED, GoEmotion) with examples averaging 24-77 tokens. Appendix I shows relatively simple classification prompts. The paper explicitly focuses on classification to avoid confounding metrics (generation quality can depend on length, style, etc.). Section 8 acknowledges that 'a full evaluation across diverse in-context scenarios would be valuable future work.' The multi-document QA benchmark (Section 5.2, RULER with up to 32k context) serves as a proxy for complex information retrieval but is not generation or reasoning.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Theoretical understanding of compositional learning improvements could be strengthened\",\n          \"proposed_change\": \"The paper could benefit from additional analysis that is feasible without new experiments: (1) more detailed discussion connecting the symmetric key-query structure (Equations 3-4) to exchangeability properties (Section 2) and how this might improve compositional learning compared to asymmetric attention; (2) analysis of how the absence of position encoding (mentioned as a key difference in Section 2) enables position-invariant long-term memory to emerge naturally, as evidenced by Figure 1; (3) expansion of the ablation analysis (currently in Tables 2, 9, 10, 12) to explicitly characterize which components (adaptive bandwidth, gated features, 3-level memory) contribute most to each evaluation dimension. These analyses do not require new experiments but would clarify the mechanistic picture already partially present in the paper.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Deployment practitioners need more concrete information about practical costs\",\n          \"proposed_change\": \"Add a brief section (1-2 paragraphs) in the main paper or Appendix discussing: (1) that the 13% FLOPs overhead translates to roughly 13% slowdown assuming linear scaling (order-of-magnitude estimate, with caveat that actual scaling depends on implementation and hardware); (2) memory footprint during inference for long contexts: since associative memory stores all key-value pairs, the memory requirement is O(context_length × hidden_dim), same as transformers with full attention but potentially different memory access patterns; (3) that memory bandwidth (loading key-value pairs repeatedly during retrieval) is a known concern for kernel regression methods and a direction for future optimization via techniques mentioned in Section 8 (fuzzy hashing, hierarchical memory). This would set realistic expectations without requiring implementation benchmarks.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Generality of in-context learning advantages remains uncertain due to narrow evaluation scope\",\n          \"proposed_change\": \"Add discussion clarifying the intended scope of the in-context learning claims: (1) explicitly state that the paper focuses on 'few-shot learning on classification tasks' rather than claiming general 'in-context learning superiority'; (2) discuss why classification is a good test of compositional learning (as the rebuttal explains: avoids confounding metrics); (3) note that multi-document QA (Section 5.2) and fine-tuning speed (Section 7) provide some evidence for complex information handling, but generation and reasoning remain open questions; (4) propose that future work should evaluate on generation (e.g., code completion, summarization) and reasoning tasks to test generality. This would make the scope explicit and avoid overstating the findings.\",\n          \"requires_new_experiment_or_analysis\": false\n        }\n      ],\n      \"response\": \"We appreciate the thoughtful review and rebuttal comments. The reviewer correctly identifies three limitations that, while not fatal to the paper's acceptance, deserve substantive engagement.\\n\\n**On theoretical justification for compositional learning:**\\n\\nWe acknowledge that the paper is primarily empirical and does not provide a complete theoretical framework. However, we believe the mechanistic insights present are meaningful for a systems/scaling contribution:\\n\\n1. **Figure 1 pattern analysis** provides a key observation: attention scores in memory mosaics naturally separate into position-dependent behavior for near tokens and position-invariant behavior for far tokens. This pattern is not imposed by design—it emerges from the data. This observation motivated the 3-level memory architecture and suggests that the associative memory formulation (with symmetric keys/queries and absence of explicit position encoding) enables this natural segregation in a way that standard attention does not.\\n\\n2. **Exchangeability property (Section 2)** connects to compositionality: the associative memory formulation explicitly treats key-value pairs as a set (permutation invariant), which aligns with the intuition that compositional learning should be invariant to the order of examples. Standard attention is sequence-dependent even without position encoding. This structural difference likely contributes to the improved in-context learning, though we acknowledge this connection is not rigorously proven.\\n\\n3. **Ablation studies (Tables 2, 9, 10, 12)** demonstrate which components matter for which tasks. For example, Table 12 shows that stochastic long-term memory size improves context length extrapolation by 15.8%, suggesting that encouraging position-invariant features to concentrate in long-term memory is mechanistically important.\\n\\nFor a revised version, we could strengthen this by: (a) expanding Section 2 to more clearly link the exchangeability property to compositional learning; (b) adding analysis showing how the symmetric key-query structure (Equation 4) arises naturally from removing position information; (c) reorganizing ablations to explicitly show each component's contribution across evaluation dimensions. These do not require new experiments.\\n\\n**On practical deployment concerns:**\\n\\nWe intentionally deprioritized efficiency metrics in this work to focus on capability assessment. However, we recognize that practitioners need realistic expectations. Key points for a revised version:\\n\\n1. **FLOPs overhead is modest and justified**: Table 2 shows 13% FLOPs overhead, which under linear scaling suggests ~13% wall-clock slowdown. While we have not implemented and benchmarked this on specific hardware, the overhead is comparable to other architectural innovations (e.g., adding layer normalization, gating mechanisms). Appendix E shows this overhead is justified by >10% capability improvements even under matched FLOPs budgets.\\n\\n2. **Memory footprint analysis**: Associative memory requires storing all key-value pairs in context, which is O(context_length × hidden_dim)—identical to transformers with full attention. The difference is in memory access patterns: kernel regression (Equation 3) requires computing similarity to all stored pairs, which could have higher memory bandwidth requirements than optimized attention implementations. This is a real concern that merits investigation in future work, particularly for very long contexts where memory bandwidth becomes the bottleneck.\\n\\n3. **Software engineering opportunities**: The core associative memory operation (softmax over pairwise similarities, weighted sum) is highly vectorizable on GPUs. Modern CUDA libraries and frameworks (PyTorch, JAX) can implement this efficiently. However, this requires careful engineering beyond the scope of a capability-focused paper. We recommend that practitioners interested in deployment implement and benchmark on their target hardware.\\n\\nFor a revised version, we could add a brief section discussing these points and directing readers to consider the FLOPs overhead, memory footprint implications, and memory bandwidth characteristics when planning deployment.\\n\\n**On in-context learning evaluation scope:**\\n\\nWe are satisfied with the intentional scope, but can be clearer about it:\\n\\n1. **Why classification?** Classification provides clean measurement of few-shot learning ability without confounding factors. Generation tasks have multiple valid outputs, making evaluation metrics (BLEU, ROUGE, etc.) depend on length, style, and domain conventions. Reasoning tasks often require specific output formats that could advantage one architecture over another independent of learning ability. By focusing on classification with exact-match accuracy, we ensure we measure in-context learning capability specifically.\\n\\n2. **Anonymous labels as a stringent test**: Figure 4 (anonymous labels) removes semantic knowledge advantage, forcing the model to learn task structure purely from demonstration examples. This is a strong test of compositional in-context learning and directly addresses the core claim. Transformers' poor performance on anonymous label tasks suggests they rely on semantic priors rather than truly learning from examples.\\n\\n3. **Multi-document QA as a proxy for complex information handling**: Section 5.2 (RULER multi-document QA, up to 32k context) requires storing and retrieving complex information structures. While not generation or reasoning, it tests the model's ability to handle diverse information at scale—a prerequisite for general in-context learning.\\n\\nFor a revised version, we would:\\n- Explicitly reframe claims in Section 5.3 as \\\"few-shot classification\\\" rather than \\\"in-context learning\\\" broadly\\n- Add explicit discussion of evaluation limitations: \\\"We focus on classification tasks to isolate learning capability; evaluation on generation and reasoning tasks remains an important open direction\\\"\\n- Strengthen the connection between classification performance and underlying learning mechanisms\\n- Note in Section 8 that extending evaluation to generation and reasoning is a priority for future work\\n\\nThese revisions would make the scope transparent without requiring new experiments, addressing the reviewer's concern about overstating generality while preserving the paper's core contributions.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_ad60af9919a2",
+    "conference": "NEURIPS",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/neurips_accept_2025_017_memory_mosaics_at_scale.md",
+    "target_paper_summary": {
+      "paper_id": "paper_ad60af9919a2",
+      "title": "Memory Mosaics At Scale",
+      "abstract": "Memory Mosaics [Zhang et al., 2025], networks of associative memories, have demonstrated appealing compositional and in-context learning capabilities on medium-scale networks (GPT-2 scale) and synthetic small datasets. This work shows that these favorable properties remain when we scale memory mosaics to large language model sizes (llama-8B scale) and real-world datasets. To this end, we scale memory mosaics to 10B size, we train them on one trillion tokens, we introduce a couple architectural modifications (\"*memory mosaics v2*\"), we assess their capabilities across three evaluation dimensions: training-knowledge storage, new-knowledge storage, and in-context learning. Throughout the evaluation, memory mosaics v2 match transformers on the learning of training knowledge (first dimension) and significantly outperforms transformers on carrying out new tasks at inference time (second and third dimensions). These improvements cannot be easily replicated by simply increasing the training data for transformers. A memory mosaics v2 trained on one trillion tokens still perform better on these tasks than a transformer trained on eight trillion tokens.",
+      "topic": "",
+      "claims": [
+        "we introduce a couple architectural modifications (\"*memory mosaics v2*\"), we assess their capabilities across three evaluation dimensions: training-knowledge storage, new-knowledge storage, and in-context learning."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_9f8efda37",
+        "title": "Detection of mosaic and population-level structural variants with Sniffles2",
+        "authors": [
+          "Moritz Smolka",
+          "Luis F. Paulin",
+          "Christopher M. Grochowski",
+          "Dominic W. Horner",
+          "Medhat Mahmoud",
+          "Sairam Behera",
+          "Ester Kalef-Ezra",
+          "Mira Gandhi",
+          "Karl Hong",
+          "Davut Pehli̇van",
+          "Sonja W. Scholz",
+          "Claudia M.B. Carvalho",
+          "Christos Proukakis",
+          "Fritz J. Sedlazeck"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-02",
+        "venue": "Nature Biotechnology",
+        "abstract": "Calling structural variations (SVs) is technically challenging, but using long reads remains the most accurate way to identify complex genomic alterations. Here we present Sniffles2, which improves over current methods by implementing a repeat aware clustering coupled with a fast consensus sequence and coverage-adaptive filtering. Sniffles2 is 11.8 times faster and 29% more accurate than state-of-the-art SV callers across different coverages (5-50×), sequencing technologies (ONT and HiFi) and SV types. Furthermore, Sniffles2 solves the problem of family-level to population-level SV calling to produce fully genotyped VCF files. Across 11 probands, we accurately identified causative SVs around MECP2, including highly complex alleles with three overlapping SVs. Sniffles2 also enables the detection of mosaic SVs in bulk long-read data. As a result, we identified multiple mosaic SVs in brain tissue from a patient with multiple system atrophy. The identified SV showed a remarkable diversity within the cingulate cortex, impacting both genes involved in neuron function and repetitive elements.",
+        "url": "https://doi.org/10.1038/s41587-023-02024-y",
+        "doi": "https://doi.org/10.1038/s41587-023-02024-y",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4390500910"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 454
+      },
+      {
+        "paper_id": "rw_002_646f14351",
+        "title": "Mauve: Multiple Alignment of Conserved Genomic Sequence With Rearrangements",
+        "authors": [
+          "Aaron E. Darling",
+          "Bob Mau",
+          "Frederick R. Blattner",
+          "Nicole T. Perna"
+        ],
+        "year": 2004,
+        "publication_date": "2004-07-01",
+        "venue": "Genome Research",
+        "abstract": "As genomes evolve, they undergo large-scale evolutionary processes that present a challenge to sequence comparison not posed by short sequences. Recombination causes frequent genome rearrangements, horizontal transfer introduces new sequences into bacterial chromosomes, and deletions remove segments of the genome. Consequently, each genome is a mosaic of unique lineage-specific segments, regions shared with a subset of other genomes and segments conserved among all the genomes under consideration. Furthermore, the linear order of these segments may be shuffled among genomes. We present methods for identification and alignment of conserved genomic DNA in the presence of rearrangements and horizontal transfer. Our methods have been implemented in a software package called Mauve. Mauve has been applied to align nine enterobacterial genomes and to determine global rearrangement structure in three mammalian genomes. We have evaluated the quality of Mauve alignments and drawn comparison to other methods through extensive simulations of genome evolution.",
+        "url": "https://doi.org/10.1101/gr.2289704",
+        "doi": "https://doi.org/10.1101/gr.2289704",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W1991330646"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 5244
+      },
+      {
+        "paper_id": "rw_003_c76e1b2c7",
+        "title": "Long-Range Temporal Correlations and Scaling Behavior in Human Brain Oscillations",
+        "authors": [
+          "Klaus Linkenkaer‐Hansen",
+          "Vadim V. Nikouline",
+          "J. Matias Palva",
+          "Risto J. Ilmoniemi"
+        ],
+        "year": 2001,
+        "publication_date": "2001-02-15",
+        "venue": "Journal of Neuroscience",
+        "abstract": "The human brain spontaneously generates neural oscillations with a large variability in frequency, amplitude, duration, and recurrence. Little, however, is known about the long-term spatiotemporal structure of the complex patterns of ongoing activity. A central unresolved issue is whether fluctuations in oscillatory activity reflect a memory of the dynamics of the system for more than a few seconds. We investigated the temporal correlations of network oscillations in the normal human brain at time scales ranging from a few seconds to several minutes. Ongoing activity during eyes-open and eyes-closed conditions was recorded with simultaneous magnetoencephalography and electroencephalography. Here we show that amplitude fluctuations of 10 and 20 Hz oscillations are correlated over thousands of oscillation cycles. Our analyses also indicated that these amplitude fluctuations obey power-law scaling behavior. The scaling exponents were highly invariant across subjects. We propose that the large variability, the long-range correlations, and the power-law scaling behavior of spontaneous oscillations find a unifying explanation within the theory of self-organized criticality, which offers a general mechanism for the emergence of correlations and complex dynamics in stochastic multiunit systems. The demonstrated scaling laws pose novel quantitative constraints on computational models of network oscillations. We argue that critical-state dynamics of spontaneous oscillations may lend neural networks capable of quick reorganization during processing demands.",
+        "url": "https://doi.org/10.1523/jneurosci.21-04-01370.2001",
+        "doi": "https://doi.org/10.1523/jneurosci.21-04-01370.2001",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2139852582"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1206
+      },
+      {
+        "paper_id": "rw_004_4235783f5",
+        "title": "Mosaic",
+        "authors": [
+          "Steffen Maaß",
+          "Changwoo Min",
+          "Sanidhya Kashyap",
+          "Woon-Hak Kang",
+          "Mohan Kumar",
+          "Taesoo Kim"
+        ],
+        "year": 2017,
+        "publication_date": "2017-04-17",
+        "venue": "",
+        "abstract": "Processing a one trillion-edge graph has recently been demonstrated by distributed graph engines running on clusters of tens to hundreds of nodes. In this paper, we employ a single heterogeneous machine with fast storage media (e.g., NVMe SSD) and massively parallel coprocessors (e.g., Xeon Phi) to reach similar dimensions. By fully exploiting the heterogeneous devices, we design a new graph processing engine, named Mosaic, for a single machine. We propose a new locality-optimizing, space-efficient graph representation---Hilbert-ordered tiles, and a hybrid execution model that enables vertex-centric operations in fast host processors and edge-centric operations in massively parallel coprocessors.",
+        "url": "https://doi.org/10.1145/3064176.3064191",
+        "doi": "https://doi.org/10.1145/3064176.3064191",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2606413522"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 170
+      },
+      {
+        "paper_id": "rw_005_f83998511",
+        "title": "Soil Moisture Memory in Climate Models",
+        "authors": [
+          "Randal D. Koster",
+          "Max J. Suárez"
+        ],
+        "year": 2001,
+        "publication_date": "2001-12-01",
+        "venue": "Journal of Hydrometeorology",
+        "abstract": "Water balance considerations at the soil surface lead to an equation that relates the autocorrelation of soil moisture in climate models to 1) seasonality in the statistics of the atmospheric forcing, 2) the variation of evaporation with soil moisture, 3) the variation of runoff with soil moisture, and 4) correlation between the atmospheric forcing and antecedent soil moisture, as perhaps induced by land-atmosphere feedback. Geographical variations in the relative strengths of these factors, which can be established through analysis of model diagnostics, lead to geographical variations in simulated soil moisture memory. The use of the equation to characterize controls on soil moisture memory is demonstrated with data from the modeling system of the National Aeronautics and Space Administration Seasonal-to-Interannual Prediction Project.",
+        "url": "https://doi.org/10.1175/1525-7541(2001)002<0558:smmicm>2.0.co;2",
+        "doi": "https://doi.org/10.1175/1525-7541(2001)002<0558:smmicm>2.0.co;2",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W1963950134"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 499
+      },
+      {
+        "paper_id": "rw_006_75b283065",
+        "title": "Montage: a grid-enabled engine for delivering custom science-grade mosaics on demand",
+        "authors": [
+          "G. Bruce Berriman",
+          "Ewa Deelman",
+          "John Good",
+          "Joseph C. Jacob",
+          "Daniel S. Katz",
+          "Carl Kesselman",
+          "A. C. Laity",
+          "Thomas A. Prince",
+          "Gurmeet Singh",
+          "Mei-Hu Su"
+        ],
+        "year": 2004,
+        "publication_date": "2004-09-16",
+        "venue": "Proceedings of SPIE, the International Society for Optical Engineering/Proceedings of SPIE",
+        "abstract": "This paper describes the design of a grid-enabled version of Montage, an astronomical image mosaic service, suitable for large scale processing of the sky. All the re-projection jobs can be added to a pool of tasks and performed by as many processors as are available, exploiting the parallelization inherent in the Montage architecture. We show how we can describe the Montage application in terms of an abstract workflow so that a planning tool such as Pegasus can derive an executable workflow that can be run in the Grid environment. The execution of the workflow is performed by the workflow manager DAGMan and the associated Condor-G. The grid processing will support tiling of images to a manageable size when the input images can no longer be held in memory. Montage will ultimately run operationally on the Teragrid. We describe science applications of Montage, including its application to science product generation by Spitzer Legacy Program teams and large-scale, all-sky image processing projects.",
+        "url": "https://doi.org/10.1117/12.550551",
+        "doi": "https://doi.org/10.1117/12.550551",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2058791854"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 149
+      },
+      {
+        "paper_id": "rw_007_78aeb76b3",
+        "title": "Mosaic VSGs and the Scale of Trypanosoma brucei Antigenic Variation",
+        "authors": [
+          "James P. J. Hall",
+          "Huanhuan Wang",
+          "J. David Barry"
+        ],
+        "year": 2013,
+        "publication_date": "2013-07-11",
+        "venue": "PLoS Pathogens",
+        "abstract": "A main determinant of prolonged Trypanosoma brucei infection and transmission and success of the parasite is the interplay between host acquired immunity and antigenic variation of the parasite variant surface glycoprotein (VSG) coat. About 0.1% of trypanosome divisions produce a switch to a different VSG through differential expression of an archive of hundreds of silent VSG genes and pseudogenes, but the patterns and extent of the trypanosome diversity phenotype, particularly in chronic infection, are unclear. We applied longitudinal VSG cDNA sequencing to estimate variant richness and test whether pseudogenes contribute to antigenic variation. We show that individual growth peaks can contain at least 15 distinct variants, are estimated computationally to comprise many more, and that antigenically distinct 'mosaic' VSGs arise from segmental gene conversion between donor VSG genes or pseudogenes. The potential for trypanosome antigenic variation is probably much greater than VSG archive size; mosaic VSGs are core to antigenic variation and chronic infection.",
+        "url": "https://doi.org/10.1371/journal.ppat.1003502",
+        "doi": "https://doi.org/10.1371/journal.ppat.1003502",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2041308771"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 132
+      },
+      {
+        "paper_id": "rw_008_9734d74e6",
+        "title": "metaFlye: scalable long-read metagenome assembly using repeat graphs",
+        "authors": [
+          "Mikhail Kolmogorov",
+          "Derek M. Bickhart",
+          "Bahar Behsaz",
+          "Alexey Gurevich",
+          "Mikhail Rayko",
+          "Sung Bong Shin",
+          "Kristen L. Kuhn",
+          "Jeffrey Yuan",
+          "Evgeny Polevikov",
+          "Timothy P. L. Smith",
+          "Pavel A. Pevzner"
+        ],
+        "year": 2020,
+        "publication_date": "2020-10-05",
+        "venue": "Nature Methods",
+        "abstract": "",
+        "url": "https://doi.org/10.1038/s41592-020-00971-x",
+        "doi": "https://doi.org/10.1038/s41592-020-00971-x",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W3091506611"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 1146
+      },
+      {
+        "paper_id": "rw_009_e5795e8ce",
+        "title": "Mosaic: in-memory computing and routing for small-world spike-based neuromorphic systems",
+        "authors": [
+          "Thomas Dalgaty",
+          "Filippo Moro",
+          "Yiğit Demirağ",
+          "Alessio De Prà",
+          "Giacomo Indiveri",
+          "Elisa Vianello",
+          "Melika Payvand"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-02",
+        "venue": "Nature Communications",
+        "abstract": "The brain's connectivity is locally dense and globally sparse, forming a small-world graph-a principle prevalent in the evolution of various species, suggesting a universal solution for efficient information routing. However, current artificial neural network circuit architectures do not fully embrace small-world neural network models. Here, we present the neuromorphic Mosaic: a non-von Neumann systolic architecture employing distributed memristors for in-memory computing and in-memory routing, efficiently implementing small-world graph topologies for Spiking Neural Networks (SNNs). We've designed, fabricated, and experimentally demonstrated the Mosaic's building blocks, using integrated memristors with 130 nm CMOS technology. We show that thanks to enforcing locality in the connectivity, routing efficiency of Mosaic is at least one order of magnitude higher than other SNN hardware platforms. This is while Mosaic achieves a competitive accuracy in a variety of edge benchmarks. Mosaic offers a scalable approach for edge systems based on distributed spike-based computing and in-memory routing.",
+        "url": "https://doi.org/10.1038/s41467-023-44365-x",
+        "doi": "https://doi.org/10.1038/s41467-023-44365-x",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4390510698"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 54
+      },
+      {
+        "paper_id": "rw_010_d93f868f3",
+        "title": "Spatial Relational Memory Requires Hippocampal Adult Neurogenesis",
+        "authors": [
+          "David Dupret",
+          "Jean‐Michel Revest",
+          "Muriel Koehl",
+          "François Ichas",
+          "Francesca De Giorgi",
+          "Pierre Costet",
+          "Djoher Nora Abrous",
+          "Pier Vincenzo Piazza"
+        ],
+        "year": 2008,
+        "publication_date": "2008-04-08",
+        "venue": "PLoS ONE",
+        "abstract": "The dentate gyrus of the hippocampus is one of the few regions of the mammalian brain where new neurons are generated throughout adulthood. This adult neurogenesis has been proposed as a novel mechanism that mediates spatial memory. However, data showing a causal relationship between neurogenesis and spatial memory are controversial. Here, we developed an inducible transgenic strategy allowing specific ablation of adult-born hippocampal neurons. This resulted in an impairment of spatial relational memory, which supports a capacity for flexible, inferential memory expression. In contrast, less complex forms of spatial knowledge were unaltered. These findings demonstrate that adult-born neurons are necessary for complex forms of hippocampus-mediated learning.",
+        "url": "https://doi.org/10.1371/journal.pone.0001959",
+        "doi": "https://doi.org/10.1371/journal.pone.0001959",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W2010053974"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 589
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_009_e5795e8ce",
+        "relevance_score": 0.9,
+        "relevance_types": [
+          "same_method",
+          "same_constraints"
+        ],
+        "rationale": "The paper discusses Mosaic, a neuromorphic architecture emphasizing in-memory computing and routing for spiking neural networks, which relates to the associative memory networks and architectural innovations in the target.",
+        "evidence_summary": "In 2024, Dalgaty et al. published 'Mosaic: in-memory computing and routing for small-world spike-based neuromorphic systems' in Nature Communications, introducing a non-von Neumann systolic architecture that uses distributed memristors for in-memory computing and routing to implement small-world graph topologies for Spiking Neural Networks. The authors designed, fabricated, and demonstrated the building blocks with integrated memristors in 130 nm CMOS technology, achieving at least one order of magnitude higher routing efficiency than other SNN hardware platforms while maintaining competitive accuracy in edge benchmarks."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_004_4235783f5",
+        "relevance_score": 0.75,
+        "relevance_types": [
+          "same_method",
+          "constraints"
+        ],
+        "rationale": "The paper presents Mosaic, a graph processing engine for single heterogeneous machines, which relates to scaling computational methods and handling large-scale data similar to the target's focus on scaling memory mosaics to 10B parameters with architectural modifications.",
+        "evidence_summary": "In 2017, Maa et al. published 'Mosaic', a graph processing engine designed for a single heterogeneous machine with fast storage media and massively parallel coprocessors. They proposed a locality-optimizing, space-efficient graph representation called Hilbert-ordered tiles and a hybrid execution model that enables vertex-centric operations in host processors and edge-centric operations in coprocessors."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_008_9734d74e6",
+        "relevance_score": 0.6,
+        "relevance_types": [
+          "novelty_competitor"
+        ],
+        "rationale": "The paper introduces metaFlye, a method for scalable long-read metagenome assembly using repeat graphs, which involves graph-based computational approaches relevant to network structures in memory mosaics.",
+        "evidence_summary": "In 2020, Kolmogorov et al. published 'metaFlye: scalable long-read metagenome assembly using repeat graphs' in Nature Methods, presenting an engine for assembling metagenomes with long reads through the use of repeat graphs."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_006_75b283065",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "The paper describes Montage, a grid-enabled engine for delivering custom science-grade mosaics, which shares the term 'mosaic' and involves large-scale processing, providing background on mosaic-based systems.",
+        "evidence_summary": "In 2004, Berriman et al. published 'Montage: a grid-enabled engine for delivering custom science-grade mosaics on demand' in Proceedings of SPIE, detailing a service for astronomical image mosaicking that uses parallel processing and workflow management for large-scale sky processing."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_010_d93f868f3",
+        "relevance_score": 0.5,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "The paper investigates spatial relational memory and hippocampal adult neurogenesis, which relates to memory mechanisms and learning capabilities, offering biological context for memory systems.",
+        "evidence_summary": "In 2008, Dupret et al. published 'Spatial Relational Memory Requires Hippocampal Adult Neurogenesis' in PLoS ONE, demonstrating through inducible transgenic ablation that adult-born hippocampal neurons are necessary for complex forms of spatial relational memory but not for less complex spatial knowledge."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_003_c76e1b2c7",
+        "relevance_score": 0.45,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "The paper studies long-range temporal correlations and scaling behavior in human brain oscillations, which relates to network dynamics and self-organized criticality concepts that may inform memory network designs.",
+        "evidence_summary": "In 2001, Linkenkaer-Hansen et al. published 'Long-Range Temporal Correlations and Scaling Behavior in Human Brain Oscillations' in Journal of Neuroscience, showing that amplitude fluctuations of 10 and 20 Hz oscillations are correlated over thousands of cycles and exhibit power-law scaling behavior, proposing an explanation through self-organized criticality theory."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_005_f83998511",
+        "relevance_score": 0.4,
+        "relevance_types": [
+          "useful_background"
+        ],
+        "rationale": "The paper analyzes soil moisture memory in climate models, discussing memory persistence and factors influencing it, which provides a conceptual link to memory systems in computational models.",
+        "evidence_summary": "In 2001, Koster and Suárez published 'Soil Moisture Memory in Climate Models' in Journal of Hydrometeorology, deriving an equation that relates soil moisture autocorrelation to atmospheric forcing statistics, evaporation, runoff variations, and land-atmosphere feedback, with geographical variations in memory demonstrated using NASA model data."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_007_78aeb76b3",
+        "relevance_score": 0.35,
+        "relevance_types": [
+          "weakly_related"
+        ],
+        "rationale": "The paper examines mosaic VSGs in Trypanosoma brucei antigenic variation, using 'mosaic' in a biological context that is tangentially related to compositional structures.",
+        "evidence_summary": "In 2013, Hall et al. published 'Mosaic VSGs and the Scale of Trypanosoma brucei Antigenic Variation' in PLoS Pathogens, showing that antigenically distinct mosaic VSGs arise from segmental gene conversion and contribute to trypanosome diversity and chronic infection, with variant richness estimated via longitudinal cDNA sequencing."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_001_9f8efda37",
+        "relevance_score": 0.3,
+        "relevance_types": [
+          "weakly_related"
+        ],
+        "rationale": "The paper presents Sniffles2 for detecting mosaic structural variants in genomics, sharing the term 'mosaic' but in a completely different domain with no direct relevance to computational memory networks.",
+        "evidence_summary": "In 2024, Smolka et al. published 'Detection of mosaic and population-level structural variants with Sniffles2' in Nature Biotechnology, introducing a method that uses repeat-aware clustering and consensus sequencing to detect structural variants more accurately and faster than state-of-the-art callers, including mosaic SVs in bulk long-read data."
+      },
+      {
+        "rank": 10,
+        "paper_id": "rw_002_646f14351",
+        "relevance_score": 0.25,
+        "relevance_types": [
+          "weakly_related"
+        ],
+        "rationale": "The paper introduces Mauve for genomic sequence alignment with rearrangements, using 'mosaic' indirectly in describing genome segments, but it is far removed from the target's computational memory focus.",
+        "evidence_summary": "In 2004, Darling et al. published 'Mauve: Multiple Alignment of Conserved Genomic Sequence With Rearrangements' in Genome Research, presenting methods to identify and align conserved genomic DNA in the presence of rearrangements and horizontal transfer, applied to enterobacterial and mammalian genomes."
+      }
+    ],
+    "reranking": {
+      "source": "llm"
+    },
+    "related_work_summary": "In 2024, Dalgaty et al. published 'Mosaic: in-memory computing and routing for small-world spike-based neuromorphic systems' in Nature Communications, introducing a non-von Neumann systolic architecture that uses distributed memristors for in-memory computing and routing to implement small-world graph topologies for Spiking Neural Networks, with demonstrated building blocks in 130 nm CMOS technology achieving high routing efficiency and competitive accuracy in edge benchmarks. In 2017, Maa et al. published 'Mosaic', a graph processing engine for single heterogeneous machines, proposing Hilbert-ordered tiles for locality optimization and a hybrid execution model combining vertex-centric and edge-centric operations. In 2020, Kolmogorov et al. published 'metaFlye: scalable long-read metagenome assembly using repeat graphs' in Nature Methods, presenting an engine for assembling metagenomes with long reads through repeat graphs. In 2004, Berriman et al. published 'Montage: a grid-enabled engine for delivering custom science-grade mosaics on demand' in Proceedings of SPIE, detailing a service for astronomical image mosaicking that uses parallel processing and workflow management for large-scale sky processing. In 2008, Dupret et al. published 'Spatial Relational Memory Requires Hippocampal Adult Neurogenesis' in PLoS ONE, showing that adult-born hippocampal neurons are necessary for complex spatial relational memory. In 2001, Linkenkaer-Hansen et al. published 'Long-Range Temporal Correlations and Scaling Behavior in Human Brain Oscillations' in Journal of Neuroscience, demonstrating correlated amplitude fluctuations and power-law scaling in brain oscillations, explained by self-organized criticality.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 0,
+      "num_removed_undated": 0,
+      "num_used": 10,
+      "num_cutoff_valid": 10,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 0,
+    "num_removed_undated": 0,
+    "num_used": 10,
+    "num_cutoff_valid": 10,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}

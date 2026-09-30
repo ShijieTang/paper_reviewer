@@ -1,0 +1,200 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "Novel framework that effectively decouples training and sampling stages in graph generative models through discrete flow matching, enabling flexible design choices that were previously constrained by diffusion models.",
+        "Solid theoretical foundation provided through Corollaries 1-2 and Theorem 3, establishing that training loss minimization improves sampling dynamics and proving permutation invariance/equivariance properties, with formal proofs in appendices.",
+        "Comprehensive experimental evaluation across diverse datasets (synthetic: Planar, Tree, SBM; molecular: QM9, ZINC250k, MOSES, Guacamol; digital pathology) with thorough ablation studies demonstrating state-of-the-art performance and significant efficiency gains (5-10% of steps compared to diffusion models).",
+        "Thoughtful exploration of DeFoG's expanded design space through novel sampling methods (sample distortion, target guidance, stochasticity), with insightful analysis of when each component benefits performance across different graph types.",
+        "Clear presentation of methodology with well-organized algorithms, intuitive visualizations (Figure 1), and extensive appendices providing implementation details and additional results."
+      ],
+      "weaknesses": [
+        "The theoretical contributions, while sound, are relatively incremental adaptations of existing DFM theory to graphs rather than fundamentally new theoretical insights; the main theorems (Corollaries 1-2) establish bounds on estimation error and distribution deviation but do not provide new theoretical perspectives on graph generation.",
+        "Hyperparameter search strategy is acknowledged as suboptimal (sequential single-parameter sweeps rather than joint optimization), which raises questions about whether reported performance gains are fully realizable or if further joint tuning could substantially improve results.",
+        "Limited analysis of why specific distortion functions and hyperparameters work better for specific datasets; the paper observes that 'optimal time ranges in graph generation vary across datasets' but provides limited principled guidance for practitioners on how to select hyperparameters for new datasets without extensive experimentation.",
+        "Comparison with CatFlow (Eijkelboom et al., 2024), the other recent flow-based graph generative model, is incomplete; results tables show CatFlow but with missing entries ('−') for several metrics, making it difficult to fully assess relative performance.",
+        "Scalability to very large graphs remains unaddressed; experiments focus on relatively small graphs (largest SBM graphs appear modest in scale), and the paper explicitly acknowledges 'scaling to larger graphs' as a future challenge without discussing computational complexity or memory requirements."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The theoretical contributions, while sound, are relatively incremental adaptations of existing DFM theory to graphs rather than fundamentally new theoretical insights; the main theorems (Corollaries 1-2) establish bounds on estimation error and distribution deviation but do not provide new theoretical perspectives on graph generation.",
+          "severity": "minor",
+          "evidence": "Corollaries 1 and 2 directly adapt the DFM framework from Campbell et al. (2024) to graphs by applying it node-wise and edge-wise. The proofs in Appendix D largely follow standard derivations from continuous-time Markov chains. Theorem 3 on permutation invariance is a straightforward application of permutation-equivariant neural networks rather than a novel theoretical contribution.",
+          "affected_claim": "The paper claims to 'provide a theoretical foundation for both our training and sampling algorithms, validating the soundness of the disentanglement framework' but the theoretical results are primarily adaptations rather than novel insights.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Hyperparameter search strategy is acknowledged as suboptimal (sequential single-parameter sweeps rather than joint optimization), which raises questions about whether reported performance gains are fully realizable or if further joint tuning could substantially improve results.",
+          "severity": "minor",
+          "evidence": "Section 3.2 and especially Appendix B.4 explicitly state: 'A significant advantage of flow matching methods is their inherently greater flexibility in the sampling process compared to diffusion models...However, conducting a full grid search across all those methodologies is impractical for the computational resources available...The optimal values obtained for each strategy are combined to form the final configuration.' The paper later admits 'We expect to achieve even better results if a more comprehensive search of the hyperparameter space was carried out.'",
+          "affected_claim": "The claim of state-of-the-art performance is valid but potentially conservative; the magnitude of improvements may be understated due to suboptimal hyperparameter selection.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "Limited analysis of why specific distortion functions and hyperparameters work better for specific datasets; the paper observes that 'optimal time ranges in graph generation vary across datasets' but provides limited principled guidance for practitioners on how to select hyperparameters for new datasets without extensive experimentation.",
+          "severity": "minor",
+          "evidence": "Section 5.3 shows empirical results that different distortions work for different datasets (e.g., 'cos and polydec distortions which emphasize refinement at later steps, perform better on the Planar dataset' while 'for datasets like SBM, where properties are not deterministic...this refinement does not provide any advantage'). However, the paper does not provide a principled way to predict which distortion to use for a new dataset beyond manual testing.",
+          "affected_claim": "The framework's practical applicability is limited without principled hyperparameter selection guidance, reducing accessibility for practitioners.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Comparison with CatFlow (Eijkelboom et al., 2024), the other recent flow-based graph generative model, is incomplete; results tables show CatFlow but with missing entries ('−') for several metrics, making it difficult to fully assess relative performance.",
+          "severity": "minor",
+          "evidence": "Table 1 shows CatFlow results but with missing ratio values ('−'). Table 2 similarly shows CatFlow with incomplete metrics. The paper does not explain why these comparisons are incomplete or acknowledge the limitation, making direct performance comparison difficult.",
+          "affected_claim": "Claims of state-of-the-art performance relative to flow-based methods are difficult to fully verify due to incomplete comparisons.",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Scalability to very large graphs remains unaddressed; experiments focus on relatively small graphs (largest SBM graphs appear modest in scale), and the paper explicitly acknowledges 'scaling to larger graphs' as a future challenge without discussing computational complexity or memory requirements.",
+          "severity": "major",
+          "evidence": "The conclusion states 'Generating high-quality graphs in even fewer steps and scaling to larger graphs also remain key challenges.' The paper focuses on relatively small molecular graphs (MOSES, Guacamol, QM9) and synthetic benchmarks. No experiments are provided on truly large graphs (thousands or millions of nodes). The O(N²) complexity for edges in the rate matrix computation (noted in Corollary 2: 'XN + E N(N-1)/2') suggests potential scalability issues.",
+          "affected_claim": "The practical applicability of DeFoG to real-world applications with large graphs is unclear; the framework's scalability is a significant open question that limits its impact for important applications.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The technical approach is sound. The discrete flow matching formulation is correctly adapted to graphs with proper factorization of nodes and edges. Theoretical results (Corollaries 1-2) are correctly derived with proofs in appendices. The CTMC formulation and rate matrix computations follow established mathematical frameworks. Algorithms 1 and 2 are clearly specified and implementable. No mathematical errors are apparent in the main text or accessible portions of appendices."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "DeFoG introduces a novel training-sampling decoupling framework for graphs that is genuinely new and distinct from prior work. While it adapts DFM from Campbell et al. (2024), the application to graphs is non-trivial and the exploration of the design space through sample distortion, target guidance, and stochasticity modifications represents novel contributions. The framework enables capabilities (dataset-specific hyperparameter tuning without retraining) that were previously impossible with diffusion models. The contribution is sufficient for a top-tier venue despite building on prior DFM work."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The work addresses an important problem (inflexibility in training-sampling coupling in graph diffusion models) with practical implications. Achieving SOTA performance across multiple domains with 5-10% of sampling steps is a meaningful practical contribution. The framework opens new research directions in sampling optimization for discrete generative models. However, significance is somewhat limited by unaddressed scalability concerns and the fact that improvements are primarily empirical rather than providing fundamental new insights."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Experimental evaluation is comprehensive with multiple datasets (synthetic, molecular, medical), standard evaluation metrics, ablation studies confirming necessity of each component, and fair comparisons with numerous baselines. Results are reported with error bars/standard deviations where available. Ablations systematically explore the design space. The main limitation is the suboptimal hyperparameter search procedure, but this is acknowledged and does not invalidate the results—it suggests further improvements are possible."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-written and clearly organized. Main concepts are introduced intuitively (Figure 1), mathematical formulations are precise, algorithms are clearly specified, and the extensive appendices provide thorough supporting details. Notation is consistent and figures are informative. Some sections are dense but this is appropriate for the technical content. No significant clarity issues that would impede understanding."
+        }
+      },
+      "summary_comment": "DeFoG presents a well-executed framework that makes meaningful contributions to graph generative modeling through training-sampling decoupling enabled by discrete flow matching. The work is technically sound, experimentally comprehensive, and achieves state-of-the-art performance with significant efficiency improvements. While the theoretical contributions are somewhat incremental (adapting existing DFM theory to graphs), the practical impact is substantial. The main limitations are: (1) suboptimal hyperparameter search suggesting potential for further improvements, (2) limited principled guidance for practitioners on hyperparameter selection, (3) incomplete comparisons with CatFlow, and (4) unaddressed scalability to very large graphs. These limitations are primarily practical rather than fundamental flaws and do not undermine the core contribution. The work makes sufficient novel and significant contributions to warrant publication at a top venue, though the scalability issue prevents it from being exceptional."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Core topic alignment: Graph generative models are explicitly listed as relevant to ICML's scope. The paper addresses a fundamental problem in machine learning—improving graph generation through architectural and algorithmic innovations.\",\n      \"Methodological contribution: DeFoG introduces novel training-sampling decoupling through discrete flow matching, which is a methodological advance in optimization and iterative refinement models. This aligns with ICML's focus on 'optimization' and 'deep learning architectures.'\",\n      \"Strong empirical results: The paper demonstrates state-of-the-art performance across multiple benchmark datasets (synthetic, molecular, digital pathology) with significant efficiency gains (5-10% of sampling steps). This type of empirical validation with comprehensive ablations is well-valued at ICML.\",\n      \"Theoretical grounding: While incremental, the theoretical contributions (Corollaries 1-2, Theorem 3) formally establish the soundness of the framework and prove permutation invariance properties. ICML appreciates both theory and empirical validation.\",\n      \"Evaluation methodology: Comprehensive experiments with multiple datasets, proper ablation studies, standard metrics, and comparisons with numerous baselines meet ICML's standards for rigorous evaluation.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited theoretical novelty: The core theoretical results are relatively straightforward adaptations of existing DFM theory (Campbell et al., 2024) applied node-wise and edge-wise to graphs. Reviewer notes these are 'incremental adaptations of existing DFM theory to graphs rather than fundamentally new theoretical insights.' ICML values novel theory as much as empirical contributions.\",\n      \"Application-driven rather than foundational: The paper is primarily an application of discrete flow matching to graphs with empirical engineering (distortion functions, target guidance, stochasticity tuning). While valuable, this is less aligned with ICML's emphasis on general machine learning advances than with domain-specific applications.\",\n      \"Scalability unaddressed: The paper explicitly states 'scaling to larger graphs' remains a key challenge. The O(N²) edge complexity and focus on relatively small graphs (largest benchmarks are small molecules) limit the practical applicability to real-world large-scale problems, which ICML values for impact.\",\n      \"Hyperparameter selection lacks principled guidance: The paper acknowledges using a suboptimal sequential hyperparameter search rather than joint optimization. Moreover, no principled guidance is provided for selecting hyperparameters for new datasets, requiring practitioners to perform expensive grid searches. This reduces the methodological contribution.\",\n      \"Incomplete comparison with related flow method: CatFlow (Eijkelboom et al., 2024), the other recent flow-based graph generative model, has incomplete experimental comparisons (missing entries in tables). This weakens the claim of being state-of-the-art among flow-based methods.\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 8,\n    \"why_it_fits\": [\n      \"Broad interdisciplinary scope: NeurIPS explicitly welcomes 'interdisciplinary submissions that do not fit neatly into existing categories' and includes numerous relevant topics. Graph generation appears under 'general machine learning,' 'deep learning,' 'optimization,' and 'probabilistic methods.'\",\n      \"Multi-domain application validation: The paper demonstrates results across diverse application areas—synthetic graph generation (combinatorics), molecular generation (chemistry/drug discovery), and digital pathology (healthcare/biology). This breadth of applications aligns perfectly with NeurIPS's emphasis on 'AI/ML for physical sciences,' 'AI/ML for health and biotechnology,' and application-driven contributions.\",\n      \"Methodological innovation with efficiency gains: The training-sampling decoupling framework enables novel sampling strategies that achieve state-of-the-art performance with dramatically fewer steps (5-10% of prior methods). This kind of efficiency improvement is highly valued at NeurIPS for its practical impact.\",\n      \"Theoretical grounding with empirical validation: The paper provides formal analysis (Corollaries 1-2 establishing training-sampling soundness) alongside comprehensive empirical validation. NeurIPS values 'in-depth analysis of existing methods that provide new insights,' which this paper does for discrete generative models.\",\n      \"Comprehensive experimental methodology: The work includes extensive ablations, error reporting, multiple benchmarks, and honest discussion of limitations (acknowledged suboptimal hyperparameter search, scalability challenges). This rigor is consistent with NeurIPS standards.\",\n      \"Clear presentation and accessibility: The paper is well-written with intuitive motivation, clear algorithms, and extensive appendices. NeurIPS audiences span practitioners and theorists, and this paper serves both groups effectively.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Limited purely theoretical novelty: While the theoretical framework is sound, it represents adaptation rather than fundamental innovation. For a venue emphasizing 'Theory,' the Corollaries are relatively straightforward derivations from existing DFM work. However, this is a minor concern given NeurIPS's multi-track nature.\",\n      \"Scalability limitations unaddressed: The paper focuses on small to medium graphs and explicitly leaves scalability to larger graphs as future work. For applications in real-world networks or biological systems with thousands/millions of entities, this is a significant limitation that could concern NeurIPS reviewers focused on practical impact.\",\n      \"Hyperparameter tuning complexity: The framework requires dataset-specific hyperparameter optimization (distortion functions, target guidance magnitude, stochasticity level) without principled selection methods. This reduces accessibility and generalizability, potentially limiting broader adoption.\",\n      \"Incomplete comparison with concurrent flow-based work: CatFlow (Eijkelboom et al., 2024) results are incomplete in tables, making it difficult to assess relative advantages of DeFoG versus the other recent flow-matching approach for graphs. At a top venue, complete competitive analysis is expected.\",\n      \"Risk of incremental categorization: If reviewed by theorists, the work might be seen as primarily empirical engineering rather than fundamental contribution. This could result in borderline scores even though practitioners would find it highly valuable.\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Core alignment with deep learning research: ICLR's focus on 'deep learning,' 'representation learning,' and 'generative models' directly encompasses this work. Graph generation through iterative refinement is an established ICLR topic with prior work from the same institutions.\",\n      \"Novel architectural design space: The paper's exploration of training-sampling decoupling creates new design choices in generative model architecture. ICLR values papers that 'provide new insights in terms of...behavior beyond the scope of the original work,' which this paper does by showing how sampling strategies can be independently optimized.\",\n      \"Permutation-equivariant architectures: The formal treatment of node permutation invariance/equivariance (Theorem 3) with guarantees about permutation-invariant loss and sampling aligns with ICLR's interest in 'learning on graphs and other geometries & topologies.'\",\n      \"Comprehensive empirical analysis: Extensive ablations (Figure 3) systematically explore distortion functions, target guidance, and stochasticity, providing insights into design space tradeoffs. ICLR values thorough empirical analysis of architectural choices.\",\n      \"Application diversity: Demonstrations on synthetic graphs (Planar, Tree, SBM), molecular generation (QM9, ZINC250k, MOSES, Guacamol), and digital pathology show versatility. ICLR explicitly includes 'applications to...chemistry, biology...healthcare' in its scope.\",\n      \"Theoretical grounding: Formal analysis of training-sampling connection (Corollaries 1-2) and total variation bounds provide mathematical justification for the approach, consistent with ICLR's emphasis on foundational understanding.\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Primarily engineering-focused optimization: While the core idea (training-sampling decoupling) is novel, much of the contribution consists of engineering optimizations (distortion functions, Rω modifications, stochasticity tuning). ICLR emphasizes fundamental advances in representation learning and deep learning, and this work is more 'tuning a design space' than 'discovering new principles.'\",\n      \"Incremental theoretical contribution: The theoretical results (Corollaries 1-2) directly adapt Campbell et al. (2024) DFM theory to graphs through factorization. Theorem 3 on permutation invariance is a straightforward consequence of using permutation-equivariant networks. ICLR expects either novel theoretical insights or strong enough empirical contributions to compensate.\",\n      \"Scalability and practical limitations: The paper does not address how to scale to large graphs, which is crucial for many real-world applications mentioned in ICLR's scope (biological systems, social networks, etc.). The O(N²) complexity and focus on small graphs limit practical impact.\",\n      \"Hyperparameter selection remains a bottleneck: The framework achieves good results only through dataset-specific tuning without principled guidance. ICLR values methods that generalize well across domains with minimal tuning. The need for extensive hyperparameter search on each new dataset reduces the contribution's generalizability.\",\n      \"Incomplete comparisons limit assessment: Missing CatFlow results in benchmark tables make it difficult to fully assess whether DeFoG represents a clear advance over the other recent flow-based approach (Eijkelboom et al., 2024), which is directly comparable since both are flow matching methods on graphs.\",\n      \"Limited conceptual novelty in core contribution: The main insight—that decoupling training from sampling enables better sampling algorithms—is somewhat expected given prior work in continuous-time models. The surprise is primarily that existing DFM was not applied to graphs earlier.\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary\n\n**Recommendation: NeurIPS (fit_score: 8) > ICML (fit_score: 7) ≥ ICLR (fit_score: 7)**\n\n### Key Insights:\n\n**DeFoG is a solid empirical paper with meaningful practical contributions but limited theoretical novelty.** The core contribution—applying discrete flow matching to graphs with training-sampling decoupling—is valuable but represents engineering optimization more than fundamental innovation.\n\n**NeurIPS is the best fit (score: 8)** because:\n- It explicitly welcomes broad interdisciplinary applications across domains (molecular generation, digital pathology, synthetic graphs)\n- It values efficiency gains and practical impact (5-10% sampling steps) alongside theory\n- Its multi-track structure accommodates application-driven papers without requiring groundbreaking theory\n- The comprehensive ablations and empirical analysis align with NeurIPS's appreciation for in-depth method analysis\n\n**ICML is a good fit (score: 7)** because:\n- Graph generative models and optimization methods are core topics\n- State-of-the-art results with proper ablations meet venue standards\n- However, limited theoretical novelty and unaddressed scalability concerns prevent it from being excellent—ICML expects either novel theory or fundamental insights alongside strong empirics\n\n**ICLR is equally qualified but risky (score: 7)** because:\n- Graph generation and permutation-equivariant architectures are in scope\n- However, ICLR's emphasis on deep learning fundamentals and representation learning means reviewers may view this as \"applying existing methods to graphs\" rather than advancing core deep learning concepts\n- The incremental theoretical contribution and engineering-focused optimization create risk of being seen as too applied/incremental for ICLR's standards\n\n**Critical weaknesses across all venues:**\n1. **Scalability unaddressed** - major limitation for claimed real-world applicability\n2. **Suboptimal hyperparameter search** - results may be conservative; lack of principled selection guidance reduces generalizability\n3. **Incomplete comparisons** - CatFlow results incomplete, weakening SOTA claims\n4. **Theory is incremental** - straightforward adaptation of DFM rather than novel insights",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "Novel framework that effectively decouples training and sampling stages in graph generative models through discrete flow matching, enabling flexible design choices that were previously constrained by diffusion models.",
+              "Solid theoretical foundation provided through Corollaries 1-2 and Theorem 3, establishing that training loss minimization improves sampling dynamics and proving permutation invariance/equivariance properties, with formal proofs in appendices.",
+              "Comprehensive experimental evaluation across diverse datasets (synthetic: Planar, Tree, SBM; molecular: QM9, ZINC250k, MOSES, Guacamol; digital pathology) with thorough ablation studies demonstrating state-of-the-art performance and significant efficiency gains (5-10% of steps compared to diffusion models).",
+              "Thoughtful exploration of DeFoG's expanded design space through novel sampling methods (sample distortion, target guidance, stochasticity), with insightful analysis of when each component benefits performance across different graph types.",
+              "Clear presentation of methodology with well-organized algorithms, intuitive visualizations (Figure 1), and extensive appendices providing implementation details and additional results."
+            ],
+            "weaknesses": [
+              "The theoretical contributions, while sound, are relatively incremental adaptations of existing DFM theory to graphs rather than fundamentally new theoretical insights; the main theorems (Corollaries 1-2) establish bounds on estimation error and distribution deviation but do not provide new theoretical perspectives on graph generation.",
+              "Hyperparameter search strategy is acknowledged as suboptimal (sequential single-parameter sweeps rather than joint optimization), which raises questions about whether reported performance gains are fully realizable or if further joint tuning could substantially improve results.",
+              "Limited analysis of why specific distortion functions and hyperparameters work better for specific datasets; the paper observes that 'optimal time ranges in graph generation vary across datasets' but provides limited principled guidance for practitioners on how to select hyperparameters for new datasets without extensive experimentation.",
+              "Comparison with CatFlow (Eijkelboom et al., 2024), the other recent flow-based graph generative model, is incomplete; results tables show CatFlow but with missing entries ('−') for several metrics, making it difficult to fully assess relative performance.",
+              "Scalability to very large graphs remains unaddressed; experiments focus on relatively small graphs (largest SBM graphs appear modest in scale), and the paper explicitly acknowledges 'scaling to larger graphs' as a future challenge without discussing computational complexity or memory requirements."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The theoretical contributions, while sound, are relatively incremental adaptations of existing DFM theory to graphs rather than fundamentally new theoretical insights; the main theorems (Corollaries 1-2) establish bounds on estimation error and distribution deviation but do not provide new theoretical perspectives on graph generation.",
+                "severity": "minor",
+                "evidence": "Corollaries 1 and 2 directly adapt the DFM framework from Campbell et al. (2024) to graphs by applying it node-wise and edge-wise. The proofs in Appendix D largely follow standard derivations from continuous-time Markov chains. Theorem 3 on permutation invariance is a straightforward application of permutation-equivariant neural networks rather than a novel theoretical contribution.",
+                "affected_claim": "The paper claims to 'provide a theoretical foundation for both our training and sampling algorithms, validating the soundness of the disentanglement framework' but the theoretical results are primarily adaptations rather than novel insights.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Hyperparameter search strategy is acknowledged as suboptimal (sequential single-parameter sweeps rather than joint optimization), which raises questions about whether reported performance gains are fully realizable or if further joint tuning could substantially improve results.",
+                "severity": "minor",
+                "evidence": "Section 3.2 and especially Appendix B.4 explicitly state: 'A significant advantage of flow matching methods is their inherently greater flexibility in the sampling process compared to diffusion models...However, conducting a full grid search across all those methodologies is impractical for the computational resources available...The optimal values obtained for each strategy are combined to form the final configuration.' The paper later admits 'We expect to achieve even better results if a more comprehensive search of the hyperparameter space was carried out.'",
+                "affected_claim": "The claim of state-of-the-art performance is valid but potentially conservative; the magnitude of improvements may be understated due to suboptimal hyperparameter selection.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "Limited analysis of why specific distortion functions and hyperparameters work better for specific datasets; the paper observes that 'optimal time ranges in graph generation vary across datasets' but provides limited principled guidance for practitioners on how to select hyperparameters for new datasets without extensive experimentation.",
+                "severity": "minor",
+                "evidence": "Section 5.3 shows empirical results that different distortions work for different datasets (e.g., 'cos and polydec distortions which emphasize refinement at later steps, perform better on the Planar dataset' while 'for datasets like SBM, where properties are not deterministic...this refinement does not provide any advantage'). However, the paper does not provide a principled way to predict which distortion to use for a new dataset beyond manual testing.",
+                "affected_claim": "The framework's practical applicability is limited without principled hyperparameter selection guidance, reducing accessibility for practitioners.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Comparison with CatFlow (Eijkelboom et al., 2024), the other recent flow-based graph generative model, is incomplete; results tables show CatFlow but with missing entries ('−') for several metrics, making it difficult to fully assess relative performance.",
+                "severity": "minor",
+                "evidence": "Table 1 shows CatFlow results but with missing ratio values ('−'). Table 2 similarly shows CatFlow with incomplete metrics. The paper does not explain why these comparisons are incomplete or acknowledge the limitation, making direct performance comparison difficult.",
+                "affected_claim": "Claims of state-of-the-art performance relative to flow-based methods are difficult to fully verify due to incomplete comparisons.",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Scalability to very large graphs remains unaddressed; experiments focus on relatively small graphs (largest SBM graphs appear modest in scale), and the paper explicitly acknowledges 'scaling to larger graphs' as a future challenge without discussing computational complexity or memory requirements.",
+                "severity": "major",
+                "evidence": "The conclusion states 'Generating high-quality graphs in even fewer steps and scaling to larger graphs also remain key challenges.' The paper focuses on relatively small molecular graphs (MOSES, Guacamol, QM9) and synthetic benchmarks. No experiments are provided on truly large graphs (thousands or millions of nodes). The O(N²) complexity for edges in the rate matrix computation (noted in Corollary 2: 'XN + E N(N-1)/2') suggests potential scalability issues.",
+                "affected_claim": "The practical applicability of DeFoG to real-world applications with large graphs is unclear; the framework's scalability is a significant open question that limits its impact for important applications.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The technical approach is sound. The discrete flow matching formulation is correctly adapted to graphs with proper factorization of nodes and edges. Theoretical results (Corollaries 1-2) are correctly derived with proofs in appendices. The CTMC formulation and rate matrix computations follow established mathematical frameworks. Algorithms 1 and 2 are clearly specified and implementable. No mathematical errors are apparent in the main text or accessible portions of appendices."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "DeFoG introduces a novel training-sampling decoupling framework for graphs that is genuinely new and distinct from prior work. While it adapts DFM from Campbell et al. (2024), the application to graphs is non-trivial and the exploration of the design space through sample distortion, target guidance, and stochasticity modifications represents novel contributions. The framework enables capabilities (dataset-specific hyperparameter tuning without retraining) that were previously impossible with diffusion models. The contribution is sufficient for a top-tier venue despite building on prior DFM work."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The work addresses an important problem (inflexibility in training-sampling coupling in graph diffusion models) with practical implications. Achieving SOTA performance across multiple domains with 5-10% of sampling steps is a meaningful practical contribution. The framework opens new research directions in sampling optimization for discrete generative models. However, significance is somewhat limited by unaddressed scalability concerns and the fact that improvements are primarily empirical rather than providing fundamental new insights."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experimental evaluation is comprehensive with multiple datasets (synthetic, molecular, medical), standard evaluation metrics, ablation studies confirming necessity of each component, and fair comparisons with numerous baselines. Results are reported with error bars/standard deviations where available. Ablations systematically explore the design space. The main limitation is the suboptimal hyperparameter search procedure, but this is acknowledged and does not invalidate the results—it suggests further improvements are possible."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-written and clearly organized. Main concepts are introduced intuitively (Figure 1), mathematical formulations are precise, algorithms are clearly specified, and the extensive appendices provide thorough supporting details. Notation is consistent and figures are informative. Some sections are dense but this is appropriate for the technical content. No significant clarity issues that would impede understanding."
+              }
+            },
+            "summary_comment": "DeFoG presents a well-executed framework that makes meaningful contributions to graph generative modeling through training-sampling decoupling enabled by discrete flow matching. The work is technically sound, experimentally comprehensive, and achieves state-of-the-art performance with significant efficiency improvements. While the theoretical contributions are somewhat incremental (adapting existing DFM theory to graphs), the practical impact is substantial. The main limitations are: (1) suboptimal hyperparameter search suggesting potential for further improvements, (2) limited principled guidance for practitioners on hyperparameter selection, (3) incomplete comparisons with CatFlow, and (4) unaddressed scalability to very large graphs. These limitations are primarily practical rather than fundamental flaws and do not undermine the core contribution. The work makes sufficient novel and significant contributions to warrant publication at a top venue, though the scalability issue prevents it from being exceptional."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

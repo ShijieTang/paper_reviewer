@@ -6,11 +6,14 @@ Evaluate AI paper reviewers against human ground-truth reviews from OpenReview.
 Sources evaluated:
     - OpenReviewer    : results in openreviewer.json
     - PaperReviewer   : results in paperreviewer.json
-    - our_single      : Condition A (single-agent)   from experiment_summary_*.json
-    - our_multi       : Condition B (multi-agent)    from experiment_summary_*.json
-    - our_baseline    : Condition C (no-persona)     from experiment_baseline_summary_*.json
-    - our_nopersona   : Condition D (NNN, 3 iter)    from experiment_nopersona_summary_*.json
-    - our_C*          : additional conditions from experiment summaries
+    - our_cond1..7    : experiment.py conditions     from experiment_summary_*.json
+    - our_C* / our_T* : advanced / sealed trigger conditions
+                        (legacy ids A/B are exposed as our_single / our_multi)
+    - our_baseline    : no-persona baseline          from experiment_baseline_summary_*.json
+    - our_nopersona   : NNN, 3 iterations            from experiment_nopersona_summary_*.json
+
+Several --exp_summary files may be passed at once (e.g. one run per model); their
+systems are then prefixed with the run's model name, e.g. our_gpt-4o-mini_cond1.
 
 Metrics per paper per system:
     - src_strengths       : Semantic Review Coverage for strength statements
@@ -169,6 +172,55 @@ def _load_exp_summary(path: str) -> dict:
     return {p["paper_id"]: p for p in data["papers"]}
 
 
+# Legacy experiment.py used condition ids "A"/"B"; the current version uses "1".."5".
+# Map both onto stable system names so old and new summaries stay comparable.
+_LEGACY_COND_SYSTEM = {"A": "single", "B": "multi"}
+
+
+def _cond_system_suffix(cond_id: str) -> str:
+    """System-name suffix for a condition id ('A' -> 'single', '3' -> 'cond3')."""
+    return _LEGACY_COND_SYSTEM.get(cond_id, f"cond{cond_id}" if cond_id.isdigit() else cond_id)
+
+
+def _cond_result(cond: dict, summary_dir: Path) -> dict:
+    """Load a legacy result file when present, retaining workflow metadata."""
+    result_file = cond.get("result_file")
+    if result_file:
+        path = summary_dir / result_file
+        if path.exists():
+            try:
+                result = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(result, dict) and "reviewers" in result:
+                    return result
+            except (OSError, json.JSONDecodeError):
+                pass
+    result = cond.get("result") or {}
+    return result if isinstance(result, dict) else {}
+
+
+def _cond_reviewers(cond: dict, summary_dir: Path) -> list:
+    """Reviewers for one condition, preferring the standalone result .txt on disk.
+
+    The summary embeds a copy of each result, but that copy can go stale — a
+    re-parse pass may rewrite the .txt files without rewriting the summary — so
+    the file next to the summary wins whenever it is readable.
+    Reviewers whose JSON never parsed (stored as {"raw": ..., "parse_error": True})
+    carry no strengths/weaknesses and are dropped rather than scored as zeros.
+    """
+    return _collected_reviewers(_cond_result(cond, summary_dir).get("reviewers", []))
+
+
+def _exp_summary_tag(path: str) -> str:
+    """Short tag identifying an experiment run, used when several are compared.
+
+    Prefers the run's model name, falling back to the containing directory."""
+    data = _load_json(path)
+    model = (data.get("model") or "").strip()
+    if model:
+        return _slugify(model.split("/")[-1])
+    return _slugify(Path(path).parent.name)
+
+
 def _load_baseline_summary(path: str) -> dict:
     data = _load_json(path)
     return {p["paper_id"]: p for p in data["papers"]}
@@ -186,16 +238,25 @@ def _slugify(text: str) -> str:
     return re.sub(r"-{2,}", "-", slug).strip("-") or "unknown"
 
 
+# Paper ids can be very long, and several of them joined together overflow the
+# filesystem's per-name limit, so any slug built from them is truncated.
+_MAX_SCOPE_SLUG = 80
+
+
+def _truncate_slug(slug: str) -> str:
+    return slug if len(slug) <= _MAX_SCOPE_SLUG else slug[:_MAX_SCOPE_SLUG].rstrip("-")
+
+
 def _scope_slug(selected_ids: list[str], used_all_papers: bool) -> str:
     n = len(selected_ids)
     if n == 0:
         return "no-papers"
     if n == 1:
-        return _slugify(selected_ids[0])
+        return _truncate_slug(_slugify(selected_ids[0]))
     if used_all_papers:
         return f"all-{n}-papers"
     if n <= 3:
-        return "_".join(_slugify(pid) for pid in selected_ids)
+        return _truncate_slug("_".join(_slugify(pid) for pid in selected_ids)) + f"__{n}-papers"
     return f"subset-{n}-papers"
 
 
@@ -354,15 +415,25 @@ def run_evaluation(
     embed_model_name:        Optional[str] = None,
     paper_ids:               Optional[list] = None,
     our_results:             Optional[str] = None,
-    exp_summary_path:        Optional[str] = None,
+    exp_summary_path:        Optional[str] | Optional[list] = None,
     baseline_summary_path:   Optional[str] = None,
     nopersona_summary_path:  Optional[str] = None,
     output_path:             Optional[str] = None,
     embed_revision:          Optional[str] = None,
 ) -> dict:
 
-    exp_document = _load_json(exp_summary_path) if exp_summary_path else {}
-    is_trigger = exp_document.get("experiment") == "trigger_rag_screening"
+    exp_summary_paths = (
+        [] if not exp_summary_path
+        else [str(exp_summary_path)] if isinstance(exp_summary_path, (str, Path))
+        else list(exp_summary_path)
+    )
+    exp_documents = [_load_json(path) for path in exp_summary_paths]
+    is_trigger = any(doc.get("experiment") == "trigger_rag_screening" for doc in exp_documents)
+    # Sealed repeats must be evaluated separately, with their original system
+    # names and provenance, before the paired screening analysis combines them.
+    if is_trigger and len(exp_documents) != 1:
+        raise ValueError("Evaluate each sealed trigger summary separately")
+    exp_document = exp_documents[0] if len(exp_documents) == 1 else {}
     embed_model_name = embed_model_name or (EMBED_MODEL if is_trigger else "all-MiniLM-L6-v2")
     if is_trigger and embed_revision is None:
         embed_revision = EMBED_REVISION
@@ -390,8 +461,17 @@ def run_evaluation(
 
     or_index          = _index(openreviewer_path)
     pr_index          = _index(paperreviewer_path)
-    exp_index         = {p["paper_id"]: p for p in exp_document.get("papers", [])}
-    exp_condition_configs = exp_document.get("conditions", {})
+
+    # One or more experiment summaries (e.g. one per model). Each becomes a set of
+    # systems named our_<tag>_<cond suffix>, or our_<cond suffix> for a single run.
+    exp_runs = []
+    for p, document in zip(exp_summary_paths, exp_documents):
+        tag = _exp_summary_tag(p) if len(exp_summary_paths) > 1 else None
+        exp_runs.append({"tag": tag, "dir": Path(p).parent,
+                         "index": {item["paper_id"]: item for item in document.get("papers", [])},
+                         "conditions": document.get("conditions", {})})
+
+
     baseline_index    = _load_baseline_summary(baseline_summary_path) if baseline_summary_path    else {}
     nopersona_index   = _load_nopersona_summary(nopersona_summary_path) if nopersona_summary_path else {}
 
@@ -411,15 +491,16 @@ def run_evaluation(
             "papers": _artifact_info(papers_path),
             "exp_summary": (
                 {
-                    **(_artifact_info(exp_summary_path) or {}),
+                    **(_artifact_info(exp_summary_paths[0]) or {}),
                     "repeat_id": exp_document.get("repeat_id"),
                     "experiment": exp_document.get("experiment"),
                     "code_bundle_sha256": exp_document.get("code_bundle_sha256"),
                     "prompt_bundle_sha256": exp_document.get("prompt_bundle_sha256"),
                 }
-                if exp_summary_path
+                if len(exp_summary_paths) == 1
                 else None
             ),
+            "exp_summaries": [_artifact_info(path) for path in exp_summary_paths],
         },
         "papers":      [],
         "invalid_conditions": [],
@@ -480,15 +561,18 @@ def run_evaluation(
             sc  = p.get("score")
             _add("paperreviewer", sw, dec, sc)
 
-        # Experiment conditions (legacy A/B and advanced C1-C5)
-        if paper_id in exp_index:
-            exp_paper = exp_index[paper_id]
-            legacy_names = {"A": "our_single", "B": "our_multi"}
+        # Experiment conditions — whatever ids the summary actually contains
+        for run in exp_runs:
+            exp_paper = run["index"].get(paper_id)
+            if not exp_paper:
+                continue
             for cond_id, cond in exp_paper.get("conditions", {}).items():
-                raw_result = cond.get("result") or {}
+                # Trigger metrics bind to the sealed summary, never to a
+                # mutable legacy result file sitting next to it.
+                raw_result = (cond.get("result") or {}) if is_trigger else _cond_result(cond, run["dir"])
                 raw_reviews = raw_result.get("reviewers", [])
                 reviewers = _collected_reviewers(raw_reviews)
-                config = exp_condition_configs.get(cond_id, {})
+                config = run["conditions"].get(cond_id, {})
                 configured_agents = config.get("agents") or config.get("reviewers") or []
                 expected = len(configured_agents) or (len(raw_reviews) if isinstance(raw_reviews, list) else 0)
                 invalid = (
@@ -501,7 +585,7 @@ def run_evaluation(
                 )
                 if invalid:
                     errors = {
-                        "paper_id": paper_id, "condition_id": cond_id,
+                        "paper_id": paper_id, "condition_id": cond_id, "run": run["tag"],
                         "expected_reviews": expected, "valid_reviews": len(reviewers),
                         "review_errors": [validate_review_schema(r) for r in raw_reviews] if isinstance(raw_reviews, list) else ["reviewers must be a list"],
                         "turn_failures": raw_result.get("turn_failures", []),
@@ -511,15 +595,13 @@ def run_evaluation(
                         raise ValueError(f"Sealed trigger condition is invalid: {paper_id}/{cond_id}: {errors}")
                     print(f"  [{cond_id}] INVALID: expected {expected} valid reviews, got {len(reviewers)}; excluded from metrics")
                     continue
-                if reviewers:
-                    sw  = _collect_sw_from_reviews(reviewers)
-                    if cond_id in legacy_names:
-                        dec = _decision_from_reviewers(reviewers)
-                    else:
-                        dec = _advanced_decision_from_reviewers(reviewers, expected)
-                    sc  = _score_from_reviewers(reviewers)
-                    sys_name = legacy_names.get(cond_id, f"our_{cond_id}")
-                    _add(sys_name, sw, dec, sc)
+                suffix   = _cond_system_suffix(cond_id)
+                sys_name = f"our_{run['tag']}_{suffix}" if run["tag"] else f"our_{suffix}"
+                sw  = _collect_sw_from_reviews(reviewers)
+                dec = (_advanced_decision_from_reviewers(reviewers, expected)
+                       if cond_id.startswith(("C", "T")) else _decision_from_reviewers(reviewers))
+                sc  = _score_from_reviewers(reviewers)
+                _add(sys_name, sw, dec, sc)
 
         # Condition C (no-persona baseline)
         if paper_id in baseline_index:
@@ -638,8 +720,12 @@ def main():
     parser.add_argument("--embed_revision", default=None,
                         help="Immutable embedding revision; trigger defaults to its frozen revision")
     parser.add_argument("--paper_ids",           default=None, nargs="+")
-    parser.add_argument("--exp_summary",         default=None,
-                        help="experiment_summary_*.json (all conditions)")
+    parser.add_argument("--exp_summary",         default=None, nargs="+",
+                        help="One or more experiment_summary_*.json files. Every condition "
+                             "found inside becomes a system (our_cond1 ... our_cond5; the "
+                             "legacy ids A/B map to our_single/our_multi). With more than "
+                             "one file, systems are prefixed by the run's model, e.g. "
+                             "our_gpt-4o-mini-2024-07-18_cond1.")
     parser.add_argument("--baseline_summary",    default=None,
                         help="experiment_baseline_summary_*.json (Cond C)")
     parser.add_argument("--nopersona_summary",   default=None,

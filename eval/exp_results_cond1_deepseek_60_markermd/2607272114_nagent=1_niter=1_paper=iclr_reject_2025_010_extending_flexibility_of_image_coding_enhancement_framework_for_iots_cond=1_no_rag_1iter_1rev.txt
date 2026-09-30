@@ -1,0 +1,188 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Reject",
+      "scores": {
+        "novelty": 3,
+        "soundness": 2,
+        "significance": 3,
+        "evaluation": 2,
+        "clarity": 2
+      },
+      "strengths": [
+        "Addresses a relevant real-world problem of efficient image compression for resource-constrained edge devices.",
+        "Proposes an intuitive 'erase-and-squeeze' concept for flexible, non-uniform downsampling, enabling adjustable compression ratios.",
+        "Designs a lightweight transformer (8.7MB) for reconstruction, aiming for compatibility and efficiency on the server/receiver side."
+      ],
+      "weaknesses": [
+        "The core methodological contributions (conditional sampler, two-stage patchify) are not clearly justified or connected to a strong theoretical or empirical baseline, raising significant concerns about soundness and novelty.",
+        "The experimental evaluation is insufficient and lacks rigor; key comparisons (e.g., to simple baselines, super-resolution downsampling) are missing, and the choice/justification of metrics is questionable."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The core methodological contributions (conditional sampler, two-stage patchify) are not clearly justified or connected to a strong theoretical or empirical baseline, raising significant concerns about soundness and novelty.",
+          "severity": "major",
+          "evidence": "The paper criticizes uniform super-resolution downsampling for inflexibility and then proposes a 'conditional uniform-based sampler' with intra/inter-row distance constraints. However, the need for this specific, complex sampler over simpler random or strided sampling with the same transformer reconstruction is not convincingly established. The presented analysis in Fig. 3(a) and Sec 3.2.2 lacks a proper ablation against a well-defined, simpler random sampling baseline that also uses the proposed reconstruction network. The connection between the sampler design and the final performance gains is unclear.",
+          "affected_claim": "The central claim that the proposed sampler is key to achieving 'flexibility, computational efficiency, and image reconstruction quality'.",
+          "fixable_without_substantial_new_work": false
+        },
+        {
+          "weakness": "The experimental evaluation is insufficient and lacks rigor; key comparisons (e.g., to simple baselines, super-resolution downsampling) are missing, and the choice/justification of metrics is problematic.",
+          "severity": "major",
+          "evidence": "1) Evaluation uses non-reference metrics (Brisque, Pi, Tres) claiming reference metrics (PSNR, SSIM) are negatively impacted by content removal. This is a critical flaw, as it bypasses the standard, objective measure of reconstruction fidelity versus the original. The comparison with super-resolution in Table 1 uses PSNR/SSIM but is on an apples-to-oranges basis (Easz uses pixel prediction, SR uses upscaling). A fair comparison would apply the same downsampling ratio via SR and then upscale. 2) Fig. 7 compares Easz-enhanced JPEG to NN-based compressors, but does not show the critical baseline: how does Easz+JPEG compare to just using a higher compression quality setting in standard JPEG to achieve the same bitrate? 3) The training uses CIFAR-10 (low-res) but testing is on Kodak/CLIC (higher-res); the validity of this transfer is not adequately demonstrated.",
+          "affected_claim": "The claim that 'Easz surpasses both the NN-based compressor and the traditional compressor' and provides 'significant compression flexibility and efficiency improvements'.",
+          "fixable_without_substantial_new_work": false
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "fail",
+          "justification": "The central claim that the proposed conditional sampler is technically superior and necessary is not adequately supported. The experimental setup has fundamental flaws, particularly the avoidance of standard reference-based reconstruction metrics (PSNR, SSIM) without strong justification, and the lack of fair, controlled comparisons against simple alternative sampling strategies or adjusted standard codec parameters. The training-testing domain shift (CIFAR-10 to Kodak) further undermines the reliability of the presented results."
+        },
+        "novelty": {
+          "result": "fail",
+          "justification": "The core idea of non-uniform sampling (erasing) before compression and learning to reconstruct is an intuitive extension of masked image modeling (MIM) and patch-based inpainting to the compression domain. While the application context (edge compression) is relevant, the specific sampler design and two-stage patching do not constitute a sufficiently distinct or theoretically grounded advance over prior art like learned downsampling for compression or MIM-based compression methods. The paper does not convincingly demarcate its contribution from these areas."
+        },
+        "significance": {
+          "result": "fail",
+          "justification": "For a top-tier conference, the demonstrated contribution is not meaningful enough. The paper lacks the rigorous experimentation needed to prove its method is a substantial improvement over carefully designed baselines (e.g., adaptive JPEG/BPG, simpler random sampling + the same transformer). The practical gains in flexibility and efficiency, while promising, are not conclusively validated against the state-of-the-art alternatives it critiques."
+        },
+        "evaluation": {
+          "result": "fail",
+          "justification": "The experiments do not adequately support the central claims. Critical baselines are missing, the metric choice is problematic and not standard for compression papers, and the comparisons are often unfair or insufficiently detailed. The latency and resource consumption results (Fig. 4) are a strength, but they do not compensate for the flawed core performance evaluation."
+        },
+        "presentation": {
+          "result": "fail",
+          "justification": "The paper is difficult to follow. The notation is sometimes inconsistent (e.g., variable definitions in Sec 3.2.1), the flow from problem formulation to sampler design to reconstruction is not clearly motivated, and the relationship between different sections (e.g., the 'implicit assumption' and the proposed solution) is weakly argued. The writing contains grammatical errors and unclear phrasing."
+        }
+      },
+      "summary_comment": "The paper tackles an important and timely problem: flexible, efficient image compression for IoT/edge devices. However, it falls short of the standards for a top-tier conference. The methodological contributions are not sufficiently novel or justified against simpler alternatives. Most critically, the experimental evaluation is seriously flawed—it avoids standard reconstruction metrics, lacks fair and comprehensive baselines, and uses a questionable training-testing paradigm. These major weaknesses in soundness, novelty, and evaluation prevent the paper from making a credible, significant contribution. The work has interesting ideas but requires substantial re-evaluation and more rigorous experimentation to be convincing."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "ICML": {
+      "fit_score": 3,
+      "why_it_fits": [
+        "The paper addresses a practical machine learning problem (edge-device image compression) using neural methods, which falls under ICML's 'application-driven machine learning' and 'machine learning systems' topics.",
+        "The work involves a transformer-based reconstruction model, aligning with ICML's interest in deep learning architectures and optimization.",
+        "The evaluation includes latency and resource consumption measurements on real hardware (Jetson TX2), which fits the 'machine learning systems' focus on improved implementation and scalability."
+      ],
+      "why_it_does_not_fit": [
+        "Reviewer 1 heavily criticizes the methodological soundness and novelty, stating the core contributions are not clearly justified and lack strong theoretical/empirical baselines. ICML strongly values rigorous methodology and clear novelty.",
+        "The experimental evaluation is deemed insufficient by the reviewer, with problematic metric choices (avoiding PSNR/SSIM) and missing critical baselines. ICML requires thorough and fair experimental validation.",
+        "The paper's presentation is criticized as difficult to follow with inconsistent notation, which is a significant barrier for ICML's rigorous review process.",
+        "The work is more engineering/systems-focused with a relatively lightweight ML component (the 8.7MB transformer), which may not represent the deep methodological advance ICML typically seeks."
+      ]
+    },
+    "NeurIPS": {
+      "fit_score": 5,
+      "why_it_fits": [
+        "The application area (AI/ML for edge devices, IoT) aligns with NeurIPS's interest in real-world applications and systems, including 'SysML Infrastructure' and 'AI/ML for sustainability' (efficient computing).",
+        "The paper uses a transformer architecture for reconstruction, which fits the 'Deep learning' and general machine learning tracks.",
+        "The problem of efficient compression for edge devices is timely and intersects with areas like efficient inference and model deployment, relevant to NeurIPS's broad scope."
+      ],
+      "why_it_does_not_fit": [
+        "Reviewer 1's major concerns about novelty ('intuitive extension of masked image modeling'), soundness, and evaluation rigor are critical for NeurIPS. The paper does not convincingly demarcate its contribution from prior MIM/inpainting work.",
+        "The methodological contribution is seen as incremental; the sampler design and two-stage patching are not presented as a significant theoretical or algorithmic advance, which NeurIPS often prioritizes.",
+        "The experimental flaws—particularly avoiding standard reference metrics and lacking fair comparisons—are severe for NeurIPS's standards, where empirical rigor is paramount.",
+        "The writing and presentation issues noted by the reviewer ('difficult to follow', inconsistent notation) lower its chances in NeurIPS's competitive review process."
+      ]
+    },
+    "ICLR": {
+      "fit_score": 4,
+      "why_it_fits": [
+        "The core reconstruction method is based on a masked image modeling (MIM) process and a lightweight transformer, which directly aligns with ICLR's focus on representation learning, generative models, and transformer architectures.",
+        "The application involves image reconstruction and compression, falling under ICLR's topics of unsupervised/self-supervised representation learning and generative models.",
+        "The paper's use of a perceptual loss (LPIPS) and L1 loss for training connects to ICLR's interest in learned representations and perceptual metrics."
+      ],
+      "why_it_does_not_fit": [
+        "Reviewer 1 explicitly states the core idea is 'an intuitive extension of masked image modeling (MIM) and patch-based inpainting to the compression domain,' suggesting limited novelty for ICLR, which expects cutting-edge advances in deep learning.",
+        "The experimental evaluation is heavily criticized for lacking rigor, especially the avoidance of standard metrics and questionable training-testing domain shift (CIFAR-10 to Kodak). ICLR places high emphasis on rigorous and reproducible experiments.",
+        "The paper's primary contribution is framed as a system/framework for edge compression, with the deep learning component being relatively lightweight. ICLR tends to favor papers with more fundamental deep learning contributions.",
+        "The presentation and clarity issues are a significant barrier for ICLR, where clear exposition of novel deep learning ideas is essential."
+      ]
+    }
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Reject",
+            "scores": {
+              "novelty": 3,
+              "soundness": 2,
+              "significance": 3,
+              "evaluation": 2,
+              "clarity": 2
+            },
+            "strengths": [
+              "Addresses a relevant real-world problem of efficient image compression for resource-constrained edge devices.",
+              "Proposes an intuitive 'erase-and-squeeze' concept for flexible, non-uniform downsampling, enabling adjustable compression ratios.",
+              "Designs a lightweight transformer (8.7MB) for reconstruction, aiming for compatibility and efficiency on the server/receiver side."
+            ],
+            "weaknesses": [
+              "The core methodological contributions (conditional sampler, two-stage patchify) are not clearly justified or connected to a strong theoretical or empirical baseline, raising significant concerns about soundness and novelty.",
+              "The experimental evaluation is insufficient and lacks rigor; key comparisons (e.g., to simple baselines, super-resolution downsampling) are missing, and the choice/justification of metrics is questionable."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The core methodological contributions (conditional sampler, two-stage patchify) are not clearly justified or connected to a strong theoretical or empirical baseline, raising significant concerns about soundness and novelty.",
+                "severity": "major",
+                "evidence": "The paper criticizes uniform super-resolution downsampling for inflexibility and then proposes a 'conditional uniform-based sampler' with intra/inter-row distance constraints. However, the need for this specific, complex sampler over simpler random or strided sampling with the same transformer reconstruction is not convincingly established. The presented analysis in Fig. 3(a) and Sec 3.2.2 lacks a proper ablation against a well-defined, simpler random sampling baseline that also uses the proposed reconstruction network. The connection between the sampler design and the final performance gains is unclear.",
+                "affected_claim": "The central claim that the proposed sampler is key to achieving 'flexibility, computational efficiency, and image reconstruction quality'.",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The experimental evaluation is insufficient and lacks rigor; key comparisons (e.g., to simple baselines, super-resolution downsampling) are missing, and the choice/justification of metrics is problematic.",
+                "severity": "major",
+                "evidence": "1) Evaluation uses non-reference metrics (Brisque, Pi, Tres) claiming reference metrics (PSNR, SSIM) are negatively impacted by content removal. This is a critical flaw, as it bypasses the standard, objective measure of reconstruction fidelity versus the original. The comparison with super-resolution in Table 1 uses PSNR/SSIM but is on an apples-to-oranges basis (Easz uses pixel prediction, SR uses upscaling). A fair comparison would apply the same downsampling ratio via SR and then upscale. 2) Fig. 7 compares Easz-enhanced JPEG to NN-based compressors, but does not show the critical baseline: how does Easz+JPEG compare to just using a higher compression quality setting in standard JPEG to achieve the same bitrate? 3) The training uses CIFAR-10 (low-res) but testing is on Kodak/CLIC (higher-res); the validity of this transfer is not adequately demonstrated.",
+                "affected_claim": "The claim that 'Easz surpasses both the NN-based compressor and the traditional compressor' and provides 'significant compression flexibility and efficiency improvements'.",
+                "fixable_without_substantial_new_work": false
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "fail",
+                "justification": "The central claim that the proposed conditional sampler is technically superior and necessary is not adequately supported. The experimental setup has fundamental flaws, particularly the avoidance of standard reference-based reconstruction metrics (PSNR, SSIM) without strong justification, and the lack of fair, controlled comparisons against simple alternative sampling strategies or adjusted standard codec parameters. The training-testing domain shift (CIFAR-10 to Kodak) further undermines the reliability of the presented results."
+              },
+              "novelty": {
+                "result": "fail",
+                "justification": "The core idea of non-uniform sampling (erasing) before compression and learning to reconstruct is an intuitive extension of masked image modeling (MIM) and patch-based inpainting to the compression domain. While the application context (edge compression) is relevant, the specific sampler design and two-stage patching do not constitute a sufficiently distinct or theoretically grounded advance over prior art like learned downsampling for compression or MIM-based compression methods. The paper does not convincingly demarcate its contribution from these areas."
+              },
+              "significance": {
+                "result": "fail",
+                "justification": "For a top-tier conference, the demonstrated contribution is not meaningful enough. The paper lacks the rigorous experimentation needed to prove its method is a substantial improvement over carefully designed baselines (e.g., adaptive JPEG/BPG, simpler random sampling + the same transformer). The practical gains in flexibility and efficiency, while promising, are not conclusively validated against the state-of-the-art alternatives it critiques."
+              },
+              "evaluation": {
+                "result": "fail",
+                "justification": "The experiments do not adequately support the central claims. Critical baselines are missing, the metric choice is problematic and not standard for compression papers, and the comparisons are often unfair or insufficiently detailed. The latency and resource consumption results (Fig. 4) are a strength, but they do not compensate for the flawed core performance evaluation."
+              },
+              "presentation": {
+                "result": "fail",
+                "justification": "The paper is difficult to follow. The notation is sometimes inconsistent (e.g., variable definitions in Sec 3.2.1), the flow from problem formulation to sampler design to reconstruction is not clearly motivated, and the relationship between different sections (e.g., the 'implicit assumption' and the proposed solution) is weakly argued. The writing contains grammatical errors and unclear phrasing."
+              }
+            },
+            "summary_comment": "The paper tackles an important and timely problem: flexible, efficient image compression for IoT/edge devices. However, it falls short of the standards for a top-tier conference. The methodological contributions are not sufficiently novel or justified against simpler alternatives. Most critically, the experimental evaluation is seriously flawed—it avoids standard reconstruction metrics, lacks fair and comprehensive baselines, and uses a questionable training-testing paradigm. These major weaknesses in soundness, novelty, and evaluation prevent the paper from making a credible, significant contribution. The work has interesting ideas but requires substantial re-evaluation and more rigorous experimentation to be convincing."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": null,
+  "rag_warnings": [],
+  "cutoff_report": {}
+}

@@ -5,7 +5,7 @@ import json
 import os
 import random
 import time
-from review_schema import validate_role_output
+from review_schema import parse_json_object, validate_role_output
 
 
 VALID_PROVIDERS = {"cmu", "openai", "gemini", "claude", "deepseek", "qwen", "openrouter"}
@@ -16,7 +16,7 @@ DEFAULT_MODELS = {
     "claude": "claude-3-5-sonnet-20240620",
     "deepseek": "deepseek-v4-flash",
     "qwen": "qwen3.7-plus",
-    "openrouter": "google/gemini-3.5-flash",
+    "openrouter": "google/gemini-2.5-flash",
 }
 
 OPENAI_COMPATIBLE_BASE_URLS = {
@@ -41,19 +41,7 @@ REQUIRED_JSON_RETRY_DELAYS = (1.0, 2.0, 4.0)
 
 def _parse_required_json_object(text: str) -> dict:
     """Parse a model reply that is required to be a JSON object."""
-    stripped = (text or "").strip()
-    if stripped.startswith("```"):
-        lines = stripped.splitlines()
-        if lines and lines[0].strip().lower() in {"```", "```json"}:
-            lines = lines[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        stripped = "\n".join(lines).strip()
-    parsed = json.loads(stripped)
-    if not isinstance(parsed, dict):
-        raise ValueError("required JSON return must be an object")
-    return parsed
-
+    return parse_json_object(text)
 
 def validate_api_key_for_provider(provider: str, api_key: str) -> str:
     provider = (provider or "cmu").lower()

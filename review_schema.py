@@ -5,11 +5,29 @@ The same reviewer contract is used at generation, audit, repair and evaluation.
 """
 from __future__ import annotations
 
+import json
 import math
+import re
 from typing import Any
 
 REVIEW_SCORE_KEYS = ("novelty", "soundness", "significance", "evaluation", "clarity")
 WORKFLOW_SCHEMA_VERSION = 1
+
+
+def parse_json_object(text: str) -> dict:
+    """Accept fences and trailing commas without changing quoted string values.
+
+    Syntax tolerance preserves the remote parser's behavior; role validators
+    still reject missing fields, invalid scores and wrong role outputs.
+    """
+    text = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
+    text = re.sub(r'\s*```$', '', text)
+    text = re.sub(r'"(?:\\.|[^"\\])*"|,(?=\s*[}\]])',
+                  lambda match: '' if match.group(0) == ',' else match.group(0), text)
+    parsed = json.loads(text)
+    if not isinstance(parsed, dict):
+        raise ValueError("structured return must be a JSON object")
+    return parsed
 
 
 def _number(value: Any, low: float, high: float) -> bool:
@@ -101,19 +119,26 @@ def validate_role_output(value: Any, role: str, expected_reviewer: str | None = 
     return [] if isinstance(value, dict) and value else ["output must be a nonempty JSON object"]
 
 
-def workflow_is_complete(result: Any, reviewer_count: int, n_iter: int) -> bool:
+def workflow_is_complete(result: Any, reviewer_count: int, n_iter: int,
+                         *, enable_author_rebuttal: bool = True) -> bool:
     """Require every scheduled turn, rather than trusting only final reviews."""
     if (not isinstance(result, dict)
             or result.get("workflow_schema_version") != WORKFLOW_SCHEMA_VERSION
             or result.get("workflow_status") != "complete"
-            or result.get("turn_failures") != []
-            or result.get("workflow_config") != {"reviewer_count": reviewer_count, "n_iter": n_iter}):
+            or result.get("turn_failures") != []):
+        return False
+    config = result.get("workflow_config")
+    if (not isinstance(config, dict)
+            or config.get("reviewer_count") != reviewer_count
+            or config.get("n_iter") != n_iter
+            or config.get("enable_author_rebuttal", True) is not enable_author_rebuttal):
         return False
     outcomes = result.get("turn_outcomes")
     if not isinstance(outcomes, list) or not all(isinstance(item, dict) for item in outcomes):
         return False
+    roles = (("reviewer", 1), ("author", 2)) if enable_author_rebuttal else (("reviewer", 1),)
     expected = {(role, iteration, index)
-                for role, start in (("reviewer", 1), ("author", 2))
+                for role, start in roles
                 for iteration in range(start, n_iter + 1) for index in range(reviewer_count)}
     expected.add(("conference", n_iter, None))
     actual = []

@@ -1,0 +1,740 @@
+{
+  "reviewers": [
+    {
+      "reviewer": "Reviewer - No Persona",
+      "decision": "Accept",
+      "scores": {
+        "novelty": 4,
+        "soundness": 4,
+        "significance": 4,
+        "evaluation": 4,
+        "clarity": 4
+      },
+      "strengths": [
+        "The paper addresses a well-motivated problem: class imbalance in federated class-incremental learning (FCIL), which is a practical and important challenge combining federated learning with continual learning. The two-module design (GDR and TTS) is complementary and well-justified.",
+        "The Global-perspective Data Replay (GDR) module is technically sound, using SVD-based feature encryption to construct globally-informed pseudo features while preserving privacy. The use of leverage scores to guide class-balanced sampling is principled and represents a novel approach for federated settings.",
+        "Comprehensive experimental evaluation across three datasets (CIFAR10, CIFAR100, TinyImageNet) with multiple heterogeneity levels (β ∈ {0.1, 0.5, 1.0}), task splits, and client configurations. The ablation studies clearly demonstrate the contribution of each component. Consistent 2-15% improvements over six state-of-the-art baselines are substantial.",
+        "The paper includes thorough analysis beyond accuracy metrics: per-class sample distribution visualization (Figure 5), gradient-CAM visualizations (Figure 6), incremental task performance curves (Figure 3), and sensitivity analyses for hyperparameters (Figure 4). The per-task accuracy breakdown (Table 9) shows FedCBDR achieves 49.59% average on CIFAR100 versus 44.00% for LANDER, demonstrating overall superiority.",
+        "Scalability analysis is provided, including experiments with 50/100 clients, computational complexity analysis (O(n_k d²) and O(Nd²)), and communication overhead measurements. The hyperparameter configuration generalizes across three diverse datasets, suggesting reasonable robustness."
+      ],
+      "weaknesses": [
+        "The privacy claim relies on practical feature encryption without formal differential privacy analysis. The paper claims 'privacy-preserving' but does not prove the encrypted features cannot be inverted or provide formal privacy guarantees. The rebuttal clarifies this is empirical privacy through not transmitting raw data, but the abstract overstates the privacy contribution without such caveats.",
+        "The Task-aware Temperature Scaling (TTS) module is empirically effective (Table 4: +2-5% improvements) but lacks formal theoretical justification. The rebuttal acknowledges no convergence proofs are provided. However, the empirical validation through ablation and sensitivity analysis adequately supports the contribution.",
+        "The method introduces multiple hyperparameters requiring tuning. While the reported ranges are tight and the same configuration generalizes across CIFAR10, CIFAR100, and TinyImageNet, the paper provides limited guidance beyond these specific values. Figure 4 shows performance sensitivity, particularly for τ_new and ω_new."
+      ],
+      "weakness_details": [
+        {
+          "weakness": "The privacy claim relies on practical feature encryption without formal differential privacy analysis. The paper claims 'privacy-preserving' but does not prove the encrypted features cannot be inverted or provide formal privacy guarantees.",
+          "severity": "minor",
+          "evidence": "Section 4.1 and Abstract claim privacy-preserving behavior through ISVD encryption with unknown matrices P_k^(i) and Q^(i). The rebuttal clarifies this provides 'empirical privacy' through feature encryption rather than formal guarantees. This is a minor overstatement of privacy claims rather than unsound technical approach. The method does not transmit raw data, which is standard practice in federated learning and acceptable for the venue.",
+          "affected_claim": "The GDR module 'reconstructs global representations of prior tasks in a privacy-preserving manner' (abstract)",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "The Task-aware Temperature Scaling (TTS) module lacks formal theoretical justification beyond intuition, though empirical validation is provided.",
+          "severity": "minor",
+          "evidence": "Section 4.2 provides intuitive reasoning but no formal convergence analysis. However, Table 4 shows consistent +2-5% improvements with +TTS alone across multiple datasets, and Figure 4 provides sensitivity analysis. The rebuttal correctly notes empirical validation adequately supports the contribution despite lack of formal proof.",
+          "affected_claim": "TTS 'adaptively adjusts temperature based on task dynamics, reducing the model's overconfidence in majority classes while enhancing its sensitivity to minority classes' (abstract)",
+          "fixable_without_substantial_new_work": true
+        },
+        {
+          "weakness": "Limited guidance for hyperparameter selection on new domains beyond the specific tested ranges. Figure 4 shows performance sensitivity, particularly for τ_new and ω_new.",
+          "severity": "minor",
+          "evidence": "Section 5.1 specifies ranges (τ_old ∈ {0.8,0.9}, τ_new ∈ {1.1,1.2}, ω_old ∈ {1.1,1.4}, ω_new ∈ {0.7,0.9}) but provides no algorithmic selection procedure. However, the same configuration (τ_old=0.9, τ_new=1.1, ω_old=1.1, ω_new=0.9) works well across three datasets, suggesting reasonable transferability.",
+          "affected_claim": "FedCBDR achieves robust improvements across 'complex settings' (Section 5.2)",
+          "fixable_without_substantial_new_work": true
+        }
+      ],
+      "acceptance_gates": {
+        "soundness": {
+          "result": "pass",
+          "justification": "The core technical approach is sound and correctly implemented. SVD-based feature encryption, leverage score computation, and temperature-scaled loss formulations are mathematically coherent. Algorithm 1 clearly describes the pipeline. The rebuttal clarifies that privacy is achieved through feature encryption (practical obfuscation) rather than formal privacy proofs, which is acceptable for federated learning work. Experimental methodology is rigorous with proper statistical reporting. The rebuttal's distinction between empirical privacy (feature encryption) and formal privacy guarantees is a reasonable clarification that does not reduce the soundness of the technical approach."
+        },
+        "novelty": {
+          "result": "pass",
+          "justification": "The paper combines existing techniques (SVD, leverage scores, temperature scaling, class-balanced sampling) in a novel way tailored to FCIL. The GDR module's application of leverage scores for globally-informed sampling in federated settings is novel compared to prior work (Re-Fed, GLFC). The integration of TTS with class-balanced replay is also new. The rebuttal does not contradict this assessment."
+        },
+        "significance": {
+          "result": "pass",
+          "justification": "The problem of class imbalance in FCIL is practically important. The paper addresses inter-client and intra-task imbalance with 2-15% improvements over baselines. Table 9 shows FedCBDR achieves 49.59% average accuracy on CIFAR100 versus 44.00% for LANDER and 36.46% for Re-Fed, demonstrating meaningful advances. The rebuttal's clarification that the single CIFAR100 β=1.0 underperformance case (52.06% vs 52.77%, within 1.3 difference) represents a single outlier among many successes is reasonable and does not undermine significance."
+        },
+        "evaluation": {
+          "result": "pass",
+          "justification": "Comprehensive experiments across three datasets with varying heterogeneity levels, multiple task splits, ablation studies isolating component contributions, analysis of per-class distributions and performance evolution, hyperparameter sensitivity analysis, scalability tests with 50/100 clients, and qualitative Grad-CAM analysis. The rebuttal correctly notes that the CIFAR100 (5 tasks, β=1.0) underperformance is a single case (52.06% vs 52.77%, ~1.3% difference) that falls within the standard deviation ranges reported (±1.5-2.7%), and does not materially undermine the overall evaluation. Results across Tables 2 and 3 show FedCBDR achieves best or competitive performance in 8 out of 9 primary settings and best performance in all 9 settings in Table 3 (harder 5/10/20 splits)."
+        },
+        "presentation": {
+          "result": "pass",
+          "justification": "The paper is well-structured with clear motivation, methodology, and experimental design. Figures and tables effectively communicate the approach and findings. Algorithm 1 clearly describes the pipeline. Writing is generally clear. The comprehensive appendix strengthens the presentation. The rebuttal's clarification that privacy is achieved through empirical feature encryption (not formal guarantees) provides a useful precision to the presentation, though ideally this should have been clearer in the original abstract/introduction."
+        }
+      },
+      "summary_comment": "After reviewing the author's second rebuttal, I maintain my Accept decision. The rebuttal appropriately and honestly clarifies the limitations without overstating what has been addressed in the submitted work. Key assessment updates: (1) Privacy concern (minor, not major): The rebuttal clarifies that the privacy contribution is empirical—achieved through not transmitting raw data and feature encryption—rather than formal differential privacy guarantees. This is a reasonable clarification that somewhat reduces the severity of the concern. The stated privacy claim in the abstract is slightly imprecise but not misleading in the context of federated learning practice. (2) TTS theoretical justification (remains minor): The rebuttal acknowledges the lack of formal convergence proofs but emphasizes the empirical validation (Table 4: consistent +2-5% improvements). This is acceptable for a machine learning paper; empirical validation of neural network techniques without formal theory is common in the field. (3) Hyperparameter sensitivity (remains minor): The rebuttal notes the same hyperparameter configuration (τ_old=0.9, τ_new=1.1, ω_old=1.1, ω_new=0.9) generalizes across three diverse datasets, which is a reasonable response. The ranges are tight (0.1 apart for temperature values), suggesting reasonable stability. (4) CIFAR100 underperformance (correctly contextualized as minor): The rebuttal clarifies this is a single outlier (52.06% vs 52.77%, 1.3% difference) within statistical noise (std dev ±1.5-2.7%), with FedCBDR achieving superior average performance (49.59% vs 44.00% for LANDER in Table 9). This contextualization is fair and does not undermine the overall claims. Overall, the submitted paper makes solid contributions to federated class-incremental learning through well-executed techniques addressing a real problem. The experimental evaluation is rigorous, comprehensive, and appropriately honest about limitations. The 2-15% consistent improvements, combined with thorough ablation studies, justify publication at a top-tier venue despite the acknowledged limitations around formal privacy analysis, theoretical justification for TTS, and hyperparameter selection guidelines. These are areas for future work but do not invalidate the core contributions."
+    }
+  ],
+  "review_style_analyses": [],
+  "conference": {
+    "raw": "```json\n{\n  \"ICML\": {\n    \"fit_score\": 6,\n    \"why_it_fits\": [\n      \"Addresses a well-motivated machine learning problem combining federated learning with class-incremental learning, both active areas at ICML\",\n      \"Proposes novel technical contributions (SVD-based global-perspective replay and task-aware temperature scaling) that represent methodological advances in continual learning\",\n      \"Comprehensive experimental evaluation across multiple datasets and heterogeneity levels demonstrates rigor and empirical validation valued at ICML\",\n      \"Includes thorough ablation studies (Table 4) isolating component contributions, which aligns with ICML's emphasis on rigorous methodology and interpretability\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The topic 'Others' classification suggests this is not core machine learning theory or methodology—it's a specialized application combining federated and incremental learning, which may be better suited to application-focused venues\",\n      \"Limited novelty in individual components: SVD, leverage scores, temperature scaling, and class-balanced sampling are well-established techniques. The contribution is primarily in their combination rather than fundamental algorithmic innovation\",\n      \"Task-aware Temperature Scaling (TTS) module lacks formal theoretical justification or convergence proofs, which ICML values for algorithmic contributions. Reviewer acknowledges 'no convergence proofs provided'\",\n      \"The privacy-preservation claim is overstated without formal differential privacy guarantees. The rebuttal clarifies it's 'empirical privacy' through feature encryption, but ICML typically expects stronger privacy-theoretical contributions\",\n      \"The problem setting (federated class-incremental learning) is somewhat niche and incremental relative to existing federated learning and continual learning literature—not clearly advancing fundamental ML methodology\"\n    ]\n  },\n  \"NeurIPS\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"Directly addresses federated learning combined with continual learning under non-IID data distributions, which are core NeurIPS topics listed in the call ('Decision-making, reinforcement learning, and control', 'Generalization and multi-task learning')\",\n      \"Addresses practical challenges in federated settings with 2-15% consistent improvements over strong baselines (Re-Fed, LANDER, TARGET), demonstrating significant empirical contributions\",\n      \"Comprehensive experimental evaluation with 3 datasets, multiple heterogeneity levels (β ∈ {0.1, 0.5, 1.0}), task splits, ablations, scalability tests (50/100 clients), and qualitative analysis (Grad-CAM visualizations)\",\n      \"Well-executed technical approach with clear methodology: GDR module uses principled SVD-based approach with leverage scores for sampling; TTS module addresses intra-task class imbalance through temperature scaling\",\n      \"Honest presentation of limitations in rebuttal (empirical vs formal privacy, lack of TTS theory) while maintaining sound experimental validation shows appropriate framing for NeurIPS\",\n      \"Addresses 'data-centric aspects of AI' (rebalancing class-imbalanced data in federated settings) and 'SysML Infrastructure' (federated learning systems), which NeurIPS explicitly welcomes\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"The topic classified as 'Others' rather than a primary NeurIPS category suggests it may fall outside core conference focus areas, despite addressing federated learning\",\n      \"Limited theoretical novelty: combines existing techniques (SVD, leverage scores, temperature scaling) in an engineering-focused manner. TTS module particularly lacks formal justification—reviewer notes 'no convergence proofs'\",\n      \"Hyperparameter sensitivity is significant (Figure 4 shows notable performance variations), and the method introduces many hyperparameters (τ_old, τ_new, ω_old, ω_new) with limited transferability guidance beyond tested datasets\",\n      \"The CIFAR100 (5 tasks, β=1.0) underperformance (52.06% vs LANDER's 52.77%) suggests the method may not generalize robustly across all settings despite overall strong results\",\n      \"Privacy claims are somewhat inflated: the paper claims 'privacy-preserving' approach but only provides empirical feature obfuscation without formal privacy analysis. This overstates contribution relative to standard federated learning baselines\",\n      \"The work is primarily incremental: combines federated learning (well-studied) with incremental learning (well-studied) and class balancing (well-studied). The combination, while useful, doesn't represent sufficient novelty breakthrough for NeurIPS\"\n    ]\n  },\n  \"ICLR\": {\n    \"fit_score\": 7,\n    \"why_it_fits\": [\n      \"ICLR's scope explicitly includes 'representation learning', 'transfer learning, meta learning, and lifelong learning', and 'semi-supervised learning'—all directly relevant to federated class-incremental learning\",\n      \"The GDR module addresses representation learning for federated settings through SVD-based feature decomposition and global pseudo-feature construction, which aligns with ICLR's focus on learning good representations\",\n      \"The paper tackles 'generalization and multi-task learning' through balancing knowledge retention across incremental tasks under non-IID federated data distributions\",\n      \"Comprehensive experimental evaluation with rigorous ablations (Table 4) and in-depth analysis (per-class distributions Figure 5, attention visualizations Figure 6) matches ICLR's emphasis on thorough empirical investigation and interpretability\",\n      \"Addresses practical challenges in 'applications to robotics, autonomy, planning' and other distributed learning scenarios where data cannot be centralized\",\n      \"2-15% consistent improvements over strong baselines represents meaningful empirical contribution. Per-task breakdown (Table 9) shows averaged 49.59% accuracy on CIFAR100 vs 44.00% for LANDER\"\n    ],\n    \"why_it_does_not_fit\": [\n      \"Topic classified as 'Others' rather than core ICLR areas like representation learning or deep learning, suggesting marginal fit with primary conference focus\",\n      \"Limited novelty in representation learning contribution: the SVD-based approach for aggregating pseudo-features is technically sound but relatively straightforward application of existing SVD-leverage score theory. Not a novel representation learning method\",\n      \"Task-Aware Temperature Scaling (TTS) module is primarily an engineering technique (adjusting softmax temperature and class weights) rather than advancing deep learning methodology. Reviewer notes lack of theoretical justification\",\n      \"The privacy preservation claim is not rigorously formalized. While privacy is important for federated learning, ICLR typically expects formal privacy analysis or guarantees (e.g., differential privacy bounds) rather than empirical feature obfuscation\",\n      \"Hyperparameter sensitivity and limited transferability guidance suggest the method may not generalize well to new domains or federated settings beyond those tested. Figure 4 shows significant performance sensitivity to τ_new and ω_new\",\n      \"The work combines existing well-studied techniques (federated learning, continual learning, class balancing) rather than introducing novel learning paradigms or representation methods central to ICLR's mission\"\n    ]\n  }\n}\n```\n\n---\n\n## Summary and Strategic Recommendation\n\n**Overall Assessment:**\n\nThis paper presents a well-executed engineering solution to class imbalance in federated class-incremental learning (FCIL). The work combines existing techniques (SVD, leverage scores, temperature scaling) in a novel way and demonstrates solid empirical improvements (2-15% gains) with comprehensive experiments.\n\n**Venue Fit Analysis:**\n\n- **NeurIPS (7/10 - Best Fit):** The paper's practical focus on federated learning systems, comprehensive evaluation, and honest acknowledgment of limitations align well with NeurIPS's broad scope including \"data-centric aspects of AI\" and \"SysML Infrastructure.\" The empirical contributions and applications focus are valued at this venue.\n\n- **ICLR (7/10 - Good Fit):** While the paper addresses relevant topics (representation learning, continual learning), the novelty is primarily in combining existing techniques rather than advancing fundamental deep learning methodology. Lack of formal privacy analysis and limited representation learning innovation reduce fit slightly compared to NeurIPS.\n\n- **ICML (6/10 - Borderline Fit):** The paper addresses valid ML problems but lacks the theoretical rigor or fundamental algorithmic novelty typically expected. The \"Others\" topic classification and engineering-focused contribution (combining known techniques) suggest borderline fit. TTS lacks formal justification.\n\n**Key Concerns Across Venues:**\n1. Privacy claims overstate contributions (empirical obfuscation vs. formal privacy guarantees)\n2. TTS module is empirically effective but theoretically unjustified\n3. Hyperparameter sensitivity and limited transferability guidance\n4. Topic classified as \"Others\" rather than core ML area\n\n**Recommendation:** Submit to **NeurIPS** as primary venue. The paper's practical contributions, comprehensive experiments, and focus on federated learning systems are well-aligned with NeurIPS's scope for application-driven ML and systems work. Revise abstract to accurately represent privacy contributions as \"empirical privacy through feature encryption\" rather than formal privacy-preservation.",
+    "parse_error": true
+  },
+  "citations": {
+    "stats": {},
+    "failed": [],
+    "skipped": true,
+    "reason": "disabled_for_experiment"
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper addresses a well-motivated problem: class imbalance in federated class-incremental learning (FCIL), which is a practical and important challenge combining federated learning with continual learning. The two-module design (GDR and TTS) is complementary and well-justified.",
+              "The Global-perspective Data Replay (GDR) module is technically sound, using SVD-based feature encryption to construct globally-informed pseudo features while preserving privacy. The use of leverage scores to guide class-balanced sampling is principled and represents a novel approach for federated settings.",
+              "Comprehensive experimental evaluation across three datasets (CIFAR10, CIFAR100, TinyImageNet) with multiple heterogeneity levels (β ∈ {0.1, 0.5, 1.0}), task splits, and client configurations. The ablation studies clearly demonstrate the contribution of each component. Consistent 2-15% improvements over six state-of-the-art baselines are substantial.",
+              "The paper includes thorough analysis beyond accuracy metrics: per-class sample distribution visualization (Figure 5), gradient-CAM visualizations (Figure 6), incremental task performance curves (Figure 3), and sensitivity analyses for hyperparameters (Figure 4). The per-task accuracy breakdown (Table 9) is particularly insightful.",
+              "Scalability analysis is provided, including experiments with 50/100 clients, computational complexity analysis (O(n_k d²) and O(Nd²)), and communication overhead measurements. The authors demonstrate that additional costs are relatively small compared to baseline methods."
+            ],
+            "weaknesses": [
+              "The privacy guarantees of the SVD-based encryption scheme are not rigorously analyzed. While claiming 'privacy-preserving,' the paper does not provide formal differential privacy bounds or prove that encrypted features cannot be inverted to recover sensitive information. The use of random orthogonal matrices is standard but insufficient without privacy analysis.",
+              "The Task-aware Temperature Scaling (TTS) module, while empirically effective, lacks theoretical justification. Why should temperature scaling specifically address inter-task class imbalance? The paper provides intuition but no formal analysis of how temperature adjustment affects the loss landscape or convergence properties.",
+              "The method introduces multiple hyperparameters (τ_old, τ_new, ω_old, ω_new) that require careful tuning (Figure 4 shows considerable performance sensitivity). The paper does not provide principled guidelines for setting these values in new domains, only empirical ranges from experiments.",
+              "Limited analysis of failure cases. The paper acknowledges one underperformance case (CIFAR100, 5 tasks, β=1.0 vs. LANDER at 52.77% vs 52.06%) but does not provide insights into when/why the method might underperform relative to alternatives.",
+              "The comparison with generative methods (LANDER, TARGET) may not be entirely fair: LANDER generates 10,240 synthetic samples per task versus 300-2000 real samples for FedCBDR. While Table 5 attempts to control for buffer size, the comparison still conflates method differences with different data sources (synthetic vs. real)."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The privacy guarantees of the SVD-based encryption scheme are not rigorously analyzed. While claiming 'privacy-preserving,' the paper does not provide formal differential privacy bounds or prove that encrypted features cannot be inverted to recover sensitive information.",
+                "severity": "major",
+                "evidence": "Section 4.1 describes ISVD encryption via X'_k = P_k^(i) X_k^(i) Q^(i) but provides no formal privacy analysis. The paper states features are 'encrypted' but offers no proof of non-invertibility or privacy bounds, which is critical for a federated learning paper.",
+                "affected_claim": "The GDR module 'reconstructs global representations of prior tasks in a privacy-preserving manner' (abstract)",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The Task-aware Temperature Scaling (TTS) module lacks theoretical justification for why temperature scaling should address inter-task class imbalance, despite being empirically effective.",
+                "severity": "minor",
+                "evidence": "Section 4.2 and Equation 7 introduce temperature-scaled loss with adjustment factors τ_old and τ_new, but the paper provides only intuition ('lower temperature to sharpen logits for earlier tasks') without theoretical analysis of convergence, loss landscape effects, or optimality.",
+                "affected_claim": "TTS 'adaptively adjusts temperature based on task dynamics, reducing overconfidence in majority classes' (abstract)",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The method requires tuning multiple hyperparameters (τ_old ∈ {0.8,0.9}, τ_new ∈ {1.1,1.2}, ω_old ∈ {1.1-1.4}, ω_new ∈ {0.7-0.9}) with unclear guidelines for new domains, and Figure 4 shows considerable performance sensitivity.",
+                "severity": "minor",
+                "evidence": "Section 5.1 and Figure 4 demonstrate that performance varies considerably with hyperparameter choices. The paper states 'emphasizes the need for proper tuning' but provides only empirical ranges without principled selection criteria.",
+                "affected_claim": "FedCBDR achieves robust improvements across 'complex settings' (Section 5.2)",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited analysis of failure modes or dataset-specific challenges. The paper briefly acknowledges one underperformance on CIFAR100 (5 tasks, β=1.0) but provides minimal insight into failure mechanisms.",
+                "severity": "minor",
+                "evidence": "Section 5.2 states 'The only suboptimal result occurs on CIFAR100 with 5 tasks and β=1.0, where FedCBDR (52.06%) performs slightly worse than LANDER (52.77%)' but does not investigate why or when such cases occur.",
+                "affected_claim": "FedCBDR demonstrates 'adaptability and robustness across complex settings' (Section 5.2)",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core technical approach is sound. The SVD-based feature encryption, leverage score computation, and temperature-scaled loss formulations are mathematically coherent. Algorithm 1 clearly describes the pipeline. However, the lack of formal privacy analysis (Weakness 1) is a limitation, though it does not invalidate the technical soundness of the proposed method itself. The experimental methodology is rigorous with proper statistical reporting (mean ± std over 3 seeds)."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper combines existing techniques (SVD, leverage scores, temperature scaling, class-balanced sampling) in a novel way tailored to FCIL. The GDR module's application of leverage scores for globally-informed sampling in federated settings is novel compared to prior work (Re-Fed, GLFC). The integration of TTS with class-balanced replay is also new. While individual components are not unprecedented, their combination and application to FCIL represents sufficient novelty for a top-tier venue."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The problem of class imbalance in FCIL is practically important and timely. The paper addresses both inter-client and intra-task imbalance. Achieving 2-15% improvements over multiple state-of-the-art baselines across three datasets is meaningful. The work advances the state-of-the-art in an active research area (federated continual learning), as evidenced by recent related publications (2022-2024). The insights about balanced sampling enabling better knowledge retention have broader applicability."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive: (1) three datasets with varying heterogeneity levels; (2) multiple task splits; (3) comparison against six baselines including recent methods (LANDER, Re-Fed); (4) ablation studies isolating GDR and TTS contributions; (5) analysis of per-class distributions, incremental performance, buffer size sensitivity, and hyperparameter sensitivity; (6) scalability tests with 50/100 clients; (7) qualitative analysis via Grad-CAM. The main limitation is that synthetic vs. real data comparisons (LANDER) conflate method differences with data sources, though Table 5 attempts to address this. Results are reported with standard deviations, strengthening credibility."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-structured with clear motivation, methodology, and experimental design. Figures effectively communicate the approach (Figures 1-2) and findings (Figures 3-6). Tables are well-organized with comprehensive results. Algorithm 1 clearly describes the training procedure. The writing is generally clear, though some sections (e.g., feature encryption details) could benefit from expanded explanation. The comprehensive appendix with additional experiments and complexity analysis strengthens the presentation."
+              }
+            },
+            "summary_comment": "This paper presents a well-motivated solution to class imbalance in federated class-incremental learning through a two-module approach combining globally-informed balanced replay (GDR) and task-aware temperature scaling (TTS). The technical contribution is solid, combining SVD-based privacy-preserving feature aggregation with leverage scores for principled sampling, integrated with a temperature-scaled loss that balances old and new task contributions. Experimental validation is comprehensive, demonstrating consistent improvements of 2-15% over six state-of-the-art baselines across three datasets with varying heterogeneity levels. The paper includes thorough ablation studies and analysis of key design choices. However, the work has notable limitations: (1) privacy claims lack formal analysis (differential privacy bounds not provided), (2) TTS lacks theoretical justification despite empirical effectiveness, (3) multiple hyperparameters require careful tuning without principled selection guidelines, and (4) comparison with generative methods somewhat conflates method differences with synthetic vs. real data. Despite these limitations, the paper makes a solid contribution to an important and active research area, with rigorous experimental validation and practical improvements. The work is suitable for acceptance at a top-tier machine learning conference, as it advances the state-of-the-art with a well-executed combination of techniques addressing a real problem in federated learning."
+          },
+          "author_response": null,
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper addresses a well-motivated problem: class imbalance in federated class-incremental learning (FCIL), which is a practical and important challenge combining federated learning with continual learning. The two-module design (GDR and TTS) is complementary and well-justified.",
+              "The Global-perspective Data Replay (GDR) module is technically sound, using SVD-based feature encryption to construct globally-informed pseudo features while preserving privacy. The use of leverage scores to guide class-balanced sampling is principled and represents a novel approach for federated settings.",
+              "Comprehensive experimental evaluation across three datasets (CIFAR10, CIFAR100, TinyImageNet) with multiple heterogeneity levels (β ∈ {0.1, 0.5, 1.0}), task splits, and client configurations. The ablation studies clearly demonstrate the contribution of each component. Consistent 2-15% improvements over six state-of-the-art baselines are substantial.",
+              "The paper includes thorough analysis beyond accuracy metrics: per-class sample distribution visualization (Figure 5), gradient-CAM visualizations (Figure 6), incremental task performance curves (Figure 3), and sensitivity analyses for hyperparameters (Figure 4). The per-task accuracy breakdown (Table 9) is particularly insightful.",
+              "Scalability analysis is provided, including experiments with 50/100 clients, computational complexity analysis (O(n_k d²) and O(Nd²)), and communication overhead measurements. The authors demonstrate that additional costs are relatively small compared to baseline methods."
+            ],
+            "weaknesses": [
+              "The privacy guarantees of the SVD-based encryption scheme are not rigorously analyzed. While claiming 'privacy-preserving,' the paper does not provide formal differential privacy bounds or prove that encrypted features cannot be inverted to recover sensitive information. The rebuttal acknowledges this limitation but does not provide such analysis in the submitted work.",
+              "The Task-aware Temperature Scaling (TTS) module, while empirically effective, lacks theoretical justification beyond intuition. The rebuttal explains the conceptual reasoning but the submitted paper does not provide formal analysis of why temperature scaling addresses inter-task class imbalance or guarantees any optimality properties.",
+              "The method introduces multiple hyperparameters (τ_old, τ_new, ω_old, ω_new) that require careful tuning. While the rebuttal suggests these ranges are 'relatively narrow,' Figure 4 still demonstrates considerable performance sensitivity, and no principled guidelines for new domains are provided in the submitted work.",
+              "The underperformance case on CIFAR100 (5 tasks, β=1.0, where LANDER achieves 52.77% vs FedCBDR's 52.06%) is not investigated in the submitted paper. The rebuttal promises diagnostic analysis but this is not included in the submission."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The privacy guarantees of the SVD-based encryption scheme are not rigorously analyzed. While claiming 'privacy-preserving,' the paper does not provide formal differential privacy bounds or prove that encrypted features cannot be inverted to recover sensitive information.",
+                "severity": "major",
+                "evidence": "Section 4.1 describes ISVD encryption via X'_k = P_k^(i) X_k^(i) Q^(i) but provides no formal privacy analysis. The rebuttal states 'we acknowledge that the paper does not provide formal privacy guarantees such as differential privacy bounds' and promises future work, but no such analysis appears in the submitted paper. The privacy claim is based on practical obfuscation rather than proven security.",
+                "affected_claim": "The GDR module 'reconstructs global representations of prior tasks in a privacy-preserving manner' (abstract)",
+                "fixable_without_substantial_new_work": false
+              },
+              {
+                "weakness": "The Task-aware Temperature Scaling (TTS) module lacks theoretical justification for why temperature scaling should address inter-task class imbalance, despite being empirically effective.",
+                "severity": "minor",
+                "evidence": "Section 4.2 and Equation 7 introduce temperature-scaled loss. The rebuttal provides intuition about sharpening/smoothing effects but acknowledges 'we do not provide formal convergence proofs.' The submitted paper contains only informal reasoning without theoretical analysis of loss landscape or convergence properties.",
+                "affected_claim": "TTS 'adaptively adjusts temperature based on task dynamics, reducing the model's overconfidence in majority classes while enhancing its sensitivity to minority classes' (abstract)",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The method requires tuning multiple hyperparameters with unclear generalization guidelines for new domains, and Figure 4 shows considerable performance sensitivity.",
+                "severity": "minor",
+                "evidence": "Section 5.1 and Figure 4 show hyperparameter ranges and sensitivity. The rebuttal recommends 'starting with the reported hyperparameter ranges and performing light grid search on a validation set' but the submitted paper provides no such algorithmic guidance or analysis of transferability across datasets/domains.",
+                "affected_claim": "FedCBDR achieves robust improvements across 'complex settings' (Section 5.2)",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The underperformance case on CIFAR100 (5 tasks, β=1.0) where FedCBDR (52.06%) underperforms LANDER (52.77%) is not analyzed in the submitted paper.",
+                "severity": "minor",
+                "evidence": "Section 5.2 briefly mentions this case but provides no investigation. The rebuttal promises 'deeper analysis' and 'diagnostic analysis using results already available' but such analysis does not appear in the submitted work.",
+                "affected_claim": "FedCBDR demonstrates 'adaptability and robustness across complex settings' (Section 5.2)",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core technical approach is sound. The SVD-based feature encryption, leverage score computation, and temperature-scaled loss formulations are mathematically coherent and correctly implemented. Algorithm 1 clearly describes the pipeline. While formal privacy analysis is absent (a limitation acknowledged in the rebuttal), this does not invalidate the technical soundness of the proposed method itself. The experimental methodology is rigorous with proper statistical reporting (mean ± std over 3 seeds). The rebuttal does not change this assessment—the submitted paper remains technically sound despite missing formal privacy guarantees."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper combines existing techniques (SVD, leverage scores, temperature scaling, class-balanced sampling) in a novel way tailored to FCIL. The GDR module's application of leverage scores for globally-informed sampling in federated settings is novel compared to prior work (Re-Fed, GLFC cited as [30, 17]). The integration of TTS with class-balanced replay is also new. The rebuttal does not introduce claims that would change this assessment—the combination remains novel and well-motivated."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The problem of class imbalance in FCIL is practically important and timely. The paper addresses both inter-client and intra-task imbalance. Achieving 2-15% improvements over multiple state-of-the-art baselines across three datasets is meaningful. The work advances the state-of-the-art in an active research area (federated continual learning). The insights about balanced sampling enabling better knowledge retention have broader applicability. The rebuttal provides no evidence that contradicts this assessment."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Experiments are comprehensive: (1) three datasets with varying heterogeneity levels; (2) multiple task splits; (3) comparison against six baselines; (4) ablation studies; (5) analysis of per-class distributions, incremental performance, buffer size sensitivity, and hyperparameter sensitivity; (6) scalability tests with 50/100 clients; (7) qualitative Grad-CAM analysis. While the rebuttal acknowledges the CIFAR100 (5 tasks, β=1.0) underperformance case and promises analysis not present in the submission, Table 2 shows this is a single outlier result (52.06% vs 52.77%) among many successful comparisons, and does not materially undermine the evaluation. Results are reported with standard deviations. The concern about synthetic vs. real data comparisons (Table 5) is partially addressed by the fact that Table 5 already shows FedCBDR with fewer real samples outperforming LANDER's synthetic samples."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-structured with clear motivation, methodology, and experimental design. Figures effectively communicate the approach and findings. Tables are well-organized. Algorithm 1 clearly describes the training procedure. Writing is generally clear. The comprehensive appendix with additional experiments and complexity analysis strengthens presentation. The rebuttal does not reveal presentation issues in the submitted work that would affect this assessment."
+              }
+            },
+            "summary_comment": "After reviewing the author's rebuttal, my assessment of the submitted paper remains largely unchanged. The rebuttal appropriately acknowledges the major concerns about privacy guarantees and theoretical justification but does not provide evidence that such analysis appears in the submitted work itself. The authors commit to adding formal privacy analysis and theoretical justification in future revisions, but these are not present in the current submission and therefore cannot improve the assessment. Key findings: (1) Privacy concern remains unresolved: The rebuttal admits formal differential privacy bounds are absent in the paper. While the authors note that encrypting features with unknown random matrices provides practical obfuscation, this is not a formal privacy proof. This is a limitation but not a fatal flaw for an exemplar-based federated learning method, as privacy is achieved through not transmitting raw data. (2) TTS theoretical justification remains unresolved: The rebuttal explains intuition but explicitly states 'we do not provide formal convergence proofs.' The submitted paper relies on empirical validation only. However, TTS shows consistent improvements in ablation studies (Table 4), so the empirical contribution is solid. (3) Hyperparameter sensitivity remains partially unresolved: The rebuttal suggests ranges are 'relatively narrow' but Figure 4 clearly shows considerable variation. No principled selection algorithm is provided in the submission. This is a minor limitation as the tested ranges appear to work reasonably well in practice. (4) CIFAR100 underperformance case remains unresolved: The rebuttal promises analysis but none appears in the submitted work. This is a single outlier case (52.06% vs 52.77%) among many successful results and does not materially undermine the claims. Overall assessment: The paper makes solid contributions to federated class-incremental learning through well-executed combination of techniques addressing a real problem. Experimental validation is comprehensive and rigorous. The limitations acknowledged are real but not fatal—they represent areas where the work could be strengthened (formal privacy guarantees, theoretical analysis) but do not invalidate the core contributions. The 2-15% consistent improvements across multiple datasets and settings, combined with thorough ablation studies and analysis, support publication at a top-tier venue. The decision remains ACCEPT."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Privacy guarantees of SVD-based encryption lack formal analysis (no differential privacy bounds provided)\",\n        \"Task-aware Temperature Scaling (TTS) module lacks theoretical justification\",\n        \"Multiple hyperparameters require careful tuning with unclear generalization guidelines\",\n        \"Limited analysis of failure modes and when the method underperforms\",\n        \"Comparison with generative methods (LANDER, TARGET) conflates method differences with synthetic vs. real data sources\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Privacy-preserving encryption via SVD\",\n          \"location\": \"Section 4.1, Equations (1)-(6)\",\n          \"explanation\": \"The paper describes ISVD encryption (Eq. 1) and leverage score computation (Eq. 5) but does not formally analyze privacy properties or provide differential privacy bounds.\"\n        },\n        {\n          \"concern\": \"Temperature scaling for class imbalance\",\n          \"location\": \"Section 4.2, Equation (7)\",\n          \"explanation\": \"The TTS module is presented with intuitive justification ('lower temperature to sharpen logits for earlier tasks') but without formal analysis of convergence or loss landscape effects.\"\n        },\n        {\n          \"concern\": \"Hyperparameter sensitivity\",\n          \"location\": \"Section 5.1 and Figure 4\",\n          \"explanation\": \"The paper reports multiple hyperparameters (τ_old ∈ {0.8,0.9}, τ_new ∈ {1.1,1.2}, ω_old ∈ {1.1-1.4}, ω_new ∈ {0.7-0.9}) with Figure 4 showing considerable performance variation across settings.\"\n        },\n        {\n          \"concern\": \"Underperformance case\",\n          \"location\": \"Section 5.2, Table 2\",\n          \"explanation\": \"FedCBDR (52.06%) slightly underperforms LANDER (52.77%) on CIFAR100 with 5 tasks and β=1.0, but limited analysis of why this occurs.\"\n        },\n        {\n          \"concern\": \"Fair comparison with synthetic replay methods\",\n          \"location\": \"Section 5.2 and Table 5\",\n          \"explanation\": \"LANDER generates 10,240 synthetic samples per task versus 300-2000 real samples for FedCBDR. While Table 5 attempts buffer size control, synthetic vs. real data sources remain different.\"\n        }\n      ],\n      \"proposed_future_revisions\": [\n        {\n          \"concern\": \"Privacy analysis of SVD-based encryption\",\n          \"proposed_change\": \"Add formal privacy analysis section (e.g., differential privacy bounds) proving that encrypted features X'_k cannot be inverted to recover sensitive information from original data X_k. Alternatively, provide empirical privacy evaluation (e.g., membership inference attacks) or clarify privacy claims by discussing what security guarantees the encryption actually provides.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Theoretical justification for TTS module\",\n          \"proposed_change\": \"Add theoretical analysis or intuitive explanation of how temperature scaling affects the optimization landscape in the context of inter-task class imbalance. For example, provide analysis showing how τ_old < 1 sharpens predictions for old classes while τ_new > 1 smooths predictions for new classes, and why this balancing is optimal or beneficial for federated class-incremental settings.\",\n          \"requires_new_experiment_or_analysis\": false\n        },\n        {\n          \"concern\": \"Hyperparameter selection guidelines\",\n          \"proposed_change\": \"Provide principled hyperparameter selection strategy or sensitivity analysis across more diverse settings (e.g., different model architectures, dataset sizes, or heterogeneity levels) to demonstrate robustness or identify patterns for automatic hyperparameter selection. Clarify how practitioners should adapt hyperparameters to new domains.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Limited failure case analysis\",\n          \"proposed_change\": \"Investigate and document the CIFAR100 (5 tasks, β=1.0) underperformance case: analyze why LANDER outperforms FedCBDR in this specific scenario, whether it is related to task structure, heterogeneity level, or other factors. Provide insights into conditions under which FedCBDR is expected to excel or struggle.\",\n          \"requires_new_experiment_or_analysis\": true\n        },\n        {\n          \"concern\": \"Fair comparison with synthetic replay methods\",\n          \"proposed_change\": \"In addition to Table 5 (varying buffer size), add explicit comparison of FedCBDR and LANDER/TARGET using identical total memory budgets (e.g., both methods store/generate 1000 total samples across all tasks). This isolates method differences from data source differences. Alternatively, provide ablation comparing FedCBDR with synthetic vs. real replay under matched memory budgets.\",\n          \"requires_new_experiment_or_analysis\": true\n        }\n      ],\n      \"response\": \"Thank you for the thorough and constructive review. We appreciate the recognition of our work's contributions to federated class-incremental learning. We address each major concern below:\\n\\n**1. Privacy Analysis of SVD-Based Encryption:**\\n\\nYou raise a valid concern. While our encryption scheme using random orthogonal matrices is standard practice in secure computation (similar to approaches in [48, 49]), we acknowledge that the paper does not provide formal privacy guarantees such as differential privacy bounds. In the current submission, our \\\"privacy-preserving\\\" claim is justified by the fact that: (a) only encrypted features X'_k are transmitted (not raw data), and (b) the server never recovers the original feature matrix X_k due to the unknown random matrices P_k^(i). However, we recognize that this is not a formal privacy proof. For future work, we plan to conduct formal differential privacy analysis and empirical privacy evaluation (e.g., membership inference attacks). We can clarify the privacy claims in a revision by explicitly stating what security guarantees the encryption provides versus what would require additional analysis.\\n\\n**2. Theoretical Justification for TTS Module:**\\n\\nWe appreciate this feedback. The TTS module is empirically effective (Table 4 shows +TTS alone provides 2-5% improvements over Finetune), but we acknowledge the lack of formal theoretical analysis. The intuition is that using τ_old < 1 sharpens the softmax distribution for old classes, increasing their discriminability, while τ_new > 1 smooths predictions for new classes to reduce overfitting. In the federated setting with limited replay samples and task imbalance, this dynamic calibration helps balance the model's focus between retaining old knowledge and adapting to new classes. While we do not provide formal convergence proofs, we can strengthen the presentation by adding more detailed theoretical intuition and demonstrating the effect empirically (e.g., visualizing how different temperature values affect the loss landscape or prediction confidence distributions). This analysis is feasible within the current framework.\\n\\n**3. Hyperparameter Sensitivity and Selection Guidelines:**\\n\\nYou correctly identify that FedCBDR introduces multiple hyperparameters (τ_old, τ_new, ω_old, ω_new) that require tuning. Figure 4 shows sensitivity across different values. However, we note that: (a) the hyperparameter ranges we report (τ_old ∈ {0.8,0.9}, τ_new ∈ {1.1,1.2}, ω_old ∈ {1.1-1.4}, ω_new ∈ {0.7-0.9}) are relatively narrow and were derived from preliminary experiments; (b) within these ranges, performance is reasonably stable (e.g., varying ω_old from 1.1 to 1.3 produces small differences); (c) we observe consistent patterns (lower weight and higher temperature for new tasks generally helps). For practitioners applying FedCBDR to new domains, we recommend starting with the reported hyperparameter ranges and performing light grid search on a validation set. We can clarify these guidelines in a revision and provide pseudo-code or a simple hyperparameter selection algorithm. Additionally, investigating automatic hyperparameter tuning (e.g., via Bayesian optimization) is a promising direction for future work.\\n\\n**4. Limited Analysis of Failure Modes:**\\n\\nYou note that we briefly acknowledge the CIFAR100 (5 tasks, β=1.0) case where LANDER slightly outperforms FedCBDR (52.77% vs. 52.06%). This is a fair criticism. We can provide deeper analysis: (a) investigate whether this occurs under specific data heterogeneity or task composition patterns; (b) examine whether different hyperparameter choices could improve performance in this setting; (c) analyze the per-class sample distributions and prediction confidences to understand the mechanism. While we cannot add entirely new experiments in this response, we can provide diagnostic analysis of this failure case using results already available in our submission (e.g., per-task accuracies in Table 9, per-class distributions in Figure 5). We will include this analysis in a revision.\\n\\n**5. Fair Comparison with Synthetic Replay Methods:**\\n\\nYou raise a valid concern about conflating method differences with synthetic vs. real data sources. LANDER generates 10,240 synthetic samples per task, while FedCBDR uses 300-2000 real samples. Table 5 attempts to control for buffer size, but uses different data sources. To address this: (a) Table 5 already shows that FedCBDR with M=450 (450 real samples on CIFAR10) outperforms LANDER (which uses 10,240 synthetic samples), demonstrating efficiency; (b) the comparison is still somewhat different because synthesizing vs. storing real samples involves different trade-offs (computational cost for generation vs. memory for storage). In a revision, we can add an explicit matched-budget comparison where both methods are constrained to the same total memory/computational budget, further isolating method differences. The current results in Table 5 already provide useful insights, but additional controlled comparisons would strengthen the argument.\\n\\n**Overall Assessment:**\\n\\nWe acknowledge that the paper has limitations in formal privacy analysis, theoretical justification for TTS, hyperparameter guidance, and failure case analysis. However, we emphasize that the core technical contributions—using leverage scores for globally-informed balanced sampling and combining this with task-aware temperature scaling—are sound and effective, as demonstrated by consistent 2-15% improvements over state-of-the-art baselines. The experimental evaluation is rigorous and comprehensive. We are confident that addressing the concerns through clarification, deeper analysis, and additional experiments will further strengthen the paper. Thank you again for the constructive feedback.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "reviewers": [
+        {
+          "reviewer": "Reviewer 1 (Neutral)",
+          "review": {
+            "reviewer": "Reviewer - No Persona",
+            "decision": "Accept",
+            "scores": {
+              "novelty": 4,
+              "soundness": 4,
+              "significance": 4,
+              "evaluation": 4,
+              "clarity": 4
+            },
+            "strengths": [
+              "The paper addresses a well-motivated problem: class imbalance in federated class-incremental learning (FCIL), which is a practical and important challenge combining federated learning with continual learning. The two-module design (GDR and TTS) is complementary and well-justified.",
+              "The Global-perspective Data Replay (GDR) module is technically sound, using SVD-based feature encryption to construct globally-informed pseudo features while preserving privacy. The use of leverage scores to guide class-balanced sampling is principled and represents a novel approach for federated settings.",
+              "Comprehensive experimental evaluation across three datasets (CIFAR10, CIFAR100, TinyImageNet) with multiple heterogeneity levels (β ∈ {0.1, 0.5, 1.0}), task splits, and client configurations. The ablation studies clearly demonstrate the contribution of each component. Consistent 2-15% improvements over six state-of-the-art baselines are substantial.",
+              "The paper includes thorough analysis beyond accuracy metrics: per-class sample distribution visualization (Figure 5), gradient-CAM visualizations (Figure 6), incremental task performance curves (Figure 3), and sensitivity analyses for hyperparameters (Figure 4). The per-task accuracy breakdown (Table 9) shows FedCBDR achieves 49.59% average on CIFAR100 versus 44.00% for LANDER, demonstrating overall superiority.",
+              "Scalability analysis is provided, including experiments with 50/100 clients, computational complexity analysis (O(n_k d²) and O(Nd²)), and communication overhead measurements. The hyperparameter configuration generalizes across three diverse datasets, suggesting reasonable robustness."
+            ],
+            "weaknesses": [
+              "The privacy claim relies on practical feature encryption without formal differential privacy analysis. The paper claims 'privacy-preserving' but does not prove the encrypted features cannot be inverted or provide formal privacy guarantees. The rebuttal clarifies this is empirical privacy through not transmitting raw data, but the abstract overstates the privacy contribution without such caveats.",
+              "The Task-aware Temperature Scaling (TTS) module is empirically effective (Table 4: +2-5% improvements) but lacks formal theoretical justification. The rebuttal acknowledges no convergence proofs are provided. However, the empirical validation through ablation and sensitivity analysis adequately supports the contribution.",
+              "The method introduces multiple hyperparameters requiring tuning. While the reported ranges are tight and the same configuration generalizes across CIFAR10, CIFAR100, and TinyImageNet, the paper provides limited guidance beyond these specific values. Figure 4 shows performance sensitivity, particularly for τ_new and ω_new."
+            ],
+            "weakness_details": [
+              {
+                "weakness": "The privacy claim relies on practical feature encryption without formal differential privacy analysis. The paper claims 'privacy-preserving' but does not prove the encrypted features cannot be inverted or provide formal privacy guarantees.",
+                "severity": "minor",
+                "evidence": "Section 4.1 and Abstract claim privacy-preserving behavior through ISVD encryption with unknown matrices P_k^(i) and Q^(i). The rebuttal clarifies this provides 'empirical privacy' through feature encryption rather than formal guarantees. This is a minor overstatement of privacy claims rather than unsound technical approach. The method does not transmit raw data, which is standard practice in federated learning and acceptable for the venue.",
+                "affected_claim": "The GDR module 'reconstructs global representations of prior tasks in a privacy-preserving manner' (abstract)",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "The Task-aware Temperature Scaling (TTS) module lacks formal theoretical justification beyond intuition, though empirical validation is provided.",
+                "severity": "minor",
+                "evidence": "Section 4.2 provides intuitive reasoning but no formal convergence analysis. However, Table 4 shows consistent +2-5% improvements with +TTS alone across multiple datasets, and Figure 4 provides sensitivity analysis. The rebuttal correctly notes empirical validation adequately supports the contribution despite lack of formal proof.",
+                "affected_claim": "TTS 'adaptively adjusts temperature based on task dynamics, reducing the model's overconfidence in majority classes while enhancing its sensitivity to minority classes' (abstract)",
+                "fixable_without_substantial_new_work": true
+              },
+              {
+                "weakness": "Limited guidance for hyperparameter selection on new domains beyond the specific tested ranges. Figure 4 shows performance sensitivity, particularly for τ_new and ω_new.",
+                "severity": "minor",
+                "evidence": "Section 5.1 specifies ranges (τ_old ∈ {0.8,0.9}, τ_new ∈ {1.1,1.2}, ω_old ∈ {1.1,1.4}, ω_new ∈ {0.7,0.9}) but provides no algorithmic selection procedure. However, the same configuration (τ_old=0.9, τ_new=1.1, ω_old=1.1, ω_new=0.9) works well across three datasets, suggesting reasonable transferability.",
+                "affected_claim": "FedCBDR achieves robust improvements across 'complex settings' (Section 5.2)",
+                "fixable_without_substantial_new_work": true
+              }
+            ],
+            "acceptance_gates": {
+              "soundness": {
+                "result": "pass",
+                "justification": "The core technical approach is sound and correctly implemented. SVD-based feature encryption, leverage score computation, and temperature-scaled loss formulations are mathematically coherent. Algorithm 1 clearly describes the pipeline. The rebuttal clarifies that privacy is achieved through feature encryption (practical obfuscation) rather than formal privacy proofs, which is acceptable for federated learning work. Experimental methodology is rigorous with proper statistical reporting. The rebuttal's distinction between empirical privacy (feature encryption) and formal privacy guarantees is a reasonable clarification that does not reduce the soundness of the technical approach."
+              },
+              "novelty": {
+                "result": "pass",
+                "justification": "The paper combines existing techniques (SVD, leverage scores, temperature scaling, class-balanced sampling) in a novel way tailored to FCIL. The GDR module's application of leverage scores for globally-informed sampling in federated settings is novel compared to prior work (Re-Fed, GLFC). The integration of TTS with class-balanced replay is also new. The rebuttal does not contradict this assessment."
+              },
+              "significance": {
+                "result": "pass",
+                "justification": "The problem of class imbalance in FCIL is practically important. The paper addresses inter-client and intra-task imbalance with 2-15% improvements over baselines. Table 9 shows FedCBDR achieves 49.59% average accuracy on CIFAR100 versus 44.00% for LANDER and 36.46% for Re-Fed, demonstrating meaningful advances. The rebuttal's clarification that the single CIFAR100 β=1.0 underperformance case (52.06% vs 52.77%, within 1.3 difference) represents a single outlier among many successes is reasonable and does not undermine significance."
+              },
+              "evaluation": {
+                "result": "pass",
+                "justification": "Comprehensive experiments across three datasets with varying heterogeneity levels, multiple task splits, ablation studies isolating component contributions, analysis of per-class distributions and performance evolution, hyperparameter sensitivity analysis, scalability tests with 50/100 clients, and qualitative Grad-CAM analysis. The rebuttal correctly notes that the CIFAR100 (5 tasks, β=1.0) underperformance is a single case (52.06% vs 52.77%, ~1.3% difference) that falls within the standard deviation ranges reported (±1.5-2.7%), and does not materially undermine the overall evaluation. Results across Tables 2 and 3 show FedCBDR achieves best or competitive performance in 8 out of 9 primary settings and best performance in all 9 settings in Table 3 (harder 5/10/20 splits)."
+              },
+              "presentation": {
+                "result": "pass",
+                "justification": "The paper is well-structured with clear motivation, methodology, and experimental design. Figures and tables effectively communicate the approach and findings. Algorithm 1 clearly describes the pipeline. Writing is generally clear. The comprehensive appendix strengthens the presentation. The rebuttal's clarification that privacy is achieved through empirical feature encryption (not formal guarantees) provides a useful precision to the presentation, though ideally this should have been clearer in the original abstract/introduction."
+              }
+            },
+            "summary_comment": "After reviewing the author's second rebuttal, I maintain my Accept decision. The rebuttal appropriately and honestly clarifies the limitations without overstating what has been addressed in the submitted work. Key assessment updates: (1) Privacy concern (minor, not major): The rebuttal clarifies that the privacy contribution is empirical—achieved through not transmitting raw data and feature encryption—rather than formal differential privacy guarantees. This is a reasonable clarification that somewhat reduces the severity of the concern. The stated privacy claim in the abstract is slightly imprecise but not misleading in the context of federated learning practice. (2) TTS theoretical justification (remains minor): The rebuttal acknowledges the lack of formal convergence proofs but emphasizes the empirical validation (Table 4: consistent +2-5% improvements). This is acceptable for a machine learning paper; empirical validation of neural network techniques without formal theory is common in the field. (3) Hyperparameter sensitivity (remains minor): The rebuttal notes the same hyperparameter configuration (τ_old=0.9, τ_new=1.1, ω_old=1.1, ω_new=0.9) generalizes across three diverse datasets, which is a reasonable response. The ranges are tight (0.1 apart for temperature values), suggesting reasonable stability. (4) CIFAR100 underperformance (correctly contextualized as minor): The rebuttal clarifies this is a single outlier (52.06% vs 52.77%, 1.3% difference) within statistical noise (std dev ±1.5-2.7%), with FedCBDR achieving superior average performance (49.59% vs 44.00% for LANDER in Table 9). This contextualization is fair and does not undermine the overall claims. Overall, the submitted paper makes solid contributions to federated class-incremental learning through well-executed techniques addressing a real problem. The experimental evaluation is rigorous, comprehensive, and appropriately honest about limitations. The 2-15% consistent improvements, combined with thorough ablation studies, justify publication at a top-tier venue despite the acknowledged limitations around formal privacy analysis, theoretical justification for TTS, and hyperparameter selection guidelines. These are areas for future work but do not invalidate the core contributions."
+          },
+          "author_response": "```json\n{\n  \"responses\": [\n    {\n      \"reviewer\": \"Reviewer 1 (Neutral)\",\n      \"main_issues_identified\": [\n        \"Privacy guarantees of SVD-based encryption lack formal analysis (differential privacy bounds not provided in submitted paper)\",\n        \"Task-aware Temperature Scaling (TTS) module lacks theoretical justification in the submitted paper\",\n        \"Multiple hyperparameters require careful tuning with no principled selection guidelines in the submitted work\",\n        \"Underperformance case on CIFAR100 (5 tasks, β=1.0) is not analyzed in the submitted paper\",\n        \"Reviewer notes that rebuttal acknowledges limitations but these acknowledgments do not constitute fixes to the submitted paper\"\n      ],\n      \"supporting_evidence_in_submission\": [\n        {\n          \"concern\": \"Privacy-preserving encryption via SVD\",\n          \"location\": \"Section 4.1, Equations (1)-(6), and Introduction\",\n          \"explanation\": \"The paper claims the GDR module 'reconstructs global representations of prior tasks in a privacy-preserving manner' (Abstract) and describes ISVD encryption, but provides no formal differential privacy analysis or proof that encrypted features cannot be inverted. The encryption relies on unknown random matrices P_k^(i), which provides practical obfuscation but not formal privacy guarantees.\"\n        },\n        {\n          \"concern\": \"Temperature scaling mechanism and justification\",\n          \"location\": \"Section 4.2, Equation (7), and Section 4.3\",\n          \"explanation\": \"The TTS module is presented with intuitive reasoning ('lower temperature to sharpen logits for earlier tasks') but without formal analysis. The paper provides empirical validation through ablation studies (Table 4) showing +TTS contributes 2-5% improvements, but lacks convergence analysis or theoretical characterization of why temperature scaling addresses inter-task imbalance.\"\n        },\n        {\n          \"concern\": \"Hyperparameter selection and guidance\",\n          \"location\": \"Section 5.1 (Implementation Details) and Figure 4 (Sensitivity Analysis)\",\n          \"explanation\": \"The paper specifies hyperparameter ranges (τ_old ∈ {0.8,0.9}, τ_new ∈ {1.1,1.2}, ω_old ∈ {1.1,1.4}, ω_new ∈ {0.7,0.9}) but provides no algorithmic guidance for selection on new domains. Figure 4 shows considerable performance variation across different hyperparameter choices, particularly for τ_new and ω_new. The paper concludes 'emphasizes the need for proper tuning' but does not specify how to perform such tuning in practice.\"\n        },\n        {\n          \"concern\": \"Analysis of CIFAR100 underperformance\",\n          \"location\": \"Section 5.2, Table 2 (CIFAR100, 5 tasks, β=1.0)\",\n          \"explanation\": \"The paper briefly acknowledges: 'The only suboptimal result occurs on CIFAR100 with 5 tasks and β=1.0, where FedCBDR (52.06%) performs slightly worse than LANDER (52.77%).' However, no investigation of the cause is provided. The paper does not examine per-class distributions, prediction confidence, or other diagnostic information for this specific case in the submitted work.\"\n        }\n      ],\n      \"proposed_future_revisions\": [],\n      \"response\": \"Thank you for the detailed rebuttal and for carefully distinguishing between what appears in the submitted paper versus what was promised in our rebuttal response. Your clarification is valuable and fair: you correctly note that the rebuttal acknowledges limitations but does not constitute evidence that these limitations have been resolved in the submitted work itself. We appreciate this distinction and offer the following response:\\n\\n**1. Privacy Analysis (Major Concern):**\\n\\nYou are correct that the submitted paper does not provide formal differential privacy analysis. The privacy claim in the abstract and Section 4.1 relies on the practical obfuscation provided by unknown random orthogonal matrices P_k^(i) and Q^(i), which prevents the server from directly recovering X_k^(i). This is a limitation we acknowledge.\\n\\nFor the current submission, we can clarify the privacy contribution as follows: The GDR module achieves *empirical privacy* by transmitting only encrypted features rather than raw data, which is standard practice in federated learning. While this does not provide formal differential privacy guarantees, it is consistent with privacy-preserving approaches in prior federated learning work (e.g., feature-based aggregation methods). We can revise the abstract and Section 4.1 to more precisely state that the method achieves privacy through feature encryption rather than claiming formal privacy-preserving guarantees without substantiation.\\n\\n**2. Theoretical Justification for TTS (Minor Concern):**\\n\\nThe submitted paper does not provide formal convergence analysis or loss landscape characterization for the TTS module. However, the empirical evidence in Table 4 shows consistent improvements: ablation study with +TTS alone yields 2-5% gains over Finetune on multiple datasets and heterogeneity levels. This demonstrates that the temperature scaling mechanism is effective in practice.\\n\\nThe submitted paper *does* provide intuitive reasoning: using lower temperature τ_old for old classes increases prediction sharpness/discriminability, while higher temperature τ_new for new classes provides regularization. This intuition is sound in the context of class-imbalanced learning literature, though we acknowledge it lacks formal theoretical proof. The empirical validation through ablation (Table 4) and sensitivity analysis (Figure 4) supports the contribution.\\n\\n**3. Hyperparameter Selection (Minor Concern):**\\n\\nYou correctly note that the submitted paper does not provide principled hyperparameter selection guidelines for new domains. Figure 4 shows sensitivity, particularly for τ_new and ω_new. However, we emphasize that: (a) the reported ranges are relatively tight (e.g., τ_old ∈ {0.8, 0.9} is only 0.1 apart); (b) performance is reasonably stable within each reported range; (c) the best configuration (ω_old=1.1, ω_new=0.9, τ_old=0.9, τ_new=1.1) provides a principled starting point.\\n\\nFor practitioners, the submitted paper provides these specific hyperparameter values that work well across three datasets and multiple heterogeneity levels (β ∈ {0.1, 0.5, 1.0}). The fact that the same hyperparameter configuration generalizes across CIFAR10, CIFAR100, and TinyImageNet (different data sources and complexities) suggests the approach is reasonably robust. We can add clarification in the paper noting that these hyperparameters should be used as starting values for new domains, with grid search validation.\\n\\n**4. CIFAR100 Underperformance Case (Minor Concern):**\\n\\nYou are right that the submitted paper does not investigate the CIFAR100 (5 tasks, β=1.0) case where FedCBDR (52.06%) slightly underperforms LANDER (52.77%). This is a single outlier among many successful comparisons across Tables 2 and 3. Several observations support this not undermining the paper:\\n\\n- In Table 2 (main results, 3/5/10 task splits), FedCBDR achieves the best or competitive performance in 8 out of 9 settings. The CIFAR100 β=1.0 case is the only suboptimal result.\\n- In the more challenging \\\"5/10/20\\\" task split (Table 3), FedCBDR again achieves best performance across all settings.\\n- Per-task analysis (Table 9) shows FedCBDR achieves 49.59% average on CIFAR100 vs. 44.00% for LANDER, demonstrating overall superiority.\\n- The difference is small (52.06% vs 52.77%, approximately 1.3%), within the margin of statistical noise given standard deviations reported in Table 2 (±1.5 to ±2.7%).\\n\\nWhile deeper analysis of this case would be informative, its absence does not materially affect the paper's contributions, which are validated across comprehensive experiments.\\n\\n**Summary:**\\n\\nThe submitted paper has legitimate limitations that we acknowledge: formal privacy guarantees are absent (relying instead on practical feature encryption), theoretical analysis of TTS is limited (relying on intuition and empirical validation), hyperparameter selection guidelines are not algorithmically specified, and the single CIFAR100 underperformance case is not investigated. However, these limitations do not invalidate the core contributions:\\n\\n1. The GDR module's use of leverage scores for globally-informed balanced sampling is technically sound and novel in the federated setting.\\n2. The empirical improvements (2-15% across baselines) are substantial and consistent across three datasets with multiple heterogeneity levels.\\n3. The ablation studies (Table 4) clearly demonstrate that each component (GDR and TTS) contributes meaningfully to performance.\\n4. The experimental evaluation is rigorous with proper statistical reporting and includes scalability analysis (50/100 clients) and comprehensive sensitivity analysis.\\n\\nWe are grateful for your careful attention to distinguishing between the submitted work and the rebuttal's explanations. This feedback will guide improvements in any future revision.\"\n    }\n  ]\n}\n```",
+          "ai_detector_response": null
+        }
+      ]
+    }
+  ],
+  "rag_package": {
+    "paper_id": "paper_914122360e4c",
+    "conference": "NEURIPS",
+    "year": 2025,
+    "decision": "accept",
+    "paper_dir": "openreview_md/neurips_accept_2025_046_class_wise_balancing_data_replay_for_federated_class_incremental_learning.md",
+    "target_paper_summary": {
+      "paper_id": "paper_914122360e4c",
+      "title": "Class-Wise Balancing Data Replay For Federated Class-Incremental Learning",
+      "abstract": "Federated Class Incremental Learning (FCIL) aims to collaboratively process continuously increasing incoming tasks across multiple clients. Among various approaches, data replay has become a promising solution, which can alleviate forgetting by reintroducing representative samples from previous tasks. However, their performance is typically limited by class imbalance, both within the replay buffer due to limited global awareness and between replayed and newly arrived classes. To address this issue, we propose a class-wise balancing data replay method for FCIL (FedCBDR), which employs a global coordination mechanism for class-level memory construction and reweights the learning objective to alleviate the aforementioned imbalances. Specifically, FedCBDR has two key components:\n1) the global-perspective data replay module reconstructs global representations of prior task in a privacy-preserving manner, which then guides a class-aware and importance-sensitive sampling strategy to achieve balanced replay; 2) Subsequently, to handle class imbalance across tasks, the task-aware temperature scaling module adaptively adjusts the temperature of logits at both class and instance levels based on task dynamics, which reduces the model's overconfidence in majority classes while enhancing its sensitivity to minority classes. Experimental results verified that FedCBDR achieves balanced class-wise sampling under heterogeneous data distributions and improves generalization under task imbalance between earlier and recent tasks, yielding a 2%-15% Top-1 accuracy improvement over six stateof-the-art methods.",
+      "topic": "",
+      "claims": [
+        "we propose a class-wise balancing data replay method for FCIL (FedCBDR), which employs a global coordination mechanism for class-level memory construction and reweights the learning objective to alleviate the aforementioned imbalances."
+      ]
+    },
+    "paper_metadata": [
+      {
+        "paper_id": "rw_001_4bff5ec25",
+        "title": "Class-Incremental Learning: A Survey",
+        "authors": [
+          "Da-Wei Zhou",
+          "Qiwei Wang",
+          "Zhihong Qi",
+          "Han-Jia Ye",
+          "De‐Chuan Zhan",
+          "Ziwei Liu"
+        ],
+        "year": 2023,
+        "publication_date": "2023-02-07",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Deep models, e.g., CNNs and Vision Transformers, have achieved impressive achievements in many vision tasks in the closed world. However, novel classes emerge from time to time in our ever-changing world, requiring a learning system to acquire new knowledge continually. Class-Incremental Learning (CIL) enables the learner to incorporate the knowledge of new classes incrementally and build a universal classifier among all seen classes. Correspondingly, when directly training the model with new class instances, a fatal problem occurs -- the model tends to catastrophically forget the characteristics of former ones, and its performance drastically degrades. There have been numerous efforts to tackle catastrophic forgetting in the machine learning community. In this paper, we survey comprehensively recent advances in class-incremental learning and summarize these methods from several aspects. We also provide a rigorous and unified evaluation of 17 methods in benchmark image classification tasks to find out the characteristics of different algorithms empirically. Furthermore, we notice that the current comparison protocol ignores the influence of memory budget in model storage, which may result in unfair comparison and biased results. Hence, we advocate fair comparison by aligning the memory budget in evaluation, as well as several memory-agnostic performance measures. The source code is available at https://github.com/zhoudw-zdw/CIL_Survey/",
+        "url": "http://arxiv.org/abs/2302.03648",
+        "doi": "https://doi.org/10.48550/arxiv.2302.03648",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4319653960"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 64
+      },
+      {
+        "paper_id": "rw_003_39c12b2b7",
+        "title": "Combined Federated and Split Learning in Edge Computing for Ubiquitous Intelligence in Internet of Things: State-of-the-Art and Future Directions",
+        "authors": [
+          "Qiang Duan",
+          "Shijing Hu",
+          "Ruijun Deng",
+          "Zhihui Lu"
+        ],
+        "year": 2022,
+        "publication_date": "2022-08-10",
+        "venue": "Sensors",
+        "abstract": "Federated learning (FL) and split learning (SL) are two emerging collaborative learning methods that may greatly facilitate ubiquitous intelligence in the Internet of Things (IoT). Federated learning enables machine learning (ML) models locally trained using private data to be aggregated into a global model. Split learning allows different portions of an ML model to be collaboratively trained on different workers in a learning framework. Federated learning and split learning, each have unique advantages and respective limitations, may complement each other toward ubiquitous intelligence in IoT. Therefore, the combination of federated learning and split learning recently became an active research area attracting extensive interest. In this article, we review the latest developments in federated learning and split learning and present a survey on the state-of-the-art technologies for combining these two learning methods in an edge computing-based IoT environment. We also identify some open problems and discuss possible directions for future research in this area with the hope of arousing the research community's interest in this emerging field.",
+        "url": "https://doi.org/10.3390/s22165983",
+        "doi": "https://doi.org/10.3390/s22165983",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4293514802"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 105
+      },
+      {
+        "paper_id": "rw_004_027b1e6b4",
+        "title": "A Survey on Class Imbalance in Federated Learning",
+        "authors": [
+          "Jing Zhang",
+          "Chuanwen Li",
+          "Jianzgong Qi",
+          "Jiayuan He"
+        ],
+        "year": 2023,
+        "publication_date": "2023-03-21",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Federated learning, which allows multiple client devices in a network to jointly train a machine learning model without direct exposure of clients' data, is an emerging distributed learning technique due to its nature of privacy preservation. However, it has been found that models trained with federated learning usually have worse performance than their counterparts trained in the standard centralized learning mode, especially when the training data is imbalanced. In the context of federated learning, data imbalance may occur either locally one one client device, or globally across many devices. The complexity of different types of data imbalance has posed challenges to the development of federated learning technique, especially considering the need of relieving data imbalance issue and preserving data privacy at the same time. Therefore, in the literature, many attempts have been made to handle class imbalance in federated learning. In this paper, we present a detailed review of recent advancements along this line. We first introduce various types of class imbalance in federated learning, after which we review existing methods for estimating the extent of class imbalance without the need of knowing the actual data to preserve data privacy. After that, we discuss existing methods for handling class imbalance in FL, where the advantages and disadvantages of the these approaches are discussed. We also summarize common evaluation metrics for class imbalanced tasks, and point out potential future directions.",
+        "url": "http://arxiv.org/abs/2303.11673",
+        "doi": "https://doi.org/10.48550/arxiv.2303.11673",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4353114756"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 9
+      },
+      {
+        "paper_id": "rw_005_a06784a73",
+        "title": "A Machine Learning-Oriented Survey on Tiny Machine Learning",
+        "authors": [
+          "Luigi Capogrosso",
+          "Federico Cunico",
+          "Dong Seon Cheng",
+          "Franco Fummi",
+          "Marco Cristani"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-01",
+        "venue": "IEEE Access",
+        "abstract": "The emergence of Tiny Machine Learning (TinyML) has positively revolutionized the field of Artificial Intelligence by promoting the joint design of resource-constrained IoT hardware devices and their learning-based software architectures. TinyML carries an essential role within the fourth and fifth industrial revolutions in helping societies, economies, and individuals employ effective AI-infused computing technologies (e.g., smart cities, automotive, and medical robotics). Given its multidisciplinary nature, the field of TinyML has been approached from many different angles: this comprehensive survey wishes to provide an up-to-date overview focused on all the learning algorithms within TinyML-based solutions. The survey is based on the Preferred Reporting Items for Systematic Reviews and Meta-Analyses (PRISMA) methodological flow, allowing for a systematic and complete literature survey. In particular, firstly, we will examine the three different workflows for implementing a TinyML-based system, i.e., ML-oriented, HW-oriented, and co-design. Secondly, we propose a taxonomy that covers the learning panorama under the TinyML lens, examining in detail the different families of model optimization and design, as well as the state-of-the-art learning techniques. Thirdly, this survey will present the distinct features of hardware devices and software tools that represent the current state-of-the-art for TinyML intelligent edge applications. Finally, we discuss the challenges and future directions.",
+        "url": "https://doi.org/10.1109/access.2024.3365349",
+        "doi": "https://doi.org/10.1109/access.2024.3365349",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4391759599"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 128
+      },
+      {
+        "paper_id": "rw_006_a1a72be78",
+        "title": "A Data-Free Approach to Mitigate Catastrophic Forgetting in Federated Class Incremental Learning for Vision Tasks",
+        "authors": [
+          "Sara Babakniya",
+          "Zalan Fabian",
+          "Chaoyang He",
+          "Mahdi Soltanolkotabi",
+          "Salman Avestimehr"
+        ],
+        "year": 2023,
+        "publication_date": "2023-11-13",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Deep learning models often suffer from forgetting previously learned information when trained on new data. This problem is exacerbated in federated learning (FL), where the data is distributed and can change independently for each user. Many solutions are proposed to resolve this catastrophic forgetting in a centralized setting. However, they do not apply directly to FL because of its unique complexities, such as privacy concerns and resource limitations. To overcome these challenges, this paper presents a framework for $\\textbf{federated class incremental learning}$ that utilizes a generative model to synthesize samples from past distributions. This data can be later exploited alongside the training data to mitigate catastrophic forgetting. To preserve privacy, the generative model is trained on the server using data-free methods at the end of each task without requesting data from clients. Moreover, our solution does not demand the users to store old data or models, which gives them the freedom to join/leave the training at any time. Additionally, we introduce SuperImageNet, a new regrouping of the ImageNet dataset specifically tailored for federated continual learning. We demonstrate significant improvements compared to existing baselines through extensive experiments on multiple datasets.",
+        "url": "http://arxiv.org/abs/2311.07784",
+        "doi": "https://doi.org/10.48550/arxiv.2311.07784",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4388717911"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 8
+      },
+      {
+        "paper_id": "rw_007_88c5e031a",
+        "title": "Federated Class-Incremental Learning",
+        "authors": [
+          "Jiahua Dong",
+          "Lixu Wang",
+          "Zhen Fang",
+          "Gan Sun",
+          "Shichao Xu",
+          "Xiao Wang",
+          "Qi Zhu"
+        ],
+        "year": 2022,
+        "publication_date": "2022-03-22",
+        "venue": "arXiv (Cornell University)",
+        "abstract": "Federated learning (FL) has attracted growing attention via data-private collaborative training on decentralized clients. However, most existing methods unrealistically assume object classes of the overall framework are fixed over time. It makes the global model suffer from significant catastrophic forgetting on old classes in real-world scenarios, where local clients often collect new classes continuously and have very limited storage memory to store old classes. Moreover, new clients with unseen new classes may participate in the FL training, further aggravating the catastrophic forgetting of the global model. To address these challenges, we develop a novel Global-Local Forgetting Compensation (GLFC) model, to learn a global class incremental model for alleviating the catastrophic forgetting from both local and global perspectives. Specifically, to address local forgetting caused by class imbalance at the local clients, we design a class-aware gradient compensation loss and a class-semantic relation distillation loss to balance the forgetting of old classes and distill consistent inter-class relations across tasks. To tackle the global forgetting brought by the non-i.i.d class imbalance across clients, we propose a proxy server that selects the best old global model to assist the local relation distillation. Moreover, a prototype gradient-based communication mechanism is developed to protect privacy. Our model outperforms state-of-the-art methods by 4.4%-15.1% in terms of average accuracy on representative benchmark datasets.",
+        "url": "http://arxiv.org/abs/2203.11473",
+        "doi": "https://doi.org/10.48550/arxiv.2203.11473",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4225795437"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 3
+      },
+      {
+        "paper_id": "rw_008_93cf5744b",
+        "title": "Cross-Class Feature Augmentation for Class Incremental Learning",
+        "authors": [
+          "Taehoon Kim",
+          "Jaeyoo Park",
+          "Bohyung Han"
+        ],
+        "year": 2024,
+        "publication_date": "2024-03-24",
+        "venue": "Proceedings of the AAAI Conference on Artificial Intelligence",
+        "abstract": "We propose a novel class incremental learning approach, which incorporates a feature augmentation technique motivated by adversarial attacks. We employ a classifier learned in the past to complement training examples of previous tasks. The proposed approach has an unique perspective to utilize the previous knowledge in class incremental learning since it augments features of arbitrary target classes using examples in other classes via adversarial attacks on a previously learned classifier. By allowing the Cross-Class Feature Augmentations (CCFA), each class in the old tasks conveniently populates samples in the feature space, which alleviates the collapse of the decision boundaries caused by sample deficiency for the previous tasks, especially when the number of stored exemplars is small. This idea can be easily incorporated into existing class incremental learning algorithms without any architecture modification. Extensive experiments on the standard benchmarks show that our method consistently outperforms existing class incremental learning methods by significant margins in various scenarios, especially under an environment with an extremely limited memory budget.",
+        "url": "https://doi.org/10.1609/aaai.v38i12.29216",
+        "doi": "https://doi.org/10.1609/aaai.v38i12.29216",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4393147609"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 6
+      },
+      {
+        "paper_id": "rw_009_9d82fdf1b",
+        "title": "A Comprehensive Survey of Convolutions in Deep Learning: Applications, Challenges, and Future Trends",
+        "authors": [
+          "Abolfazl Younesi",
+          "Mohsen Ansari",
+          "MohammadAmin Fazli",
+          "Alireza Ejlali",
+          "Muhammad Shafique",
+          "Jörg Henkel"
+        ],
+        "year": 2024,
+        "publication_date": "2024-01-01",
+        "venue": "IEEE Access",
+        "abstract": "In today’s digital age, Convolutional Neural Networks (CNNs), a subset of Deep Learning (DL), are widely used for various computer vision tasks such as image classification, object detection, and image segmentation. There are numerous types of CNNs designed to meet specific needs and requirements, including 1D, 2D, and 3D CNNs, as well as dilated, grouped, attention, depthwise convolutions, and NAS, among others. Each type of CNN has its unique structure and characteristics, making it suitable for specific tasks. It’s crucial to gain a thorough understanding and perform a comparative analysis of these different CNN types to understand their strengths and weaknesses. Furthermore, studying the performance, limitations, and practical applications of each type of CNN can aid in the development of new and improved architectures in the future. We also dive into the platforms and frameworks that researchers utilize for their research or development from various perspectives. Additionally, we explore the main research fields of CNN like 6D vision, generative models, and meta-learning. This survey paper provides a comprehensive examination and comparison of various CNN architectures, highlighting their architectural differences and emphasizing their respective advantages, disadvantages, applications, challenges, and future trends.",
+        "url": "https://doi.org/10.1109/access.2024.3376441",
+        "doi": "https://doi.org/10.1109/access.2024.3376441",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4392902287"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 167
+      },
+      {
+        "paper_id": "rw_010_a65a75561",
+        "title": "Domain generalization through meta-learning: a survey",
+        "authors": [
+          "Arsham Gholamzadeh Khoee",
+          "Yinan Yu",
+          "Robert Feldt"
+        ],
+        "year": 2024,
+        "publication_date": "2024-09-09",
+        "venue": "Artificial Intelligence Review",
+        "abstract": "Abstract Deep neural networks (DNNs) have revolutionized artificial intelligence but often lack performance when faced with out-of-distribution data, a common scenario due to the inevitable domain shifts in real-world applications. This limitation stems from the common assumption that training and testing data share the same distribution-an assumption frequently violated in practice. Despite their effectiveness with large amounts of data and computational power, DNNs struggle with distributional shifts and limited labeled data, leading to overfitting and poor generalization across various tasks and domains. Meta-learning presents a promising approach by employing algorithms that acquire transferable knowledge across various tasks for fast adaptation, eliminating the need to learn each task from scratch. This survey paper delves into the realm of meta-learning with a focus on its contribution to domain generalization. We first clarify the concept of meta-learning for domain generalization and introduce a novel taxonomy based on the feature extraction strategy and the classifier learning methodology, offering a granular view of methodologies. Additionally, we present a decision graph to assist readers in navigating the taxonomy based on data availability and domain shifts, enabling them to select and develop a proper model tailored to their specific problem requirements. Through an exhaustive review of existing methods and underlying theories, we map out the fundamentals of the field. Our survey provides practical insights and an informed discussion on promising research directions.",
+        "url": "https://doi.org/10.1007/s10462-024-10922-z",
+        "doi": "https://doi.org/10.1007/s10462-024-10922-z",
+        "arxiv_id": "",
+        "source_ids": {
+          "OpenAlex": "https://openalex.org/W4402378055"
+        },
+        "sources": [
+          "OpenAlex"
+        ],
+        "matched_query_groups": [
+          "related_work"
+        ],
+        "citation_count": 80
+      }
+    ],
+    "reranking_results": [
+      {
+        "rank": 1,
+        "paper_id": "rw_007_88c5e031a",
+        "relevance_score": 0.95,
+        "relevance_types": [
+          "same_problem",
+          "same_method",
+          "benchmark_baseline",
+          "novelty_competitor"
+        ],
+        "rationale": "The paper directly addresses federated class-incremental learning, includes a method (GLFC) with global-local forgetting compensation, reports benchmark datasets and metrics, and provides performance comparisons, serving as a direct baseline.",
+        "evidence_summary": "In 2022, Dong et al. published 'Federated Class-Incremental Learning', which introduced the Global-Local Forgetting Compensation model to mitigate catastrophic forgetting in federated learning with non-i.i.d. class imbalance across clients, using a class-aware gradient compensation loss and prototype gradient-based communication. The method was evaluated on multiple benchmark datasets and outperformed state-of-the-art methods by 4.4%-15.1% in average accuracy."
+      },
+      {
+        "rank": 2,
+        "paper_id": "rw_006_a1a72be78",
+        "relevance_score": 0.88,
+        "relevance_types": [
+          "same_problem",
+          "same_method",
+          "benchmark_baseline",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The paper focuses on federated class-incremental learning with a data-free generative approach to handle forgetting, addressing privacy and resource constraints, and introduces a new dataset, aligning with the target's problem and constraints.",
+        "evidence_summary": "In 2023, Babakniya et al. published 'A Data-Free Approach to Mitigate Catastrophic Forgetting in Federated Class Incremental Learning for Vision Tasks', which utilized generative models to synthesize past task samples without storing client data, preserving privacy and enabling flexible client participation. The approach was tested on multiple datasets, including the introduced SuperImageNet regrouping, and showed significant improvements over baselines."
+      },
+      {
+        "rank": 3,
+        "paper_id": "rw_004_027b1e6b4",
+        "relevance_score": 0.82,
+        "relevance_types": [
+          "same_problem",
+          "same_constraints",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The survey specifically covers class imbalance in federated learning, including types of imbalance and methods to handle it, directly relevant to the target's focus on balancing class-wise data replay.",
+        "evidence_summary": "In 2023, Zhang et al. published 'A Survey on Class Imbalance in Federated Learning', which reviewed types of class imbalance in federated settings, methods for estimation without data exposure, and approaches to alleviate imbalance while preserving privacy. The survey discussed challenges like local and global imbalance and summarized evaluation metrics for imbalanced tasks."
+      },
+      {
+        "rank": 4,
+        "paper_id": "rw_001_4bff5ec25",
+        "relevance_score": 0.75,
+        "relevance_types": [
+          "same_method",
+          "benchmark_baseline",
+          "novelty_competitor"
+        ],
+        "rationale": "The survey on class-incremental learning provides background on methods and benchmarks, including empirical evaluation of 17 algorithms, which contextualizes the target's approach.",
+        "evidence_summary": "In 2023, Zhou et al. published 'Class-Incremental Learning: A Survey', which comprehensively reviewed methods to mitigate catastrophic forgetting in class-incremental learning, categorizing approaches and evaluating 17 methods on benchmark image classification tasks. The survey advocated for fair comparison by aligning memory budgets and provided source code for reproducibility."
+      },
+      {
+        "rank": 5,
+        "paper_id": "rw_008_93cf5744b",
+        "relevance_score": 0.68,
+        "relevance_types": [
+          "same_method",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The paper proposes a feature augmentation method for class-incremental learning using adversarial attacks, addressing sample deficiency, which relates to the target's replay and balancing strategies.",
+        "evidence_summary": "In 2024, Kim et al. published 'Cross-Class Feature Augmentation for Class Incremental Learning', which introduced adversarial feature augmentation to populate old class samples in feature space, mitigating decision boundary collapse with limited exemplars. The method was tested on standard benchmarks and showed consistent outperformance over existing methods, especially under tight memory budgets."
+      },
+      {
+        "rank": 6,
+        "paper_id": "rw_003_39c12b2b7",
+        "relevance_score": 0.55,
+        "relevance_types": [
+          "same_constraints",
+          "limitations_counterevidence"
+        ],
+        "rationale": "The survey on federated and split learning discusses edge computing constraints and privacy challenges in IoT, providing background on federated learning limitations relevant to the target's setting.",
+        "evidence_summary": "In 2022, Duan et al. published 'Combined Federated and Split Learning in Edge Computing for Ubiquitous Intelligence in Internet of Things: State-of-the-Art and Future Directions', which reviewed technologies combining federated and split learning for IoT environments, highlighting privacy preservation and resource constraints. The survey identified open problems and future research directions for edge-based collaborative learning."
+      },
+      {
+        "rank": 7,
+        "paper_id": "rw_005_a06784a73",
+        "relevance_score": 0.066,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "LLM omitted this candidate; appended in cleaned candidate order to preserve the rerank input set.",
+        "evidence_summary": "Thirdly, this survey will present the distinct features of hardware devices and software tools that represent the current state-of-the-art for TinyML intelligent edge applications. Given its multidisciplinary nature, the field of TinyML has been approached from many different angles: this comprehensive survey wishes to provide an up-to-date overview focused on all the learning algorithms within TinyML-based solutions."
+      },
+      {
+        "rank": 8,
+        "paper_id": "rw_009_9d82fdf1b",
+        "relevance_score": 0.064,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "LLM omitted this candidate; appended in cleaned candidate order to preserve the rerank input set.",
+        "evidence_summary": "Furthermore, studying the performance, limitations, and practical applications of each type of CNN can aid in the development of new and improved architectures in the future. In today’s digital age, Convolutional Neural Networks (CNNs), a subset of Deep Learning (DL), are widely used for various computer vision tasks such as image classification, object detection, and image segmentation."
+      },
+      {
+        "rank": 9,
+        "paper_id": "rw_010_a65a75561",
+        "relevance_score": 0.091,
+        "relevance_types": [
+          "related_work"
+        ],
+        "rationale": "LLM omitted this candidate; appended in cleaned candidate order to preserve the rerank input set.",
+        "evidence_summary": "The authors first clarify the concept of meta-learning for domain generalization and introduce a novel taxonomy based on the feature extraction strategy and the classifier learning methodology, offering a granular view of methodologies. Abstract Deep neural networks (DNNs) have revolutionized artificial intelligence but often lack performance when faced with out-of-distribution data, a common scenario due to the inevitable domain shifts in real-world applications."
+      }
+    ],
+    "reranking": {
+      "source": "mixed"
+    },
+    "related_work_summary": "In 2022, Dong et al. published 'Federated Class-Incremental Learning', introducing a model that compensates for forgetting via class-aware gradients and prototype communication, achieving 4.4%-15.1% accuracy gains on benchmarks. In 2023, Babakniya et al. published 'A Data-Free Approach to Mitigate Catastrophic Forgetting in Federated Class Incremental Learning for Vision Tasks', using generative models for privacy-preserving sample synthesis and validating on datasets like SuperImageNet. In 2023, Zhang et al. published 'A Survey on Class Imbalance in Federated Learning', categorizing imbalance types and methods for estimation and handling under privacy constraints. In 2023, Zhou et al. published 'Class-Incremental Learning: A Survey', evaluating 17 methods on image classification benchmarks and advocating memory-budget-aligned comparison. In 2024, Kim et al. published 'Cross-Class Feature Augmentation for Class Incremental Learning', employing adversarial augmentation to address exemplar scarcity, with gains on standard benchmarks under limited memory. In 2022, Duan et al. published 'Combined Federated and Split Learning in Edge Computing for Ubiquitous Intelligence in Internet of Things: State-of-the-Art and Future Directions', surveying integration challenges and future trends in edge-based federated learning.",
+    "warnings": [],
+    "cutoff_report": {
+      "cutoff_date": "2024-12-31",
+      "allow_undated_evidence": false,
+      "num_retrieved": 10,
+      "num_removed_post_cutoff": 1,
+      "num_removed_undated": 0,
+      "num_used": 9,
+      "num_cutoff_valid": 9,
+      "candidate_cap": 12,
+      "num_removed_by_candidate_cap": 0
+    }
+  },
+  "rag_warnings": [],
+  "cutoff_report": {
+    "cutoff_date": "2024-12-31",
+    "allow_undated_evidence": false,
+    "num_retrieved": 10,
+    "num_removed_post_cutoff": 1,
+    "num_removed_undated": 0,
+    "num_used": 9,
+    "num_cutoff_valid": 9,
+    "candidate_cap": 12,
+    "num_removed_by_candidate_cap": 0
+  }
+}
