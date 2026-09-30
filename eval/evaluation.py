@@ -10,6 +10,7 @@ Sources evaluated:
     - our_multi       : Condition B (multi-agent)    from experiment_summary_*.json
     - our_baseline    : Condition C (no-persona)     from experiment_baseline_summary_*.json
     - our_nopersona   : Condition D (NNN, 3 iter)    from experiment_nopersona_summary_*.json
+    - our_C*          : additional conditions from experiment summaries
 
 Metrics per paper per system:
     - src_strengths       : Semantic Review Coverage for strength statements
@@ -48,6 +49,8 @@ Usage (from project root):
 from __future__ import annotations
 
 import argparse
+import hashlib
+import importlib.metadata
 import json
 import os
 import re
@@ -61,6 +64,8 @@ from scipy.stats import spearmanr
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from eval.SRC import compute_src_both, load_model
+from eval.evaluation_protocol import EMBED_MODEL, EMBED_REVISION
+from review_schema import REVIEW_SCORE_KEYS, review_is_valid, validate_review_schema, workflow_is_complete
 
 
 # ── Conference score ranges ───────────────────────────────────────────────────
@@ -71,6 +76,7 @@ _CONF_SCORE_RANGE: dict[str, tuple[float, float]] = {
     "NEURIPS": (1.0,  6.0),
 }
 _OUR_SCORE_RANGE: tuple[float, float] = (1.0, 5.0)
+_OUR_REVIEW_SCORE_FIELDS = REVIEW_SCORE_KEYS
 
 
 def _normalise(value: float, lo: float, hi: float) -> float:
@@ -100,6 +106,37 @@ def _normalise_our_score(score: Optional[float]) -> Optional[float]:
 def _load_json(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def _artifact_info(path: Optional[str]) -> Optional[dict]:
+    if not path:
+        return None
+    artifact = Path(path)
+    payload = artifact.read_bytes()
+    info = {
+        "path": str(artifact),
+        "sha256": hashlib.sha256(payload).hexdigest(),
+    }
+    try:
+        parsed = json.loads(payload)
+        canonical = json.dumps(
+            parsed,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        info["json_content_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
+        pass
+    return info
+
+
+def _distribution_version(name: str) -> str:
+    try:
+        return importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        return "unknown"
 
 
 def _papers_index(papers_path: str) -> dict:
@@ -199,13 +236,63 @@ def _decision_from_reviewers(reviewers: list) -> Optional[str]:
     return "accept" if votes.count("accept") > votes.count("reject") else "reject"
 
 
+def _advanced_decision_from_reviewers(
+    reviewers: list,
+    expected_reviewers: int,
+) -> Optional[str]:
+    if len(reviewers) != expected_reviewers or not all(review_is_valid(r) for r in reviewers):
+        return None
+    votes = []
+    for reviewer in reviewers:
+        decision = _normalise_decision(reviewer.get("decision"))
+        if decision in ("accept", "reject"):
+            votes.append(decision)
+
+    if not votes:
+        return None
+    threshold = len(votes) // 2 + 1
+    if votes.count("accept") >= threshold:
+        return "accept"
+    if votes.count("reject") >= threshold:
+        return "reject"
+    return None
+
+
 def _score_from_reviewers(reviewers: list) -> Optional[float]:
+    if not reviewers or not all(review_is_valid(review) for review in reviewers):
+        return None
     per_reviewer = []
     for r in reviewers:
-        vals = list(r.get("scores", {}).values())
-        if vals:
+        scores = r.get("scores", {})
+        vals = [scores[key] for key in _OUR_REVIEW_SCORE_FIELDS if key in scores]
+        if len(vals) == len(_OUR_REVIEW_SCORE_FIELDS):
             per_reviewer.append(sum(vals) / len(vals))
     return round(sum(per_reviewer) / len(per_reviewer), 4) if per_reviewer else None
+
+
+def _collected_reviewers(reviewers: list) -> list[dict]:
+    """Use the same schema as generation, repair, and audit."""
+    if not isinstance(reviewers, list):
+        return []
+    return [
+        reviewer for reviewer in reviewers
+        if review_is_valid(reviewer)
+    ]
+
+
+def _validate_frozen_metric(summary: dict, model_name: str, revision: Optional[str]) -> None:
+    """Reject a changed metric before loading a model or producing scores."""
+    if summary.get("experiment") != "trigger_rag_screening":
+        return
+    actual = {
+        "expected_evaluator_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "expected_src_sha256": hashlib.sha256(Path(__file__).with_name("SRC.py").read_bytes()).hexdigest(),
+        "expected_embed_model": model_name,
+        "expected_embed_revision": revision,
+    }
+    for key, value in actual.items():
+        if not value or summary.get(key) != value:
+            raise ValueError(f"Frozen evaluation protocol mismatch: {key}")
 
 
 # ── Per-system evaluation ─────────────────────────────────────────────────────
@@ -264,16 +351,26 @@ def run_evaluation(
     openreviewer_path:       Optional[str],
     paperreviewer_path:      Optional[str],
     output_dir:              str,
-    embed_model_name:        str = "all-MiniLM-L6-v2",
+    embed_model_name:        Optional[str] = None,
     paper_ids:               Optional[list] = None,
     our_results:             Optional[str] = None,
     exp_summary_path:        Optional[str] = None,
     baseline_summary_path:   Optional[str] = None,
     nopersona_summary_path:  Optional[str] = None,
+    output_path:             Optional[str] = None,
+    embed_revision:          Optional[str] = None,
 ) -> dict:
 
+    exp_document = _load_json(exp_summary_path) if exp_summary_path else {}
+    is_trigger = exp_document.get("experiment") == "trigger_rag_screening"
+    embed_model_name = embed_model_name or (EMBED_MODEL if is_trigger else "all-MiniLM-L6-v2")
+    if is_trigger and embed_revision is None:
+        embed_revision = EMBED_REVISION
+    _validate_frozen_metric(exp_document, embed_model_name, embed_revision)
+    if is_trigger and output_path and Path(output_path).exists():
+        raise FileExistsError(f"Refusing to overwrite sealed evaluation: {output_path}")
     print("Loading embedding model...")
-    model = load_model(embed_model_name)
+    model = load_model(embed_model_name, revision=embed_revision) if embed_revision else load_model(embed_model_name)
     print(f"Model '{embed_model_name}' ready.\n")
 
     gt_index       = _papers_index(papers_path)
@@ -293,7 +390,8 @@ def run_evaluation(
 
     or_index          = _index(openreviewer_path)
     pr_index          = _index(paperreviewer_path)
-    exp_index         = _load_exp_summary(exp_summary_path)          if exp_summary_path         else {}
+    exp_index         = {p["paper_id"]: p for p in exp_document.get("papers", [])}
+    exp_condition_configs = exp_document.get("conditions", {})
     baseline_index    = _load_baseline_summary(baseline_summary_path) if baseline_summary_path    else {}
     nopersona_index   = _load_nopersona_summary(nopersona_summary_path) if nopersona_summary_path else {}
 
@@ -303,7 +401,28 @@ def run_evaluation(
     results = {
         "timestamp":   timestamp,
         "embed_model": embed_model_name,
+        "embed_revision": embed_revision,
+        "evaluation_runtime": {
+            "evaluation_code_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "src_code_sha256": hashlib.sha256(Path(__file__).with_name("SRC.py").read_bytes()).hexdigest(),
+            "sentence_transformers_version": _distribution_version("sentence-transformers"),
+        },
+        "input_artifacts": {
+            "papers": _artifact_info(papers_path),
+            "exp_summary": (
+                {
+                    **(_artifact_info(exp_summary_path) or {}),
+                    "repeat_id": exp_document.get("repeat_id"),
+                    "experiment": exp_document.get("experiment"),
+                    "code_bundle_sha256": exp_document.get("code_bundle_sha256"),
+                    "prompt_bundle_sha256": exp_document.get("prompt_bundle_sha256"),
+                }
+                if exp_summary_path
+                else None
+            ),
+        },
         "papers":      [],
+        "invalid_conditions": [],
     }
 
     all_metrics: dict[str, list] = {}
@@ -361,21 +480,52 @@ def run_evaluation(
             sc  = p.get("score")
             _add("paperreviewer", sw, dec, sc)
 
-        # Condition A (single-agent) and B (multi-agent)
+        # Experiment conditions (legacy A/B and advanced C1-C5)
         if paper_id in exp_index:
             exp_paper = exp_index[paper_id]
-            for cond_id, sys_name in [("A", "our_single"), ("B", "our_multi")]:
-                cond      = exp_paper.get("conditions", {}).get(cond_id, {})
-                reviewers = cond.get("result", {}).get("reviewers", [])
+            legacy_names = {"A": "our_single", "B": "our_multi"}
+            for cond_id, cond in exp_paper.get("conditions", {}).items():
+                raw_result = cond.get("result") or {}
+                raw_reviews = raw_result.get("reviewers", [])
+                reviewers = _collected_reviewers(raw_reviews)
+                config = exp_condition_configs.get(cond_id, {})
+                configured_agents = config.get("agents") or config.get("reviewers") or []
+                expected = len(configured_agents) or (len(raw_reviews) if isinstance(raw_reviews, list) else 0)
+                invalid = (
+                    not isinstance(raw_reviews, list) or not reviewers
+                    or len(reviewers) != len(raw_reviews) or len(reviewers) != expected
+                    or bool(raw_result.get("turn_failures"))
+                    or raw_result.get("status") in {"invalid", "failed", "interrupted"}
+                    or raw_result.get("workflow_status") in {"in_progress", "invalid", "failed", "interrupted"}
+                    or (is_trigger and not workflow_is_complete(raw_result, 3, 3))
+                )
+                if invalid:
+                    errors = {
+                        "paper_id": paper_id, "condition_id": cond_id,
+                        "expected_reviews": expected, "valid_reviews": len(reviewers),
+                        "review_errors": [validate_review_schema(r) for r in raw_reviews] if isinstance(raw_reviews, list) else ["reviewers must be a list"],
+                        "turn_failures": raw_result.get("turn_failures", []),
+                    }
+                    results["invalid_conditions"].append(errors)
+                    if is_trigger:
+                        raise ValueError(f"Sealed trigger condition is invalid: {paper_id}/{cond_id}: {errors}")
+                    print(f"  [{cond_id}] INVALID: expected {expected} valid reviews, got {len(reviewers)}; excluded from metrics")
+                    continue
                 if reviewers:
                     sw  = _collect_sw_from_reviews(reviewers)
-                    dec = _decision_from_reviewers(reviewers)
+                    if cond_id in legacy_names:
+                        dec = _decision_from_reviewers(reviewers)
+                    else:
+                        dec = _advanced_decision_from_reviewers(reviewers, expected)
                     sc  = _score_from_reviewers(reviewers)
+                    sys_name = legacy_names.get(cond_id, f"our_{cond_id}")
                     _add(sys_name, sw, dec, sc)
 
         # Condition C (no-persona baseline)
         if paper_id in baseline_index:
-            reviewers = baseline_index[paper_id].get("result", {}).get("reviewers", [])
+            reviewers = _collected_reviewers(
+                baseline_index[paper_id].get("result", {}).get("reviewers", [])
+            )
             if reviewers:
                 sw  = _collect_sw_from_reviews(reviewers)
                 dec = _decision_from_reviewers(reviewers)
@@ -384,7 +534,9 @@ def run_evaluation(
 
         # Condition D (3×no-persona, 3 iterations)
         if paper_id in nopersona_index:
-            reviewers = nopersona_index[paper_id].get("result", {}).get("reviewers", [])
+            reviewers = _collected_reviewers(
+                nopersona_index[paper_id].get("result", {}).get("reviewers", [])
+            )
             if reviewers:
                 sw  = _collect_sw_from_reviews(reviewers)
                 dec = _decision_from_reviewers(reviewers)
@@ -432,16 +584,20 @@ def run_evaluation(
     results["aggregate"] = aggregate
 
     # ── Save ──────────────────────────────────────────────────────────────────
-    os.makedirs(output_dir, exist_ok=True)
-    scope_slug   = _scope_slug(list(gt_index.keys()), used_all_papers)
-    sources_slug = _sources_slug(
-        openreviewer_path, paperreviewer_path,
-        exp_summary_path, baseline_summary_path, nopersona_summary_path,
-    )
-    out_path = os.path.join(
-        output_dir,
-        f"evaluation_{scope_slug}__{sources_slug}__{timestamp}.json",
-    )
+    if output_path:
+        out_path = output_path
+        os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+    else:
+        os.makedirs(output_dir, exist_ok=True)
+        scope_slug   = _scope_slug(list(gt_index.keys()), used_all_papers)
+        sources_slug = _sources_slug(
+            openreviewer_path, paperreviewer_path,
+            exp_summary_path, baseline_summary_path, nopersona_summary_path,
+        )
+        out_path = os.path.join(
+            output_dir,
+            f"evaluation_{scope_slug}__{sources_slug}__{timestamp}.json",
+        )
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
@@ -474,11 +630,16 @@ def main():
     parser.add_argument("--papers",              default="eval/papers.json")
     parser.add_argument("--openreviewer",        default=None)
     parser.add_argument("--paperreviewer",       default=None)
-    parser.add_argument("--output_dir",          default="eval/eval_results")
-    parser.add_argument("--embed_model",         default="all-MiniLM-L6-v2")
+    parser.add_argument("--output_dir",          default="experiment_artifacts/local/eval/eval_results")
+    parser.add_argument("--output_file",         default=None,
+                        help="Optional exact output JSON path (useful for sealed experiment pipelines)")
+    parser.add_argument("--embed_model", default=None,
+                        help="Trigger runs default to the frozen model in evaluation_protocol.py")
+    parser.add_argument("--embed_revision", default=None,
+                        help="Immutable embedding revision; trigger defaults to its frozen revision")
     parser.add_argument("--paper_ids",           default=None, nargs="+")
     parser.add_argument("--exp_summary",         default=None,
-                        help="experiment_summary_*.json (Cond A+B)")
+                        help="experiment_summary_*.json (all conditions)")
     parser.add_argument("--baseline_summary",    default=None,
                         help="experiment_baseline_summary_*.json (Cond C)")
     parser.add_argument("--nopersona_summary",   default=None,
@@ -497,10 +658,12 @@ def main():
         paperreviewer_path=args.paperreviewer,
         output_dir=args.output_dir,
         embed_model_name=args.embed_model,
+        embed_revision=args.embed_revision,
         paper_ids=args.paper_ids,
         exp_summary_path=args.exp_summary,
         baseline_summary_path=args.baseline_summary,
         nopersona_summary_path=args.nopersona_summary,
+        output_path=args.output_file,
     )
 
 

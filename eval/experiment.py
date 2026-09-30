@@ -242,7 +242,7 @@ def main():
                         help="Path to the papers JSON file.")
     parser.add_argument("--api_key",    required=True,
                         help="API key for the LLM gateway.")
-    parser.add_argument("--output_dir", default="evaluation/exp_results",
+    parser.add_argument("--output_dir", default="experiment_artifacts/local/eval/exp_results",
                         help="Directory to save all result files.")
     parser.add_argument("--paper_id",   default=None,
                         help="Optional: run only this paper_id.")

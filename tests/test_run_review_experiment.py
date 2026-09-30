@@ -25,16 +25,22 @@ for _mod in ("marker", "marker.converters", "marker.converters.pdf",
 _doc_preprocess_stub = types.ModuleType("doc_preprocess")
 _doc_preprocess_stub.doc_preprocess = MagicMock(return_value="data/md/stub.md")
 _doc_preprocess_stub.load_or_create_markdown = MagicMock(return_value="stub markdown")
-sys.modules["doc_preprocess"] = _doc_preprocess_stub
 
 _mas_loop_stub = types.ModuleType("mas_loop")
 _mas_loop_stub.main = MagicMock(return_value={"reviewers": [], "conference": {}, "citations": {}})
-sys.modules["mas_loop"] = _mas_loop_stub
-
-import eval.run_review as run_review_module  # noqa: E402
-import eval.experiment as experiment_module  # noqa: E402
-from eval.run_review import normalize_topic as rr_normalize, run_paper  # noqa: E402
-from eval.experiment import normalize_topic as ex_normalize, run_experiment  # noqa: E402
+_original_modules = {name: sys.modules.get(name) for name in ("doc_preprocess", "mas_loop")}
+try:
+    sys.modules.update({"doc_preprocess": _doc_preprocess_stub, "mas_loop": _mas_loop_stub})
+    import eval.run_review as run_review_module  # noqa: E402
+    import eval.experiment as experiment_module  # noqa: E402
+    from eval.run_review import normalize_topic as rr_normalize, run_paper  # noqa: E402
+    from eval.experiment import normalize_topic as ex_normalize, run_experiment  # noqa: E402
+finally:
+    for _name, _original in _original_modules.items():
+        if _original is None:
+            sys.modules.pop(_name, None)
+        else:
+            sys.modules[_name] = _original
 
 
 # ── normalize_topic (run_review) ──────────────────────────────────────────────

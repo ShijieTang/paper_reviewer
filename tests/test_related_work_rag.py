@@ -850,8 +850,8 @@ class TestMASLoopRAGInjection(unittest.TestCase):
                     "reviewer": self.name,
                     "decision": "reject",
                     "scores": {"novelty": 1, "soundness": 1, "significance": 1, "evaluation": 1, "clarity": 1},
-                    "strengths": [],
-                    "weaknesses": [],
+                    "strengths": ["Specific strength"],
+                    "weaknesses": ["Specific weakness"],
                     "summary_comment": "summary",
                 })
 
@@ -871,7 +871,8 @@ class TestMASLoopRAGInjection(unittest.TestCase):
             name = "Conference Recommender"
 
             def call(self, prompt):
-                return json.dumps({"ICML": {"fit_score": 1, "why_it_fits": [], "why_it_does_not_fit": []}})
+                return json.dumps({venue: {"fit_score": 1, "why_it_fits": [], "why_it_does_not_fit": []}
+                                   for venue in ("ICML", "ICLR", "NeurIPS")})
 
         package = {
             "related_work_summary": "Use [rw_001] for baselines.",

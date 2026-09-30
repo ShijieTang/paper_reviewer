@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
 from agents import Reviewer, Author, AIDetector, ConferenceRecommender
 from prompts.reviewer_iter import reviewer_iteration
+from review_schema import WORKFLOW_SCHEMA_VERSION, validate_role_output
 
 
 # ── JSON helpers ────────────────────────────────────────────────────────────
@@ -16,7 +19,10 @@ def _parse_json(text: str) -> dict:
     text = text.strip()
     text = re.sub(r'^```(?:json)?\s*', '', text, flags=re.IGNORECASE)
     text = re.sub(r'\s*```$', '', text)
-    return json.loads(text)
+    parsed = json.loads(text)
+    if not isinstance(parsed, dict):
+        raise ValueError("structured return must be a JSON object")
+    return parsed
 
 
 def _normalize_review_weaknesses(review: dict) -> dict:
@@ -179,6 +185,50 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
     """
     if reviewer_types is None:
         reviewer_types = ["reviewer_a", "reviewer_b"]
+    if n_iter < 1 or not reviewer_types:
+        raise ValueError("At least one reviewer and one iteration are required")
+
+    turn_outcomes = []
+    outcome_lock = Lock()
+
+    def call_turn(agent, prompt, role, iteration, reviewer_index=None, required=True):
+        """Validate even custom agents; never send a failed turn to the next agent."""
+        outcome = {"role": role, "agent": agent.name, "iteration": iteration,
+                   "reviewer_index": reviewer_index, "required": required, "status": "failed"}
+        try:
+            raw = agent.call(prompt)
+            parsed = _parse_json(raw) if isinstance(raw, str) else None
+            errors = validate_role_output(parsed, role, getattr(agent, "expected_reviewer", None))
+            if errors:
+                outcome["errors"] = errors
+                raw = None
+            else:
+                outcome["status"] = "complete"
+                outcome["output"] = parsed
+        except Exception as exc:
+            # Provider exceptions may contain credentials/URLs. Keep their type
+            # here; attempts retain content/schema diagnostics, not API secrets.
+            outcome["errors"] = [f"{type(exc).__name__}: turn did not complete"]
+            raw = None
+        diagnostic = getattr(agent, "last_call_result", None)
+        if isinstance(diagnostic, dict):
+            outcome["attempts"] = copy.deepcopy(diagnostic.get("attempts", []))
+        with outcome_lock:
+            turn_outcomes.append(outcome)
+        return raw
+
+    def required_failed():
+        return any(item["required"] and item["status"] != "complete" for item in turn_outcomes)
+
+    def workflow_fields():
+        return {
+            "workflow_schema_version": WORKFLOW_SCHEMA_VERSION,
+            "workflow_status": "failed" if required_failed() else "complete",
+            "workflow_config": {"n_iter": n_iter, "reviewer_count": len(reviewer_types)},
+            "turn_outcomes": sorted(turn_outcomes, key=lambda item: (
+                item["iteration"], item["role"], item["reviewer_index"] if item["reviewer_index"] is not None else -1)),
+            "turn_failures": [item for item in turn_outcomes if item["required"] and item["status"] != "complete"],
+        }
 
     def emit(msg: str):
         print(msg)
@@ -258,6 +308,13 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
     author_resps  = [[None] * len(reviewers) for _ in range(n_iter)]
     aicheck_resps = [[None] * len(reviewers) for _ in range(n_iter)]
 
+    def incomplete_result():
+        emit("Required turn failed after its fixed attempt budget; stopping this workflow.")
+        return {"reviewers": [], "review_style_analyses": [], "conference": None,
+                "citations": {"stats": {}, "failed": [], "skipped": True, "reason": "workflow_failed"},
+                "rag_package": rag_package, "rag_warnings": rag_warnings,
+                "cutoff_report": cutoff_report, **workflow_fields()}
+
     # ── Citation check (background, concurrent with reviews) ─────────────────
     citation_future = None
     if run_citation_check:
@@ -286,15 +343,18 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         i, reviewer = args
         emit_agent_status(reviewer.name, "running")
         emit(f"{reviewer.name} is writing initial review...")
-        review = reviewer.call(init_prompt)
+        review = call_turn(reviewer, init_prompt, "reviewer", 1, i)
         emit(f"{reviewer.name} completed initial review.")
-        emit_agent_status(reviewer.name, "done")
-        emit_message(reviewer.name, review)
+        emit_agent_status(reviewer.name, "done" if review is not None else "error")
+        if review is not None:
+            emit_message(reviewer.name, review)
         return i, review
 
     with ThreadPoolExecutor(max_workers=len(reviewers)) as ex:
         for i, review in ex.map(_run_initial, enumerate(reviewers)):
             reviews[0][i] = review
+    if required_failed():
+        return incomplete_result()
 
     # ── Iterations 1..n_iter-1: rebuttal loop ────────────────────────────────
     for iteration in range(1, n_iter):
@@ -304,15 +364,20 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         for i, reviewer in enumerate(reviewers):
             emit(f"AI Author writing rebuttal to {reviewer.name}...")
             emit_agent_status(author.name, "running")
-            author_resps[iteration][i] = author.call(
-                f"[Reviewer name — use exactly this in your JSON: {reviewer.name}]\n\n"
-                f"{reviews[iteration - 1][i]}"
+            author.expected_reviewer = reviewer.name
+            author_resps[iteration][i] = call_turn(
+                author, f"[Reviewer: {reviewer.name}]\n\n{reviews[iteration - 1][i]}",
+                "author", iteration + 1, i,
             )
+            if required_failed():
+                emit_agent_status(author.name, "error")
+                return incomplete_result()
             emit_agent_status(author.name, "done")
             emit_message(author.name, author_resps[iteration][i])
             if ai_detect is not None:
                 emit_agent_status(ai_detect.name, "running")
-                aicheck_resps[iteration][i] = ai_detect.call(reviews[iteration - 1][i])
+                aicheck_resps[iteration][i] = call_turn(
+                    ai_detect, reviews[iteration - 1][i], "style", iteration + 1, i, required=False)
                 emit_agent_status(ai_detect.name, "done")
                 emit_message(ai_detect.name, aicheck_resps[iteration][i])
 
@@ -327,15 +392,18 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
             reviewer_prompt = construct_reviewer_prompt(
                 author_resps[_iter][i], aicheck_resps[_iter][i])
             emit(f"{reviewer.name} updating review based on rebuttal...")
-            review = reviewer.call(reviewer_prompt)
+            review = call_turn(reviewer, reviewer_prompt, "reviewer", _iter + 1, i)
             emit(f"{reviewer.name} completed iteration {_iter + 1} review.")
-            emit_agent_status(reviewer.name, "done")
-            emit_message(reviewer.name, review)
+            emit_agent_status(reviewer.name, "done" if review is not None else "error")
+            if review is not None:
+                emit_message(reviewer.name, review)
             return i, review
 
         with ThreadPoolExecutor(max_workers=len(reviewers)) as ex:
             for i, review in ex.map(_run_update, enumerate(reviewers)):
                 reviews[iteration][i] = review
+        if required_failed():
+            return incomplete_result()
 
     # ── Final review-style audit (measurement only; no substantive update) ───
     final_style_resps = [None] * len(reviewers)
@@ -344,7 +412,8 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         for i, reviewer in enumerate(reviewers):
             emit(f"Review Style Evaluator auditing final review from {reviewer.name}...")
             emit_agent_status(ai_detect.name, "running")
-            final_style_resps[i] = ai_detect.call(reviews[n_iter - 1][i])
+            final_style_resps[i] = call_turn(
+                ai_detect, reviews[n_iter - 1][i], "style", n_iter, i, required=False)
             emit_agent_status(ai_detect.name, "done")
             emit_message(ai_detect.name, final_style_resps[i])
 
@@ -353,7 +422,10 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
     final_reviews = reviews[n_iter - 1]
     conf_prompt   = construct_conf_rec_prompt(topic, final_reviews)
     emit_agent_status(conf_rec.name, "running")
-    conf_rec_resp = conf_rec.call(conf_prompt)
+    conf_rec_resp = call_turn(conf_rec, conf_prompt, "conference", n_iter)
+    if required_failed():
+        emit_agent_status(conf_rec.name, "error")
+        return incomplete_result()
     emit_agent_status(conf_rec.name, "done")
     emit_message(conf_rec.name, conf_rec_resp)
     emit("Conference recommendation complete!")
@@ -381,7 +453,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         try:
             parsed_reviews.append(_normalize_review_weaknesses(_parse_json(raw)))
         except Exception:
-            parsed_reviews.append({"raw": raw, "parse_error": True})
+            continue
 
     parsed_style_analyses = []
     for iteration, row in enumerate(aicheck_resps, start=1):
@@ -391,7 +463,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
             try:
                 analysis = _parse_json(raw)
             except Exception:
-                analysis = {"raw": raw, "parse_error": True}
+                continue
             parsed_style_analyses.append({
                 "iteration": iteration,
                 "stage": "pre_update",
@@ -405,7 +477,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         try:
             analysis = _parse_json(raw)
         except Exception:
-            analysis = {"raw": raw, "parse_error": True}
+            continue
         parsed_style_analyses.append({
             "iteration": n_iter,
             "stage": "final_review",
@@ -414,9 +486,9 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         })
 
     try:
-        parsed_conf = _parse_json(conf_rec_resp)
+        parsed_conf = _parse_json(conf_rec_resp) if conf_rec_resp is not None else None
     except Exception:
-        parsed_conf = {"raw": conf_rec_resp, "parse_error": True}
+        parsed_conf = None
 
     return {
         "reviewers":  parsed_reviews,
@@ -426,6 +498,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         "rag_package": rag_package,
         "rag_warnings": rag_warnings,
         "cutoff_report": cutoff_report,
+        **workflow_fields(),
     }
 
 

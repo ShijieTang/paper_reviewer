@@ -184,7 +184,7 @@ Target abstract: {target.abstract}
 Target claims: {json.dumps(target.claims, ensure_ascii=False)}
 
 Target excerpt:
-{llm_context_excerpt(paper)}
+{llm_context_excerpt(paper, title_override=target.title)}
 """.strip()
     try:
         data = llm_agent.complete_json(system_prompt, user_prompt)
@@ -822,9 +822,10 @@ def build_related_work_rag(
     config: RAGConfig | None = None,
     providers: list[Any] | None = None,
     llm_agent: RAGLLMAgent | None = None,
+    target_title: str = "",
 ) -> dict[str, Any]:
     config = config or RAGConfig()
-    target = summarize_target_paper(paper, topic=topic)
+    target = summarize_target_paper(paper, topic=topic, title_override=target_title)
     warnings = prompt_injection_warnings(paper, "target paper")
     llm_agent = llm_agent or RAGLLMAgent(provider=provider, api_key=api_key, model=model)
 

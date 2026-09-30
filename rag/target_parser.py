@@ -71,9 +71,13 @@ def _claims(text: str) -> list[str]:
     return claims
 
 
-def summarize_target_paper(markdown: str, topic: str = "") -> TargetPaperSummary:
+def summarize_target_paper(
+    markdown: str,
+    topic: str = "",
+    title_override: str = "",
+) -> TargetPaperSummary:
     clean = sanitize_markdown(markdown)
-    title = _first_heading(clean)
+    title = _clean_title(title_override) if str(title_override or "").strip() else _first_heading(clean)
     paper_hash = hashlib.sha1((title + "\n" + clean[:5000]).encode("utf-8")).hexdigest()[:12]
     return TargetPaperSummary(
         paper_id=f"paper_{paper_hash}",
@@ -84,10 +88,15 @@ def summarize_target_paper(markdown: str, topic: str = "") -> TargetPaperSummary
     )
 
 
-def llm_context_excerpt(markdown: str, max_chars: int = 12000) -> str:
+def llm_context_excerpt(
+    markdown: str,
+    max_chars: int = 12000,
+    title_override: str = "",
+) -> str:
     clean = sanitize_markdown(markdown)
+    title = _clean_title(title_override) if str(title_override or "").strip() else _first_heading(clean)
     parts = [
-        "# Title\n" + _first_heading(clean),
+        "# Title\n" + title,
         "## Abstract\n" + _abstract(clean),
         "## Introduction\n" + _section(clean, "introduction", max_chars=5000),
         "## Experiments\n" + _section(clean, "experiments", max_chars=2500),

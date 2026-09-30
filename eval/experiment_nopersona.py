@@ -150,7 +150,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="3 no-persona agents × 3 iterations experiment.")
     parser.add_argument("--api_key",    required=True)
-    parser.add_argument("--output_dir", default="eval/exp_results")
+    parser.add_argument("--output_dir", default="experiment_artifacts/local/eval/exp_results")
     parser.add_argument("--md_dir",     default="data/md")
     parser.add_argument("--paper_id",   default=None,
                         help="Optional: run only this paper (stem of .md file).")

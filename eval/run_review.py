@@ -118,7 +118,7 @@ def main():
     parser.add_argument("--agents",     default="reviewer_a",
                         help='Reviewer agent(s): "reviewer_a", "reviewer_b", '
                              '"reviewer_a,reviewer_b", or "both".')
-    parser.add_argument("--output_dir", default="results",
+    parser.add_argument("--output_dir", default="experiment_artifacts/local/results",
                         help="Directory to save review results.")
     parser.add_argument("--paper_id",   default=None,
                         help="Optional: run only this paper_id.")

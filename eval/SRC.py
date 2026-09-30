@@ -28,7 +28,7 @@ import numpy as np
 
 # ── Embedding ─────────────────────────────────────────────────────────────────
 
-def load_model(model_name: str = "all-MiniLM-L6-v2"):
+def load_model(model_name: str = "all-MiniLM-L6-v2", revision: Optional[str] = None):
     """
     Load and return a SentenceTransformer model.
 
@@ -50,7 +50,8 @@ def load_model(model_name: str = "all-MiniLM-L6-v2"):
             "sentence-transformers is required for SRC computation.\n"
             "Install it with:  pip install sentence-transformers"
         ) from exc
-    return SentenceTransformer(model_name)
+    kwargs = {"revision": revision} if revision is not None else {}
+    return SentenceTransformer(model_name, **kwargs)
 
 
 def _embed(texts: List[str], model) -> np.ndarray:

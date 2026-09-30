@@ -1,5 +1,11 @@
+from __future__ import annotations
+
 import importlib
+import json
 import os
+import random
+import time
+from review_schema import validate_role_output
 
 
 VALID_PROVIDERS = {"cmu", "openai", "gemini", "claude", "deepseek", "qwen", "openrouter"}
@@ -29,6 +35,24 @@ OPENAI_COMPATIBLE_ENV_BASE_URL = {
 OPENAI_COMPATIBLE_MAX_TOKENS = {
     "openrouter": 25600,
 }
+OPENAI_COMPATIBLE_PARSE_RETRY_DELAYS = (1.0, 2.0, 4.0)
+REQUIRED_JSON_RETRY_DELAYS = (1.0, 2.0, 4.0)
+
+
+def _parse_required_json_object(text: str) -> dict:
+    """Parse a model reply that is required to be a JSON object."""
+    stripped = (text or "").strip()
+    if stripped.startswith("```"):
+        lines = stripped.splitlines()
+        if lines and lines[0].strip().lower() in {"```", "```json"}:
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        stripped = "\n".join(lines).strip()
+    parsed = json.loads(stripped)
+    if not isinstance(parsed, dict):
+        raise ValueError("required JSON return must be an object")
+    return parsed
 
 
 def validate_api_key_for_provider(provider: str, api_key: str) -> str:
@@ -180,11 +204,26 @@ class OpenAICompatibleClient:
 
     def complete(self, system_prompt: str, messages: list[dict]) -> str:
         kwargs = {"max_tokens": self.max_tokens} if self.max_tokens is not None else {}
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "system", "content": system_prompt}, *messages],
-            **kwargs,
-        )
+        request_messages = [{"role": "system", "content": system_prompt}, *messages]
+        max_attempts = len(OPENAI_COMPATIBLE_PARSE_RETRY_DELAYS) + 1
+        for attempt in range(max_attempts):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=request_messages,
+                    **kwargs,
+                )
+                break
+            except json.JSONDecodeError:
+                if attempt + 1 >= max_attempts:
+                    raise
+                base_delay = OPENAI_COMPATIBLE_PARSE_RETRY_DELAYS[attempt]
+                delay = base_delay + random.uniform(0.0, base_delay * 0.25)
+                print(
+                    f"[{self.provider}] Malformed API response; retrying request "
+                    f"{attempt + 2}/{max_attempts} in {delay:.1f}s..."
+                )
+                time.sleep(delay)
         return (response.choices[0].message.content or "").strip()
 
 
@@ -295,6 +334,7 @@ class Agent:
     """
 
     name = "Agent"
+    output_role = "generic"
 
     def __init__(self, persona: str, paper: str, topic: str = "", model: str = "",
                  api_key: str = "", provider: str = "cmu"):
@@ -311,16 +351,65 @@ class Agent:
         self.messages = [
             {"role": "user",      "content": f"Here is the paper you will be working with:\n\n{paper}"}
         ]
+        self.last_call_result = None
         print(f"[{self.name}] Ready.")
 
-    def call(self, user_message: str) -> str:
+    def call(self, user_message: str, *, required_json: bool = True) -> str | None:
         """Send a message and return the agent's reply, maintaining conversation history."""
         print(f"[{self.name}] Getting response...")
         self.messages.append({"role": "user", "content": user_message})
-        reply = self.client.complete(self.persona, self.messages)
-        self.messages.append({"role": "assistant", "content": reply})
-        print(f"[{self.name}] Done.\n")
-        return reply
+        request_messages = [dict(message) for message in self.messages]
+        diagnostic = {"role": self.output_role, "status": "running", "attempts": []}
+        self.last_call_result = diagnostic
+        attempts = len(REQUIRED_JSON_RETRY_DELAYS) + 1 if required_json else 1
+        for attempt in range(attempts):
+            try:
+                reply = self.client.complete(self.persona, [dict(message) for message in request_messages])
+            except Exception as exc:
+                diagnostic["attempts"].append({"attempt": attempt + 1, "status": "provider_error", "error_type": type(exc).__name__})
+                status_code = getattr(exc, "status_code", None)
+                transient = (isinstance(exc, (TimeoutError, ConnectionError))
+                             or type(exc).__name__ in {"APITimeoutError", "APIConnectionError"}
+                             or status_code in {408, 429, 500, 502, 503, 504})
+                if transient and attempt + 1 < attempts:
+                    time.sleep(REQUIRED_JSON_RETRY_DELAYS[attempt])
+                    continue
+                diagnostic["status"] = "failed"
+                raise
+            if not required_json:
+                self.messages.append({"role": "assistant", "content": reply})
+                diagnostic["attempts"].append({"attempt": attempt + 1, "status": "valid"})
+                diagnostic["status"] = "complete"
+                print(f"[{self.name}] Done.\n")
+                return reply
+            try:
+                parsed = _parse_required_json_object(reply)
+                errors = validate_role_output(parsed, self.output_role, getattr(self, "expected_reviewer", None))
+                if errors:
+                    raise ValueError("; ".join(errors))
+            except (json.JSONDecodeError, ValueError, TypeError, AttributeError) as exc:
+                diagnostic["attempts"].append({"attempt": attempt + 1, "status": "invalid_output", "errors": [str(exc)], "raw_reply": reply})
+                if attempt + 1 >= attempts:
+                    diagnostic["status"] = "failed"
+                    print(f"[{self.name}] Invalid JSON return discarded after {attempts} attempts.\n")
+                    return None
+                delay = REQUIRED_JSON_RETRY_DELAYS[attempt]
+                print(
+                    f"[{self.name}] Invalid JSON return discarded; retrying the same prompt "
+                    f"{attempt + 2}/{attempts} in {delay:.1f}s..."
+                )
+                time.sleep(delay)
+                continue
+
+            # Invalid attempts are deliberately absent from history. Only a valid
+            # structured reply becomes part of the conversation.
+            self.messages.append({"role": "assistant", "content": reply})
+            diagnostic["attempts"].append({"attempt": attempt + 1, "status": "valid"})
+            diagnostic["status"] = "complete"
+            print(f"[{self.name}] Done.\n")
+            return reply
+
+        return None
 
 
 class Reviewer(Agent):
@@ -329,6 +418,8 @@ class Reviewer(Agent):
     reviewer_type: "reviewer_a" (novelty-focused), "reviewer_b" (rigor-focused),
                    "reviewer_c" (practicality-focused), or "reviewer_nopersona"
     """
+
+    output_role = "reviewer"
 
     def __init__(self, paper: str, reviewer_type: str = "reviewer_a",
                  topic: str = "", model: str = "", api_key: str = "",
@@ -351,6 +442,7 @@ class Author(Agent):
     """An LLM agent with the persona of the paper's author."""
 
     name = "Author"
+    output_role = "author"
 
     def __init__(self, paper: str, topic: str = "", model: str = "",
                  api_key: str = "", provider: str = "cmu"):
@@ -382,6 +474,7 @@ class ConferenceRecommender(Agent):
     """
 
     name = "Conference Recommender"
+    output_role = "conference"
 
     def __init__(self, paper: str, topic: str = "", model: str = "",
                  api_key: str = "", provider: str = "cmu"):

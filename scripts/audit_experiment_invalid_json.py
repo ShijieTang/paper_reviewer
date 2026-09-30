@@ -15,9 +15,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from review_schema import review_is_valid
 
 
 REQUIRED_REVIEW_FIELDS = {
@@ -35,20 +39,7 @@ def classify_review(review: Any) -> str:
         return "not_json_object"
     if review.get("parse_error"):
         return "parse_error"
-    if not REQUIRED_REVIEW_FIELDS.issubset(review):
-        return "invalid_schema"
-    if str(review.get("decision", "")).strip().lower() not in {"accept", "reject"}:
-        return "invalid_schema"
-    scores = review.get("scores")
-    if not isinstance(scores, dict) or not scores:
-        return "invalid_schema"
-    if not all(isinstance(value, (int, float)) for value in scores.values()):
-        return "invalid_schema"
-    if not isinstance(review.get("strengths"), list):
-        return "invalid_schema"
-    if not isinstance(review.get("weaknesses"), list):
-        return "invalid_schema"
-    return "valid"
+    return "valid" if review_is_valid(review) else "invalid_schema"
 
 
 def _expected_count(config: Any) -> int | None:

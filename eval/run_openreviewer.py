@@ -26,7 +26,7 @@ from gradio_client import Client
 
 HF_SPACE = "maxidl/openreviewer"
 DEFAULT_MD_DIR = "data/md"
-DEFAULT_OUTPUT = "eval/openreviewer.json"
+DEFAULT_OUTPUT = "experiment_artifacts/local/eval/openreviewer.json"
 RAW_OUTPUT_DIR = Path("results/openreviewer")
 
 # ── OpenReviewer client ───────────────────────────────────────────────────────

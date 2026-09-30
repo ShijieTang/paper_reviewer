@@ -8,9 +8,9 @@ def _review(name):
     return json.dumps({
         "reviewer": name,
         "decision": "reject",
-        "scores": {},
-        "strengths": [],
-        "weaknesses": [],
+        "scores": {key: 3 for key in ("novelty", "soundness", "significance", "evaluation", "clarity")},
+        "strengths": ["Specific strength"],
+        "weaknesses": ["Specific weakness"],
         "summary_comment": "summary",
     })
 
@@ -32,14 +32,16 @@ class FakeAuthor:
         pass
 
     def call(self, prompt):
-        return "author response"
+        return json.dumps({"responses": [{"reviewer": self.expected_reviewer,
+            "main_issues_identified": [], "supporting_evidence_in_submission": [],
+            "proposed_future_revisions": [], "response": "Response grounded in the paper."}]})
 
 
 class FakeConferenceRecommender(FakeAuthor):
     name = "Conference Recommender"
 
     def call(self, prompt):
-        return json.dumps({"ICML": {"fit_score": 1}})
+        return json.dumps({venue: {"fit_score": 1} for venue in ("ICML", "ICLR", "NeurIPS")})
 
 
 def _run(enable_ai_detector, detector_class):
@@ -83,9 +85,7 @@ def test_ai_detector_can_be_enabled():
 
     assert len(calls) == 2
     assert calls[0]
-    assert len(result["review_style_analyses"]) == 2
-    assert result["review_style_analyses"][0]["analysis"]["parse_error"] is True
-    assert result["review_style_analyses"][-1]["stage"] == "final_review"
+    assert result["review_style_analyses"] == []
 
 
 def test_reviewer_prompt_omits_detector_section_when_disabled():
