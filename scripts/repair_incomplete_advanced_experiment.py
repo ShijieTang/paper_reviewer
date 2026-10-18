@@ -163,7 +163,17 @@ def repair_summary(
 
             condition = _runtime_condition(condition_id, config)
             if paper_text is None:
-                paper_text = load_markdown(paper_meta["paper_dir"], md_dir)
+                expected_sha = paper_meta.get("markdown_sha256") or (
+                    repaired.get("run_metadata", {}).get("markdown_sha256", {}).get(paper_id)
+                    if isinstance(repaired.get("run_metadata"), dict)
+                    else None
+                )
+                if expected_sha:
+                    paper_text = load_markdown(
+                        paper_meta["paper_dir"], md_dir, expected_sha256=expected_sha
+                    )
+                else:
+                    paper_text = load_markdown(paper_meta["paper_dir"], md_dir)
 
             expected = expected_review_count(config)
             print(
@@ -172,8 +182,19 @@ def repair_summary(
             )
 
             replacement = None
+            old_result = old_entry.get("result")
+            has_reusable_outcomes = (
+                isinstance(old_result, dict)
+                and isinstance(old_result.get("turn_outcomes"), list)
+                and bool(old_result["turn_outcomes"])
+            )
             for attempt in range(1, max_attempts + 1):
                 print(f"  condition attempt {attempt}/{max_attempts}")
+                extra_kwargs = (
+                    {"resume_from": old_result}
+                    if attempt == 1 and has_reusable_outcomes
+                    else {}
+                )
                 candidate = run_condition(
                     paper_text=paper_text,
                     topic=normalize_topic(paper_meta.get("topic", "")),
@@ -182,6 +203,7 @@ def repair_summary(
                     provider=provider,
                     model=model,
                     rag_package=rag_package if condition["enable_rag"] else None,
+                    **extra_kwargs,
                 )
                 if result_is_complete(candidate, config):
                     replacement = candidate
@@ -299,7 +321,7 @@ def main() -> None:
         api_key = _api_key(str(summary.get("provider", "")), args.api_key)
         repaired, unresolved = repair_summary(
             summary,
-            load_papers(args.json_file),
+            load_papers(args.json_file, output_dir=output_dir),
             api_key=api_key,
             output_dir=output_dir,
             md_dir=args.md_dir,

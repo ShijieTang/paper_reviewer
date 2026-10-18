@@ -137,7 +137,7 @@ Return the JSON in exactly the following format:
       "result": "pass or fail",
       "justification": "..."
     }
-  ],
+  },
   "summary_comment": "..."
 }
 """

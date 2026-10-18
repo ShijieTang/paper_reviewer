@@ -14,6 +14,14 @@ REVIEW_SCORE_KEYS = ("novelty", "soundness", "significance", "evaluation", "clar
 WORKFLOW_SCHEMA_VERSION = 1
 
 
+_PERSONA_REVIEWER_ALIASES = {
+    "neutral": {"reviewer - no persona", "reviewer (neutral)", "neutral reviewer"},
+    "novelty": {"reviewer a - novelty focused", "reviewer (novelty)"},
+    "rigor": {"reviewer b - rigor focused", "reviewer (rigor)"},
+    "practical": {"reviewer c - practicality focused", "reviewer (practical)"},
+}
+
+
 def parse_json_object(text: str) -> dict:
     """Accept fences and trailing commas without changing quoted string values.
 
@@ -22,12 +30,34 @@ def parse_json_object(text: str) -> dict:
     """
     text = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
     text = re.sub(r'\s*```$', '', text)
+    text = re.sub(r'(\}\s*)\],(\s*"summary_comment"\s*:)', r'\1},\2', text)
+    text = re.sub(r'"response:\s+"', '"response": "', text)
     text = re.sub(r'"(?:\\.|[^"\\])*"|,(?=\s*[}\]])',
                   lambda match: '' if match.group(0) == ',' else match.group(0), text)
     parsed = json.loads(text)
+    if (isinstance(parsed, list) and parsed
+            and all(isinstance(item, dict) and "reviewer" in item and "response" in item for item in parsed)):
+        parsed = {"responses": parsed}
     if not isinstance(parsed, dict):
         raise ValueError("structured return must be a JSON object")
     return parsed
+
+
+def _reviewer_matches_expected(actual: Any, expected: str) -> bool:
+    if actual == expected:
+        return True
+    if not isinstance(actual, str):
+        return False
+    actual_norm = actual.strip().casefold()
+    expected_norm = expected.strip().casefold()
+    if actual_norm == expected_norm:
+        return True
+    match = re.search(r"\(([^()]+)\)\s*$", expected_norm)
+    if match:
+        persona_key = match.group(1).strip()
+        if actual_norm in _PERSONA_REVIEWER_ALIASES.get(persona_key, set()):
+            return True
+    return False
 
 
 def _number(value: Any, low: float, high: float) -> bool:
@@ -74,8 +104,11 @@ def validate_author_schema(value: Any, expected_reviewer: str | None = None) -> 
         for key in ("reviewer", "response"):
             if not isinstance(response.get(key), str) or not response[key].strip():
                 errors.append(f"{prefix}.{key} must be nonempty text")
-        if expected_reviewer is not None and response.get("reviewer") != expected_reviewer:
-            errors.append(f"{prefix}.reviewer must match requested reviewer")
+        if expected_reviewer is not None:
+            if _reviewer_matches_expected(response.get("reviewer"), expected_reviewer):
+                response["reviewer"] = expected_reviewer
+            else:
+                errors.append(f"{prefix}.reviewer must match requested reviewer")
         if not _text_list(response.get("main_issues_identified")):
             errors.append(f"{prefix}.main_issues_identified must be a string list")
         for key, fields in (

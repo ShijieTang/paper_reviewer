@@ -131,3 +131,61 @@ def test_shared_schema_does_not_silently_repair_valuation_typo():
     review = copy.deepcopy(REVIEW)
     review["scores"]["valuation"] = review["scores"].pop("evaluation")
     assert not review_is_valid(review)
+
+
+def test_reviewer_prompt_template_closes_acceptance_gates_with_brace():
+    from prompts.reviewer_common import OUTPUT_FORMAT
+    assert '"acceptance_gates": {' in OUTPUT_FORMAT
+    assert '  },\n  "summary_comment":' in OUTPUT_FORMAT
+    assert '  ],\n  "summary_comment":' not in OUTPUT_FORMAT
+
+
+def test_parser_and_validator_tolerate_historical_prompt_induced_json_errors():
+    from review_schema import validate_author_schema
+    raw_review = (
+        '{\n  "reviewer": "Reviewer - No Persona",\n  "decision": "Accept",\n'
+        '  "scores": {"novelty": 4, "soundness": 4, "significance": 4, "evaluation": 4, "clarity": 4},\n'
+        '  "strengths": ["S1", "S2", "S3"],\n  "weaknesses": ["W1", "W2"],\n'
+        '  "acceptance_gates": {\n    "presentation": {"result": "pass", "justification": "ok"}\n  ],\n'
+        '  "summary_comment": "Good paper."\n}'
+    )
+    parsed_review = parse_json_object(raw_review)
+    assert review_is_valid(parsed_review)
+
+    rebuttal = copy.deepcopy(REBUTTAL)
+    rebuttal["responses"][0]["reviewer"] = "Reviewer - No Persona"
+    assert validate_author_schema(rebuttal, "Reviewer 1 (Neutral)") == []
+    assert rebuttal["responses"][0]["reviewer"] == "Reviewer 1 (Neutral)"
+
+
+def test_resume_from_salvages_completed_and_prompt_typo_turns():
+    partial_outcomes = [
+        {"role": "reviewer", "agent": "Reviewer 1 (Neutral)", "iteration": 1, "reviewer_index": 0,
+         "required": True, "status": "complete", "output": REVIEW, "attempts": [{"attempt": 1, "status": "valid"}]},
+        {"role": "author", "agent": "Author", "iteration": 2, "reviewer_index": 0,
+         "required": True, "status": "failed", "errors": ["responses[0].reviewer must match requested reviewer"],
+         "attempts": [{"attempt": 1, "status": "invalid_output", "raw_reply": json.dumps({
+             "responses": [{
+                 "reviewer": "Reviewer - No Persona",
+                 "response": "Section 3 reports the baseline.",
+                 "main_issues_identified": ["Missing baseline"],
+                 "supporting_evidence_in_submission": [],
+                 "proposed_future_revisions": [],
+             }]
+         })}]},
+    ]
+    resume_state = {"workflow_status": "failed", "turn_outcomes": partial_outcomes}
+    reviewer = Replies([REVIEW, REVIEW])
+    author = Replies([REBUTTAL])
+    conference = Replies([CONFERENCE])
+    with patch("agents.create_llm_client", side_effect=[reviewer, author, conference]), \
+         patch("agents.time.sleep"):
+        result = mas_loop.main(
+            "# Paper", n_iter=3, reviewer_types=["reviewer_nopersona"],
+            run_citation_check=False, enable_ai_detector=False,
+            resume_from=resume_state,
+        )
+    assert workflow_is_complete(result, 1, 3)
+    assert len(reviewer.requests) == 2  # Iteration 1 was reused; only iterations 2 and 3 called API
+    assert len(author.requests) == 1    # Iteration 2 was salvaged; only iteration 3 called API
+    assert len(conference.requests) == 1

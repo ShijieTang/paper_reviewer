@@ -29,14 +29,67 @@ OPENAI_COMPATIBLE_ENV_BASE_URL = {
     "qwen": "QWEN_BASE_URL",
     "openrouter": "OPENAI_API_BASE",
 }
-# OpenRouter fans out to third-party "thinking" models that spend part of
-# max_tokens on hidden reasoning tokens before ever producing visible
-# content; cap it well above the reasoning budget so replies aren't empty.
+# Keep default OpenRouter max_tokens moderate (4096) for standard chat models so
+# OpenRouter does not reserve 25,600 completion tokens per concurrent request
+# against the account's in-flight credit budget (which triggers HTTP 402
+# in_flight_budget_exhausted). Reasoning/thinking models or explicit
+# OPENROUTER_MAX_TOKENS overrides can request a larger cap.
 OPENAI_COMPATIBLE_MAX_TOKENS = {
-    "openrouter": 25600,
+    "openrouter": 4096,
 }
+OPENROUTER_REASONING_MAX_TOKENS = 16384
 OPENAI_COMPATIBLE_PARSE_RETRY_DELAYS = (1.0, 2.0, 4.0)
 REQUIRED_JSON_RETRY_DELAYS = (1.0, 2.0, 4.0)
+
+
+def _resolve_openrouter_max_tokens(model: str) -> int:
+    env_override = os.environ.get("OPENROUTER_MAX_TOKENS", "").strip()
+    if env_override:
+        try:
+            value = int(env_override)
+            if value > 0:
+                return value
+        except ValueError:
+            pass
+    model_lower = (model or "").lower()
+    if any(tag in model_lower for tag in ("thinking", "deepseek-r1", "/r1", "qwq", "/o1", "/o3", "-r1")):
+        return OPENROUTER_REASONING_MAX_TOKENS
+    return OPENAI_COMPATIBLE_MAX_TOKENS["openrouter"]
+
+
+def _is_transient_provider_error(exc: Exception, attempt: int) -> tuple[bool, float]:
+    status_code = getattr(exc, "status_code", None)
+    text = str(exc)
+    text_lower = text.lower()
+    base_delay = REQUIRED_JSON_RETRY_DELAYS[min(attempt, len(REQUIRED_JSON_RETRY_DELAYS) - 1)]
+
+    is_in_flight_402 = (
+        status_code == 402
+        and ("in_flight_budget_exhausted" in text_lower or "in-flight" in text_lower)
+    )
+    transient = (
+        isinstance(exc, (TimeoutError, ConnectionError))
+        or type(exc).__name__ in {"APITimeoutError", "APIConnectionError"}
+        or status_code in {408, 429, 500, 502, 503, 504}
+        or is_in_flight_402
+    )
+    if not transient:
+        return False, 0.0
+
+    retry_after = None
+    response = getattr(exc, "response", None)
+    headers = getattr(response, "headers", None)
+    if headers and hasattr(headers, "get"):
+        raw_retry = headers.get("Retry-After") or headers.get("retry-after")
+        if raw_retry is not None:
+            try:
+                retry_after = float(raw_retry)
+            except (TypeError, ValueError):
+                retry_after = None
+    if retry_after is None and is_in_flight_402:
+        retry_after = 15.0 * (attempt + 1)
+    delay = min(max(retry_after, base_delay), 120.0) if retry_after is not None else base_delay
+    return True, delay
 
 
 def _parse_required_json_object(text: str) -> dict:
@@ -95,22 +148,27 @@ def format_llm_error(provider: str, exc: Exception) -> str:
 
 def _get_api_key(provider: str = "cmu") -> str:
     env_keys = {
-        "cmu": "API_KEY",
-        "openai": "OPENAI_API_KEY",
-        "gemini": "GEMINI_API_KEY",
-        "claude": "ANTHROPIC_API_KEY",
-        "deepseek": "DEEPSEEK_API_KEY",
-        "qwen": "DASHSCOPE_API_KEY",
-        "openrouter": "OPENAI_API_KEY",
+        "cmu": ("API_KEY",),
+        "openai": ("OPENAI_API_KEY",),
+        "gemini": ("GEMINI_API_KEY",),
+        "claude": ("ANTHROPIC_API_KEY",),
+        "deepseek": ("DEEPSEEK_API_KEY",),
+        "qwen": ("DASHSCOPE_API_KEY",),
+        "openrouter": ("OPENROUTER_API_KEY", "OPENAI_API_KEY"),
     }
+    candidates = env_keys.get(provider, ("API_KEY",))
     try:
         from google.colab import userdata
-        key = userdata.get(env_keys.get(provider, "API_KEY"))
-        if key:
-            return key
+        for env_name in candidates:
+            key = userdata.get(env_name)
+            if key:
+                return key
     except Exception:
         pass
-    return os.environ[env_keys.get(provider, "API_KEY")]
+    for env_name in candidates:
+        if os.environ.get(env_name):
+            return os.environ[env_name]
+    return os.environ[candidates[0]]
 
 
 def _as_alternating_chat(messages: list[dict]) -> list[dict]:
@@ -188,7 +246,10 @@ class OpenAICompatibleClient:
             api_key=api_key or _get_api_key(provider),
             base_url=self.base_url,
         )
-        self.max_tokens = OPENAI_COMPATIBLE_MAX_TOKENS.get(provider)
+        if provider == "openrouter":
+            self.max_tokens = _resolve_openrouter_max_tokens(self.model)
+        else:
+            self.max_tokens = OPENAI_COMPATIBLE_MAX_TOKENS.get(provider)
 
     def complete(self, system_prompt: str, messages: list[dict]) -> str:
         kwargs = {"max_tokens": self.max_tokens} if self.max_tokens is not None else {}
@@ -354,13 +415,18 @@ class Agent:
             try:
                 reply = self.client.complete(self.persona, [dict(message) for message in request_messages])
             except Exception as exc:
-                diagnostic["attempts"].append({"attempt": attempt + 1, "status": "provider_error", "error_type": type(exc).__name__})
                 status_code = getattr(exc, "status_code", None)
-                transient = (isinstance(exc, (TimeoutError, ConnectionError))
-                             or type(exc).__name__ in {"APITimeoutError", "APIConnectionError"}
-                             or status_code in {408, 429, 500, 502, 503, 504})
+                attempt_record = {
+                    "attempt": attempt + 1,
+                    "status": "provider_error",
+                    "error_type": type(exc).__name__,
+                }
+                if status_code is not None:
+                    attempt_record["status_code"] = status_code
+                diagnostic["attempts"].append(attempt_record)
+                transient, delay = _is_transient_provider_error(exc, attempt)
                 if transient and attempt + 1 < attempts:
-                    time.sleep(REQUIRED_JSON_RETRY_DELAYS[attempt])
+                    time.sleep(delay)
                     continue
                 diagnostic["status"] = "failed"
                 raise

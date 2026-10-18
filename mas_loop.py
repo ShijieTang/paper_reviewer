@@ -18,6 +18,103 @@ def _parse_json(text: str) -> dict:
     return parse_json_object(text)
 
 
+def _prepare_review_for_author(review_text: str | None, reviewer_name: str) -> str:
+    """Ensure the embedded review JSON's reviewer label matches the [Reviewer: ...] tag."""
+    if not isinstance(review_text, str):
+        return ""
+    return re.sub(
+        r'("reviewer"\s*:\s*)"(?:\\.|[^"\\])*"',
+        lambda match: f"{match.group(1)}{json.dumps(reviewer_name)}",
+        review_text,
+        count=1,
+    )
+
+
+def _extract_reusable_turn(turn: dict, role: str, expected_reviewer: str | None) -> tuple[str, dict, list] | None:
+    """Return (raw_json_str, parsed_dict, attempts) if a turn is complete or salvageable."""
+    if turn.get("status") == "complete" and isinstance(turn.get("output"), dict):
+        candidate = copy.deepcopy(turn["output"])
+        if not validate_role_output(candidate, role, expected_reviewer):
+            raw_str = json.dumps(candidate, ensure_ascii=False)
+            attempts = copy.deepcopy(turn.get("attempts") or [{"attempt": 1, "status": "valid"}])
+            return raw_str, candidate, attempts
+
+    attempts_list = turn.get("attempts")
+    if isinstance(attempts_list, list):
+        for att in attempts_list:
+            if not isinstance(att, dict):
+                continue
+            raw_reply = att.get("raw_reply")
+            if not isinstance(raw_reply, str) or not raw_reply.strip():
+                continue
+            try:
+                candidate = _parse_json(raw_reply)
+                if not validate_role_output(candidate, role, expected_reviewer):
+                    raw_str = json.dumps(candidate, ensure_ascii=False)
+                    return raw_str, candidate, [{"attempt": 1, "status": "valid"}]
+            except Exception:
+                continue
+    return None
+
+
+def _build_reusable_turns(
+    resume_from: dict | None,
+    reviewer_names: list[str],
+    n_iter: int,
+    enable_author_rebuttal: bool,
+) -> dict[tuple, tuple[str, dict, list]]:
+    """Build causally valid reusable turns from a prior incomplete workflow result."""
+    if not isinstance(resume_from, dict):
+        return {}
+    outcomes = resume_from.get("turn_outcomes")
+    if not isinstance(outcomes, list):
+        return {}
+
+    candidates: dict[tuple, tuple[str, dict, list]] = {}
+    for turn in outcomes:
+        if not isinstance(turn, dict):
+            continue
+        role = turn.get("role")
+        iteration = turn.get("iteration")
+        reviewer_index = turn.get("reviewer_index")
+        if role not in {"reviewer", "author", "conference"} or not isinstance(iteration, int):
+            continue
+        expected_reviewer = None
+        if role == "author" and isinstance(reviewer_index, int) and 0 <= reviewer_index < len(reviewer_names):
+            expected_reviewer = reviewer_names[reviewer_index]
+        extracted = _extract_reusable_turn(turn, role, expected_reviewer)
+        if extracted is not None:
+            candidates[(role, iteration, reviewer_index)] = extracted
+
+    reusable: dict[tuple, tuple[str, dict, list]] = {}
+    num_reviewers = len(reviewer_names)
+    for i in range(num_reviewers):
+        key = ("reviewer", 1, i)
+        if key in candidates:
+            reusable[key] = candidates[key]
+
+    for it in range(1, n_iter):
+        turn_iter = it + 1
+        for i in range(num_reviewers):
+            if ("reviewer", it, i) not in reusable:
+                continue
+            if enable_author_rebuttal:
+                author_key = ("author", turn_iter, i)
+                if author_key not in candidates:
+                    continue
+                reusable[author_key] = candidates[author_key]
+            rev_key = ("reviewer", turn_iter, i)
+            if rev_key in candidates:
+                reusable[rev_key] = candidates[rev_key]
+
+    if all(("reviewer", n_iter, i) in reusable for i in range(num_reviewers)):
+        conf_key = ("conference", n_iter, None)
+        if conf_key in candidates:
+            reusable[conf_key] = candidates[conf_key]
+
+    return reusable
+
+
 def _normalize_review_weaknesses(review: dict) -> dict:
     """Keep the public weaknesses field string-only for UI and evaluation."""
     raw_weaknesses = review.get("weaknesses", [])
@@ -163,7 +260,8 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
          enable_rag: bool = False,
          enable_author_rebuttal: bool = True,
          precomputed_rag_package: dict | None = None,
-         rag_config: dict | None = None) -> dict:
+         rag_config: dict | None = None,
+         resume_from: dict | None = None) -> dict:
     """
     Run the multi-agent review loop.
 
@@ -184,9 +282,29 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
 
     turn_outcomes = []
     outcome_lock = Lock()
+    reusable_turns: dict[tuple, tuple[str, dict, list]] = {}
 
     def call_turn(agent, prompt, role, iteration, reviewer_index=None, required=True):
         """Validate even custom agents; never send a failed turn to the next agent."""
+        turn_key = (role, iteration, reviewer_index)
+        if turn_key in reusable_turns:
+            raw, parsed, attempts = reusable_turns[turn_key]
+            agent.messages.append({"role": "user", "content": prompt})
+            agent.messages.append({"role": "assistant", "content": raw})
+            outcome = {
+                "role": role,
+                "agent": agent.name,
+                "iteration": iteration,
+                "reviewer_index": reviewer_index,
+                "required": required,
+                "status": "complete",
+                "output": copy.deepcopy(parsed),
+                "attempts": copy.deepcopy(attempts),
+            }
+            with outcome_lock:
+                turn_outcomes.append(outcome)
+            return raw
+
         outcome = {"role": role, "agent": agent.name, "iteration": iteration,
                    "reviewer_index": reviewer_index, "required": required, "status": "failed"}
         try:
@@ -297,6 +415,17 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
     detector_label = ", AI Detector" if enable_ai_detector else ""
     emit(f"Initialized {len(reviewers)} reviewer(s), AI Author{detector_label}, "
          f"Conference Recommender.")
+    if resume_from is not None:
+        reusable_turns.update(
+            _build_reusable_turns(
+                resume_from=resume_from,
+                reviewer_names=[r.name for r in reviewers],
+                n_iter=n_iter,
+                enable_author_rebuttal=enable_author_rebuttal,
+            )
+        )
+        if reusable_turns:
+            emit(f"Resuming workflow with {len(reusable_turns)} completed/salvaged turn(s).")
 
     # ── Storage ──────────────────────────────────────────────────────────────
     reviews       = [[None] * len(reviewers) for _ in range(n_iter)]
@@ -363,10 +492,14 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
                 emit(f"AI Author writing rebuttal to {reviewer.name}...")
                 emit_agent_status(author.name, "running")
                 author.expected_reviewer = reviewer.name
+                review_for_author = _prepare_review_for_author(
+                    reviews[iteration - 1][i], reviewer.name
+                )
                 author_resps[iteration][i] = call_turn(
                     author,
+                    f"[Reviewer: {reviewer.name}]\n"
                     f"[Reviewer name — use exactly this in your JSON: {reviewer.name}]\n\n"
-                    f"{reviews[iteration - 1][i]}", "author", iteration + 1, i,
+                    f"{review_for_author}", "author", iteration + 1, i,
                 )
                 if required_failed():
                     emit_agent_status(author.name, "error")
