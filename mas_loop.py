@@ -419,10 +419,16 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         rag_package = refine_package(rag_package, paper, rag_cfg)
         shown = rag_package.get("shown_works") or []
         use_analyst = bool(rag_cfg.related_work_analyst and shown)
-        rag_engaged = bool((rag_cfg.prompt_style == "engaged" or use_analyst) and shown)
-        if (rag_cfg.prompt_style == "engaged" or rag_cfg.related_work_analyst) and not shown:
-            note = ("Improved RAG requested, but no retrieved work passed the relevance filter "
-                    f"(min_relevance={rag_cfg.min_relevance}); reviewers received the original RAG block instead.")
+        # The engaged format is used whenever it is requested, also when no work passed the relevance
+        # filter: the reviewer is then told that no relevant prior work was retrieved and answers
+        # "none" in its novelty check. It never falls back to the original RAG block, so the
+        # condition stays the same for every paper.
+        rag_engaged = rag_cfg.prompt_style == "engaged" or rag_cfg.related_work_analyst
+        if rag_engaged and not shown:
+            note = ("No retrieved work passed the relevance filter "
+                    f"(min_relevance={rag_cfg.min_relevance}); reviewers were told that no relevant prior "
+                    "work was retrieved" + (" and the related-work analyst was skipped." if rag_cfg.related_work_analyst
+                                            else "."))
             rag_warnings = list(rag_warnings) + [note]
             emit(note)
         if rag_engaged:
@@ -715,6 +721,8 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
             return {}
         fields = {
             "rag_mode": {"prompt_style": rag_cfg.prompt_style, "engaged": rag_engaged,
+                         "num_shown": len(rag_package.get("shown_works") or []),
+                         "analyst_skipped_no_works": bool(rag_cfg.related_work_analyst and not use_analyst),
                          "related_work_analyst": use_analyst, "shown_labels": sorted(rag_labels),
                          "uncited_labels": sorted(rag_uncited) if rag_uncited is not None else None},
             "related_work_report": related_work_report,

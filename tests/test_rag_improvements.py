@@ -432,6 +432,25 @@ class TestWorkflow(unittest.TestCase):
         sources = {m["title"]: m["sources"] for m in result["possibly_missing_references"]}
         self.assertIn("analyst", sources["Mixture of Retrievers for Long Documents"])
 
+    def test_no_work_passes_filter_keeps_engaged_format_and_skips_analyst(self):
+        reviewer = Replies([{**BASE_REVIEW, "novelty_check": [{"claimed_contribution": "Sparse routing",
+                             "closest_prior_work": "none", "overlap": "none", "explanation": "Nothing close."}],
+                             "missing_prior_work": []}])
+        cfg = {**IMPROVED, "related_work_analyst": True, "min_relevance": 0.995}
+        with patch("agents.create_llm_client", side_effect=[reviewer, Replies([]), Replies([CONFERENCE])]), \
+             patch("agents.time.sleep"):
+            result = mas_loop.main(PAPER, n_iter=1, reviewer_types=["reviewer_nopersona"],
+                                   run_citation_check=False, enable_rag=True,
+                                   precomputed_rag_package=make_package(), rag_config=cfg)
+        prompt = "\n".join(m["content"] for m in reviewer.requests[0][1])
+        self.assertIn("No retrieved prior work passed the relevance filter", prompt)
+        self.assertIn("novelty_check", prompt)
+        self.assertNotIn("Dense Passage Retrieval", prompt)        # old block not used as a fallback
+        self.assertTrue(result["rag_mode"]["engaged"])
+        self.assertEqual(result["rag_mode"]["num_shown"], 0)
+        self.assertTrue(result["rag_mode"]["analyst_skipped_no_works"])
+        self.assertTrue(any("No retrieved work passed" in w for w in result["rag_warnings"]))
+
     def test_improvements_off_keeps_legacy_prompt(self):
         reviewer = Replies([BASE_REVIEW])
         result = run_mas([reviewer, Replies([]), Replies([CONFERENCE])], {})
