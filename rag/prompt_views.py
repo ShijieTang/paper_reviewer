@@ -82,7 +82,12 @@ def format_engaged_rag_block(package: dict[str, Any], with_abstracts: bool = Tru
     """Labeled prior-work list for reviewers. Requires a package processed by rag.refine.refine_package."""
     works = (package or {}).get("shown_works") or []
     if not works:
-        return ""
+        return "\n".join([
+            "###RAG_EVIDENCE###",
+            "No retrieved prior work passed the relevance filter for this submission, so no works are listed. "
+            "Use \"none\" as closest_prior_work and an empty missing_prior_work list.",
+            "###END_RAG_EVIDENCE###",
+        ])
     lines = [
         "###RAG_EVIDENCE###",
         "Prior work retrieved for this submission. Use it to assess novelty and missing baselines; the "
