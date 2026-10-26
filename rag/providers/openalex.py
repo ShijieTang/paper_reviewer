@@ -19,15 +19,31 @@ def _abstract_from_index(index: dict[str, list[int]] | None) -> str:
     return " ".join(token for _, token in sorted(positions))
 
 
-def mailto_param() -> str:
-    """OpenAlex 'polite pool' (faster, more reliable): set OPENALEX_MAILTO to your email."""
+def openalex_request_url(url: str) -> str:
+    """Add OPENALEX_API_KEY (and OPENALEX_MAILTO, if set) to an OpenAlex request.
+
+    Since 2026 OpenAlex meters usage: without a key the free budget is tiny; a free key
+    (openalex.org/settings/api) gives a daily budget. Added only when the request is sent,
+    so the key never appears in cache keys, package warnings or logs.
+    """
+    extra = []
+    key = os.environ.get("OPENALEX_API_KEY", "").strip()
     email = os.environ.get("OPENALEX_MAILTO", "").strip()
-    return f"&mailto={urllib.parse.quote(email)}" if email else ""
+    if key:
+        extra.append(f"api_key={urllib.parse.quote(key)}")
+    if email:
+        extra.append(f"mailto={urllib.parse.quote(email)}")
+    if not extra:
+        return url
+    return url + ("&" if "?" in url else "?") + "&".join(extra)
 
 
 class OpenAlexProvider(PaperSearchProvider):
     name = "OpenAlex"
     inter_query_delay_seconds = 1.0
+
+    def _request_url(self, url: str) -> str:
+        return openalex_request_url(url)
 
     def search(self, queries: list[RelatedWorkQuery], limit: int = 10) -> ProviderResult:
         warnings: list[str] = []
@@ -39,7 +55,7 @@ class OpenAlexProvider(PaperSearchProvider):
             url = (
                 "https://api.openalex.org/works"
                 f"?search={encoded_query(query.query)}&per-page={query_limit}"
-                "&sort=relevance_score:desc" + mailto_param()
+                "&sort=relevance_score:desc"
             )
             try:
                 data = self._json_get(url)
