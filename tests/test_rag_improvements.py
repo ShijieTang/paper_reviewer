@@ -273,6 +273,8 @@ class TestRetrieval(unittest.TestCase):
         self.assertEqual(pkg["provider_status"]["Reference expansion"]["status"], "used")
         a, b = [_pm("a")], [_pm("b"), _pm("c")]
         self.assertEqual([p.title for p in interleave(a, b)], ["a", "b", "c"])
+        s3 = [_pm("s1"), _pm("s2"), _pm("s3")]
+        self.assertEqual([p.title for p in interleave(s3, b)], ["s1", "s2", "b", "s3", "c"])
 
     def test_cutoff_mode_today_keeps_recent_work(self):
         recent = _pm("A Very Recent Paper About Routing", year=date.today().year)
@@ -462,6 +464,15 @@ class TestExperimentAndEval(unittest.TestCase):
         self.assertEqual(kwargs["provider"], "claude")
         self.assertEqual(kwargs["rag_config"]["prompt_style"], "engaged")
         self.assertEqual(kwargs["precomputed_rag_package"], {"x": 1})
+
+    def test_builder_does_not_save_packages_starved_by_openalex_429(self):
+        import build_rag_packages as b
+        ok = {"warnings": ["arXiv query failed for claim_1: HTTP 429 Unknown Error"],
+              "provider_status": {"OpenAlex": {"status": "used", "warnings": []}}}
+        starved = {"warnings": ["OpenAlex query failed for same_problem: HTTP 429 Too Many Requests"],
+                   "provider_status": {"OpenAlex": {"status": "failed", "warnings": []}}}
+        self.assertFalse(b.openalex_refused(ok))
+        self.assertTrue(b.openalex_refused(starved))
 
     def test_first_public_dates_parsing(self):
         import first_public_dates as fpd

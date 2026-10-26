@@ -49,8 +49,8 @@ The original packages were built from OpenAlex (400 of 403 retrieved records; ar
 and Semantic Scholar was not used, so the improved packages keep OpenAlex as the main source.
 Since 2026 OpenAlex meters API use: without a key the free budget is very small, and a free key
 gives a daily budget (about $1/day at the time of writing; searches cost more than filter calls).
-One package costs roughly 10 searches plus about 20 filter calls, so 60 papers fit within about a
-day's free budget; if the budget runs out, requests fail with HTTP 429 until the daily reset, and
+One package costs roughly 10 searches plus about 20 filter calls, so 60 papers take a little more than one
+day's free budget (the first smoke-test package cost $0.02); if the budget runs out, requests fail with HTTP 429 until the daily reset, and
 re-running the builder resumes. Check your remaining budget with
 `curl "https://api.openalex.org/rate-limit?api_key=$OPENALEX_API_KEY"`.
 
@@ -72,7 +72,7 @@ python eval/build_rag_packages.py \
 ```
 
 `--provider_top_k` (default 50) is the number of results per search provider, split across all
-queries; the earlier packages used 10, about one result per query. The default `--cutoff_mode venue --cutoff_date 2024-12-31` matches the earlier packages, so the
+queries; the earlier packages used 10, about one result per query. `--rerank_top_k` (default 30) is how many candidates reach the LLM reranker after the cutoff filter; two search results are placed before each reference-expansion result, because expansion papers are often broad surveys. The default `--cutoff_mode venue --cutoff_date 2024-12-31` matches the earlier packages, so the
 comparison stays fair. Add `--no_reference_expansion` if Semantic Scholar keeps refusing requests.
 
 **2. Run C1 (no RAG), C2 (the old RAG prompt), C8 and C9 on the same papers with the same model.** C2 reads the same new packages with the old prompt, so C8 − C2 isolates the prompt and the evidence-cleaning changes.
