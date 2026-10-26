@@ -12,6 +12,7 @@ class RAGConfig:
     rag_cache_dir: str = "data/rag_cache"
     provider_top_k: int = 10
     rerank_top_k: int = 12
+    rerank_batch_size: int = 10          # candidates per rerank LLM call (larger sets are split; see _rerank_in_batches)
 
     # ── RAG improvements (all off by default, so existing runs are unchanged) ──
     # Retrieval (option 3)

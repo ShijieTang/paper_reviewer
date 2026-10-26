@@ -31,7 +31,8 @@ sys.path.insert(0, str(ROOT))
 
 from rag.config import RAGConfig  # noqa: E402
 from rag.llm import RAGLLMAgent  # noqa: E402
-from rag.related_work import build_related_work_rag  # noqa: E402
+from rag.models import PaperMetadata, RelatedWorkQuery, TargetPaperSummary  # noqa: E402
+from rag.related_work import _rerank_in_batches, build_related_work_rag  # noqa: E402
 
 _lock = threading.Lock()
 _budget_exhausted = threading.Event()
@@ -68,6 +69,29 @@ def build_one(paper_id: str, meta: dict, config: RAGConfig, provider: str, model
     return package
 
 
+def rerank_package(paper_id: str, package: dict, config: RAGConfig, provider: str, model: str, api_key: str) -> dict:
+    """Redo only the LLM reranking of a saved package: same queries and candidates, no new searches."""
+    llm = RAGLLMAgent(provider=provider, api_key=api_key, model=model)
+    start = time.time()
+    _log(paper_id, f"re-ranking {len(package.get('paper_metadata') or [])} saved candidates")
+    target = TargetPaperSummary(**{k: v for k, v in package["target_paper_summary"].items()
+                                   if k in TargetPaperSummary.__dataclass_fields__})
+    queries = [RelatedWorkQuery(**{k: v for k, v in q.items() if k in RelatedWorkQuery.__dataclass_fields__})
+               for q in (package.get("query_generation") or {}).get("queries") or []]
+    papers = [PaperMetadata(**{k: v for k, v in m.items() if k in PaperMetadata.__dataclass_fields__})
+              for m in package.get("paper_metadata") or []]
+    warnings = [w for w in package.get("warnings") or [] if "rerank" not in w.lower()]
+    reranked, summary, source = _rerank_in_batches(
+        target=target, queries=queries, papers=papers, llm_agent=llm, batch_size=config.rerank_batch_size,
+        warnings=warnings, progress=lambda msg: _log(paper_id, f"{msg} [{time.time() - start:.0f}s]"))
+    out = dict(package)
+    out.update({"reranking_results": [item.to_dict() for item in reranked], "reranking": {"source": source},
+                "related_work_summary": summary, "warnings": warnings})
+    out["build_config"] = {**(package.get("build_config") or {}), "rerank_batch_size": config.rerank_batch_size,
+                           "reranked_only": True}
+    return out
+
+
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--dataset", default="eval/openreview_60_module_test.json")
@@ -87,6 +111,11 @@ def main(argv=None) -> None:
     parser.add_argument("--provider_top_k", type=int, default=50,
                         help="Results per search provider, split across all queries (the old default of 10 "
                              "gave about one result per query).")
+    parser.add_argument("--rerank_batch_size", type=int, default=10,
+                        help="Candidates per rerank LLM call; larger candidate sets are split into batches.")
+    parser.add_argument("--rerank_only", action="store_true",
+                        help="Redo only the LLM reranking of packages already in --output (same queries and "
+                             "candidates, no searches, no OpenAlex cost). Use after a run whose reranking failed.")
     parser.add_argument("--concurrency", type=int, default=3)
     args = parser.parse_args(argv)
 
@@ -97,21 +126,24 @@ def main(argv=None) -> None:
     out_path = ROOT / args.output
     packages = json.loads(out_path.read_text(encoding="utf-8")) if out_path.exists() else {}
     todo = [pid for pid in ids if pid not in packages]
+    if args.rerank_only:
+        todo = [pid for pid in ids if pid in packages
+                and not (packages[pid].get("build_config") or {}).get("reranked_only")]
     config = RAGConfig(
         enable_rag=True, cutoff_date=args.cutoff_date, cutoff_mode=args.cutoff_mode,
         strict_self_exclusion=True, claim_queries=args.claim_queries,
         reference_expansion=not args.no_reference_expansion, rerank_top_k=args.rerank_top_k,
-        provider_top_k=args.provider_top_k,
+        provider_top_k=args.provider_top_k, rerank_batch_size=args.rerank_batch_size,
     )
-    if config.reference_expansion:
+    if config.reference_expansion and not args.rerank_only:
         source = ("Semantic Scholar (key set)" if os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
                   else "OpenAlex (no Semantic Scholar key)")
         print(f"reference expansion via {source}", flush=True)
-    if not os.environ.get("OPENALEX_API_KEY"):
+    if not os.environ.get("OPENALEX_API_KEY") and not args.rerank_only:
         print("WARNING: OPENALEX_API_KEY is not set. Since 2026 OpenAlex allows only a tiny free budget "
               "without a key, so searches will soon fail with HTTP 429. Get a free key at "
               "https://openalex.org/settings/api and export OPENALEX_API_KEY=...", flush=True)
-    print(f"{len(todo)} package(s) to build ({len(ids) - len(todo)} already in {args.output})", flush=True)
+    print(f"{len(todo)} package(s) to {'re-rank' if args.rerank_only else 'build'} ({len(ids) - len(todo)} already in {args.output})", flush=True)
 
     def save() -> None:
         with _lock:
@@ -132,8 +164,12 @@ def main(argv=None) -> None:
 
     threading.Thread(target=heartbeat, daemon=True).start()
     with ThreadPoolExecutor(max_workers=max(1, args.concurrency)) as pool:
-        futures = {pool.submit(build_one, pid, dataset[pid], config, args.provider, args.model, args.api_key): pid
-                   for pid in todo}
+        if args.rerank_only:
+            futures = {pool.submit(rerank_package, pid, packages[pid], config, args.provider, args.model,
+                                   args.api_key): pid for pid in todo}
+        else:
+            futures = {pool.submit(build_one, pid, dataset[pid], config, args.provider, args.model,
+                                   args.api_key): pid for pid in todo}
         for future in as_completed(futures):
             pid = futures[future]
             try:
@@ -155,6 +191,10 @@ def main(argv=None) -> None:
             status = ", ".join(f"{name}: {v.get('retrieved', 0)} ({v.get('status')})"
                                for name, v in (package.get("provider_status") or {}).items())
             _log(pid, f"sources -> {status}")
+            rerank_source = (package.get("reranking") or {}).get("source")
+            if rerank_source != "llm":
+                _log(pid, f"WARNING: reranking source is '{rerank_source}' (LLM reranking failed for some or all "
+                          "candidates; scores are lexical and most works will fall below the relevance filter)")
             if report.get("num_used", 0) < 5:
                 _log(pid, f"WARNING: only {report.get('num_used', 0)} candidate(s) survived; check the warnings "
                           f"in the package (rate limits?) before running the review conditions")
