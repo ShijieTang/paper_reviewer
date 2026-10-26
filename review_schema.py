@@ -247,14 +247,41 @@ def validate_rag_review_fields(value: Any, valid_labels: set[str] | list[str],
             label = _rag_label(item.get("work"))
             if not label or label not in valid:
                 errors.append(f"{prefix}.work must be one of {sorted(valid)}")
-            elif uncited is not None and label not in uncited:
-                errors.append(f"{prefix}.work {label} is already cited in the manuscript; "
-                              "missing_prior_work may list only works marked as not cited")
             else:
+                # A cited work listed here is not an error worth a retry (it failed whole papers in
+                # the first full run); normalize_rag_review_fields drops it from the stored review.
                 item["work"] = label
             if not isinstance(item.get("why_relevant"), str) or not item["why_relevant"].strip():
                 errors.append(f"{prefix}.why_relevant must be nonempty text")
     return errors
+
+
+def normalize_rag_review_fields(review: Any, uncited_labels: set[str] | list[str] | None,
+                                key: str = "missing_prior_work") -> Any:
+    """Canonical [R#] labels; drop entries for works the manuscript already cites (counted in
+    '<key>_dropped_cited'). Applied to the stored review/report, since validation sees a copy."""
+    if not isinstance(review, dict):
+        return review
+    for item in review.get("novelty_check") or []:
+        if isinstance(item, dict) and _rag_label(item.get("closest_prior_work")):
+            item["closest_prior_work"] = _rag_label(item["closest_prior_work"])
+    for item in review.get("contribution_overlap") or []:
+        if isinstance(item, dict) and isinstance(item.get("closest_prior_work"), list):
+            item["closest_prior_work"] = [_rag_label(w) for w in item["closest_prior_work"] if _rag_label(w)]
+    entries = review.get(key)
+    if isinstance(entries, list):
+        kept, dropped = [], 0
+        for item in entries:
+            label = _rag_label(item.get("work")) if isinstance(item, dict) else ""
+            if label and uncited_labels is not None and label not in set(uncited_labels):
+                dropped += 1
+                continue
+            if label:
+                item["work"] = label
+            kept.append(item)
+        review[key] = kept
+        review[f"{key}_dropped_cited"] = dropped
+    return review
 
 
 def validate_rw_analyst_report(value: Any, valid_labels: set[str] | list[str],
@@ -300,8 +327,6 @@ def validate_rw_analyst_report(value: Any, valid_labels: set[str] | list[str],
             label = _rag_label(item.get("work") if isinstance(item, dict) else None)
             if not label or label not in valid:
                 errors.append(f"possibly_missing_references[{i}].work must be one of {sorted(valid)}")
-            elif uncited is not None and label not in uncited:
-                errors.append(f"possibly_missing_references[{i}].work {label} is already cited in the manuscript")
             elif not str(item.get("why_relevant", "")).strip():
                 errors.append(f"possibly_missing_references[{i}].why_relevant must be nonempty text")
             else:

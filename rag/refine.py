@@ -43,14 +43,47 @@ def _arxiv_id(value: str) -> str:
     return match.group(1) if match else ""
 
 
+_REF_HEADING = re.compile(r"(?i)(references|bibliography|literature cited)$")
+_APPENDIX_HEADING = re.compile(r"(?im)^#{1,3}\s*(\*\*)?\s*(appendix|appendices|supplementary|[A-H](\.\d+)*[.:]?\s+[A-Z])")
+
+
+def _heading_text(line: str) -> str:
+    """Line with markdown markers, line numbers and punctuation removed (e.g. '## 344 **References**')."""
+    text = re.sub(r"[#*_`]+", " ", line)
+    text = re.sub(r"^\s*\d+(\.\d+)*\s+", " ", text)          # leading section or line number
+    return re.sub(r"\s+", " ", re.sub(r"[^\w\s]", " ", text)).strip()
+
+
 def extract_reference_section(paper_text: str) -> str:
-    match = re.search(r"(?im)^#+\s*(references|bibliography)\s*$", paper_text or "")
-    if not match:
+    """The manuscript's reference list.
+
+    Converted PDFs label it in many ways: '# References', '## 344 **References**' (line numbers
+    from review copies), '## Impact Statement References' (two headings merged), or a bare
+    'REFERENCES' line. The first such heading in the last 70% of the text is used (earlier hits are
+    usually a table of contents), and the section ends at the next appendix-style heading.
+    """
+    text = paper_text or ""
+    lines = text.splitlines(keepends=True)
+    offsets, pos = [], 0
+    for line in lines:
+        offsets.append(pos)
+        pos += len(line)
+    hits = []
+    for offset, line in zip(offsets, lines):
+        stripped = line.strip()
+        if not stripped or len(stripped) > 80:
+            continue
+        is_heading = stripped.startswith(("#", "**")) or re.match(r"^\d+\s", stripped) or stripped.isupper() \
+            or stripped.lower() in ("references", "bibliography")
+        if is_heading and _REF_HEADING.search(_heading_text(stripped)):
+            hits.append((offset, offset + len(line)))
+    if not hits:
         return ""
-    start = match.end()
-    nxt = re.search(r"(?m)^#\s+\S", paper_text[start:])   # stop at the next top-level heading (appendix)
-    end = start + nxt.start() if nxt else len(paper_text)
-    return paper_text[start:end]
+    late = [h for h in hits if h[0] >= 0.3 * len(text)] or hits
+    start = late[0][1]
+    nxt = _APPENDIX_HEADING.search(text, start)
+    end = nxt.start() if nxt else len(text)
+    return text[start:end]
 
 
 class ManuscriptReferences:
@@ -58,6 +91,12 @@ class ManuscriptReferences:
 
     def __init__(self, paper_text: str):
         self.section = extract_reference_section(paper_text)
+        self.full_text_fallback = False
+        if not self.section.strip() and (paper_text or "").strip():
+            # No reference heading found: match titles against the whole text (a full title of 4+
+            # words rarely appears in a paper unless the paper cites it).
+            self.section = paper_text
+            self.full_text_fallback = True
         self.norm_section = norm_title(self.section)
         self.arxiv_ids = {m.group(1) for m in _ARXIV_RE.finditer(self.section)}
         self.dois = {m.group(1).rstrip(".,;)").lower() for m in _DOI_RE.finditer(self.section)}
@@ -158,7 +197,8 @@ def refine_package(package: dict[str, Any], paper_text: str, config: RAGConfig) 
         "removed_low_relevance": removed_low,
         "max_shown": config.max_shown,
         "min_uncited_shown": config.min_uncited_shown,
-        "manuscript_references_found": bool(refs) if refs is not None else None,
+        "manuscript_references_found": (("full_text_fallback" if refs.full_text_fallback else True) if refs
+                                        else False) if refs is not None else None,
         "num_candidates": len(candidates),
         "num_shown": len(shown),
         "num_shown_uncited": sum(1 for w in shown if w.get("cited_in_manuscript") is False),

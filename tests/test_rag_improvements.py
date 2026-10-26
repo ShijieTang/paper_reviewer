@@ -87,6 +87,18 @@ class TestRefine(unittest.TestCase):
         self.assertFalse(RAGConfig().improvements_enabled)
         self.assertTrue(rag_config_from_dict(IMPROVED).improvements_enabled)
 
+    def test_reference_headings_from_converted_pdfs(self):
+        from rag.refine import extract_reference_section
+        body = "Body text. " * 400
+        for heading in ("## 344 **References**", "## Impact Statement References", "REFERENCES", "**References**"):
+            text = f"# Title\n\n{body}\n{heading}\nSmith, J. A paper title. 2020.\n## A Proofs\nappendix text"
+            section = extract_reference_section(text)
+            self.assertIn("Smith, J.", section, heading)
+            self.assertNotIn("appendix text", section, heading)
+        refs = ManuscriptReferences(body + "\nAs shown in Dense Passage Retrieval for Open-Domain Question Answering, ...")
+        self.assertTrue(refs.full_text_fallback)
+        self.assertTrue(refs.cites({"title": "Dense Passage Retrieval for Open-Domain Question Answering"}))
+
     def test_reference_section_and_cited_matching(self):
         refs = ManuscriptReferences(PAPER)
         self.assertTrue(refs)
@@ -352,7 +364,14 @@ class TestEngagedPromptAndValidation(unittest.TestCase):
         bad = {"novelty_check": [], "missing_prior_work": [{"work": "R1", "why_relevant": "w"}]}
         errors = validate_rag_review_fields(bad, {"R1", "R2"}, {"R2"})
         self.assertTrue(any("novelty_check" in e for e in errors))
-        self.assertTrue(any("already cited" in e for e in errors))
+        self.assertFalse(any("already cited" in e for e in errors))   # cited entries are dropped, not retried
+        from review_schema import normalize_rag_review_fields
+        stored = {"novelty_check": [{"closest_prior_work": "[r2]"}],
+                  "missing_prior_work": [{"work": "R1", "why_relevant": "w"}, {"work": "r2", "why_relevant": "w"}]}
+        normalize_rag_review_fields(stored, {"R2"})
+        self.assertEqual(stored["missing_prior_work"], [{"work": "R2", "why_relevant": "w"}])
+        self.assertEqual(stored["missing_prior_work_dropped_cited"], 1)
+        self.assertEqual(stored["novelty_check"][0]["closest_prior_work"], "R2")
         self.assertTrue(validate_rag_review_fields({"novelty_check": [{"claimed_contribution": "c",
                         "closest_prior_work": "R9", "overlap": "none", "explanation": "e"}],
                         "missing_prior_work": []}, {"R1"}))
@@ -363,7 +382,7 @@ class TestEngagedPromptAndValidation(unittest.TestCase):
                   "possibly_missing_references": [{"work": "[R3]", "why_relevant": "w"}], "summary": "s"}
         self.assertEqual(validate_rw_analyst_report(report, {"R1", "R2", "R3"}, {"R2", "R3"}), [])
         self.assertEqual(report["contribution_overlap"][0]["closest_prior_work"], ["R2"])
-        report["possibly_missing_references"] = [{"work": "R1", "why_relevant": "w"}]
+        report["possibly_missing_references"] = [{"work": "R9", "why_relevant": "w"}]
         self.assertTrue(validate_rw_analyst_report(report, {"R1", "R2", "R3"}, {"R2", "R3"}))
 
 

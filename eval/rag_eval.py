@@ -245,7 +245,8 @@ def paper_rag_record(result: dict, analyst: bool) -> dict:
     rec = {"engaged": bool((result.get("rag_mode") or {}).get("engaged")), "num_shown": len(shown), "num_shown_uncited": len(uncited), "novelty_entries": 0,
            "novelty_named": 0, "named_cited": 0, "named_uncited": 0, "reviews": 0,
            "reviews_with_missing": 0, "missing_items": [], "invalid_labels": 0, "free_text_bad_labels": 0,
-           "free_text_mentions": 0, "flagged_cited_or_self": 0}
+           "free_text_mentions": 0, "flagged_cited_or_self": 0, "flagged_unknown_status": 0,
+           "dropped_cited": 0}
     for review in valid_reviews(result):
         rec["reviews"] += 1
         for item in review.get("novelty_check", []) or []:
@@ -260,6 +261,7 @@ def paper_rag_record(result: dict, analyst: bool) -> dict:
                     rec["named_uncited"] += label in uncited
                 else:
                     rec["invalid_labels"] += 1
+        rec["dropped_cited"] += int(review.get("missing_prior_work_dropped_cited") or 0)
         missing = [m for m in review.get("missing_prior_work", []) or [] if isinstance(m, dict)]
         rec["reviews_with_missing"] += bool(missing)
         for item in missing:
@@ -268,8 +270,10 @@ def paper_rag_record(result: dict, analyst: bool) -> dict:
                 rec["invalid_labels"] += 1
                 continue
             work = shown[label]
-            if work.get("cited_in_manuscript") is not False or work.get("is_submission"):
+            if work.get("cited_in_manuscript") is True or work.get("is_submission"):
                 rec["flagged_cited_or_self"] += 1
+            elif work.get("cited_in_manuscript") is None:
+                rec["flagged_unknown_status"] += 1
             rec["missing_items"].append({"work": work, "why": str(item.get("why_relevant", "")), "source": "reviewer"})
         text = review_free_text(review)
         rec["free_text_bad_labels"] += sum(1 for n in LABEL_RE.findall(text) if f"R{n}" not in shown)
@@ -376,6 +380,8 @@ def evaluate(dataset: dict, control: dict, rag_runs: dict[str, dict], analyst_co
                 "precision": tp / (tp + fp) if tp + fp else None,
                 "recall": tp / (tp + fn) if tp + fn else None,
                 "agreement": (tp + tn) / len(pids) if pids else None,
+                "human_flag_rate": (tp + fn) / len(pids) if pids else None,
+                "system_flag_rate": (tp + fp) / len(pids) if pids else None,
                 "papers_with_exact_hit": exact_hits,
                 "mean_best_similarity": st.mean(sims) if sims else None,
             },
@@ -383,6 +389,8 @@ def evaluate(dataset: dict, control: dict, rag_runs: dict[str, dict], analyst_co
                 "invalid_labels": tot("invalid_labels"),
                 "free_text_unknown_labels": tot("free_text_bad_labels"),
                 "flagged_cited_or_self": tot("flagged_cited_or_self"),
+                "flagged_unknown_status": tot("flagged_unknown_status"),
+                "dropped_cited_entries": tot("dropped_cited"),
             },
             "paired_vs_control": {
                 "accuracy_rag": bootstrap(pids, lambda ps: accuracy(runs, dataset, ps), n_boot),
@@ -441,8 +449,12 @@ def print_report(report: dict) -> None:
         print(f"detection vs human related-work weaknesses: precision {_fmt(d['precision'], True)}, "
               f"recall {_fmt(d['recall'], True)}, agreement {_fmt(d['agreement'], True)}, "
               f"exact hits {d['papers_with_exact_hit']}, similarity {_fmt(d['mean_best_similarity'])}")
+        print(f"       (system flags {_fmt(d['system_flag_rate'], True)} of papers, humans {_fmt(d['human_flag_rate'], True)}; "
+              "precision equal to the human rate means flagging carries no information)")
         print(f"citation validity: invalid labels {v['invalid_labels']}, unknown [R#] in text "
-              f"{v['free_text_unknown_labels']}, flagged cited/self {v['flagged_cited_or_self']}")
+              f"{v['free_text_unknown_labels']}, flagged cited/self {v['flagged_cited_or_self']}, "
+              f"flagged with unknown cited status {v['flagged_unknown_status']}, "
+              f"cited entries dropped {v['dropped_cited_entries']}")
         print(f"accuracy {_fmt(p['accuracy_rag'], True)} vs {_fmt(p['accuracy_control'], True)} "
               f"(diff {_fmt(p['accuracy_diff'], True)})")
         print(f"rho {_fmt(p['rho_rag'])} vs {_fmt(p['rho_control'])} (diff {_fmt(p['rho_diff'])})")

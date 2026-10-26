@@ -10,7 +10,8 @@ from threading import Lock
 from agents import Reviewer, Author, AIDetector, ConferenceRecommender, RelatedWorkAnalyst
 from prompts.reviewer_iter import reviewer_iteration
 from review_schema import (WORKFLOW_SCHEMA_VERSION, parse_json_object, validate_rag_review_fields,
-                           validate_role_output, validate_rw_analyst_report)
+                           validate_role_output, validate_rw_analyst_report,
+                           normalize_rag_review_fields)
 
 
 # ── JSON helpers ────────────────────────────────────────────────────────────
@@ -531,7 +532,8 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
             return incomplete_result()
         emit_agent_status(rw_analyst.name, "done")
         emit_message(rw_analyst.name, raw_report)
-        related_work_report = _parse_json(raw_report)
+        related_work_report = normalize_rag_review_fields(_parse_json(raw_report), rag_uncited,
+                                                          key="possibly_missing_references")
 
     # ── Iteration 0: initial reviews (parallel) ──────────────────────────────
     emit(f"--- Iteration 1 / {n_iter}: Initial Reviews ---")
@@ -691,6 +693,9 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
     parsed_reviews = [
         _parse_review_or_raw(raw) for raw in final_reviews if raw is not None
     ]
+    if rag_engaged:
+        for review in parsed_reviews:
+            normalize_rag_review_fields(review, rag_uncited)
 
     parsed_style_analyses = []
     for iteration, row in enumerate(aicheck_resps, start=1):
@@ -730,7 +735,8 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         if rag_cfg.missing_references_report:
             from rag.missing_references import build_missing_references
             # Label each review with the workflow's reviewer name (the model's own "reviewer" field varies).
-            named_reviews = [{**_parse_review_or_raw(raw), "reviewer": reviewers[i].name}
+            named_reviews = [{**normalize_rag_review_fields(_parse_review_or_raw(raw), rag_uncited),
+                              "reviewer": reviewers[i].name}
                              for i, raw in enumerate(final_reviews)
                              if raw is not None and isinstance(_parse_review_or_raw(raw), dict)]
             fields["possibly_missing_references"] = build_missing_references(
