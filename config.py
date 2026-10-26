@@ -19,4 +19,6 @@ DEFAULT_RAG_CONFIG = {
     "rag_cache_dir": "data/rag_cache",
     "provider_top_k": 10,
     "rerank_top_k": 12,
+    # Web app: when RAG is used, list relevant retrieved works the manuscript does not cite.
+    "missing_references_report": True,
 }

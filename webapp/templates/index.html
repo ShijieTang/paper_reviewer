@@ -291,6 +291,14 @@
     <div id="reviewer-cards" class="reviewer-grid"></div>
   </section>
 
+  <!-- Possibly missing references (shown only when RAG was used) -->
+  <section class="result-section" id="sec-missing-refs" style="display:none;">
+    <h2 class="result-section-title">&#128218; Possibly Missing References</h2>
+    <p class="missing-refs-note">Retrieved prior work that seems relevant but is not cited in your manuscript.
+      Check each one before adding it; retrieval can be wrong.</p>
+    <div id="missing-refs-wrap"></div>
+  </section>
+
   <!-- Citation Check -->
   <section class="result-section" id="sec-citations">
     <h2 class="result-section-title">&#128279; Citation Check</h2>
@@ -965,6 +973,37 @@
     renderConference(data.conference || {});
     renderReviewers(data.reviewers  || []);
     renderCitations(data.citations  || {});
+    renderMissingReferences(data.possibly_missing_references);
+  }
+
+  // ── Possibly missing references ───────────────────────────────────────────
+  function renderMissingReferences(items) {
+    const section = document.getElementById("sec-missing-refs");
+    const wrap = document.getElementById("missing-refs-wrap");
+    wrap.innerHTML = "";
+    if (!Array.isArray(items)) { section.style.display = "none"; return; }
+    section.style.display = "";
+    if (!items.length) {
+      wrap.innerHTML = `<p class="cit-all-pass">&#10003; No relevant uncited prior work was found among the retrieved papers.</p>`;
+      return;
+    }
+    const rows = items.map(m => {
+      const authors = (m.authors || []).slice(0, 3).join(", ") + ((m.authors || []).length > 3 ? " et al." : "");
+      const title = m.url ? `<a href="${escHtml(m.url)}" target="_blank">${escHtml(m.title || "(untitled)")}</a>`
+                          : escHtml(m.title || "(untitled)");
+      const reasons = (m.reasons || []).map(r => `<div>${escHtml(r)}</div>`).join("");
+      return `
+      <tr>
+        <td>${title}<div class="missing-ref-meta">${escHtml(authors)}${m.year ? " · " + escHtml(String(m.year)) : ""}</div></td>
+        <td>${escHtml((m.sources || []).join(", "))}</td>
+        <td class="td-reason">${reasons || "—"}</td>
+      </tr>`;
+    }).join("");
+    wrap.innerHTML = `
+      <table class="cit-table">
+        <thead><tr><th>Work</th><th>Flagged by</th><th>Why it may be relevant</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
   }
 
   // ── Conference cards ──────────────────────────────────────────────────────

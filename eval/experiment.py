@@ -10,6 +10,12 @@ Condition 3 — No RAG, 2 iterations, 1 reviewer, AI Detector, no author rebutta
 Condition 4 — No RAG, 3 iterations, 1 reviewer, author rebuttal, no AI Detector
 Condition 5 — No RAG, 1 iteration, 3 reviewers
 Condition 6 — No RAG, 2 iterations, 1 reviewer, no AI Detector, no author rebuttal
+Condition 7 — RAG, 3 iterations, 1 reviewer, author rebuttal
+Condition 8 — Improved RAG (labeled works, novelty check, cited/uncited filtering), 1 iteration, 1 reviewer
+Condition 9 — Condition 8 plus the related-work analyst step
+
+Conditions 8 and 9 compare with condition 1 (same reviewer, no RAG). See
+docs/experiments/rag_improvements.md.
 
 Conditions 3 and 6 differ only in the AI Detector, so (3 - 6) measures the
 detector and (6 - 1) measures the extra iteration on its own. Note that with
@@ -95,9 +101,34 @@ _CONDITIONS_SPEC = [
     dict(id="7", label="rag_3iter_author",
          desc="Related-work RAG, 3 iterations, 1 neutral reviewer, author rebuttal, no AI Detector",
          agents=_N, n_iter=3, enable_rag=True),
+    # RAG improvements: compare each with condition 1 (same reviewer and rounds, no RAG).
+    dict(id="8", label="rag_engaged_1iter_1rev",
+         desc="Improved RAG: labeled works with abstracts, required novelty check, self-exclusion, "
+              "cited/uncited tagging, relevance filter; 1 iteration, 1 neutral reviewer",
+         agents=_N, n_iter=1, enable_rag=True, rag_overrides="improved"),
+    dict(id="9", label="rag_analyst_1iter_1rev",
+         desc="Condition 8 plus a related-work analyst step before the reviewer; 1 iteration, 1 neutral reviewer",
+         agents=_N, n_iter=1, enable_rag=True, rag_overrides="improved_analyst"),
 ]
 
+# Run-time RAG settings for the improved conditions. Retrieval-time options (claim queries,
+# reference expansion, cutoff mode) take effect when the packages are built with
+# eval/build_rag_packages.py; these settings are applied to every package at run time.
+RAG_OVERRIDE_PRESETS = {
+    "improved": {
+        "prompt_style": "engaged",
+        "strict_self_exclusion": True,
+        "tag_cited": True,
+        "min_relevance": 0.5,
+        "max_shown": 5,
+        "min_uncited_shown": 3,
+        "missing_references_report": True,
+    },
+}
+RAG_OVERRIDE_PRESETS["improved_analyst"] = {**RAG_OVERRIDE_PRESETS["improved"], "related_work_analyst": True}
+
 _CONDITION_DEFAULTS = {
+    "rag_overrides":          None,
     "enable_rag":             False,
     "enable_ai_detector":     False,
     "enable_author_rebuttal": True,
@@ -138,11 +169,21 @@ def pdf_to_markdown(pdf_dir: str) -> str:
     return load_or_create_markdown(pdf_dir, md_path="data/md")
 
 
+def condition_rag_config(cond: dict, rag_config: dict | None) -> dict:
+    """Base RAG config plus the condition's improvement preset (if any)."""
+    merged = dict(rag_config or {})
+    preset = cond.get("rag_overrides")
+    if preset:
+        merged.update(RAG_OVERRIDE_PRESETS[preset])
+    return merged
+
+
 def run_condition(paper_text: str, topic: str, cond: dict, api_key: str,
                   model: str = "", rag_config: dict | None = None,
-                  precomputed_rag_package: dict | None = None) -> dict:
+                  precomputed_rag_package: dict | None = None,
+                  provider: str = "openrouter") -> dict:
     """Run one experimental condition and return the raw result dict."""
-    rag_config = dict(rag_config or {})
+    rag_config = condition_rag_config(cond, rag_config)
 
     return mas_main(
         paper=paper_text,
@@ -150,6 +191,7 @@ def run_condition(paper_text: str, topic: str, cond: dict, api_key: str,
         n_iter=cond["n_iter"],
         reviewer_types=cond["agents"],
         api_key=api_key,
+        provider=provider,
         model=model,
         run_citation_check=False,
         enable_rag=cond.get("enable_rag", False),
@@ -217,7 +259,8 @@ def _log(paper_id: str, message: str) -> None:
 def _run_paper(paper_meta: dict, conditions: list, api_key: str,
                output_dir: str, timestamp: str, model: str,
                rag_config: dict | None = None,
-               rag_packages: dict | None = None) -> dict:
+               rag_packages: dict | None = None,
+               provider: str = "openrouter") -> dict:
     """Run every condition for one paper and return its summary entry."""
     paper_id   = paper_meta["paper_id"]
     paper_name = Path(paper_meta["paper_dir"]).stem
@@ -274,7 +317,8 @@ def _run_paper(paper_meta: dict, conditions: list, api_key: str,
                                     f"will build RAG evidence live")
             result = run_condition(paper_text, topic, cond, api_key, model=model,
                                    rag_config=rag_config,
-                                   precomputed_rag_package=precomputed_rag_package)
+                                   precomputed_rag_package=precomputed_rag_package,
+                                   provider=provider)
             out_path = save_result(result, paper_name, cond, output_dir, timestamp)
             _log(paper_id, f"Condition {cond['id']}: saved {os.path.basename(out_path)}")
 
@@ -296,7 +340,8 @@ def run_experiment(papers: list, api_key: str, output_dir: str,
                    conditions: list = None, model: str = "",
                    concurrency: int = DEFAULT_CONCURRENCY,
                    rag_config: dict | None = None,
-                   rag_packages: dict | None = None) -> dict:
+                   rag_packages: dict | None = None,
+                   provider: str = "openrouter") -> dict:
     """
     Run the given conditions (default: all of CONDITIONS) on all papers.
 
@@ -314,6 +359,7 @@ def run_experiment(papers: list, api_key: str, output_dir: str,
     summary = {
         "timestamp": timestamp,
         "model": model,
+        "provider": provider,
         "concurrency": concurrency,
         "rag_config": rag_config or {},
         "conditions": {c["id"]: {"desc": c["desc"], "agents": c["agents"],
@@ -321,7 +367,9 @@ def run_experiment(papers: list, api_key: str, output_dir: str,
                                   "n_iter": c["n_iter"],
                                   "enable_rag": c.get("enable_rag", False),
                                   "enable_ai_detector": c.get("enable_ai_detector", False),
-                                  "enable_author_rebuttal": c.get("enable_author_rebuttal", True)}
+                                  "enable_author_rebuttal": c.get("enable_author_rebuttal", True),
+                                  "rag_overrides": (RAG_OVERRIDE_PRESETS.get(c["rag_overrides"])
+                                                    if c.get("rag_overrides") else None)}
                        for c in conditions},
         "papers": [],
     }
@@ -338,7 +386,7 @@ def run_experiment(papers: list, api_key: str, output_dir: str,
         futures = {
             pool.submit(_run_paper, paper_meta, conditions, api_key,
                         output_dir, timestamp, model,
-                        rag_config, rag_packages): (i, paper_meta["paper_id"])
+                        rag_config, rag_packages, provider): (i, paper_meta["paper_id"])
             for i, paper_meta in enumerate(papers)
         }
         for future in as_completed(futures):
@@ -385,6 +433,9 @@ def main():
                         help="Model name to pass through to mas_loop (e.g. "
                              "'openai/gpt-4o-mini-2024-07-18' via OpenRouter). "
                              "Default: provider's default model.")
+    parser.add_argument("--provider", default="openrouter",
+                        choices=["cmu", "openai", "gemini", "claude", "deepseek", "qwen", "openrouter"],
+                        help="LLM provider passed to mas_loop (default: openrouter, as in earlier runs).")
     parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY,
                         help=f"Number of papers reviewed in parallel "
                              f"(default: {DEFAULT_CONCURRENCY}; use 1 to run sequentially).")
@@ -423,7 +474,7 @@ def main():
 
     run_experiment(papers, args.api_key, args.output_dir, conditions=conditions,
                    model=args.model, concurrency=args.concurrency,
-                   rag_packages=rag_packages)
+                   rag_packages=rag_packages, provider=args.provider)
     print("\nExperiment complete.")
 
 

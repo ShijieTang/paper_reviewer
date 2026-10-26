@@ -7,9 +7,10 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 
-from agents import Reviewer, Author, AIDetector, ConferenceRecommender
+from agents import Reviewer, Author, AIDetector, ConferenceRecommender, RelatedWorkAnalyst
 from prompts.reviewer_iter import reviewer_iteration
-from review_schema import WORKFLOW_SCHEMA_VERSION, parse_json_object, validate_role_output
+from review_schema import (WORKFLOW_SCHEMA_VERSION, parse_json_object, validate_rag_review_fields,
+                           validate_role_output, validate_rw_analyst_report)
 
 
 # ── JSON helpers ────────────────────────────────────────────────────────────
@@ -224,11 +225,28 @@ def _run_citation_check(paper_text: str, on_citation_event=None) -> dict:
 
 # ── Loop helpers ─────────────────────────────────────────────────────────────
 
-def construct_reviewer_prompt(author_resp: str, aicheck_resp: str | None = None) -> str:
+def construct_reviewer_prompt(author_resp: str, aicheck_resp: str | None = None,
+                              task_suffix: str = "") -> str:
     prompt = f"###AUTHOR_RESPONSE###\n{author_resp}\n\n"
     if aicheck_resp is not None:
         prompt += f"###REVIEW_STYLE_ANALYSIS###\n{aicheck_resp}\n\n"
-    return prompt + f"###TASK###\n{reviewer_iteration}"
+    return prompt + f"###TASK###\n{reviewer_iteration}{task_suffix}"
+
+
+def _format_analyst_report(report: dict) -> str:
+    """Render the related-work analyst's validated report for the reviewers."""
+    lines = ["###RELATED_WORK_REPORT###"]
+    for item in report.get("contribution_overlap", []):
+        works = ", ".join(item.get("closest_prior_work") or []) or "none"
+        lines.append(f"- Claimed contribution: {item.get('claimed_contribution')}\n"
+                     f"  Closest prior work: {works}; overlap: {item.get('overlap')}. {item.get('explanation')}")
+    missing = report.get("possibly_missing_references") or []
+    if missing:
+        lines.append("Possibly missing references (not cited in the manuscript):")
+        lines += [f"- {m.get('work')}: {m.get('why_relevant')}" for m in missing]
+    lines.append(f"Summary: {report.get('summary', '')}")
+    lines.append("###END_RELATED_WORK_REPORT###")
+    return "\n".join(lines)
 
 
 def construct_conf_rec_prompt(topic: str, reviews: list) -> str:
@@ -311,6 +329,9 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
             raw = agent.call(prompt)
             parsed = _parse_json(raw) if isinstance(raw, str) else None
             errors = validate_role_output(parsed, role, getattr(agent, "expected_reviewer", None))
+            extra_validator = getattr(agent, "extra_output_validator", None)
+            if not errors and extra_validator is not None:
+                errors = extra_validator(parsed)
             if errors:
                 outcome["errors"] = errors
                 raw = None
@@ -385,6 +406,29 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
             rag_warnings = [f"Related-work RAG failed; reviewers will run without RAG evidence: {exc}"]
             emit(rag_warnings[0])
 
+    # ── RAG improvements (all off unless enabled in rag_config) ─────────────
+    from rag.config import rag_config_from_dict
+    rag_cfg = rag_config_from_dict(rag_config)
+    rag_engaged = False
+    rag_labels: set[str] = set()
+    rag_uncited: set[str] | None = None
+    use_analyst = False
+    if rag_package and isinstance(rag_package, dict) and rag_cfg.improvements_enabled:
+        from rag.refine import refine_package
+        from rag.prompt_views import format_engaged_rag_block
+        rag_package = refine_package(rag_package, paper, rag_cfg)
+        shown = rag_package.get("shown_works") or []
+        use_analyst = bool(rag_cfg.related_work_analyst and shown)
+        rag_engaged = bool((rag_cfg.prompt_style == "engaged" or use_analyst) and shown)
+        if rag_engaged:
+            rag_labels = {w["label"] for w in shown}
+            if any(w.get("cited_in_manuscript") is not None for w in shown):
+                rag_uncited = {w["label"] for w in shown if w.get("cited_in_manuscript") is False}
+            # With the analyst, reviewers get the labeled list without abstracts; the analyst read those.
+            rag_prompt_block = format_engaged_rag_block(rag_package, with_abstracts=not use_analyst)
+            emit(f"Related-work evidence: {len(shown)} labeled work(s) shown to reviewers "
+                 f"({rag_package['refinement']['num_shown_uncited']} not cited in the manuscript).")
+
     reviewer_paper = paper
     if rag_prompt_block:
         reviewer_paper = paper + "\n\n" + rag_prompt_block
@@ -404,6 +448,10 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
             provider=provider, model=model,
         )
         r.name = f"Reviewer {i} ({_type_label.get(rt, rt)})"
+        if rag_engaged:
+            r.extra_output_validator = (
+                lambda parsed, _labels=frozenset(rag_labels), _uncited=rag_uncited:
+                validate_rag_review_fields(parsed, _labels, _uncited))
         reviewers.append(r)
     author     = Author(paper=paper, topic=topic, api_key=api_key, provider=provider, model=model)
     ai_detect = None
@@ -412,6 +460,14 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
             paper=paper, topic=topic, api_key=api_key, provider=provider, model=model,
         )
     conf_rec   = ConferenceRecommender(paper=paper, topic=topic, api_key=api_key, provider=provider, model=model)
+    rw_analyst = None
+    if use_analyst:
+        from rag.prompt_views import format_analyst_input
+        rw_analyst = RelatedWorkAnalyst(analyst_input=format_analyst_input(rag_package),
+                                        api_key=api_key, provider=provider, model=model)
+        rw_analyst.extra_output_validator = (
+            lambda parsed, _labels=frozenset(rag_labels), _uncited=rag_uncited:
+            validate_rw_analyst_report(parsed, _labels, _uncited))
     detector_label = ", AI Detector" if enable_ai_detector else ""
     emit(f"Initialized {len(reviewers)} reviewer(s), AI Author{detector_label}, "
          f"Conference Recommender.")
@@ -437,7 +493,8 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         return {"reviewers": [], "review_style_analyses": [], "conference": None,
                 "citations": {"stats": {}, "failed": [], "skipped": True, "reason": "workflow_failed"},
                 "rag_package": rag_package, "rag_warnings": rag_warnings,
-                "cutoff_report": cutoff_report, **workflow_fields()}
+                "cutoff_report": cutoff_report, "related_work_report": related_work_report,
+                **workflow_fields()}
 
     # ── Citation check (background, concurrent with reviews) ─────────────────
     citation_future = None
@@ -450,10 +507,30 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         _citation_executor.shutdown(wait=False)
         emit("Citation check started in background...")
 
+    # ── Related-work analyst (optional, before the reviewers) ────────────────
+    related_work_report = None
+    if rw_analyst is not None:
+        emit("Related-work analyst comparing claimed contributions with retrieved work...")
+        emit_agent_status(rw_analyst.name, "running")
+        raw_report = call_turn(rw_analyst,
+                               "Compare the submission's claimed contributions with the retrieved works "
+                               "and return the JSON report.", "rw_analyst", 1, None)
+        if required_failed():
+            emit_agent_status(rw_analyst.name, "error")
+            return incomplete_result()
+        emit_agent_status(rw_analyst.name, "done")
+        emit_message(rw_analyst.name, raw_report)
+        related_work_report = _parse_json(raw_report)
+
     # ── Iteration 0: initial reviews (parallel) ──────────────────────────────
     emit(f"--- Iteration 1 / {n_iter}: Initial Reviews ---")
     init_prompt = "Based on the given paper and your persona, provide your initial review."
-    if rag_prompt_block:
+    if rag_engaged:
+        from prompts.reviewer_rag import reviewer_rag_task
+        if related_work_report is not None:
+            init_prompt = _format_analyst_report(related_work_report) + "\n\n" + init_prompt
+        init_prompt += "\n" + reviewer_rag_task(with_analyst=related_work_report is not None)
+    elif rag_prompt_block:
         init_prompt += (
             " Use the ###RAG_EVIDENCE### related-work block as factual background evidence "
             "when it is relevant to novelty, baselines, benchmarks, and limitations. "
@@ -479,6 +556,11 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
             reviews[0][i] = review
     if required_failed():
         return incomplete_result()
+
+    rag_iteration_reminder = ""
+    if rag_engaged:
+        from prompts.reviewer_rag import RAG_ITERATION_REMINDER
+        rag_iteration_reminder = RAG_ITERATION_REMINDER
 
     # ── Iterations 1..n_iter-1: rebuttal loop ────────────────────────────────
     for iteration in range(1, n_iter):
@@ -524,7 +606,8 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
             i, reviewer = args
             emit_agent_status(reviewer.name, "running")
             reviewer_prompt = construct_reviewer_prompt(
-                author_resps[_iter][i], aicheck_resps[_iter][i])
+                author_resps[_iter][i], aicheck_resps[_iter][i],
+                task_suffix=rag_iteration_reminder)
             emit(f"{reviewer.name} updating review based on rebuttal...")
             review = call_turn(reviewer, reviewer_prompt, "reviewer", _iter + 1, i)
             emit(f"{reviewer.name} completed iteration {_iter + 1} review.")
@@ -622,6 +705,25 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
 
     parsed_conf = _parse_or_raw(conf_rec_resp)
 
+    def _rag_improvement_fields():
+        if not rag_cfg.improvements_enabled or not isinstance(rag_package, dict):
+            return {}
+        fields = {
+            "rag_mode": {"prompt_style": rag_cfg.prompt_style, "engaged": rag_engaged,
+                         "related_work_analyst": use_analyst, "shown_labels": sorted(rag_labels),
+                         "uncited_labels": sorted(rag_uncited) if rag_uncited is not None else None},
+            "related_work_report": related_work_report,
+        }
+        if rag_cfg.missing_references_report:
+            from rag.missing_references import build_missing_references
+            # Label each review with the workflow's reviewer name (the model's own "reviewer" field varies).
+            named_reviews = [{**_parse_review_or_raw(raw), "reviewer": reviewers[i].name}
+                             for i, raw in enumerate(final_reviews)
+                             if raw is not None and isinstance(_parse_review_or_raw(raw), dict)]
+            fields["possibly_missing_references"] = build_missing_references(
+                rag_package, related_work_report, named_reviews, rag_cfg.missing_reference_min_relevance)
+        return fields
+
     # Full per-iteration trace. Only the last round feeds "reviewers"; this keeps
     # the earlier rounds together with the author rebuttal and AI Detector text
     # that produced them, so an ablation can see what the detector actually said
@@ -651,6 +753,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         "rag_package": rag_package,
         "rag_warnings": rag_warnings,
         "cutoff_report": cutoff_report,
+        **_rag_improvement_fields(),
         **workflow_fields(),
     }
 

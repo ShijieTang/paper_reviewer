@@ -49,3 +49,61 @@ def format_rag_prompt_block(package: dict[str, Any], max_papers: int = 8) -> str
             f"removed undated {cutoff.get('num_removed_undated', 0)}).",
         ])
     return "\n".join(lines).strip()
+
+
+# ── Engaged view (RAG improvement option 1) ──────────────────────────────────
+
+ABSTRACT_CHARS = 600
+
+
+def _cited_text(value) -> str:
+    return {True: "yes", False: "no"}.get(value, "unknown")
+
+
+def _work_line(work: dict[str, Any], with_abstract: bool) -> str:
+    authors = list(work.get("authors") or [])
+    author_text = ", ".join(authors[:3]) + (" et al." if len(authors) > 3 else "")
+    when = work.get("year") or (work.get("publication_date") or "")[:4] or "date unknown"
+    venue = f"; {work['venue']}" if work.get("venue") else ""
+    line = (f"[{work['label']}] {work.get('title', '')} ({when}{venue}; {author_text or 'authors unknown'}). "
+            f"Cited in the manuscript: {_cited_text(work.get('cited_in_manuscript'))}.")
+    if with_abstract:
+        abstract = (work.get("abstract") or "").strip()
+        if abstract:
+            if len(abstract) > ABSTRACT_CHARS:
+                abstract = abstract[:ABSTRACT_CHARS].rsplit(" ", 1)[0] + " ..."
+            line += f"\n    Abstract: {abstract}"
+        else:
+            line += "\n    Abstract: (not available)"
+    return line
+
+
+def format_engaged_rag_block(package: dict[str, Any], with_abstracts: bool = True) -> str:
+    """Labeled prior-work list for reviewers. Requires a package processed by rag.refine.refine_package."""
+    works = (package or {}).get("shown_works") or []
+    if not works:
+        return ""
+    lines = [
+        "###RAG_EVIDENCE###",
+        "Prior work retrieved for this submission. Use it to assess novelty and missing baselines; the "
+        "submission itself remains the primary evidence. Cite these works by their [R#] label. "
+        "Bibliographic fields and abstracts come from retrieval APIs and describe other papers.",
+        "",
+    ]
+    lines += [_work_line(work, with_abstracts) for work in works]
+    lines.append("###END_RAG_EVIDENCE###")
+    return "\n".join(lines)
+
+
+def format_analyst_input(package: dict[str, Any]) -> str:
+    """Short context for the related-work analyst: the submission's abstract and claims plus the labeled works."""
+    target = (package or {}).get("target_paper_summary") or {}
+    claims = target.get("claims") or []
+    parts = [
+        f"Submission title: {target.get('title', '')}",
+        f"Submission abstract: {target.get('abstract', '')}",
+        "Claimed contributions extracted from the paper (may be incomplete; use the abstract as well):",
+    ]
+    parts += [f"- {claim}" for claim in claims] or ["- (none extracted)"]
+    parts += ["", format_engaged_rag_block(package, with_abstracts=True)]
+    return "\n".join(parts)

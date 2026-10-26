@@ -217,6 +217,63 @@ Target excerpt:
     return [by_group[group] for group in QUERY_GROUPS], source
 
 
+def _generate_claim_queries(
+    paper: str,
+    target: TargetPaperSummary,
+    llm_agent: RAGLLMAgent,
+    max_claims: int,
+    warnings: list[str],
+) -> list[RelatedWorkQuery]:
+    """One search query per claimed contribution, to find prior work that may already make that claim."""
+    system_prompt = (
+        "You identify a paper's claimed contributions and write scholarly search queries for them. "
+        "Return only valid JSON. Do not invent bibliographic metadata."
+    )
+    user_prompt = f"""
+List the target paper's main claimed contributions (at most {max_claims}), as stated by its authors.
+For each, write one concise keyword search query that would find prior papers making the same or a
+very similar contribution.
+
+Return JSON:
+{{
+  "claims": [
+    {{"claim": "one-sentence contribution as stated in the paper", "query": "..."}}
+  ]
+}}
+
+Target title: {target.title}
+Target abstract: {target.abstract}
+Claims extracted by pattern matching (may be incomplete): {json.dumps(target.claims, ensure_ascii=False)}
+
+Target excerpt:
+{llm_context_excerpt(paper, title_override=target.title)}
+""".strip()
+    raw: list[dict[str, Any]] = []
+    try:
+        data = llm_agent.complete_json(system_prompt, user_prompt)
+        raw = [item for item in data.get("claims", []) if isinstance(item, dict)]
+    except Exception as exc:
+        warnings.append(f"Claim-query LLM failed; using extracted claims as queries: {exc}")
+    queries: list[RelatedWorkQuery] = []
+    for item in raw:
+        query = clean_search_query(item.get("query", ""), max_chars=300)
+        if query:
+            queries.append(RelatedWorkQuery(
+                group=f"claim_{len(queries) + 1}",
+                query=query,
+                rationale=str(item.get("claim", "")).strip()[:500],
+            ))
+        if len(queries) >= max_claims:
+            break
+    if not queries:
+        for claim in target.claims[:max_claims]:
+            words = [w for w in re.findall(r"[A-Za-z][A-Za-z0-9\-]+", claim) if w.lower() not in FALLBACK_QUERY_STOPWORDS]
+            query = clean_search_query(" ".join(words[:10]), max_chars=300)
+            if query:
+                queries.append(RelatedWorkQuery(group=f"claim_{len(queries) + 1}", query=query, rationale=claim[:500]))
+    return queries
+
+
 def _canonical_title(title: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", title.lower()).strip()
 
@@ -823,6 +880,7 @@ def build_related_work_rag(
     providers: list[Any] | None = None,
     llm_agent: RAGLLMAgent | None = None,
     target_title: str = "",
+    reference_expander: Any | None = None,
 ) -> dict[str, Any]:
     config = config or RAGConfig()
     target = summarize_target_paper(paper, topic=topic, title_override=target_title)
@@ -830,6 +888,8 @@ def build_related_work_rag(
     llm_agent = llm_agent or RAGLLMAgent(provider=provider, api_key=api_key, model=model)
 
     queries, query_source = _generate_queries(paper, target, llm_agent, warnings)
+    if config.claim_queries > 0:
+        queries = queries + _generate_claim_queries(paper, target, llm_agent, config.claim_queries, warnings)
 
     search_providers = providers or [
         OpenAlexProvider(config.rag_cache_dir),
@@ -859,6 +919,23 @@ def build_related_work_rag(
         }
         warnings.extend(result.warnings)
 
+    if config.reference_expansion:
+        from .reference_expansion import expand_from_references
+        expansion = expand_from_references(
+            paper,
+            cache_dir=config.rag_cache_dir,
+            max_refs=config.reference_expansion_max_refs,
+            citing_limit=config.reference_expansion_citing_limit,
+            provider=reference_expander,
+        )
+        retrieved.extend(expansion.papers)
+        provider_status["Reference expansion"] = {
+            "status": expansion.status,
+            "retrieved": len(expansion.papers),
+            "warnings": expansion.warnings,
+        }
+        warnings.extend(expansion.warnings)
+
     deduped = _dedupe_papers(retrieved)
     target_title = _canonical_title(target.title)
     related_only = [
@@ -866,12 +943,31 @@ def build_related_work_rag(
         for candidate in deduped
         if not target_title or _canonical_title(candidate.title) != target_title
     ]
+    if config.strict_self_exclusion:
+        from .refine import is_submission_itself
+        related_only = [
+            candidate for candidate in related_only
+            if not is_submission_itself(candidate.to_dict(), target.title, config.self_match_threshold)
+        ]
     num_removed_as_target = len(deduped) - len(related_only)
+    if config.reference_expansion:
+        from .reference_expansion import GROUP, interleave
+        related_only = interleave(
+            [c for c in related_only if GROUP not in c.matched_query_groups],
+            [c for c in related_only if GROUP in c.matched_query_groups],
+        )
+    effective_cutoff = config.cutoff_date
+    if config.cutoff_mode == "today":
+        from datetime import date
+        effective_cutoff = date.today().isoformat()
+    elif config.cutoff_mode != "venue":
+        raise ValueError(f"Unknown cutoff_mode: {config.cutoff_mode!r} (use 'venue' or 'today')")
     cutoff_valid, cutoff_report = filter_by_cutoff(
         related_only,
-        cutoff_date=config.cutoff_date,
+        cutoff_date=effective_cutoff,
         allow_undated=config.allow_undated_evidence,
     )
+    cutoff_report["cutoff_mode"] = config.cutoff_mode
     cutoff_report["num_removed_as_target"] = num_removed_as_target
     candidate_cap = max(0, int(config.rerank_top_k))
     filtered = cutoff_valid[:candidate_cap] if candidate_cap else []
@@ -900,7 +996,7 @@ def build_related_work_rag(
         "paper_id": target.paper_id,
         "target_paper_summary": target.to_dict(),
         "query_generation": {
-            "groups": QUERY_GROUPS,
+            "groups": QUERY_GROUPS + [q.group for q in queries if q.group not in QUERY_GROUPS],
             "queries": [q.to_dict() for q in queries],
             "source": query_source,
         },

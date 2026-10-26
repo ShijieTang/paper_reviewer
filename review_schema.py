@@ -183,3 +183,129 @@ def workflow_is_complete(result: Any, reviewer_count: int, n_iter: int,
         elif item.get("role") in {"reviewer", "author", "conference"}:
             return False
     return len(actual) == len(expected) and set(actual) == expected
+
+
+# ── RAG improvements: related-work fields (only checked when the engaged RAG mode is on) ──
+
+RAG_OVERLAP_LEVELS = ("none", "partial", "substantial")
+
+
+def _rag_label(value: Any) -> str:
+    """Accept 'R3', '[R3]' or 'r3'; return the canonical 'R3' (or '' if not a label)."""
+    if not isinstance(value, str):
+        return ""
+    match = re.fullmatch(r"\s*\[?\s*[Rr]\s*(\d+)\s*\]?\s*", value)
+    return f"R{int(match.group(1))}" if match else ""
+
+
+def validate_rag_review_fields(value: Any, valid_labels: set[str] | list[str],
+                               uncited_labels: set[str] | list[str] | None = None) -> list[str]:
+    """Check the reviewer's novelty_check and missing_prior_work fields against the shown works.
+
+    uncited_labels: labels of works the manuscript does not cite. When given, missing_prior_work
+    may only point at those (a cited work is not missing). None means citation status is unknown.
+    """
+    valid = set(valid_labels)
+    uncited = set(uncited_labels) if uncited_labels is not None else None
+    errors: list[str] = []
+    if not isinstance(value, dict):
+        return ["review must be an object"]
+    checks = value.get("novelty_check")
+    if not isinstance(checks, list) or not checks:
+        errors.append("novelty_check must be a nonempty list (one entry per claimed contribution)")
+    else:
+        for i, item in enumerate(checks):
+            prefix = f"novelty_check[{i}]"
+            if not isinstance(item, dict):
+                errors.append(f"{prefix} must be an object")
+                continue
+            if not isinstance(item.get("claimed_contribution"), str) or not item["claimed_contribution"].strip():
+                errors.append(f"{prefix}.claimed_contribution must be nonempty text")
+            closest = item.get("closest_prior_work")
+            label = _rag_label(closest)
+            if isinstance(closest, str) and closest.strip().lower() == "none":
+                item["closest_prior_work"] = "none"
+            elif label and label in valid:
+                item["closest_prior_work"] = label
+            else:
+                errors.append(f"{prefix}.closest_prior_work must be one of {sorted(valid)} or 'none'")
+            if str(item.get("overlap", "")).strip().lower() not in RAG_OVERLAP_LEVELS:
+                errors.append(f"{prefix}.overlap must be one of {list(RAG_OVERLAP_LEVELS)}")
+            else:
+                item["overlap"] = str(item["overlap"]).strip().lower()
+            if not isinstance(item.get("explanation"), str) or not item["explanation"].strip():
+                errors.append(f"{prefix}.explanation must be nonempty text")
+    missing = value.get("missing_prior_work")
+    if not isinstance(missing, list):
+        errors.append("missing_prior_work must be a list (empty is allowed)")
+    else:
+        for i, item in enumerate(missing):
+            prefix = f"missing_prior_work[{i}]"
+            if not isinstance(item, dict):
+                errors.append(f"{prefix} must be an object")
+                continue
+            label = _rag_label(item.get("work"))
+            if not label or label not in valid:
+                errors.append(f"{prefix}.work must be one of {sorted(valid)}")
+            elif uncited is not None and label not in uncited:
+                errors.append(f"{prefix}.work {label} is already cited in the manuscript; "
+                              "missing_prior_work may list only works marked as not cited")
+            else:
+                item["work"] = label
+            if not isinstance(item.get("why_relevant"), str) or not item["why_relevant"].strip():
+                errors.append(f"{prefix}.why_relevant must be nonempty text")
+    return errors
+
+
+def validate_rw_analyst_report(value: Any, valid_labels: set[str] | list[str],
+                               uncited_labels: set[str] | list[str] | None = None) -> list[str]:
+    """Check the related-work analyst's report."""
+    valid = set(valid_labels)
+    uncited = set(uncited_labels) if uncited_labels is not None else None
+    if not isinstance(value, dict):
+        return ["report must be an object"]
+    errors: list[str] = []
+    overlaps = value.get("contribution_overlap")
+    if not isinstance(overlaps, list) or not overlaps:
+        errors.append("contribution_overlap must be a nonempty list")
+    else:
+        for i, item in enumerate(overlaps):
+            prefix = f"contribution_overlap[{i}]"
+            if not isinstance(item, dict) or not str(item.get("claimed_contribution", "")).strip():
+                errors.append(f"{prefix}.claimed_contribution must be nonempty text")
+                continue
+            works = item.get("closest_prior_work")
+            works = works if isinstance(works, list) else [works]
+            canon = []
+            for work in works:
+                label = _rag_label(work)
+                if isinstance(work, str) and work.strip().lower() == "none":
+                    continue
+                if not label or label not in valid:
+                    errors.append(f"{prefix}.closest_prior_work entries must be among {sorted(valid)} or 'none'")
+                else:
+                    canon.append(label)
+            item["closest_prior_work"] = canon
+            if str(item.get("overlap", "")).strip().lower() not in RAG_OVERLAP_LEVELS:
+                errors.append(f"{prefix}.overlap must be one of {list(RAG_OVERLAP_LEVELS)}")
+            else:
+                item["overlap"] = str(item["overlap"]).strip().lower()
+            if not str(item.get("explanation", "")).strip():
+                errors.append(f"{prefix}.explanation must be nonempty text")
+    missing = value.get("possibly_missing_references")
+    if not isinstance(missing, list):
+        errors.append("possibly_missing_references must be a list (empty is allowed)")
+    else:
+        for i, item in enumerate(missing):
+            label = _rag_label(item.get("work") if isinstance(item, dict) else None)
+            if not label or label not in valid:
+                errors.append(f"possibly_missing_references[{i}].work must be one of {sorted(valid)}")
+            elif uncited is not None and label not in uncited:
+                errors.append(f"possibly_missing_references[{i}].work {label} is already cited in the manuscript")
+            elif not str(item.get("why_relevant", "")).strip():
+                errors.append(f"possibly_missing_references[{i}].why_relevant must be nonempty text")
+            else:
+                item["work"] = label
+    if not isinstance(value.get("summary"), str) or not value["summary"].strip():
+        errors.append("summary must be nonempty text")
+    return errors

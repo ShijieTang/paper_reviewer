@@ -352,6 +352,7 @@ _PROMPT_MAP = {
     "ai_detector":       ("prompts.ai_detector",    "ai_detector"),
     "reviewer_iteration":("prompts.reviewer_iter",  "reviewer_iteration"),
     "conf_rec":          ("prompts.conf_rec",       "Conference_Recommender"),
+    "related_work_analyst": ("prompts.related_work_analyst", "related_work_analyst"),
 }
 
 
@@ -439,6 +440,9 @@ class Agent:
             try:
                 parsed = _parse_required_json_object(reply)
                 errors = validate_role_output(parsed, self.output_role, getattr(self, "expected_reviewer", None))
+                extra_validator = getattr(self, "extra_output_validator", None)
+                if not errors and extra_validator is not None:
+                    errors = extra_validator(parsed)
                 if errors:
                     raise ValueError("; ".join(errors))
             except (json.JSONDecodeError, ValueError, TypeError, AttributeError) as exc:
@@ -535,5 +539,24 @@ class ConferenceRecommender(Agent):
         persona = _load_prompt("conf_rec")
         super().__init__(
             persona=persona, paper=paper, topic=topic, model=model,
+            api_key=api_key, provider=provider,
+        )
+
+
+class RelatedWorkAnalyst(Agent):
+    """
+    Compares the submission's claimed contributions with retrieved prior work (RAG improvement option 2).
+
+    It is given a short context (abstract, claimed contributions and the labeled retrieved works)
+    instead of the full paper, so the comparison does not get lost in a long prompt.
+    """
+
+    name = "Related-Work Analyst"
+    output_role = "rw_analyst"
+
+    def __init__(self, analyst_input: str, model: str = "", api_key: str = "", provider: str = "cmu"):
+        persona = _load_prompt("related_work_analyst")
+        super().__init__(
+            persona=persona, paper=analyst_input, topic="", model=model,
             api_key=api_key, provider=provider,
         )
