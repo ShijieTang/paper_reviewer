@@ -188,10 +188,12 @@ class Similarity:
         self.method = "token_jaccard"
         if use_embeddings:
             try:
+                print("loading MiniLM for statement similarity (first time downloads ~90 MB)...", flush=True)
                 from sentence_transformers import SentenceTransformer
                 self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
                 self.method = "all-MiniLM-L6-v2"
             except Exception:
+                print("sentence-transformers not available; using token overlap instead", flush=True)
                 self.model = None
 
     def best_match(self, system: list[str], human: list[str]) -> float | None:
@@ -328,6 +330,7 @@ def evaluate(dataset: dict, control: dict, rag_runs: dict[str, dict], analyst_co
               "conditions": {}}
     for cid, runs in rag_runs.items():
         pids = sorted(p for p in runs if p in control and p in dataset and (subset is None or p in subset))
+        print(f"evaluating C{cid}: {len(pids)} paired paper(s), {n_boot} bootstrap draws...", flush=True)
         recs = {p: paper_rag_record(runs[p], cid in analyst_conds) for p in pids}
         tot = lambda key: sum(r[key] for r in recs.values())           # noqa: E731
 
@@ -462,6 +465,7 @@ def main(argv=None) -> None:
     dataset = json.loads((ROOT / args.dataset).read_text(encoding="utf-8"))
     if isinstance(dataset, list):
         dataset = {item["paper_id"]: item for item in dataset}
+    print(f"loading results from {args.summary}...", flush=True)
     rag_runs = load_conditions(ROOT / args.summary, args.rag_conds)
     control = load_conditions(ROOT / (args.control_summary or args.summary), [args.control_cond])[args.control_cond]
     subset = None

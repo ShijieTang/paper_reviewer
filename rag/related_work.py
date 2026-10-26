@@ -881,14 +881,23 @@ def build_related_work_rag(
     llm_agent: RAGLLMAgent | None = None,
     target_title: str = "",
     reference_expander: Any | None = None,
+    progress: Any | None = None,
 ) -> dict[str, Any]:
+    """progress: optional callable(str) that receives a short message as each stage starts."""
     config = config or RAGConfig()
+
+    def step(message: str) -> None:
+        if progress:
+            progress(message)
+
     target = summarize_target_paper(paper, topic=topic, title_override=target_title)
     warnings = prompt_injection_warnings(paper, "target paper")
     llm_agent = llm_agent or RAGLLMAgent(provider=provider, api_key=api_key, model=model)
 
+    step("generating search queries (LLM)")
     queries, query_source = _generate_queries(paper, target, llm_agent, warnings)
     if config.claim_queries > 0:
+        step(f"generating up to {config.claim_queries} claim queries (LLM)")
         queries = queries + _generate_claim_queries(paper, target, llm_agent, config.claim_queries, warnings)
 
     search_providers = providers or [
@@ -898,6 +907,8 @@ def build_related_work_rag(
     provider_status: dict[str, dict[str, Any]] = {}
     retrieved: list[PaperMetadata] = []
     max_workers = max(1, len(search_providers))
+    step(f"searching {', '.join(getattr(sp, 'name', sp.__class__.__name__) for sp in search_providers)} "
+         f"with {len(queries)} queries (arXiv waits 3 s between requests)")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
             executor.submit(search_provider.search, queries, limit=config.provider_top_k)
@@ -921,6 +932,8 @@ def build_related_work_rag(
 
     if config.reference_expansion:
         from .reference_expansion import expand_from_references
+        step(f"reference expansion: papers citing up to {config.reference_expansion_max_refs} "
+             "of the manuscript's references (Semantic Scholar)")
         expansion = expand_from_references(
             paper,
             cache_dir=config.rag_cache_dir,
@@ -980,6 +993,7 @@ def build_related_work_rag(
         evidence_warnings.extend(prompt_injection_warnings(paper_meta.abstract, paper_meta.paper_id))
     warnings.extend(evidence_warnings)
 
+    step(f"reranking {len(filtered)} candidates (LLM)")
     reranked, summary, rerank_source = _rerank_with_llm(
         target=target,
         queries=queries,

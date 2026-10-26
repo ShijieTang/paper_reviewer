@@ -54,6 +54,7 @@ import json
 import os
 import sys
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
@@ -391,6 +392,18 @@ def run_experiment(papers: list, api_key: str, output_dir: str,
     entries: dict[int, dict] = {}
     failures: list[tuple[str, Exception]] = []
 
+    stop = threading.Event()
+
+    def heartbeat() -> None:
+        # A line every 60 s so a long LLM call never looks like a hang.
+        begin = time.time()
+        while not stop.wait(60):
+            files = len(list(Path(output_dir).glob("*.txt")))
+            print(f"... still working: {(time.time() - begin) / 60:.0f} min elapsed, "
+                  f"{len(entries) + len(failures)}/{len(papers)} paper(s) finished, "
+                  f"{files} result file(s) in {output_dir}", flush=True)
+
+    threading.Thread(target=heartbeat, daemon=True).start()
     with ThreadPoolExecutor(max_workers=concurrency) as pool:
         futures = {
             pool.submit(_run_paper, paper_meta, conditions, api_key,
@@ -406,6 +419,7 @@ def run_experiment(papers: list, api_key: str, output_dir: str,
                 failures.append((paper_id, exc))
                 _log(paper_id, f"FAILED: {type(exc).__name__}: {exc}")
 
+    stop.set()
     summary["papers"] = [entries[i] for i in sorted(entries)]
 
     if failures:
