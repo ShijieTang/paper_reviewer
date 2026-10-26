@@ -93,8 +93,10 @@ def main(argv=None) -> None:
         source = ("Semantic Scholar (key set)" if os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
                   else "OpenAlex (no Semantic Scholar key)")
         print(f"reference expansion via {source}", flush=True)
-    if not os.environ.get("OPENALEX_MAILTO"):
-        print("tip: export OPENALEX_MAILTO=you@example.edu for OpenAlex's faster polite pool", flush=True)
+    if not os.environ.get("OPENALEX_API_KEY"):
+        print("WARNING: OPENALEX_API_KEY is not set. Since 2026 OpenAlex allows only a tiny free budget "
+              "without a key, so searches will soon fail with HTTP 429. Get a free key at "
+              "https://openalex.org/settings/api and export OPENALEX_API_KEY=...", flush=True)
     print(f"{len(todo)} package(s) to build ({len(ids) - len(todo)} already in {args.output})", flush=True)
 
     def save() -> None:

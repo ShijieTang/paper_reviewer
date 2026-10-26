@@ -108,6 +108,10 @@ class PaperSearchProvider:
                 pass
         return self.retry_base_delay_seconds * (2 ** attempt)
 
+    def _request_url(self, url: str) -> str:
+        """Hook for credentials added at request time only, so they never enter cache keys or warnings."""
+        return url
+
     def _should_cache(self, data: Any) -> bool:
         """Hook for subclasses to reject soft-failure 200 responses from the cache."""
         return True
@@ -121,7 +125,7 @@ class PaperSearchProvider:
         # every remaining query through the same backoff.
         if getattr(self, "_rate_limited", None) is not None:
             raise self._rate_limited
-        request = urllib.request.Request(url, headers={**self.default_headers, **(headers or {})})
+        request = urllib.request.Request(self._request_url(url), headers={**self.default_headers, **(headers or {})})
         opener = _rag_opener()
         for attempt in range(self.max_retries):
             try:

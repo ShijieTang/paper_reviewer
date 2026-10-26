@@ -65,20 +65,24 @@ class OpenAlexReferenceExpander(PaperSearchProvider):
     inter_query_delay_seconds = 0.5
     source_label = "OpenAlex (cites a manuscript reference)"
 
+    def _request_url(self, url: str) -> str:
+        from .providers.openalex import openalex_request_url
+        return openalex_request_url(url)
+
     def match_title(self, title: str) -> str:
-        from .providers.openalex import mailto_param
         from .refine import title_similarity
-        url = (f"https://api.openalex.org/works?search={encoded_query(title)}&per-page=3"
-               f"&select=id,title{mailto_param()}")
+        # title.search is a filter (billed as a cheap list call), not a full-text search
+        url = (f"https://api.openalex.org/works?filter=title.search:{encoded_query(re.sub(r'[,:|]', ' ', title))}"
+               "&per-page=3&select=id,title")
         for item in self._json_get(url).get("results") or []:
             if title_similarity(item.get("title") or "", title) >= 0.85:
                 return (item.get("id") or "").rsplit("/", 1)[-1]
         return ""
 
     def citing_papers(self, paper_id: str, limit: int) -> list[dict[str, Any]]:
-        from .providers.openalex import _abstract_from_index, mailto_param
+        from .providers.openalex import _abstract_from_index
         url = (f"https://api.openalex.org/works?filter=cites:{paper_id}&sort=cited_by_count:desc"
-               f"&per-page={max(1, min(200, int(limit)))}{mailto_param()}")
+               f"&per-page={max(1, min(200, int(limit)))}")
         out = []
         for item in self._json_get(url).get("results") or []:
             ids = item.get("ids") or {}

@@ -2,6 +2,7 @@
 import copy
 import json
 import sys
+import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
@@ -213,7 +214,7 @@ class TestRetrieval(unittest.TestCase):
     def test_openalex_expander_and_fallback_from_semantic_scholar(self):
         from rag.providers.base import ProviderHTTPError
         from rag.reference_expansion import OpenAlexReferenceExpander, ReferenceExpander
-        oa = OpenAlexReferenceExpander("unused")
+        oa = OpenAlexReferenceExpander(tempfile.mkdtemp())
         responses = {
             "search": {"results": [{"id": "https://openalex.org/W1", "title": "Dense passage retrieval for "
                                                                        "open-domain question answering"}]},
@@ -239,6 +240,30 @@ class TestRetrieval(unittest.TestCase):
         self.assertTrue(any("switching to OpenAlex" in w for w in result.warnings))
         self.assertEqual(result.status, "used")
         self.assertEqual(result.papers[0].sources, ["OpenAlex (cites a manuscript reference)"])
+
+    def test_openalex_key_added_at_request_time_only(self):
+        from rag.providers.openalex import OpenAlexProvider, openalex_request_url
+        with patch.dict("os.environ", {"OPENALEX_API_KEY": "secret123"}):
+            self.assertEqual(openalex_request_url("https://api.openalex.org/works?search=x"),
+                             "https://api.openalex.org/works?search=x&api_key=secret123")
+            provider = OpenAlexProvider(tempfile.mkdtemp())
+            seen = []
+
+            class Resp:
+                def __enter__(self): return self
+                def __exit__(self, *a): return False
+                def read(self): return b'{"results": []}'
+
+            class Opener:
+                def open(self, request, timeout=None):
+                    seen.append(request.full_url)
+                    return Resp()
+
+            with patch("rag.providers.base._rag_opener", return_value=Opener()), \
+                 patch.object(provider.cache, "set") as cache_set:
+                provider._json_get("https://api.openalex.org/works?search=x")
+        self.assertIn("api_key=secret123", seen[0])
+        self.assertNotIn("secret123", cache_set.call_args.args[0])
 
     def test_expansion_in_package_and_interleave(self):
         provider = RecordingProvider([_pm("Search Result One About Routing"), _pm("Search Result Two About Routing")])

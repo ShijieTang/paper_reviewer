@@ -41,9 +41,18 @@ Set your keys in the environment, not on the command line history if you can avo
 
 ```bash
 export ANTHROPIC_API_KEY=...            # or the key for the provider you use
-export OPENALEX_MAILTO=you@university.edu   # optional: OpenAlex "polite pool" (faster, fewer refusals)
+export OPENALEX_API_KEY=...                 # needed: free key from https://openalex.org/settings/api
 export SEMANTIC_SCHOLAR_API_KEY=...         # optional: without it, reference expansion uses OpenAlex
 ```
+
+The original packages were built from OpenAlex (400 of 403 retrieved records; arXiv supplied 3),
+and Semantic Scholar was not used, so the improved packages keep OpenAlex as the main source.
+Since 2026 OpenAlex meters API use: without a key the free budget is very small, and a free key
+gives a daily budget (about $1/day at the time of writing; searches cost more than filter calls).
+One package costs roughly 10 searches plus about 20 filter calls, so 60 papers fit within about a
+day's free budget; if the budget runs out, requests fail with HTTP 429 until the daily reset, and
+re-running the builder resumes. Check your remaining budget with
+`curl "https://api.openalex.org/rate-limit?api_key=$OPENALEX_API_KEY"`.
 
 Reference expansion uses Semantic Scholar only when `SEMANTIC_SCHOLAR_API_KEY` is set; without
 a key Semantic Scholar refuses almost immediately, so it uses OpenAlex instead (and switches to
