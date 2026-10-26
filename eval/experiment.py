@@ -61,7 +61,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import VALID_TOPICS
-from doc_preprocess import load_or_create_markdown
+
+try:
+    from doc_preprocess import load_or_create_markdown
+except ImportError:
+    # torch/marker are only needed to convert PDFs; papers that already have markdown
+    # (all papers in the provided datasets) run without them.
+    load_or_create_markdown = None
 from mas_loop import main as mas_main
 
 
@@ -166,6 +172,9 @@ def pdf_to_markdown(pdf_dir: str) -> str:
     p = Path(pdf_dir)
     if p.suffix.lower() == ".md" and p.exists():
         return p.read_text(encoding="utf-8")
+    if load_or_create_markdown is None:      # PDF conversion needs torch/marker
+        from doc_preprocess import load_or_create_markdown as convert   # raises the real ImportError
+        return convert(pdf_dir, md_path="data/md")
     return load_or_create_markdown(pdf_dir, md_path="data/md")
 
 
