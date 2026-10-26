@@ -34,6 +34,17 @@ from rag.llm import RAGLLMAgent  # noqa: E402
 from rag.related_work import build_related_work_rag  # noqa: E402
 
 _lock = threading.Lock()
+_budget_exhausted = threading.Event()
+
+
+def openalex_refused(package: dict) -> bool:
+    """True when OpenAlex refused requests (HTTP 429: daily budget used up or rate limit)."""
+    texts = list(package.get("warnings") or [])
+    for name, status in (package.get("provider_status") or {}).items():
+        if "openalex" in name.lower() or name == "Reference expansion":
+            texts += status.get("warnings") or []
+    return any("429" in str(t) and ("openalex" in str(t).lower() or "OpenAlex" in str(t)) for t in texts) or \
+        (package.get("provider_status", {}).get("OpenAlex", {}).get("status") == "failed")
 
 
 def _log(paper_id: str, message: str) -> None:
@@ -42,6 +53,8 @@ def _log(paper_id: str, message: str) -> None:
 
 
 def build_one(paper_id: str, meta: dict, config: RAGConfig, provider: str, model: str, api_key: str) -> dict:
+    if _budget_exhausted.is_set():
+        raise RuntimeError("skipped: OpenAlex budget used up earlier in this run")
     path = ROOT / meta["paper_dir"]
     paper = path.read_text(encoding="utf-8", errors="replace")
     llm = RAGLLMAgent(provider=provider, api_key=api_key, model=model)
@@ -68,8 +81,9 @@ def main(argv=None) -> None:
                         help="Used with --cutoff_mode venue (same default as the earlier packages).")
     parser.add_argument("--claim_queries", type=int, default=4)
     parser.add_argument("--no_reference_expansion", action="store_true")
-    parser.add_argument("--rerank_top_k", type=int, default=16,
-                        help="Candidates passed to the reranker (raised from 12 to leave room for expansion results).")
+    parser.add_argument("--rerank_top_k", type=int, default=30,
+                        help="Candidates passed to the reranker (12 in the earlier packages; raised so search "
+                             "results are not crowded out by reference-expansion results).")
     parser.add_argument("--provider_top_k", type=int, default=50,
                         help="Results per search provider, split across all queries (the old default of 10 "
                              "gave about one result per query).")
@@ -127,6 +141,13 @@ def main(argv=None) -> None:
             except Exception as exc:
                 failures.append(pid)
                 _log(pid, f"FAILED: {type(exc).__name__}: {exc}")
+                continue
+            if openalex_refused(package):
+                # Do not save a starved package: the resume run must rebuild it.
+                _budget_exhausted.set()
+                failures.append(pid)
+                _log(pid, "NOT saved: OpenAlex refused requests (HTTP 429, probably the daily budget). "
+                          "Rerun the same command after the reset (00:00 UTC); finished papers are kept.")
                 continue
             packages[pid] = package
             save()

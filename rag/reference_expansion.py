@@ -184,12 +184,18 @@ def expand_from_references(paper_text: str, cache_dir: str = "data/rag_cache", m
     return result
 
 
-def interleave(search_results: list[PaperMetadata], expansion: list[PaperMetadata]) -> list[PaperMetadata]:
-    """Alternate search and expansion candidates so both reach the reranker before the candidate cap."""
+def interleave(search_results: list[PaperMetadata], expansion: list[PaperMetadata],
+               search_per_expansion: int = 2) -> list[PaperMetadata]:
+    """Merge so both sources reach the reranker before the candidate cap, favoring search results.
+
+    Expansion papers are often broad (surveys that cite a common reference), so by default two
+    search results are placed before each expansion result.
+    """
     out: list[PaperMetadata] = []
-    for i in range(max(len(search_results), len(expansion))):
-        if i < len(search_results):
-            out.append(search_results[i])
-        if i < len(expansion):
-            out.append(expansion[i])
+    s, e = list(search_results), list(expansion)
+    step = max(1, int(search_per_expansion))
+    while s or e:
+        out.extend(s[:step]); s = s[step:]
+        if e:
+            out.append(e.pop(0))
     return out
