@@ -145,6 +145,9 @@ def refine_package(package: dict[str, Any], paper_text: str, config: RAGConfig) 
     shown = select_shown(candidates, config.max_shown, config.min_uncited_shown)
     for i, work in enumerate(shown, 1):
         work["label"] = f"R{i}"
+    shown_labels = {w["paper_id"]: w["label"] for w in shown}
+    for work in candidates:
+        work["label"] = shown_labels.get(work["paper_id"])     # None when not shown to reviewers
 
     pkg["shown_works"] = shown
     pkg["candidate_works"] = candidates

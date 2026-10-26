@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import threading
 import time
@@ -69,6 +70,9 @@ def main(argv=None) -> None:
     parser.add_argument("--no_reference_expansion", action="store_true")
     parser.add_argument("--rerank_top_k", type=int, default=16,
                         help="Candidates passed to the reranker (raised from 12 to leave room for expansion results).")
+    parser.add_argument("--provider_top_k", type=int, default=50,
+                        help="Results per search provider, split across all queries (the old default of 10 "
+                             "gave about one result per query).")
     parser.add_argument("--concurrency", type=int, default=3)
     args = parser.parse_args(argv)
 
@@ -83,7 +87,14 @@ def main(argv=None) -> None:
         enable_rag=True, cutoff_date=args.cutoff_date, cutoff_mode=args.cutoff_mode,
         strict_self_exclusion=True, claim_queries=args.claim_queries,
         reference_expansion=not args.no_reference_expansion, rerank_top_k=args.rerank_top_k,
+        provider_top_k=args.provider_top_k,
     )
+    if config.reference_expansion:
+        source = ("Semantic Scholar (key set)" if os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
+                  else "OpenAlex (no Semantic Scholar key)")
+        print(f"reference expansion via {source}", flush=True)
+    if not os.environ.get("OPENALEX_MAILTO"):
+        print("tip: export OPENALEX_MAILTO=you@example.edu for OpenAlex's faster polite pool", flush=True)
     print(f"{len(todo)} package(s) to build ({len(ids) - len(todo)} already in {args.output})", flush=True)
 
     def save() -> None:
@@ -118,6 +129,12 @@ def main(argv=None) -> None:
             packages[pid] = package
             save()
             report = package.get("cutoff_report", {})
+            status = ", ".join(f"{name}: {v.get('retrieved', 0)} ({v.get('status')})"
+                               for name, v in (package.get("provider_status") or {}).items())
+            _log(pid, f"sources -> {status}")
+            if report.get("num_used", 0) < 5:
+                _log(pid, f"WARNING: only {report.get('num_used', 0)} candidate(s) survived; check the warnings "
+                          f"in the package (rate limits?) before running the review conditions")
             _log(pid, f"saved [{len(packages)}/{len(ids)}] ({report.get('num_used', 0)} candidates; "
                       f"{report.get('num_removed_as_target', 0)} removed as the submission itself)")
     stop.set()
