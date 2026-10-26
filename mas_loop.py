@@ -420,6 +420,11 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         shown = rag_package.get("shown_works") or []
         use_analyst = bool(rag_cfg.related_work_analyst and shown)
         rag_engaged = bool((rag_cfg.prompt_style == "engaged" or use_analyst) and shown)
+        if (rag_cfg.prompt_style == "engaged" or rag_cfg.related_work_analyst) and not shown:
+            note = ("Improved RAG requested, but no retrieved work passed the relevance filter "
+                    f"(min_relevance={rag_cfg.min_relevance}); reviewers received the original RAG block instead.")
+            rag_warnings = list(rag_warnings) + [note]
+            emit(note)
         if rag_engaged:
             rag_labels = {w["label"] for w in shown}
             if any(w.get("cited_in_manuscript") is not None for w in shown):

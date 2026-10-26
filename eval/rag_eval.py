@@ -242,7 +242,7 @@ def paper_rag_record(result: dict, analyst: bool) -> dict:
     shown = {w.get("label"): w for w in shown_works(result.get("rag_package") or {}) if w.get("label")}
     uncited = {lab for lab, w in shown.items() if w.get("cited_in_manuscript") is False}
     cited = {lab for lab, w in shown.items() if w.get("cited_in_manuscript") is True}
-    rec = {"num_shown": len(shown), "num_shown_uncited": len(uncited), "novelty_entries": 0,
+    rec = {"engaged": bool((result.get("rag_mode") or {}).get("engaged")), "num_shown": len(shown), "num_shown_uncited": len(uncited), "novelty_entries": 0,
            "novelty_named": 0, "named_cited": 0, "named_uncited": 0, "reviews": 0,
            "reviews_with_missing": 0, "missing_items": [], "invalid_labels": 0, "free_text_bad_labels": 0,
            "free_text_mentions": 0, "flagged_cited_or_self": 0}
@@ -360,6 +360,7 @@ def evaluate(dataset: dict, control: dict, rag_runs: dict[str, dict], analyst_co
         report["conditions"][cid] = {
             "papers": len(pids),
             "usage": {
+                "papers_with_engaged_prompt": sum(r["engaged"] for r in recs.values()),
                 "mean_shown": st.mean([r["num_shown"] for r in recs.values()]) if recs else None,
                 "mean_shown_uncited": st.mean([r["num_shown_uncited"] for r in recs.values()]) if recs else None,
                 "novelty_entries": nov_entries,
@@ -430,6 +431,7 @@ def print_report(report: dict) -> None:
     for cid, c in report["conditions"].items():
         u, d, v, p = c["usage"], c["detection_vs_human"], c["citation_validity"], c["paired_vs_control"]
         print(f"\n=== C{cid} vs control ({c['papers']} papers)")
+        print(f"engaged prompt used on {u['papers_with_engaged_prompt']}/{c['papers']} papers")
         print(f"usage: shown {_fmt(u['mean_shown'])} works/paper ({_fmt(u['mean_shown_uncited'])} uncited); "
               f"novelty_check names a shown work {_fmt(u['novelty_names_shown_work'], True)} "
               f"(cited {u['named_works_cited_by_manuscript']}, uncited {u['named_works_not_cited']}); "

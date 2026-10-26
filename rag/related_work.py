@@ -870,6 +870,51 @@ Return JSON:
     return ranked, summary, "mixed" if filled_from_fallback else "llm"
 
 
+def _rerank_in_batches(
+    target: TargetPaperSummary,
+    queries: list[RelatedWorkQuery],
+    papers: list[PaperMetadata],
+    llm_agent: RAGLLMAgent,
+    batch_size: int,
+    warnings: list[str],
+    progress: Any | None = None,
+) -> tuple[list[RerankedPaper], str, str]:
+    """Rerank up to `batch_size` candidates per LLM call and merge by relevance score.
+
+    One call over many candidates asks for a rationale and evidence summary per paper plus a
+    long summary, which exceeds the reply-length limit (4096 tokens on OpenRouter by default) and
+    truncates the JSON. With at most `batch_size` candidates (the size the original packages
+    used: 9-10 in practice) the call is the same as before; larger candidate sets are split, each batch scored on
+    the same absolute 0-1 scale, merged by score, and summarized from the top-ranked abstracts.
+    """
+    batch_size = max(1, int(batch_size or 10))
+    if len(papers) <= batch_size:
+        return _rerank_with_llm(target=target, queries=queries, papers=papers, llm_agent=llm_agent,
+                                top_k=len(papers), warnings=warnings)
+    merged: list[RerankedPaper] = []
+    sources = []
+    batches = [papers[i:i + batch_size] for i in range(0, len(papers), batch_size)]
+    for number, batch in enumerate(batches, 1):
+        if progress:
+            progress(f"reranking batch {number}/{len(batches)} ({len(batch)} candidates, LLM)")
+        ranked, _summary, source = _rerank_with_llm(target=target, queries=queries, papers=batch,
+                                                    llm_agent=llm_agent, top_k=len(batch), warnings=warnings)
+        merged.extend(ranked)
+        sources.append(source)
+    merged.sort(key=lambda item: -item.relevance_score)
+    for rank, item in enumerate(merged, 1):
+        item.rank = rank
+    by_id = {paper.paper_id: paper for paper in papers}
+    summary = _compose_background_summary([by_id[item.paper_id] for item in merged if item.paper_id in by_id])
+    if all(source == "llm" for source in sources):
+        source = "llm"
+    elif all(source == "fallback" for source in sources):
+        source = "fallback"
+    else:
+        source = "mixed"
+    return merged, summary, source
+
+
 def build_related_work_rag(
     paper: str,
     topic: str = "",
@@ -994,13 +1039,14 @@ def build_related_work_rag(
     warnings.extend(evidence_warnings)
 
     step(f"reranking {len(filtered)} candidates (LLM)")
-    reranked, summary, rerank_source = _rerank_with_llm(
+    reranked, summary, rerank_source = _rerank_in_batches(
         target=target,
         queries=queries,
         papers=filtered,
         llm_agent=llm_agent,
-        top_k=len(filtered),
+        batch_size=config.rerank_batch_size,
         warnings=warnings,
+        progress=step,
     )
 
     package_id_seed = target.paper_id + json.dumps([q.to_dict() for q in queries], sort_keys=True)

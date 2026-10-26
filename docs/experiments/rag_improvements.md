@@ -75,6 +75,17 @@ python eval/build_rag_packages.py \
 queries; the earlier packages used 10, about one result per query. `--rerank_top_k` (default 30) is how many candidates reach the LLM reranker after the cutoff filter; two search results are placed before each reference-expansion result, because expansion papers are often broad surveys. The default `--cutoff_mode venue --cutoff_date 2024-12-31` matches the earlier packages, so the
 comparison stays fair. Add `--no_reference_expansion` if Semantic Scholar keeps refusing requests.
 
+If the builder warns that the reranking source is not `llm`, redo only the ranking step (same
+candidates, no searches, no OpenAlex cost):
+
+```bash
+python eval/build_rag_packages.py --provider openrouter --model deepseek/deepseek-chat-v3.1 \
+  --output eval/related_work_rag_60_v2.json --rerank_only
+```
+
+Reranking runs in batches of 10 candidates (`--rerank_batch_size`): one call over 30 candidates
+asks for more than the 4096-token reply limit and the JSON is cut off.
+
 **2. Run C1 (no RAG), C2 (the old RAG prompt), C8 and C9 on the same papers with the same model.** C2 reads the same new packages with the old prompt, so C8 − C2 isolates the prompt and the evidence-cleaning changes.
 
 ```bash

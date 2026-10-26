@@ -290,6 +290,32 @@ class TestRetrieval(unittest.TestCase):
             build_related_work_rag(PAPER, api_key="t", config=RAGConfig(cutoff_mode="bogus"),
                                    providers=[RecordingProvider([])], llm_agent=ClaimLLM())
 
+    def test_rerank_is_batched_and_merged_by_score(self):
+        import re as _re
+
+        class BatchLLM:
+            def __init__(self):
+                self.rerank_calls = 0
+
+            def complete_json(self, system_prompt, user_prompt):
+                if "Candidate metadata:" not in user_prompt:
+                    return {}
+                self.rerank_calls += 1
+                ids = _re.findall(r'"paper_id":\s*"(rw_\d+_[^"]+)"', user_prompt.split("Candidate metadata:")[1])
+                return {"reranked_papers": [{"rank": i + 1, "paper_id": pid, "relevance_score": 0.3 + 0.02 * int(pid.split("_")[1]),
+                                             "rationale": "r", "evidence_summary": "e"} for i, pid in enumerate(ids)],
+                        "summary": ""}
+
+        papers = [_pm(f"Distinct Routing Paper Number {i}") for i in range(26)]
+        llm = BatchLLM()
+        pkg = build_related_work_rag(PAPER, api_key="t", config=RAGConfig(rerank_top_k=30, provider_top_k=50),
+                                     providers=[RecordingProvider(papers)], llm_agent=llm, target_title=TITLE)
+        self.assertEqual(llm.rerank_calls, 3)                    # 26 candidates -> batches of 10, 10, 6
+        self.assertEqual(pkg["reranking"]["source"], "llm", pkg["warnings"])
+        scores = [r["relevance_score"] for r in sorted(pkg["reranking_results"], key=lambda r: r["rank"])]
+        self.assertEqual(scores, sorted(scores, reverse=True))
+        self.assertEqual(len(scores), 26)
+
     def test_strict_self_exclusion_at_build_time(self):
         provider = RecordingProvider([_pm("Sparse mixture routing for long-context retrieval."),
                                       _pm("Other Work About Routing")])
