@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import urllib.parse
 from typing import Any
 
 from rag.models import PaperMetadata, RelatedWorkQuery
@@ -17,6 +19,12 @@ def _abstract_from_index(index: dict[str, list[int]] | None) -> str:
     return " ".join(token for _, token in sorted(positions))
 
 
+def mailto_param() -> str:
+    """OpenAlex 'polite pool' (faster, more reliable): set OPENALEX_MAILTO to your email."""
+    email = os.environ.get("OPENALEX_MAILTO", "").strip()
+    return f"&mailto={urllib.parse.quote(email)}" if email else ""
+
+
 class OpenAlexProvider(PaperSearchProvider):
     name = "OpenAlex"
     inter_query_delay_seconds = 1.0
@@ -31,7 +39,7 @@ class OpenAlexProvider(PaperSearchProvider):
             url = (
                 "https://api.openalex.org/works"
                 f"?search={encoded_query(query.query)}&per-page={query_limit}"
-                "&sort=relevance_score:desc"
+                "&sort=relevance_score:desc" + mailto_param()
             )
             try:
                 data = self._json_get(url)

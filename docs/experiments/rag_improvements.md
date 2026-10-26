@@ -41,8 +41,16 @@ Set your keys in the environment, not on the command line history if you can avo
 
 ```bash
 export ANTHROPIC_API_KEY=...            # or the key for the provider you use
-export SEMANTIC_SCHOLAR_API_KEY=...     # optional, but reference expansion is rate-limited without it
+export OPENALEX_MAILTO=you@university.edu   # optional: OpenAlex "polite pool" (faster, fewer refusals)
+export SEMANTIC_SCHOLAR_API_KEY=...         # optional: without it, reference expansion uses OpenAlex
 ```
+
+Reference expansion uses Semantic Scholar only when `SEMANTIC_SCHOLAR_API_KEY` is set; without
+a key Semantic Scholar refuses almost immediately, so it uses OpenAlex instead (and switches to
+OpenAlex mid-run if Semantic Scholar starts refusing). arXiv's API also rate-limits (HTTP 429); a
+refused arXiv search is recorded as a warning and the package is built from the other sources.
+The builder prints the number of works from each source per paper and warns when fewer than 5
+candidates survive.
 
 **1. Build frozen packages with the improved retrieval.** This needs network access. It resumes
 if interrupted.
@@ -54,7 +62,8 @@ python eval/build_rag_packages.py \
   --provider claude --model claude-haiku-5-5
 ```
 
-The default `--cutoff_mode venue --cutoff_date 2024-12-31` matches the earlier packages, so the
+`--provider_top_k` (default 50) is the number of results per search provider, split across all
+queries; the earlier packages used 10, about one result per query. The default `--cutoff_mode venue --cutoff_date 2024-12-31` matches the earlier packages, so the
 comparison stays fair. Add `--no_reference_expansion` if Semantic Scholar keeps refusing requests.
 
 **2. Run C1 (no RAG), C2 (the old RAG prompt), C8 and C9 on the same papers with the same model.** C2 reads the same new packages with the old prompt, so C8 − C2 isolates the prompt and the evidence-cleaning changes.

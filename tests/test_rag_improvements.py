@@ -115,6 +115,8 @@ class TestRefine(unittest.TestCase):
         self.assertEqual([w["label"] for w in shown], ["R1", "R2", "R3"])
         self.assertEqual([w["paper_id"] for w in shown], ["rw_cited", "rw_new1", "rw_new2"])   # rank order kept
         self.assertEqual(ref["num_shown_uncited"], 2)
+        labels = {w["paper_id"]: w["label"] for w in out["candidate_works"]}
+        self.assertEqual((labels["rw_new1"], labels["rw_new3"]), ("R2", None))   # shown works carry their label
 
     def test_reserved_uncited_slots_displace_cited_works(self):
         cands = [{"cited_in_manuscript": True, "id": i} for i in range(4)] + \
@@ -207,6 +209,36 @@ class TestRetrieval(unittest.TestCase):
         result = expand_from_references(PAPER, provider=FakeExpander(ProviderHTTPError("u", 429, "Too Many")))
         self.assertEqual(result.papers, [])
         self.assertTrue(any("stopped early" in w for w in result.warnings))
+
+    def test_openalex_expander_and_fallback_from_semantic_scholar(self):
+        from rag.providers.base import ProviderHTTPError
+        from rag.reference_expansion import OpenAlexReferenceExpander, ReferenceExpander
+        oa = OpenAlexReferenceExpander("unused")
+        responses = {
+            "search": {"results": [{"id": "https://openalex.org/W1", "title": "Dense passage retrieval for "
+                                                                       "open-domain question answering"}]},
+            "cites": {"results": [{"id": "https://openalex.org/W9", "title": "Sparse Routing Cites Dense Retrieval",
+                                   "publication_year": 2024, "publication_date": "2024-05-01",
+                                   "authorships": [{"author": {"display_name": "Gia Ho"}}],
+                                   "abstract_inverted_index": {"Sparse": [0], "routing": [1]},
+                                   "ids": {"doi": "https://doi.org/10.1/x"},
+                                   "locations": [{"landing_page_url": "https://arxiv.org/abs/2405.00001"}],
+                                   "cited_by_count": 3}]},
+        }
+        with patch.object(OpenAlexReferenceExpander, "_json_get",
+                          side_effect=lambda url, headers=None: responses["cites" if "cites:" in url else "search"]):
+            self.assertEqual(oa.match_title("Dense Passage Retrieval for Open-Domain Question Answering"), "W1")
+            item = oa.citing_papers("W1", 5)[0]
+            self.assertEqual((item["abstract"], item["externalIds"]["ArXiv"], item["externalIds"]["DOI"]),
+                             ("Sparse routing", "2405.00001", "10.1/x"))
+            with patch.dict("os.environ", {"SEMANTIC_SCHOLAR_API_KEY": "k"}), \
+                 patch.object(ReferenceExpander, "match_title", side_effect=ProviderHTTPError("u", 429, "Too Many")), \
+                 patch.object(ReferenceExpander, "_sleep_between_queries"), \
+                 patch.object(OpenAlexReferenceExpander, "_sleep_between_queries"):
+                result = expand_from_references(PAPER, max_refs=2, citing_limit=5)
+        self.assertTrue(any("switching to OpenAlex" in w for w in result.warnings))
+        self.assertEqual(result.status, "used")
+        self.assertEqual(result.papers[0].sources, ["OpenAlex (cites a manuscript reference)"])
 
     def test_expansion_in_package_and_interleave(self):
         provider = RecordingProvider([_pm("Search Result One About Routing"), _pm("Search Result Two About Routing")])
