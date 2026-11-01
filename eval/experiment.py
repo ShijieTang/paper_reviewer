@@ -243,6 +243,34 @@ def _existing_result_path(output_dir: str, paper_name: str, cond: dict) -> Path 
     return matches[-1] if matches else None
 
 
+def _failure_reason(result: dict) -> str:
+    for failure in result.get("turn_failures") or []:
+        for error in failure.get("errors") or []:
+            return str(error)[:120]
+    return "workflow failed"
+
+
+def preflight_check(provider: str, api_key: str, model: str) -> None:
+    """One tiny LLM call before the run, so a wrong or missing key stops everything at once
+    instead of saving a failed result for every paper and condition."""
+    from agents import create_llm_client
+    print(f"Checking the {provider} API key with one short request...", flush=True)
+    try:
+        create_llm_client(provider=provider, api_key=api_key, model=model).complete(
+            "Reply with the single word OK.", [{"role": "user", "content": "OK?"}])
+    except Exception as exc:
+        text = str(exc)
+        hint = ""
+        if "401" in text or "auth" in text.lower():
+            hint = ("\nThe key was rejected (HTTP 401). Is it loaded in this Terminal window? "
+                    "Run: source ~/.openrouter_env   and check: echo ${OPENROUTER_API_KEY:0:8}")
+        elif "402" in text or "credit" in text.lower():
+            hint = "\nThe account is out of credit (HTTP 402). Add credits and rerun."
+        print(f"Preflight check failed: {type(exc).__name__}: {text[:300]}{hint}", flush=True)
+        sys.exit(1)
+    print("API key OK.", flush=True)
+
+
 def _load_existing_result(path: Path) -> dict | None:
     """Load a previously saved result file. Return None if unreadable."""
     try:
@@ -305,7 +333,11 @@ def _run_paper(paper_meta: dict, conditions: list, api_key: str,
 
         if existing_path is not None:
             result = _load_existing_result(existing_path)
-            if result is not None:
+            if result is not None and (result.get("workflow_status") == "failed" or result.get("turn_failures")):
+                _log(paper_id, f"Condition {cond['id']}: previous attempt failed "
+                               f"({_failure_reason(result)}), rerunning")
+                existing_path = None
+            elif result is not None:
                 out_path = str(existing_path)
                 reused_existing = True
                 _log(paper_id, f"Condition {cond['id']}: skipping, found {existing_path.name}")
@@ -462,6 +494,8 @@ def main():
     parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY,
                         help=f"Number of papers reviewed in parallel "
                              f"(default: {DEFAULT_CONCURRENCY}; use 1 to run sequentially).")
+    parser.add_argument("--skip_preflight", action="store_true",
+                        help="Do not make the one-request API key check before the run.")
     parser.add_argument("--rag_cache", default=None,
                         help="Path to a JSON file of precomputed RAG packages keyed by "
                              "paper_id (e.g. eval/related_work_rag_30.json). When a paper_id "
@@ -495,6 +529,8 @@ def main():
             rag_packages = json.load(f)
         print(f"Loaded {len(rag_packages)} precomputed RAG package(s) from {args.rag_cache}")
 
+    if not args.skip_preflight:
+        preflight_check(args.provider, args.api_key, args.model)
     run_experiment(papers, args.api_key, args.output_dir, conditions=conditions,
                    model=args.model, concurrency=args.concurrency,
                    rag_packages=rag_packages, provider=args.provider)

@@ -518,6 +518,31 @@ class TestExperimentAndEval(unittest.TestCase):
         self.assertEqual(merged["cutoff_date"], "2024-12-31")
         self.assertNotIn("prompt_style", experiment.condition_rag_config(conds["7"], {}))
 
+    def test_preflight_stops_on_rejected_key_and_failed_results_rerun(self):
+        experiment = import_experiment()
+
+        class Rejecting:
+            def complete(self, persona, messages):
+                raise RuntimeError("Error code: 401 - User not found")
+
+        with patch("agents.create_llm_client", return_value=Rejecting()), self.assertRaises(SystemExit):
+            experiment.preflight_check("openrouter", "", "m")
+        failed = {"workflow_status": "failed",
+                  "turn_failures": [{"errors": ["AuthenticationError: turn did not complete"]}]}
+        self.assertIn("AuthenticationError", experiment._failure_reason(failed))
+
+        cond = {c["id"]: c for c in experiment.CONDITIONS}["8"]
+        with tempfile.TemporaryDirectory() as out:
+            name = "paper_x"
+            Path(out, f"2601010000_nagent=1_niter=1_paper={name}_cond=8_{cond['label']}.txt").write_text(
+                json.dumps(failed), encoding="utf-8")
+            meta = {"paper_id": "p", "paper_dir": f"x/{name}.md", "topic": ""}
+            with patch.object(experiment, "pdf_to_markdown", return_value="# Paper"), \
+                 patch.object(experiment, "run_condition", return_value={"reviewers": []}) as rerun, \
+                 patch.object(experiment, "save_result", return_value=str(Path(out, "new.txt"))):
+                experiment._run_paper(meta, [cond], "k", out, "2601010001", "m")
+            self.assertEqual(rerun.call_count, 1)                 # failed result is not reused
+
     def test_provider_is_passed_through(self):
         experiment = import_experiment()
         cond = {c["id"]: c for c in experiment.CONDITIONS}["8"]
