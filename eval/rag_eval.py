@@ -247,7 +247,7 @@ def paper_rag_record(result: dict, analyst: bool) -> dict:
            "novelty_named": 0, "named_cited": 0, "named_uncited": 0, "reviews": 0,
            "reviews_with_missing": 0, "missing_items": [], "invalid_labels": 0, "free_text_bad_labels": 0,
            "free_text_mentions": 0, "flagged_cited_or_self": 0, "flagged_unknown_status": 0,
-           "dropped_cited": 0}
+           "dropped_cited": 0, "dropped_unlinked": 0}
     for review in valid_reviews(result):
         rec["reviews"] += 1
         for item in review.get("novelty_check", []) or []:
@@ -263,6 +263,7 @@ def paper_rag_record(result: dict, analyst: bool) -> dict:
                 else:
                     rec["invalid_labels"] += 1
         rec["dropped_cited"] += int(review.get("missing_prior_work_dropped_cited") or 0)
+        rec["dropped_unlinked"] += int(review.get("missing_prior_work_dropped_unlinked") or 0)
         missing = [m for m in review.get("missing_prior_work", []) or [] if isinstance(m, dict)]
         rec["reviews_with_missing"] += bool(missing)
         for item in missing:
@@ -449,6 +450,7 @@ def evaluate(dataset: dict, control: dict, rag_runs: dict[str, dict], analyst_co
                 "flagged_cited_or_self": tot("flagged_cited_or_self"),
                 "flagged_unknown_status": tot("flagged_unknown_status"),
                 "dropped_cited_entries": tot("dropped_cited"),
+                "dropped_unlinked_entries": tot("dropped_unlinked"),
             },
             "human_dimension_ratings": (dimension_report(runs, control, subscores, pids, dataset, n_boot)
                                         if subscores else None),
@@ -514,7 +516,8 @@ def print_report(report: dict) -> None:
         print(f"citation validity: invalid labels {v['invalid_labels']}, unknown [R#] in text "
               f"{v['free_text_unknown_labels']}, flagged cited/self {v['flagged_cited_or_self']}, "
               f"flagged with unknown cited status {v['flagged_unknown_status']}, "
-              f"cited entries dropped {v['dropped_cited_entries']}")
+              f"cited entries dropped {v['dropped_cited_entries']}, "
+              f"entries not overlapping a claim dropped {v['dropped_unlinked_entries']}")
         print(f"accuracy {_fmt(p['accuracy_rag'], True)} vs {_fmt(p['accuracy_control'], True)} "
               f"(diff {_fmt(p['accuracy_diff'], True)})")
         print(f"rho {_fmt(p['rho_rag'])} vs {_fmt(p['rho_control'])} (diff {_fmt(p['rho_diff'])})")

@@ -473,6 +473,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         )
     conf_rec   = ConferenceRecommender(paper=paper, topic=topic, api_key=api_key, provider=provider, model=model)
     rw_analyst = None
+    from prompts.reviewer_rag import ANALYST_OVERLAP_RULE
     if use_analyst:
         from rag.prompt_views import format_analyst_input
         rw_analyst = RelatedWorkAnalyst(analyst_input=format_analyst_input(rag_package),
@@ -526,14 +527,16 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         emit_agent_status(rw_analyst.name, "running")
         raw_report = call_turn(rw_analyst,
                                "Compare the submission's claimed contributions with the retrieved works "
-                               "and return the JSON report.", "rw_analyst", 1, None)
+                               "and return the JSON report." + (ANALYST_OVERLAP_RULE if rag_cfg.missing_requires_overlap
+                                                                else ""), "rw_analyst", 1, None)
         if required_failed():
             emit_agent_status(rw_analyst.name, "error")
             return incomplete_result()
         emit_agent_status(rw_analyst.name, "done")
         emit_message(rw_analyst.name, raw_report)
         related_work_report = normalize_rag_review_fields(_parse_json(raw_report), rag_uncited,
-                                                          key="possibly_missing_references")
+                                                          key="possibly_missing_references",
+                                                          require_overlap=rag_cfg.missing_requires_overlap)
 
     # ── Iteration 0: initial reviews (parallel) ──────────────────────────────
     emit(f"--- Iteration 1 / {n_iter}: Initial Reviews ---")
@@ -542,7 +545,8 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         from prompts.reviewer_rag import reviewer_rag_task
         if related_work_report is not None:
             init_prompt = _format_analyst_report(related_work_report) + "\n\n" + init_prompt
-        init_prompt += "\n" + reviewer_rag_task(with_analyst=related_work_report is not None)
+        init_prompt += "\n" + reviewer_rag_task(with_analyst=related_work_report is not None,
+                                                 require_overlap=rag_cfg.missing_requires_overlap)
     elif rag_prompt_block:
         init_prompt += (
             " Use the ###RAG_EVIDENCE### related-work block as factual background evidence "
@@ -695,7 +699,7 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
     ]
     if rag_engaged:
         for review in parsed_reviews:
-            normalize_rag_review_fields(review, rag_uncited)
+            normalize_rag_review_fields(review, rag_uncited, require_overlap=rag_cfg.missing_requires_overlap)
 
     parsed_style_analyses = []
     for iteration, row in enumerate(aicheck_resps, start=1):
@@ -735,7 +739,8 @@ def main(paper: str, topic: str = "", n_iter: int = 10,
         if rag_cfg.missing_references_report:
             from rag.missing_references import build_missing_references
             # Label each review with the workflow's reviewer name (the model's own "reviewer" field varies).
-            named_reviews = [{**normalize_rag_review_fields(_parse_review_or_raw(raw), rag_uncited),
+            named_reviews = [{**normalize_rag_review_fields(_parse_review_or_raw(raw), rag_uncited,
+                                                            require_overlap=rag_cfg.missing_requires_overlap),
                               "reviewer": reviewers[i].name}
                              for i, raw in enumerate(final_reviews)
                              if raw is not None and isinstance(_parse_review_or_raw(raw), dict)]

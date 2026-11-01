@@ -33,6 +33,9 @@ class RAGConfig:
     related_work_analyst: bool = False
     # Missing-references report for authors (option 4)
     missing_references_report: bool = False
+    # A work counts as missing only if the same agent named it as overlapping (partially or
+    # substantially) with a claimed contribution; otherwise the entry is dropped and counted.
+    missing_requires_overlap: bool = False
     missing_reference_min_relevance: float = 0.65
 
     @property

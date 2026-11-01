@@ -470,6 +470,32 @@ class TestWorkflow(unittest.TestCase):
         self.assertTrue(result["rag_mode"]["analyst_skipped_no_works"])
         self.assertTrue(any("No retrieved work passed" in w for w in result["rag_warnings"]))
 
+    def test_missing_prior_work_must_overlap_a_claim(self):
+        from review_schema import normalize_rag_review_fields, overlapping_labels
+        review = {"novelty_check": [{"closest_prior_work": "R2", "overlap": "partial"},
+                                    {"closest_prior_work": "R3", "overlap": "none"}],
+                  "missing_prior_work": [{"work": "R2", "why_relevant": "a"}, {"work": "R3", "why_relevant": "b"}]}
+        self.assertEqual(overlapping_labels(review), {"R2"})
+        normalize_rag_review_fields(review, {"R2", "R3"}, require_overlap=True)
+        self.assertEqual([m["work"] for m in review["missing_prior_work"]], ["R2"])
+        self.assertEqual(review["missing_prior_work_dropped_unlinked"], 1)
+
+        # through the workflow: rule text in the prompt, unlinked entry dropped from the stored review
+        fields = {"novelty_check": [{"claimed_contribution": "Sparse routing", "closest_prior_work": "R2",
+                                     "overlap": "partial", "explanation": "x"}],
+                  "missing_prior_work": [{"work": "R2", "why_relevant": "a"}, {"work": "R3", "why_relevant": "b"}]}
+        reviewer = Replies([{**BASE_REVIEW, **fields}])
+        cfg = {**IMPROVED, "min_uncited_shown": 0, "missing_requires_overlap": True}
+        result = run_mas([reviewer, Replies([]), Replies([CONFERENCE])], cfg)
+        prompt = "\n".join(m["content"] for m in reviewer.requests[0][1])
+        self.assertIn("Rule for missing_prior_work", prompt)
+        stored = result["reviewers"][0]
+        self.assertEqual([m["work"] for m in stored["missing_prior_work"]], ["R2"])
+        self.assertEqual(stored["missing_prior_work_dropped_unlinked"], 1)
+        flagged_by_reviewer = [m["title"] for m in result["possibly_missing_references"]
+                               if "Reviewer 1 (Neutral)" in m["sources"]]
+        self.assertEqual(flagged_by_reviewer, ["Routing Experts for Retrieval Augmented Language Models"])
+
     def test_improvements_off_keeps_legacy_prompt(self):
         reviewer = Replies([BASE_REVIEW])
         result = run_mas([reviewer, Replies([]), Replies([CONFERENCE])], {})
@@ -518,6 +544,8 @@ class TestExperimentAndEval(unittest.TestCase):
         self.assertEqual(merged["cutoff_date"], "2024-12-31")
         self.assertNotIn("prompt_style", experiment.condition_rag_config(conds["7"], {}))
         self.assertEqual(experiment.condition_rag_config(conds["10"], {})["min_uncited_shown"], 0)
+        self.assertTrue(experiment.condition_rag_config(conds["10"], {})["missing_requires_overlap"])
+        self.assertNotIn("missing_requires_overlap", experiment.condition_rag_config(conds["8"], {}))
         noquota = experiment.condition_rag_config(conds["11"], {})
         self.assertEqual((noquota["min_uncited_shown"], noquota["related_work_analyst"]), (0, True))
         self.assertEqual(experiment.condition_rag_config(conds["8"], {})["min_uncited_shown"], 3)   # unchanged

@@ -256,10 +256,31 @@ def validate_rag_review_fields(value: Any, valid_labels: set[str] | list[str],
     return errors
 
 
+def overlapping_labels(review: Any) -> set[str]:
+    """Labels the agent itself named as overlapping (partial or substantial) with a claimed contribution."""
+    out: set[str] = set()
+    if not isinstance(review, dict):
+        return out
+    for item in review.get("novelty_check") or []:
+        if isinstance(item, dict) and str(item.get("overlap", "")).strip().lower() in ("partial", "substantial"):
+            label = _rag_label(item.get("closest_prior_work"))
+            if label:
+                out.add(label)
+    for item in review.get("contribution_overlap") or []:
+        if isinstance(item, dict) and str(item.get("overlap", "")).strip().lower() in ("partial", "substantial"):
+            works = item.get("closest_prior_work")
+            for work in works if isinstance(works, list) else [works]:
+                if _rag_label(work):
+                    out.add(_rag_label(work))
+    return out
+
+
 def normalize_rag_review_fields(review: Any, uncited_labels: set[str] | list[str] | None,
-                                key: str = "missing_prior_work") -> Any:
+                                key: str = "missing_prior_work", require_overlap: bool = False) -> Any:
     """Canonical [R#] labels; drop entries for works the manuscript already cites (counted in
-    '<key>_dropped_cited'). Applied to the stored review/report, since validation sees a copy."""
+    '<key>_dropped_cited') and, with require_overlap, entries for works the same agent did not name as
+    overlapping a claimed contribution ('<key>_dropped_unlinked'). Applied to the stored review/report,
+    since validation sees a copy."""
     if not isinstance(review, dict):
         return review
     for item in review.get("novelty_check") or []:
@@ -270,17 +291,23 @@ def normalize_rag_review_fields(review: Any, uncited_labels: set[str] | list[str
             item["closest_prior_work"] = [_rag_label(w) for w in item["closest_prior_work"] if _rag_label(w)]
     entries = review.get(key)
     if isinstance(entries, list):
-        kept, dropped = [], 0
+        linked = overlapping_labels(review)
+        kept, dropped, unlinked = [], 0, 0
         for item in entries:
             label = _rag_label(item.get("work")) if isinstance(item, dict) else ""
             if label and uncited_labels is not None and label not in set(uncited_labels):
                 dropped += 1
+                continue
+            if require_overlap and label and label not in linked:
+                unlinked += 1
                 continue
             if label:
                 item["work"] = label
             kept.append(item)
         review[key] = kept
         review[f"{key}_dropped_cited"] = dropped
+        if require_overlap:
+            review[f"{key}_dropped_unlinked"] = unlinked
     return review
 
 

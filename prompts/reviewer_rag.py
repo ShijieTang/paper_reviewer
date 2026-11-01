@@ -43,5 +43,20 @@ RAG_ITERATION_REMINDER = (
 )
 
 
-def reviewer_rag_task(with_analyst: bool) -> str:
-    return RAG_REVIEW_TASK.format(analyst_note=RAG_ANALYST_NOTE if with_analyst else "")
+RAG_OVERLAP_RULE = """
+Rule for missing_prior_work: list a work only if (a) you named it in novelty_check as the closest prior
+work for a claimed contribution with overlap "partial" or "substantial", and (b) it is marked "Cited in the
+manuscript: no". Related background that does not overlap a claimed contribution does not count as
+missing. For many papers no work qualifies; an empty list is then the correct answer.
+"""
+
+ANALYST_OVERLAP_RULE = (
+    " List a work under possibly_missing_references only if you named it in contribution_overlap with "
+    "overlap partial or substantial and it is not cited in the manuscript. Related background that does "
+    "not overlap a claimed contribution does not qualify; for many papers the correct answer is an empty list."
+)
+
+
+def reviewer_rag_task(with_analyst: bool, require_overlap: bool = False) -> str:
+    task = RAG_REVIEW_TASK.format(analyst_note=RAG_ANALYST_NOTE if with_analyst else "")
+    return task + RAG_OVERLAP_RULE if require_overlap else task
