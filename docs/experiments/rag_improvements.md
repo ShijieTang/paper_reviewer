@@ -132,6 +132,21 @@ The report covers four groups of measures:
 - **citation validity:** invalid labels, unknown [R#] labels, and flagged works that are cited or are the submission itself; all should be 0;
 - **paired C8/C9 vs C1:** accuracy, Spearman ρ, novelty score shift and decision agreement, with a 95% paper bootstrap.
 
+**5. Compare score dimensions with the human reviewers' dimension ratings** (optional, needs network).
+Accept/reject mixes novelty with everything else, so this tests the novelty score directly:
+
+```bash
+python eval/fetch_review_subscores.py --dataset eval/openreview_60_module_test.json \
+  --output eval/review_subscores_60.json
+python eval/rag_eval.py ... --subscores eval/review_subscores_60.json
+```
+
+The fetcher stores every numeric field of each official review and prints which fields each venue
+has. `rag_eval.py` maps them onto the system's dimensions (`DIMENSION_MAP`: novelty ->
+originality/contribution, soundness -> soundness/quality, clarity -> presentation/clarity,
+significance -> significance) and reports Spearman rho for the condition and the control, with a
+paper-bootstrap CI for the difference, pooled and per venue.
+
 ## Cost
 
 Each condition makes one reviewer call (plus a retry when a reply fails validation) and one conference call per paper. C9 adds one analyst

@@ -563,6 +563,39 @@ class TestExperimentAndEval(unittest.TestCase):
         self.assertFalse(b.openalex_refused(ok))
         self.assertTrue(b.openalex_refused(starved))
 
+    def test_review_subscores_parsing_and_dimension_correlation(self):
+        import fetch_review_subscores as frs
+        import rag_eval
+        payload = {"notes": [
+            {"id": "r1", "invitations": ["ICLR.cc/2025/Conference/Submission1/-/Official_Review"],
+             "content": {"soundness": {"value": 3}, "contribution": {"value": "2: fair"},
+                         "rating": {"value": 6}, "confidence": {"value": 4}, "summary": {"value": "text"}}},
+            {"id": "r2", "invitations": ["ICLR.cc/2025/Conference/Submission1/-/Official_Review"],
+             "content": {"soundness": {"value": 2}, "contribution": {"value": "4: excellent"}}},
+            {"id": "c1", "invitations": ["ICLR.cc/2025/Conference/Submission1/-/Official_Comment"],
+             "content": {"rating": {"value": 1}}},
+        ]}
+        reviews = frs.parse_reviews(payload)
+        self.assertEqual([r["id"] for r in reviews], ["r1", "r2"])
+        self.assertNotIn("confidence", reviews[0]["scores"])
+        self.assertEqual(frs.mean_scores(reviews)["contribution"], 3.0)
+        self.assertEqual(frs.field_value("3: good"), 3.0)
+        self.assertIsNone(frs.field_value("good"))
+
+        subscores, runs, control, dataset = {}, {}, {}, {}
+        for i in range(8):
+            pid = f"p{i}"
+            dataset[pid] = {"conference": "NeurIPS" if i % 2 else "ICLR"}
+            subscores[pid] = {"mean": ({"originality": 1 + i * 0.4} if i % 2 else {"contribution": 1 + i * 0.4})}
+            runs[pid] = {"reviewers": [{**BASE_REVIEW, "scores": {**BASE_REVIEW["scores"], "novelty": 1 + i * 0.5}}]}
+            control[pid] = {"reviewers": [{**BASE_REVIEW, "scores": {**BASE_REVIEW["scores"], "novelty": 5 - i * 0.5}}]}
+        self.assertEqual(rag_eval.human_dimension(subscores, "p1", "novelty"), (1.4, "originality"))
+        rep = rag_eval.dimension_report(runs, control, subscores, sorted(runs), dataset, n_boot=20)
+        self.assertAlmostEqual(rep["novelty"]["rho_rag"]["value"], 1.0)
+        self.assertAlmostEqual(rep["novelty"]["rho_control"]["value"], -1.0)
+        self.assertEqual(rep["novelty"]["human_fields"], {"originality": 4, "contribution": 4})
+        self.assertEqual(rep["soundness"]["papers"], 0)
+
     def test_first_public_dates_parsing(self):
         import first_public_dates as fpd
         feed = """<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>http://arxiv.org/abs/2402.01234v3</id>

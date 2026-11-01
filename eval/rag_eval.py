@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import Counter
 import random
 import re
 import statistics as st
@@ -325,10 +326,67 @@ def rho(results: dict, dataset: dict, pids: list[str]) -> float | None:
     return spearman([a for a, _ in pairs], [b for _, b in pairs]) if pairs else None
 
 
+# ── human dimension ratings (eval/fetch_review_subscores.py) ─────────────────
+
+# System score dimension -> human rating fields that measure the same thing, in priority order.
+# ICLR's "contribution" mixes novelty and significance; NeurIPS's "originality" is closer to novelty.
+DIMENSION_MAP = {
+    "novelty": ("originality", "novelty", "contribution"),
+    "soundness": ("soundness", "quality", "technical_quality"),
+    "clarity": ("presentation", "clarity"),
+    "significance": ("significance", "impact"),
+}
+
+
+def human_dimension(subscores: dict, pid: str, dim: str) -> tuple[float | None, str]:
+    means = (subscores.get(pid) or {}).get("mean") or {}
+    for field in DIMENSION_MAP[dim]:
+        if field in means:
+            return means[field], field
+    return None, ""
+
+
+def system_dimension(result: dict, dim: str) -> float | None:
+    vals = [r["scores"][dim] for r in valid_reviews(result)
+            if isinstance((r.get("scores") or {}).get(dim), (int, float))]
+    return sum(vals) / len(vals) if vals else None
+
+
+def dimension_rho(runs: dict, subscores: dict, pids: list[str], dim: str) -> float | None:
+    pairs = [(system_dimension(runs[p], dim), human_dimension(subscores, p, dim)[0]) for p in pids]
+    pairs = [(a, b) for a, b in pairs if a is not None and b is not None]
+    return spearman([a for a, _ in pairs], [b for _, b in pairs]) if len(pairs) >= 3 else None
+
+
+def dimension_report(runs: dict, control: dict, subscores: dict, pids: list[str], dataset: dict,
+                     n_boot: int) -> dict:
+    """Does the condition's per-dimension score track the human reviewers' rating of that dimension
+    better than the control's? Spearman rho, pooled over venues (all use 1-4 scales), paper bootstrap."""
+    out = {}
+    for dim in DIMENSION_MAP:
+        have = [p for p in pids if human_dimension(subscores, p, dim)[0] is not None]
+        fields = Counter(human_dimension(subscores, p, dim)[1] for p in have)
+        by_venue = {}
+        for venue in sorted({str(dataset[p].get("conference", "")).upper() for p in have}):
+            vp = [p for p in have if str(dataset[p].get("conference", "")).upper() == venue]
+            by_venue[venue] = {"n": len(vp), "rho_rag": dimension_rho(runs, subscores, vp, dim),
+                               "rho_control": dimension_rho(control, subscores, vp, dim)}
+        out[dim] = {
+            "papers": len(have), "human_fields": dict(fields),
+            "rho_rag": bootstrap(have, lambda ps: dimension_rho(runs, subscores, ps, dim), n_boot),
+            "rho_control": bootstrap(have, lambda ps: dimension_rho(control, subscores, ps, dim), n_boot),
+            "rho_diff": bootstrap(have, lambda ps: _diff(dimension_rho(runs, subscores, ps, dim),
+                                                         dimension_rho(control, subscores, ps, dim)), n_boot),
+            "by_venue": by_venue,
+        }
+    return out
+
+
 # ── report ───────────────────────────────────────────────────────────────────
 
 def evaluate(dataset: dict, control: dict, rag_runs: dict[str, dict], analyst_conds: set[str],
-             subset: list[str] | None = None, use_embeddings: bool = True, n_boot: int = 2000) -> dict:
+             subset: list[str] | None = None, use_embeddings: bool = True, n_boot: int = 2000,
+             subscores: dict | None = None) -> dict:
     sim = Similarity(use_embeddings)
     report = {"similarity_method": sim.method, "subset_size": len(subset) if subset is not None else None,
               "conditions": {}}
@@ -392,6 +450,8 @@ def evaluate(dataset: dict, control: dict, rag_runs: dict[str, dict], analyst_co
                 "flagged_unknown_status": tot("flagged_unknown_status"),
                 "dropped_cited_entries": tot("dropped_cited"),
             },
+            "human_dimension_ratings": (dimension_report(runs, control, subscores, pids, dataset, n_boot)
+                                        if subscores else None),
             "paired_vs_control": {
                 "accuracy_rag": bootstrap(pids, lambda ps: accuracy(runs, dataset, ps), n_boot),
                 "accuracy_control": bootstrap(pids, lambda ps: accuracy(control, dataset, ps), n_boot),
@@ -460,6 +520,17 @@ def print_report(report: dict) -> None:
         print(f"rho {_fmt(p['rho_rag'])} vs {_fmt(p['rho_control'])} (diff {_fmt(p['rho_diff'])})")
         print(f"novelty score shift {_fmt(p['novelty_shift'])}; decision agreement with control "
               f"{_fmt(p['decision_agreement_with_control'], True)}")
+        dims = c.get("human_dimension_ratings")
+        if dims:
+            print("score dimension vs human reviewers' rating of the same dimension (Spearman rho):")
+            for dim, r in dims.items():
+                if not r["papers"]:
+                    continue
+                fields = "/".join(sorted(r["human_fields"]))
+                venues = ", ".join(f"{v} n={x['n']}: {_fmt(x['rho_rag'])} vs {_fmt(x['rho_control'])}"
+                                   for v, x in r["by_venue"].items())
+                print(f"  {dim:12s} vs human {fields:22s} ({r['papers']} papers): {_fmt(r['rho_rag'])} vs "
+                      f"control {_fmt(r['rho_control'])}, diff {_fmt(r['rho_diff'])}  [{venues}]")
 
 
 def main(argv=None) -> None:
@@ -470,6 +541,9 @@ def main(argv=None) -> None:
     parser.add_argument("--control_cond", default="1")
     parser.add_argument("--rag_conds", nargs="+", default=["8", "9"])
     parser.add_argument("--analyst_conds", nargs="*", default=["9"])
+    parser.add_argument("--subscores", default=None,
+                        help="Output of eval/fetch_review_subscores.py: adds per-dimension correlations "
+                             "with the human reviewers' ratings (e.g. novelty vs originality/contribution).")
     parser.add_argument("--subset", default=None, help="Output of eval/first_public_dates.py (uses its post-cutoff list).")
     parser.add_argument("--no_embeddings", action="store_true", help="Use token overlap instead of MiniLM.")
     parser.add_argument("--bootstrap", type=int, default=2000)
@@ -485,8 +559,9 @@ def main(argv=None) -> None:
     subset = None
     if args.subset:
         subset = json.loads((ROOT / args.subset).read_text(encoding="utf-8"))["subset"]["post_cutoff"]
+    subscores = json.loads((ROOT / args.subscores).read_text(encoding="utf-8")) if args.subscores else None
     report = evaluate(dataset, control, rag_runs, set(args.analyst_conds), subset,
-                      use_embeddings=not args.no_embeddings, n_boot=args.bootstrap)
+                      use_embeddings=not args.no_embeddings, n_boot=args.bootstrap, subscores=subscores)
     print_report(report)
     (ROOT / args.output).write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(f"\nwrote {args.output}")
