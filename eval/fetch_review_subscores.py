@@ -10,7 +10,11 @@ clarity, significance and originality; ICML 2025 uses a different form.
 Every numeric field of each official review is stored, so nothing depends on guessing the form.
 eval/rag_eval.py --subscores then maps them onto the system's score dimensions (see DIMENSION_MAP).
 
-Usage (from the repository root; needs network access, no account needed for public reviews):
+If OpenReview refuses anonymous requests (HTTP 401/403), log in with your OpenReview account:
+    export OPENREVIEW_USERNAME=you@university.edu OPENREVIEW_PASSWORD=...
+The token is used only for these requests and is not stored.
+
+Usage (from the repository root; needs network access):
     python eval/fetch_review_subscores.py \\
         --dataset eval/openreview_60_module_test.json \\
         --output eval/review_subscores_60.json
@@ -21,6 +25,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import urllib.request
 import re
 import statistics as st
 import sys
@@ -81,16 +87,35 @@ def mean_scores(reviews: list[dict]) -> dict:
     return {f: round(st.mean(r["scores"][f] for r in reviews if f in r["scores"]), 4) for f in fields}
 
 
-def fetch_forum(fetcher: Fetcher, fid: str) -> list[dict]:
+def login_headers() -> dict:
+    """Bearer token from OPENREVIEW_USERNAME / OPENREVIEW_PASSWORD, if set."""
+    user, password = os.environ.get("OPENREVIEW_USERNAME"), os.environ.get("OPENREVIEW_PASSWORD")
+    if not (user and password):
+        return {}
+    request = urllib.request.Request(
+        "https://api2.openreview.net/login", data=json.dumps({"id": user, "password": password}).encode(),
+        headers={"Content-Type": "application/json", "User-Agent": "paper-reviewer-eval/1.0"}, method="POST")
+    with urllib.request.urlopen(request, timeout=30) as response:
+        token = json.loads(response.read().decode()).get("token")
+    if not token:
+        raise RuntimeError("OpenReview login returned no token")
+    return {"Authorization": f"Bearer {token}"}
+
+
+def fetch_forum(fetcher: Fetcher, fid: str, headers: dict | None = None) -> tuple[list[dict], str]:
+    """Official reviews of a forum, and the last error if every attempt failed."""
+    error = ""
     for api in (API_V2, API_V1):
         try:
-            payload = json.loads(fetcher.get(f"{api}?forum={urllib.parse.quote(fid)}&limit=1000"))
-        except Exception:
+            payload = json.loads(fetcher.get(f"{api}?forum={urllib.parse.quote(fid)}&limit=1000", headers=headers))
+        except Exception as exc:
+            error = f"{api.split('/')[2]}: {type(exc).__name__}: {exc}"
             continue
         reviews = parse_reviews(payload)
         if reviews:
-            return reviews
-    return []
+            return reviews, ""
+        error = error or f"{api.split('/')[2]}: no official reviews in {len(payload.get('notes') or [])} note(s)"
+    return [], error
 
 
 def main(argv=None) -> None:
@@ -104,10 +129,23 @@ def main(argv=None) -> None:
     if isinstance(dataset, list):
         dataset = {item["paper_id"]: item for item in dataset}
     fetcher = Fetcher(ROOT / args.cache_dir, delay=1.0)
-    out, fields_by_venue = {}, {}
+    try:
+        headers = login_headers()
+        print("Logged in to OpenReview." if headers else "Requesting reviews without logging in.", flush=True)
+    except Exception as exc:
+        print(f"OpenReview login failed: {exc}", flush=True)
+        sys.exit(1)
+    out, fields_by_venue, errors = {}, {}, []
     for i, (pid, meta) in enumerate(sorted(dataset.items()), 1):
         fid = forum_id(meta.get("paper_url", ""))
-        reviews = fetch_forum(fetcher, fid) if fid else []
+        reviews, error = fetch_forum(fetcher, fid, headers) if fid else ([], "no OpenReview forum id in paper_url")
+        if error and not reviews:
+            errors.append(error)
+            print(f"   {error[:200]}", flush=True)
+            if len(errors) == 3 and i == 3:
+                print("The first 3 papers all failed; stopping. If the error is HTTP 401/403, set "
+                      "OPENREVIEW_USERNAME and OPENREVIEW_PASSWORD and rerun.", flush=True)
+                sys.exit(1)
         venue = str(meta.get("conference", "")).upper()
         out[pid] = {"conference": venue, "forum_id": fid, "num_reviews": len(reviews),
                     "mean": mean_scores(reviews), "reviews": reviews}

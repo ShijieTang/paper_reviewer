@@ -521,7 +521,10 @@ def print_report(report: dict) -> None:
         print(f"novelty score shift {_fmt(p['novelty_shift'])}; decision agreement with control "
               f"{_fmt(p['decision_agreement_with_control'], True)}")
         dims = c.get("human_dimension_ratings")
-        if dims:
+        if dims is not None and not any(r["papers"] for r in dims.values()):
+            print("score dimension vs human ratings: no human dimension ratings found in --subscores "
+                  "(check the fetch output)")
+        elif dims:
             print("score dimension vs human reviewers' rating of the same dimension (Spearman rho):")
             for dim, r in dims.items():
                 if not r["papers"]:

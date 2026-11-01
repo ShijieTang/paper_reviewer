@@ -117,14 +117,15 @@ class Fetcher:
         self.timeout = timeout
         self._last = 0.0
 
-    def get(self, url: str) -> str:
+    def get(self, url: str, headers: dict | None = None) -> str:
+        """headers (e.g. an auth token) are sent but not part of the cache key."""
         path = self.cache_dir / (hashlib.sha256(url.encode()).hexdigest()[:24] + ".txt")
         if path.exists():
             return path.read_text(encoding="utf-8")
         wait = self.delay - (time.time() - self._last)
         if wait > 0:
             time.sleep(wait)
-        request = urllib.request.Request(url, headers={"User-Agent": "paper-reviewer-eval/1.0"})
+        request = urllib.request.Request(url, headers={"User-Agent": "paper-reviewer-eval/1.0", **(headers or {})})
         error = None
         for attempt in range(3):
             try:
