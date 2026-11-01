@@ -13,6 +13,7 @@ Condition 6 — No RAG, 2 iterations, 1 reviewer, no AI Detector, no author rebu
 Condition 7 — RAG, 3 iterations, 1 reviewer, author rebuttal
 Condition 8 — Improved RAG (labeled works, novelty check, cited/uncited filtering), 1 iteration, 1 reviewer
 Condition 9 — Condition 8 plus the related-work analyst step
+Condition 10/11 — Conditions 8/9 without the uncited-works quota (min_uncited_shown=0)
 
 Conditions 8 and 9 compare with condition 1 (same reviewer, no RAG). See
 docs/experiments/rag_improvements.md.
@@ -116,6 +117,14 @@ _CONDITIONS_SPEC = [
     dict(id="9", label="rag_analyst_1iter_1rev",
          desc="Condition 8 plus a related-work analyst step before the reviewer; 1 iteration, 1 neutral reviewer",
          agents=_N, n_iter=1, enable_rag=True, rag_overrides="improved_analyst"),
+    # Same as 8 and 9 without the uncited-works quota: reviewers see only works above the relevance
+    # cutoff, so "nothing missing" is a natural answer (8/9 always showed >= 3 uncited works).
+    dict(id="10", label="rag_engaged_noquota_1iter_1rev",
+         desc="Condition 8 without the uncited-works quota (only works above the relevance cutoff are shown)",
+         agents=_N, n_iter=1, enable_rag=True, rag_overrides="improved_noquota"),
+    dict(id="11", label="rag_analyst_noquota_1iter_1rev",
+         desc="Condition 9 without the uncited-works quota",
+         agents=_N, n_iter=1, enable_rag=True, rag_overrides="improved_analyst_noquota"),
 ]
 
 # Run-time RAG settings for the improved conditions. Retrieval-time options (claim queries,
@@ -133,6 +142,8 @@ RAG_OVERRIDE_PRESETS = {
     },
 }
 RAG_OVERRIDE_PRESETS["improved_analyst"] = {**RAG_OVERRIDE_PRESETS["improved"], "related_work_analyst": True}
+RAG_OVERRIDE_PRESETS["improved_noquota"] = {**RAG_OVERRIDE_PRESETS["improved"], "min_uncited_shown": 0}
+RAG_OVERRIDE_PRESETS["improved_analyst_noquota"] = {**RAG_OVERRIDE_PRESETS["improved_analyst"], "min_uncited_shown": 0}
 
 _CONDITION_DEFAULTS = {
     "rag_overrides":          None,

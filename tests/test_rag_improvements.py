@@ -517,6 +517,10 @@ class TestExperimentAndEval(unittest.TestCase):
         self.assertTrue(merged["related_work_analyst"])
         self.assertEqual(merged["cutoff_date"], "2024-12-31")
         self.assertNotIn("prompt_style", experiment.condition_rag_config(conds["7"], {}))
+        self.assertEqual(experiment.condition_rag_config(conds["10"], {})["min_uncited_shown"], 0)
+        noquota = experiment.condition_rag_config(conds["11"], {})
+        self.assertEqual((noquota["min_uncited_shown"], noquota["related_work_analyst"]), (0, True))
+        self.assertEqual(experiment.condition_rag_config(conds["8"], {})["min_uncited_shown"], 3)   # unchanged
 
     def test_preflight_stops_on_rejected_key_and_failed_results_rerun(self):
         experiment = import_experiment()

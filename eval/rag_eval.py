@@ -543,7 +543,7 @@ def main(argv=None) -> None:
     parser.add_argument("--control_summary", default=None, help="Summary holding the control (default: --summary).")
     parser.add_argument("--control_cond", default="1")
     parser.add_argument("--rag_conds", nargs="+", default=["8", "9"])
-    parser.add_argument("--analyst_conds", nargs="*", default=["9"])
+    parser.add_argument("--analyst_conds", nargs="*", default=["9", "11"])
     parser.add_argument("--subscores", default=None,
                         help="Output of eval/fetch_review_subscores.py: adds per-dimension correlations "
                              "with the human reviewers' ratings (e.g. novelty vs originality/contribution).")
