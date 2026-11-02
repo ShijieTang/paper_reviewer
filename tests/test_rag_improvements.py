@@ -628,6 +628,41 @@ class TestExperimentAndEval(unittest.TestCase):
         self.assertEqual(rep["novelty"]["human_fields"], {"originality": 4, "contribution": 4})
         self.assertEqual(rep["soundness"]["papers"], 0)
 
+    def test_repeated_runs_evaluation(self):
+        import rag_eval_reps
+        with tempfile.TemporaryDirectory() as tmp:
+            ids = [f"p{i}" for i in range(8)]
+            dataset = {p: {"conference": "ICLR", "score": 8 if i % 2 == 0 else 3,
+                           "accept_or_not": "accept" if i % 2 == 0 else "reject"} for i, p in enumerate(ids)}
+            (Path(tmp) / "data.json").write_text(json.dumps(dataset))
+
+            def write_run(folder, cond, correct):
+                papers = []
+                for i, p in enumerate(ids):
+                    accept = (i % 2 == 0) == correct or i == 0
+                    review = {**BASE_REVIEW, "decision": "accept" if accept else "reject",
+                              "scores": {k: (4 if accept else 2) for k in REVIEW_SCORE_KEYS}}
+                    papers.append({"paper_id": p, "conditions": {cond: {"result": {"reviewers": [review]}}}})
+                d = Path(tmp) / folder
+                d.mkdir()
+                (d / "experiment_summary_2601010000.json").write_text(json.dumps({"papers": papers}))
+                return str(d)
+
+            args = ["--dataset", str(Path(tmp) / "data.json"), "--control", "C1", "--bootstrap", "30",
+                    "--output", str(Path(tmp) / "out.json")]
+            for rep in ("a", "b"):
+                args += ["--run", f"C1={write_run('c1' + rep, '1', correct=False)}:1",
+                         "--run", f"C10={write_run('c10' + rep, '10', correct=True)}:10"]
+            rag_eval_reps.main(args)
+            report = json.loads((Path(tmp) / "out.json").read_text())
+        c10 = report["conditions"]["C10"]
+        self.assertEqual(report["papers"], 8)
+        self.assertEqual(c10["runs"], 2)
+        self.assertEqual(c10["metrics"]["accuracy"]["mean"], 1.0)
+        self.assertEqual(report["conditions"]["C1"]["metrics"]["accuracy"]["mean"], 0.125)
+        self.assertAlmostEqual(c10["vs_control"]["accuracy"]["value"], 0.875)
+        self.assertEqual(c10["decision_consistency"], 1.0)
+
     def test_first_public_dates_parsing(self):
         import first_public_dates as fpd
         feed = """<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>http://arxiv.org/abs/2402.01234v3</id>
