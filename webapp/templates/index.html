@@ -212,6 +212,19 @@
     <div id="rag-preview" class="rag-preview" style="display:none;"></div>
   </div>
 
+  <!-- Related-work check (standalone, author-facing) -->
+  <div class="config-section rag-section workflow-section">
+    <div class="workflow-heading">
+      <span class="step-number">&#43;</span>
+      <div><div class="config-label">Related-work check <span class="required">optional</span></div><div class="step-caption">Compares your claimed contributions with the closest prior work and lists relevant work you do not cite. For your own information: it does not change the review scores or decision.</div></div>
+    </div>
+    <div class="rag-action-row">
+      <button type="button" class="btn-rag" id="btn-run-rwcheck" onclick="runRelatedWorkCheck()">Run related-work check</button>
+    </div>
+    <div id="rwcheck-status" class="rag-status">Not run yet. Takes a few minutes (retrieval plus one analysis call).</div>
+    <div id="rwcheck-preview" class="rag-preview" style="display:none;"></div>
+  </div>
+
   <!-- Run -->
   <div class="config-section run-section workflow-section">
     <div class="workflow-heading">
@@ -659,6 +672,102 @@
       <details><summary>${escHtml(queryLabel)} (${queries.length})</summary><ul>${queryHtml}</ul></details>
       <details><summary>All retrieved papers (${metadata.length})</summary><ul>${paperHtml || "<li>No cutoff-valid papers retrieved.</li>"}</ul></details>
       ${warningHtml ? `<details open><summary>Warnings</summary><ul class="rag-warnings">${warningHtml}</ul></details>` : ""}
+    `;
+    preview.style.display = "block";
+  }
+
+  // ── Standalone related-work check ─────────────────────────────────────────
+  async function runRelatedWorkCheck() {
+    const status = document.getElementById("rwcheck-status");
+    const preview = document.getElementById("rwcheck-preview");
+    const btn = document.getElementById("btn-run-rwcheck");
+    const payload = ragRequestPayload();
+    status.className = "rag-status";
+    preview.style.display = "none";
+    preview.innerHTML = "";
+    if (!payload.api_key) { status.className = "rag-status rag-error"; status.textContent = "Please enter your API key."; return; }
+
+    btn.disabled = true;
+    btn.textContent = "Running…";
+    status.textContent = "Starting…";
+    const finish = () => { btn.disabled = false; btn.textContent = "Run related-work check"; };
+    try {
+      const res = await fetch("/api/related-work-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.error) { status.className = "rag-status rag-error"; status.textContent = data.error; finish(); return; }
+      const source = new EventSource(`/api/stream/${data.job_id}`);
+      source.onmessage = async (event) => {
+        const ev = JSON.parse(event.data);
+        if (ev.type === "status") {
+          status.textContent = ev.message;
+        } else if (ev.type === "done") {
+          source.close();
+          const r = await fetch(`/api/results/${data.job_id}`).then(x => x.json());
+          status.className = "rag-status rag-ok";
+          status.textContent = "Related-work check complete.";
+          renderRelatedWorkCheck(r);
+          finish();
+        } else if (ev.type === "error") {
+          source.close();
+          status.className = "rag-status rag-error";
+          status.textContent = ev.message;
+          finish();
+        }
+      };
+      source.onerror = () => { source.close(); status.className = "rag-status rag-error"; status.textContent = "Lost connection to the server."; finish(); };
+    } catch (err) {
+      status.className = "rag-status rag-error";
+      status.textContent = "Related-work check failed: " + err.message;
+      finish();
+    }
+  }
+
+  function renderRelatedWorkCheck(r) {
+    const preview = document.getElementById("rwcheck-preview");
+    const works = Object.fromEntries((r.shown_works || []).map(w => [w.label, w]));
+    const workLink = (label) => {
+      const w = works[label];
+      if (!w) return escHtml(label);
+      const title = w.url ? `<a href="${escHtml(w.url)}" target="_blank">${escHtml(w.title)}</a>` : escHtml(w.title);
+      return `[${escHtml(label)}] ${title}${w.year ? " (" + escHtml(String(w.year)) + ")" : ""}`;
+    };
+    const report = r.related_work_report || {};
+    const overlapRows = (report.contribution_overlap || []).map(o => `
+      <tr>
+        <td>${escHtml(o.claimed_contribution || "")}</td>
+        <td>${(o.closest_prior_work || []).map(workLink).join("<br>") || "none"}</td>
+        <td>${escHtml(o.overlap || "")}</td>
+        <td class="td-reason">${escHtml(o.explanation || "")}</td>
+      </tr>`).join("");
+    const refRows = (items) => items.map(m => {
+      const authors = (m.authors || []).slice(0, 3).join(", ") + ((m.authors || []).length > 3 ? " et al." : "");
+      const title = m.url ? `<a href="${escHtml(m.url)}" target="_blank">${escHtml(m.title || "(untitled)")}</a>` : escHtml(m.title || "(untitled)");
+      return `<tr><td>${title}<div class="missing-ref-meta">${escHtml(authors)}${m.year ? " · " + escHtml(String(m.year)) : ""}</div></td>
+        <td class="td-reason">${(m.reasons || []).map(x => `<div>${escHtml(x)}</div>`).join("") || "—"}</td></tr>`;
+    }).join("");
+    const missing = r.possibly_missing_references || [];
+    const other = r.other_relevant_uncited || [];
+    const shownList = (r.shown_works || []).map(w =>
+      `<li>${workLink(w.label)} <span class="muted">relevance ${escHtml(w.relevance_score)} · cited in your paper: ${w.cited_in_manuscript === true ? "yes" : w.cited_in_manuscript === false ? "no" : "unknown"}</span></li>`).join("");
+    const warnings = (r.warnings || []).map(w => `<li>${escHtml(w)}</li>`).join("");
+
+    preview.innerHTML = `
+      <div class="rag-summary-card"><span>Summary</span><p>${escHtml(report.summary || "")}</p></div>
+      ${overlapRows ? `<details open><summary>Claimed contributions vs closest prior work</summary>
+        <table class="cit-table"><thead><tr><th>Claimed contribution</th><th>Closest prior work</th><th>Overlap</th><th>Explanation</th></tr></thead>
+        <tbody>${overlapRows}</tbody></table></details>` : ""}
+      <details open><summary>Possibly missing references (${missing.length})</summary>
+        ${missing.length ? `<table class="cit-table"><thead><tr><th>Work</th><th>Why it may be relevant</th></tr></thead><tbody>${refRows(missing)}</tbody></table>`
+                         : `<p class="cit-all-pass">&#10003; No uncited work overlaps a claimed contribution.</p>`}</details>
+      ${other.length ? `<details><summary>Other retrieved work you do not cite (${other.length}; ranked by relevance only, not compared with your claims)</summary>
+        <table class="cit-table"><thead><tr><th>Work</th><th>Retrieval note</th></tr></thead><tbody>${refRows(other)}</tbody></table></details>` : ""}
+      <details><summary>Works compared (${(r.shown_works || []).length})</summary><ul>${shownList || "<li>None passed the relevance filter.</li>"}</ul></details>
+      ${warnings ? `<details open><summary>Warnings</summary><ul class="rag-warnings">${warnings}</ul></details>` : ""}
+      <p class="muted">Generated by an LLM from retrieved abstracts. Check each claim against the cited work before acting on it.</p>
     `;
     preview.style.display = "block";
   }

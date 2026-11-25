@@ -87,6 +87,24 @@ python webapp/app.py
 
 Open [http://localhost:5001](http://localhost:5001) in your browser. Upload a PDF, select reviewers, and stream results interactively.
 
+### 3. Related-work check (standalone, for authors)
+
+Compares the manuscript's claimed contributions with the closest retrieved prior work and lists relevant
+work it does not cite. It runs retrieval plus one related-work analyst call, with no reviewers, scores or
+decision, and is not evaluated against human reviews. In the web app it is the "Related-work check" step
+on the configuration page.
+
+```bash
+export OPENALEX_API_KEY=...        # OpenAlex needs a key since 2026
+python related_work_check.py --paper data/md/<paper>.md --provider openrouter --model deepseek/deepseek-chat-v3.1
+```
+
+Output (JSON in `results/`): the labeled works compared, a per-contribution overlap table
+(none / partial / substantial) with explanations, possibly missing references (uncited works the analyst
+named as overlapping a claimed contribution), up to 5 other relevant uncited works by retrieval relevance
+only, and a short summary. Settings are in `STANDALONE_RAG_CONFIG` in `related_work_check.py` (no date
+cutoff; refinement as in experiment condition 11).
+
 ---
 
 ## Experiments

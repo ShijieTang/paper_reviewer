@@ -297,6 +297,54 @@ def run_rag():
         return jsonify({"error": str(exc)}), 500
 
 
+@app.route("/api/related-work-check", methods=["POST"])
+def run_related_work_check_job():
+    """Standalone related-work check for the author: retrieval + analyst, no review and no scores.
+
+    Runs as a background job; progress goes to /api/stream/<job_id> and the report to
+    /api/results/<job_id>.
+    """
+    data     = request.get_json() or {}
+    api_key  = data.get("api_key", "").strip()
+    provider = data.get("provider", "cmu").strip().lower()
+    model    = data.get("model", "").strip()
+
+    if not current_md_name:
+        return jsonify({"error": "No paper loaded. Go back and load a paper first."}), 400
+    if provider not in VALID_PROVIDERS:
+        return jsonify({"error": f"Invalid API provider. Choose from: {sorted(VALID_PROVIDERS)}"}), 400
+    key_error = validate_api_key_for_provider(provider, api_key)
+    if key_error:
+        return jsonify({"error": key_error}), 400
+
+    md_path = Path("data/md") / Path(current_md_name).name
+    paper = md_path.read_text(encoding="utf-8")
+    paper_name = Path(current_md_name).stem
+    job_id = str(uuid.uuid4())
+    q: queue.Queue = queue.Queue()
+    _jobs[job_id] = q
+
+    def run():
+        try:
+            from related_work_check import run_related_work_check
+            result = run_related_work_check(paper, provider=provider, model=model, api_key=api_key,
+                                            on_event=lambda msg: q.put(("status", msg)))
+            _results[job_id] = result
+            results_dir = Path(__file__).parent.parent / "results"
+            results_dir.mkdir(exist_ok=True)
+            fname = f"{datetime.now():%y%m%d%H%M}_related_work_check_{paper_name}.json"
+            (results_dir / fname).write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+            if result.get("status") == "failed":
+                q.put(("error", "; ".join(result.get("errors") or ["Related-work check failed."])))
+            else:
+                q.put(("done", "Related-work check complete."))
+        except Exception as exc:
+            q.put(("error", str(exc)))
+
+    threading.Thread(target=run, daemon=True).start()
+    return jsonify({"job_id": job_id})
+
+
 # ── SSE stream ───────────────────────────────────────────────────────────────
 
 @app.route("/api/stream/<job_id>")
